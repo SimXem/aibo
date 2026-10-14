@@ -1,0 +1,234 @@
+{
+ "_doc": "The shape of the private name registry (fri_forecaster/names.py), under placeholder names: <condition>-<place>. Members follow fri-utils' ModelRun shape (model_key, provider, provider_model_id, lab, options); one_shot_baseline is the fri-utils model_run_key of the same model without the pi loop, for the agentic-vs-one-shot comparison. Never edit a registered name's entry: register the next place instead.",
+ "places": [
+  "oak",
+  "elm",
+  "ash",
+  "yew",
+  "fir",
+  "larch",
+  "rowan",
+  "alder"
+ ],
+ "conditions": {
+  "ensemble": {
+   "description": "the top 4 models by ECI with research, mean per cell",
+   "current": "ensemble-oak"
+  },
+  "unaided": {
+   "description": "the same top 4 without research, mean per cell",
+   "current": "unaided-oak"
+  },
+  "solo": {
+   "description": "the top model by ECI alone, with research",
+   "current": "solo-oak"
+  }
+ },
+ "names": {
+  "ensemble-oak": {
+   "condition": "ensemble",
+   "reason": "the top 4 models by ECI at registration",
+   "aggregate": "mean",
+   "research": true,
+   "harness": {
+    "name": "fri-forecaster",
+    "pi": "0.99.2",
+    "prompt_version": "fb-v1"
+   },
+   "members": [
+    {
+     "pi_model": "anthropic/claude-opus-5-5",
+     "model_key": "claude-opus-5-5",
+     "provider": "anthropic",
+     "provider_model_id": "claude-opus-5-5",
+     "lab": "Anthropic",
+     "options": {
+      "thinking": "high",
+      "tools": [
+       "web_search",
+       "read_page",
+       "submit_forecast"
+      ],
+      "search_backend": "tavily",
+      "min_research": 2
+     },
+     "one_shot_baseline": "claude-opus-5-5-run-variant-01",
+     "eci_name": "Claude Opus 5.5"
+    },
+    {
+     "pi_model": "openai/gpt-6-astra",
+     "model_key": "gpt-6-astra",
+     "provider": "openai",
+     "provider_model_id": "gpt-6-astra",
+     "lab": "OpenAI",
+     "options": {
+      "thinking": "high",
+      "tools": [
+       "web_search",
+       "read_page",
+       "submit_forecast"
+      ],
+      "search_backend": "tavily",
+      "min_research": 2
+     },
+     "one_shot_baseline": "gpt-6-astra-run-variant-01",
+     "eci_name": "GPT-6 Astra"
+    },
+    {
+     "pi_model": "openai/gpt-6.1-sol",
+     "model_key": "gpt-6.1-sol",
+     "provider": "openai",
+     "provider_model_id": "gpt-6.1-sol",
+     "lab": "OpenAI",
+     "options": {
+      "thinking": "high",
+      "tools": [
+       "web_search",
+       "read_page",
+       "submit_forecast"
+      ],
+      "search_backend": "tavily",
+      "min_research": 2
+     },
+     "one_shot_baseline": "gpt-6.1-sol-run-variant-01",
+     "eci_name": "GPT-6.1 Sol"
+    },
+    {
+     "pi_model": "anthropic/claude-sonnet-5-5",
+     "model_key": "claude-sonnet-5-5",
+     "provider": "anthropic",
+     "provider_model_id": "claude-sonnet-5-5",
+     "lab": "Anthropic",
+     "options": {
+      "thinking": "high",
+      "tools": [
+       "web_search",
+       "read_page",
+       "submit_forecast"
+      ],
+      "search_backend": "tavily",
+      "min_research": 2
+     },
+     "one_shot_baseline": "claude-sonnet-5-5-run-variant-01",
+     "eci_name": "Claude Sonnet 5.5"
+    }
+   ],
+   "fingerprint": "750a8da435fd2568"
+  },
+  "unaided-oak": {
+   "condition": "unaided",
+   "reason": "the same 4 models as ensemble, without research",
+   "aggregate": "mean",
+   "research": false,
+   "harness": {
+    "name": "fri-forecaster",
+    "pi": "0.99.2",
+    "prompt_version": "fb-v1"
+   },
+   "members": [
+    {
+     "pi_model": "anthropic/claude-opus-5-5",
+     "model_key": "claude-opus-5-5",
+     "provider": "anthropic",
+     "provider_model_id": "claude-opus-5-5",
+     "lab": "Anthropic",
+     "options": {
+      "thinking": "high",
+      "tools": [
+       "submit_forecast"
+      ],
+      "search_backend": null,
+      "min_research": 0
+     },
+     "one_shot_baseline": null,
+     "eci_name": "Claude Opus 5.5"
+    },
+    {
+     "pi_model": "openai/gpt-6-astra",
+     "model_key": "gpt-6-astra",
+     "provider": "openai",
+     "provider_model_id": "gpt-6-astra",
+     "lab": "OpenAI",
+     "options": {
+      "thinking": "high",
+      "tools": [
+       "submit_forecast"
+      ],
+      "search_backend": null,
+      "min_research": 0
+     },
+     "one_shot_baseline": null,
+     "eci_name": "GPT-6 Astra"
+    },
+    {
+     "pi_model": "openai/gpt-6.1-sol",
+     "model_key": "gpt-6.1-sol",
+     "provider": "openai",
+     "provider_model_id": "gpt-6.1-sol",
+     "lab": "OpenAI",
+     "options": {
+      "thinking": "high",
+      "tools": [
+       "submit_forecast"
+      ],
+      "search_backend": null,
+      "min_research": 0
+     },
+     "one_shot_baseline": null,
+     "eci_name": "GPT-6.1 Sol"
+    },
+    {
+     "pi_model": "anthropic/claude-sonnet-5-5",
+     "model_key": "claude-sonnet-5-5",
+     "provider": "anthropic",
+     "provider_model_id": "claude-sonnet-5-5",
+     "lab": "Anthropic",
+     "options": {
+      "thinking": "high",
+      "tools": [
+       "submit_forecast"
+      ],
+      "search_backend": null,
+      "min_research": 0
+     },
+     "one_shot_baseline": null,
+     "eci_name": "Claude Sonnet 5.5"
+    }
+   ],
+   "fingerprint": "1e547482f7780a1f"
+  },
+  "solo-oak": {
+   "condition": "solo",
+   "reason": "the top model by ECI at registration",
+   "aggregate": "mean",
+   "research": true,
+   "harness": {
+    "name": "fri-forecaster",
+    "pi": "0.99.2",
+    "prompt_version": "fb-v1"
+   },
+   "members": [
+    {
+     "pi_model": "anthropic/claude-opus-5-5",
+     "model_key": "claude-opus-5-5",
+     "provider": "anthropic",
+     "provider_model_id": "claude-opus-5-5",
+     "lab": "Anthropic",
+     "options": {
+      "thinking": "high",
+      "tools": [
+       "web_search",
+       "read_page",
+       "submit_forecast"
+      ],
+      "search_backend": "tavily",
+      "min_research": 2
+     },
+     "one_shot_baseline": "claude-opus-5-5-run-variant-01",
+     "eci_name": "Claude Opus 5.5"
+    }
+   ],
+   "fingerprint": "f1d79cd7c1e5ad13"
+  }
+ }
+}
