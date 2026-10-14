@@ -177,6 +177,10 @@ fi
 # call is longer and dearer than it was. 4 models x 1 = 4 calls. The views
 # draw no interval on a single-draw day; the dots and the median are the
 # reading.
+# THE LOOP is the set's own: agent-box's pi since combined-v9 (2026-10-16;
+# redlines/pi_loop.py, three hours a call, REDLINES_PI_TIMEOUT), so the env
+# file must give FORECASTER_PI and node on PATH (see THE SHADOW below). The
+# request timeout here is the litellm loop's, which the shadow now runs.
 export REDLINES_LLM_TIMEOUT="${REDLINES_LLM_TIMEOUT:-1800}"
 # The runner exits non-zero when any panel model fails (the date cannot
 # publish without all of them), which under `set -e` stops this script before
@@ -223,30 +227,31 @@ fi
 FINISHED=1
 notify "AIRO run $STAMP published" "$(grep -E 'ok, [0-9]+ failed' "$LOG" | tail -1 | sed 's/ -> .*//'). Panel: $PANEL" low white_check_mark
 
-# THE PI SHADOW (2026-10-14): the same instrument, same panel, same day,
-# through agent-box's pi loop instead of redlines.llm (code/run_unified.py
-# --harness pi; redlines/pi_loop.py says what differs). An experiment, never
-# the series: rows go to results/experiments/pi-shadow-*, protocol "...+pi".
-# Then code/compare_harness.py prints the two runs cell by cell, beside the
-# previous run as litellm's own spread. Off unless the env file sets
-# REDLINES_PI_SHADOW=1; needs agent-box in PY (`pip install -e '.[pi]'`), and
-# in the env file FORECASTER_PI (pi 0.99.2's cli.js) and a PATH with node on
-# it (cron's own PATH has none). It runs after publication and can only
-# notify: the published run is already done.
-pi_shadow() {
-    local runs="$REPO/results/conditional_runs_combined" base prev shadow
+# THE SHADOW (2026-10-14): the same instrument, same panel, same day, through
+# the OTHER loop (code/run_unified.py --harness; the set names its own: pi
+# since combined-v9, redlines.llm's litellm before). An experiment, never the
+# series: rows go to results/experiments/<harness>-shadow-*, protocol
+# "<protocol>+<harness>". Then code/compare_harness.py prints the two runs
+# cell by cell, beside the previous run as the published loop's own spread.
+# Off unless the env file sets REDLINES_SHADOW_HARNESS (litellm or pi). The
+# pi loop needs agent-box in PY (`pip install -e '.[pi]'`), and in the env
+# file FORECASTER_PI (pi 0.99.2's cli.js) and a PATH with node on it (cron's
+# own PATH has none) -- for the published run as much as for a shadow. It
+# runs after publication and can only notify: the published run is done.
+shadow() {
+    local h="$1" runs="$REPO/results/conditional_runs_combined" base prev other
     base="$(ls "$runs"/*.jsonl | sort | tail -1)"
     prev="$(ls "$runs"/*.jsonl | sort | tail -2 | head -1)"
-    echo "=== pi shadow: the instrument through pi; litellm's is $base ==="
-    "$PY" code/run_unified.py --joint --repeats 1 --workers 2 --harness pi \
-        --experiment pi-shadow --conditions data/combined_conditions.json || return 1
-    shadow="$(ls "$REPO"/results/experiments/pi-shadow-*-instrument.jsonl | sort | tail -1)"
-    "$PY" code/compare_harness.py --base "$base" --pi "$shadow" --prev "$prev" | tee "${shadow%.jsonl}.compare.txt"
+    echo "=== $h shadow: the instrument through $h; the published run is $base ==="
+    "$PY" code/run_unified.py --joint --repeats 1 --workers 2 --harness "$h" \
+        --experiment "$h-shadow" --conditions data/combined_conditions.json || return 1
+    other="$(ls "$REPO"/results/experiments/"$h"-shadow-*-instrument.jsonl | sort | tail -1)"
+    "$PY" code/compare_harness.py --base "$base" --other "$other" --prev "$prev" | tee "${other%.jsonl}.compare.txt"
 }
-if [ "${REDLINES_PI_SHADOW:-0}" = 1 ]; then
-    if pi_shadow; then
-        notify "AIRO pi shadow $STAMP done" "$(sed -n 2,6p "$(ls "$REPO"/results/experiments/pi-shadow-*.compare.txt | sort | tail -1)")" low
+if [ -n "${REDLINES_SHADOW_HARNESS:-}" ]; then
+    if shadow "$REDLINES_SHADOW_HARNESS"; then
+        notify "AIRO $REDLINES_SHADOW_HARNESS shadow $STAMP done" "$(sed -n 2,6p "$(ls "$REPO"/results/experiments/"$REDLINES_SHADOW_HARNESS"-shadow-*.compare.txt | sort | tail -1)")" low
     else
-        notify "AIRO pi shadow $STAMP FAILED" "The published run is unaffected. log: $LOG" default warning
+        notify "AIRO $REDLINES_SHADOW_HARNESS shadow $STAMP FAILED" "The published run is unaffected. log: $LOG" default warning
     fi
 fi

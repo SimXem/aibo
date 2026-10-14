@@ -1,19 +1,21 @@
 #!/usr/bin/env python3
-"""The same instrument through two loops, cell by cell: the cron's litellm run
-against a `--harness pi` shadow run of the same day (redlines/pi_loop.py).
+"""The same instrument through two loops, cell by cell: the cron's published
+run against a `--harness` shadow run of the same day through the other loop
+(pi since combined-v9, litellm before; redlines/pi_loop.py says what differs).
 
     python code/compare_harness.py \\
         --base results/conditional_runs_combined/2026-10-21T1200Z.jsonl \\
-        --pi results/experiments/pi-shadow-2026-10-21T1405Z-instrument.jsonl \\
+        --other results/experiments/litellm-shadow-2026-10-21T1405Z-instrument.jsonl \\
         --prev results/conditional_runs_combined/2026-10-16T1200Z.jsonl
 
 A cell is (model, question, condition, horizon). Per model: how many cells
 both runs answered, the mean and median |difference| in probability, the
-share that moved more than 0.1, and the mean signed difference (pi minus
-litellm); then each call's research, turns, cost and debrief. One draw per
+share that moved more than 0.1, and the mean signed difference (other minus
+published); then each call's research, turns, cost and debrief. One draw per
 loop cannot tell a loop effect from run-to-run spread, so `--prev` (the
-previous cron run) prints the same numbers for litellm against itself: a
-loop difference that sits inside that spread is not a difference yet.
+previous cron run) prints the same numbers for the published loop against
+itself: a loop difference that sits inside that spread is not a difference
+yet. The loops are named from the rows (usage.harness; none = litellm).
 """
 import argparse
 import json
@@ -60,6 +62,14 @@ def compare(a_rows, b_rows):
     return out
 
 
+def loop_name(rows):
+    """The loop a run went through: pi rows carry usage.harness; litellm's none."""
+    for r in calls(rows).values():
+        h = r["usage"].get("harness")
+        return h["name"] if isinstance(h, dict) else "litellm"
+    return "?"
+
+
 def call_line(r):
     u = r.get("usage") or {}
     st = r.get("debrief_status") or {}
@@ -79,21 +89,23 @@ def table(title, result):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--base", required=True, help="the cron run's instrument rows (litellm)")
-    ap.add_argument("--pi", required=True, help="the shadow run's instrument rows (--harness pi)")
-    ap.add_argument("--prev", help="the previous cron run's instrument rows: litellm's own spread")
+    ap.add_argument("--base", required=True, help="the cron run's instrument rows (the published loop)")
+    ap.add_argument("--other", required=True, help="the shadow run's instrument rows (--harness, the other loop)")
+    ap.add_argument("--prev", help="the previous cron run's instrument rows: the published loop's own spread")
     args = ap.parse_args(argv)
-    base, pi = load(args.base), load(args.pi)
-    if not compare(base, pi):
+    base, other = load(args.base), load(args.other)
+    b, o = loop_name(base), loop_name(other)
+    if not compare(base, other):
         sys.exit("no cells in common: different instruments, or a run without forecasts")
-    table("pi vs litellm, same day (pi minus litellm):", compare(base, pi))
+    table(f"{o} vs {b}, same day ({o} minus {b}):", compare(base, other))
     if args.prev:
-        table("\nlitellm vs litellm, previous run (this run minus previous):", compare(load(args.prev), base))
+        table(f"\n{b} vs {b}, previous run (this run minus previous):", compare(load(args.prev), base))
     print("\ncalls:")
+    w = max(len(b), len(o))
     for label, r in calls(base).items():
-        print(f"  {label:16} litellm {call_line(r)}")
-        p = calls(pi).get(label)
-        print(f"  {'':16} pi      {call_line(p) if p else 'no call'}")
+        print(f"  {label:16} {b:{w}} {call_line(r)}")
+        p = calls(other).get(label)
+        print(f"  {'':16} {o:{w}} {call_line(p) if p else 'no call'}")
 
 
 if __name__ == "__main__":
