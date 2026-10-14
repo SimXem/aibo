@@ -83,6 +83,20 @@ def _logit(p):
 # falls back down the line, so the tab keeps its rows on the day of a bump and
 # switches the day the first run under the new tag lands.
 PROTOCOL_LINEAGE = {
+    # 2026-10-16, v9: the LOOP changes, nothing else. The instrument -- prompt,
+    # questions, conditions, tools and their schemas, the research floor, the
+    # coverage rule, the turn limit, the debrief -- is v8's; the calls go
+    # through FRI's agent-box (pi, redlines/pi_loop.py) instead of
+    # redlines.llm's litellm loop, as FRI's ForecastBench runs do. The full
+    # panel through pi on 2026-10-14 (results/experiments/pi-shadow-
+    # 2026-10-14T2144Z, code/compare_harness.py), against that day's litellm
+    # run: mean |d| 0.019-0.025 per model over 3,444 cells, 3.9-7.2% moved
+    # >0.1 -- inside litellm's own spread from the run before (0.022-0.041,
+    # 4.8-15.3%) for every model.
+    "unified-joint-combined-v9": ("unified-joint-combined-v8", "unified-joint-combined-v7",
+                                  "unified-joint-combined-v6", "unified-joint-combined-v5",
+                                  "unified-joint-combined-v4", "unified-joint-combined-v3",
+                                  "unified-joint-combined-v2", "unified-joint-combined-v1"),
     # 2026-10-01, v8: the extinction pair's criteria stop naming their source.
     # The AI question had said its criteria were XPT's, "kept verbatim so the
     # forecasts compare with that panel's", and the total-extinction question
@@ -145,7 +159,7 @@ PROTOCOL_LINEAGE = {
 # the same string (tests pin the two together); the views, the run log's
 # grounding line and the coherence test all read it from here, so a bump is
 # one edit plus the lineage entry above.
-COMBINED_PROTOCOL = "unified-joint-combined-v8"
+COMBINED_PROTOCOL = "unified-joint-combined-v9"
 # The first combined tag elicited by the agentic harness (iterative search +
 # page reads, 2026-09-02); v1 (2026-08-28) still ran the legacy grounding.
 AGENTIC_SINCE = "unified-joint-combined-v2"

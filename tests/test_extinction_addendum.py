@@ -269,13 +269,13 @@ class TestTheQuestionsNameNoSource(unittest.TestCase):
 
 class TestTheTagMoved(unittest.TestCase):
 
-    def test_combined_v8_with_its_lineage(self):
-        # v8 (2026-10-01, the pair unnamed) sits above v7 (2026-09-16, the
-        # extinction rung) and v6 (the pair); a log holding only v5 and v6
-        # rows still reads as v6 until a later run lands.
-        self.assertEqual(COMBINED_PROTOCOL, "unified-joint-combined-v8")
+    def test_combined_v9_with_its_lineage(self):
+        # v9 (2026-10-16, the pi loop) sits above v8 (2026-10-01, the pair
+        # unnamed), v7 (2026-09-16, the extinction rung) and v6 (the pair); a
+        # log holding only v5 and v6 rows still reads as v6 until a later run lands.
+        self.assertEqual(COMBINED_PROTOCOL, "unified-joint-combined-v9")
         self.assertEqual(protocol_line(COMBINED_PROTOCOL)[1:],
-                         ("unified-joint-combined-v7", "unified-joint-combined-v6", "unified-joint-combined-v5",
+                         ("unified-joint-combined-v8", "unified-joint-combined-v7", "unified-joint-combined-v6", "unified-joint-combined-v5",
                           "unified-joint-combined-v4", "unified-joint-combined-v3",
                           "unified-joint-combined-v2", "unified-joint-combined-v1"))
         rows = [{"protocol": "unified-joint-combined-v5"}, {"protocol": "unified-joint-combined-v6"}]

@@ -116,7 +116,10 @@ CAP = os.path.join(ROOT, "data", "eci_self6mo_conditions.json")
 OUT = os.path.join(ROOT, "data", "combined_conditions.json")
 
 SLUG = "combined"
-PROTOCOL = "unified-joint-combined-v8"
+PROTOCOL = "unified-joint-combined-v9"
+# The loop the protocol is elicited through (code/run_unified.py set_harness):
+# agent-box's pi since v9 (redlines/conditional.py PROTOCOL_LINEAGE).
+HARNESS = "pi"
 PLACEHOLDER = "{target_date}"
 
 # ── The authored sentences ──────────────────────────────────────────────────
@@ -172,6 +175,7 @@ def build():
         "slug": SLUG,
         "kind": "policy or capability",
         "protocol": PROTOCOL,
+        "harness": HARNESS,
         "source": {
             "panel": "LEAP, for the policy conditions only; no human panel answers the "
                      "capability conditions",

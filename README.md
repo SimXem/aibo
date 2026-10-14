@@ -89,11 +89,16 @@ pytest
 ## Elicit new forecasts
 
 ```bash
-pip install -e '.[acquire]'                      # litellm, and nothing else
+pip install -e '.[acquire,pi]'                   # litellm, and agent-box (the pi loop)
 python code/run_unified.py --joint --dry-run     # print the prompt, call nothing
 python code/run_unified.py --joint --repeats 1 --workers 2 \
     --conditions data/combined_conditions.json --out results/runs/<stamp>.jsonl
 ```
+
+Since combined-v9 the calls go through pi (redlines/pi_loop.py): node 22 and
+pi 0.99.2, whose `cli.js` `FORECASTER_PI` names (agent-box's README, "Requirements").
+`--harness litellm --experiment <name>` runs the same instrument through
+redlines.llm's own loop, which is the cron's shadow.
 
 Keys go in `~/.config/redlines/env` (mode 600), one `KEY=value` per line:
 `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`,
@@ -196,7 +201,7 @@ redlines/                   the pipeline package (stdlib only; litellm only insi
   hydrate.py, pages.py      window.__NAME__ blob injection; manifest-driven page assembly
   export.py                 forecasts.csv, rationales.csv, the download bundle, the ForecastBench export
   llm.py, tools.py          ACQUISITION ONLY: key loading + the agentic tool-use loop; the Tavily tools
-  pi_loop.py                the same loop through FRI's agent-box (pi), for --harness pi shadow runs
+  pi_loop.py                call_tools through FRI's agent-box (pi): the published loop since combined-v9
   views/                    one pure build() per panel: graph1..graph4, observational, causal,
                             databank, timeline, conditional, capability, axes, method
   paper/                    the paper's figures (graph1, graph3, graph4, incident_ladders,
@@ -212,7 +217,7 @@ code/                       acquisition scripts, generators and thin shims (see 
   graph3_comparability.py   the Graph 3 methodology decomposition (needs FB_DATASETS_ROOT)
   observational/            Graph 5: the observational bench, vendored (spec.md, runners, scoring)
   causal/                   Graph 6: the Starsim causal bench's generating code, frozen at causal-v4-locked
-  compare_harness.py        a --harness pi shadow run against the cron's, cell by cell
+  compare_harness.py        a --harness shadow run (the other loop) against the cron's, cell by cell
 data/
   auto-arc/                 the Auto-ARC question workbook (.xlsx) and definitions (.md) by date
   autoarc_ladder.json, autoarc_crosscutting.json   the generated question sets (never hand-edited)

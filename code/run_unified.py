@@ -424,6 +424,18 @@ def set_protocol(policies):
     return policies.get("protocol", PROTOCOL_JOINT)
 
 
+def set_harness(policies):
+    """The loop a set's protocol is elicited through (HARNESSES); part of the
+    protocol, so a set changes it only with a new tag."""
+    return policies.get("harness", "litellm")
+
+
+def row_protocol(policies, harness):
+    """The protocol a call's rows carry: the set's, or the set's +<harness>
+    for a run through a loop the set does not name (a shadow)."""
+    return set_protocol(policies) + ("" if harness == set_harness(policies) else f"+{harness}")
+
+
 def _definitions(policies):
     c = policies["conditioning"]
     return c.get("definitions") or f"Definitions. Frontier model: {c['frontier_model']}"
@@ -1354,7 +1366,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
                     "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
                     "prompt": prompt if first else None,
                     "system_prompt": SYSTEM if first else None,
-                    "protocol": set_protocol(policies) + ("" if harness == "litellm" else f"+{harness}"),
+                    "protocol": row_protocol(policies, harness),
                     "condition_set": set_slug(policies),
                     "call_id": call_id, "attempts": attempts,
                     "batch_size": len(qids),
@@ -1604,13 +1616,18 @@ def main():
                     help="tag every row with this experiment name (needs --out)")
     ap.add_argument("--dry-run", action="store_true",
                     help="print each arm's prompt and exit; no model is called")
-    ap.add_argument("--harness", choices=HARNESSES, default="litellm",
-                    help="the loop: litellm (redlines.llm, the series) or pi (redlines.pi_loop, "
-                         "agent-box; --joint --experiment only)")
+    ap.add_argument("--harness", choices=HARNESSES,
+                    help="the loop: the condition set's own (its `harness`; litellm when it names "
+                         "none) unless given. Another loop runs only as a --joint --experiment, "
+                         "its rows tagged <protocol>+<harness>")
     args = ap.parse_args()
-    if args.harness != "litellm" and not (args.joint and args.experiment):
-        sys.exit(f"--harness {args.harness} runs only as a --joint --experiment: "
-                 "its rows never join the series")
+    if args.harness:
+        if not args.joint:
+            sys.exit("--harness is for --joint runs")
+        own = set_harness(load_policies(args.conditions))
+        if args.harness != own and not args.experiment:
+            sys.exit(f"--harness {args.harness}: this set is elicited through {own}; another loop "
+                     "runs only as an --experiment, so its rows never join the series")
 
     # The combined instrument asks models to forecast and condition on frontier
     # ECI. Refuse to run it against a stale frontier history or a condition
@@ -1747,7 +1764,8 @@ def main_joint(args):
     policies = load_policies(args.conditions)
     conds = expand_conditions(args.condition or ["all"], policies)
     published_set = os.path.abspath(args.conditions) in {os.path.abspath(p) for p in PUBLISHED_SETS}
-    slug, proto = set_slug(policies), set_protocol(policies)
+    harness = args.harness or set_harness(policies)
+    slug, proto = set_slug(policies), row_protocol(policies, harness)
     if args.out and os.path.abspath(args.out) == os.path.abspath(RUNLOG):
         sys.exit("refusing: never append to the shared tracked log; the series "
                  "is one dated file per run under results/runs/ (see cron_run.sh)")
@@ -1815,7 +1833,7 @@ def main_joint(args):
           f"({len(models)} models x {len(arms)} repeat(s)), {n} questions x "
           f"{len(horizons)} horizons = {cells} cells x {len(conds) + 1} conditions "
           f"= {cells * (len(conds) + 1)} probabilities each")
-    print(f"    harness: research floor {MIN_RESEARCH} calls, coverage "
+    print(f"    harness: {harness} loop, research floor {MIN_RESEARCH} calls, coverage "
           f"{', '.join(g['key'] for g in groups)}, guard {MAX_ROUNDS} rounds; reasoning "
           + ", ".join(f"{l}={reasoning_for(m) or 'default'}" for l, m in models))
     print(f"    conditions: {UNCONDITIONAL_KEY}, {', '.join(c['id'] for c in conds)}"
@@ -1838,7 +1856,7 @@ def main_joint(args):
             cf.ThreadPoolExecutor(max_workers=args.workers) as ex:
         futs = {ex.submit(run_one_joint, l, m, groups, by_group, horizons, run_id,
                           args.retries, spec, conds, policies, args.experiment, arm, panel,
-                          today, args.harness): (arm, l)
+                          today, harness): (arm, l)
                 for arm in arms for l, m in models}
         for fut in cf.as_completed(futs):
             arm, label = futs[fut]

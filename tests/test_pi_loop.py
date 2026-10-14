@@ -103,11 +103,23 @@ class PiLoopTest(unittest.TestCase):
 
 
 class HarnessFlagTest(unittest.TestCase):
-    def test_pi_rows_only_as_an_experiment(self):
-        r = subprocess.run([sys.executable, str(REPO / "code" / "run_unified.py"), "--joint", "--harness", "pi"],
+    def setUp(self):
+        self.ru = _load_runner()
+
+    def test_the_set_names_its_loop(self):
+        cb = json.load(open(REPO / "data" / "combined_conditions.json"))
+        self.assertEqual(self.ru.set_harness(cb), "pi")                        # since combined-v9
+        self.assertEqual(self.ru.row_protocol(cb, "pi"), "unified-joint-combined-v9")
+        self.assertEqual(self.ru.row_protocol(cb, "litellm"), "unified-joint-combined-v9+litellm")
+        legacy = {"protocol": "unified-joint-v6"}                              # a set naming none: litellm
+        self.assertEqual(self.ru.row_protocol(legacy, "litellm"), "unified-joint-v6")
+        self.assertEqual(self.ru.row_protocol(legacy, "pi"), "unified-joint-v6+pi")
+
+    def test_another_loop_only_as_an_experiment(self):
+        r = subprocess.run([sys.executable, str(REPO / "code" / "run_unified.py"), "--joint", "--harness", "litellm"],
                            capture_output=True, text=True, cwd=REPO)
         self.assertNotEqual(r.returncode, 0)
-        self.assertIn("only as a --joint --experiment", r.stderr)
+        self.assertIn("this set is elicited through pi; another loop runs only as an --experiment", r.stderr)
 
 
 if __name__ == "__main__":
