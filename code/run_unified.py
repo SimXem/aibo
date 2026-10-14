@@ -1037,6 +1037,10 @@ def debrief_state(groups, by_group):
     qs = debrief_questions(groups, by_group)
     return {"tool": debrief_tool(qs), "prompt": debrief_prompt(qs),
             "validate": lambda args: validate_debrief(args, qs), "retries": 3,
+            # the same check, for a loop that validates in another process
+            # (redlines.pi_loop -> agent-box's tool_cli.py validate)
+            "validator": {"file": os.path.abspath(__file__), "function": "validate_debrief",
+                          "kwargs": {"questions": qs}},
             "max_tokens": 48000}
 
 
@@ -1178,6 +1182,20 @@ def clean_forecasts_joint(raw, allowed, horizons, cond_ids):
     return out or None
 
 
+# The loop a call runs through. Everything else in a call -- prompt, tools,
+# floor, coverage, turn limit, debrief, cleaning, rows -- is the same under
+# both; pi's rows carry protocol "<protocol>+pi" (redlines/pi_loop.py says why
+# and where the loops differ).
+HARNESSES = ("litellm", "pi")
+
+
+def loop_for(harness):
+    if harness == "pi":
+        from redlines import pi_loop
+        return pi_loop.call_tools
+    return call_tools
+
+
 def research_tools(groups):
     """FORECAST_TOOLS with web_search's `cause` narrowed to this batch's
     question groups (an enum, required), and the coverage keys the loop
@@ -1201,7 +1219,8 @@ def coverage_line(rows):
 
 
 def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, spec,
-                  conds, policies, experiment=None, arm=None, panel=None, today=None):
+                  conds, policies, experiment=None, arm=None, panel=None, today=None,
+                  harness="litellm"):
     """One call: the full instrument. -> rows, one per (question, condition)."""
     today = today or datetime.now(timezone.utc).date()
     policies = resolve_set(policies, today)
@@ -1256,11 +1275,13 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
         try:
             research, coverage = research_tools(groups)
             debrief = debrief_state(groups, by_group)
-            answer, evidence = call_tools(
+            answer, evidence = loop_for(harness)(
                 model_id, prompt, research, submit_tool_joint(qids, horizons, cond_ids, elicits),
                 system=SYSTEM, max_iters=MAX_ROUNDS, max_tokens=64000,
                 min_evidence=MIN_RESEARCH, usage=usage, partial_tool=partial,
-                coverage=coverage, debrief=debrief)
+                coverage=coverage, debrief=debrief,
+                **({"allowed_keys": [f"{q}|{h}" for q, hs in allowed.items() for h in sorted(hs)]}
+                   if harness == "pi" else {}))
         except Exception as exc:
             # A provider error or a call that never submitted: worth the same
             # retry budget as a short grid, and just as visible in the log.
@@ -1333,7 +1354,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
                     "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
                     "prompt": prompt if first else None,
                     "system_prompt": SYSTEM if first else None,
-                    "protocol": set_protocol(policies),
+                    "protocol": set_protocol(policies) + ("" if harness == "litellm" else f"+{harness}"),
                     "condition_set": set_slug(policies),
                     "call_id": call_id, "attempts": attempts,
                     "batch_size": len(qids),
@@ -1583,7 +1604,13 @@ def main():
                     help="tag every row with this experiment name (needs --out)")
     ap.add_argument("--dry-run", action="store_true",
                     help="print each arm's prompt and exit; no model is called")
+    ap.add_argument("--harness", choices=HARNESSES, default="litellm",
+                    help="the loop: litellm (redlines.llm, the series) or pi (redlines.pi_loop, "
+                         "agent-box; --joint --experiment only)")
     args = ap.parse_args()
+    if args.harness != "litellm" and not (args.joint and args.experiment):
+        sys.exit(f"--harness {args.harness} runs only as a --joint --experiment: "
+                 "its rows never join the series")
 
     # The combined instrument asks models to forecast and condition on frontier
     # ECI. Refuse to run it against a stale frontier history or a condition
@@ -1811,7 +1838,7 @@ def main_joint(args):
             cf.ThreadPoolExecutor(max_workers=args.workers) as ex:
         futs = {ex.submit(run_one_joint, l, m, groups, by_group, horizons, run_id,
                           args.retries, spec, conds, policies, args.experiment, arm, panel,
-                          today): (arm, l)
+                          today, args.harness): (arm, l)
                 for arm in arms for l, m in models}
         for fut in cf.as_completed(futs):
             arm, label = futs[fut]
