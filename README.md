@@ -196,6 +196,7 @@ redlines/                   the pipeline package (stdlib only; litellm only insi
   hydrate.py, pages.py      window.__NAME__ blob injection; manifest-driven page assembly
   export.py                 forecasts.csv, rationales.csv, the download bundle, the ForecastBench export
   llm.py, tools.py          ACQUISITION ONLY: key loading + the agentic tool-use loop; the Tavily tools
+  pi_loop.py                the same loop through FRI's agent-box (pi), for --harness pi shadow runs
   views/                    one pure build() per panel: graph1..graph4, observational, causal,
                             databank, timeline, conditional, capability, axes, method
   paper/                    the paper's figures (graph1, graph3, graph4, incident_ladders,
@@ -211,7 +212,7 @@ code/                       acquisition scripts, generators and thin shims (see 
   graph3_comparability.py   the Graph 3 methodology decomposition (needs FB_DATASETS_ROOT)
   observational/            Graph 5: the observational bench, vendored (spec.md, runners, scoring)
   causal/                   Graph 6: the Starsim causal bench's generating code, frozen at causal-v4-locked
-  pi_harness/               an alternative agent harness for one forecasting call (experimental)
+  compare_harness.py        a --harness pi shadow run against the cron's, cell by cell
 data/
   auto-arc/                 the Auto-ARC question workbook (.xlsx) and definitions (.md) by date
   autoarc_ladder.json, autoarc_crosscutting.json   the generated question sets (never hand-edited)

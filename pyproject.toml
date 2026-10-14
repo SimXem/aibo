@@ -21,6 +21,11 @@ acquire = [
     # "xhigh" to OpenAI reasoning.effort (redlines/llm.py LITELLM_MIN).
     "litellm>=1.96",
 ]
+# The pi loop (code/run_unified.py --harness pi, redlines/pi_loop.py): FRI's
+# agent-box, which drives pi 0.99.2 -- FORECASTER_PI names its cli.js.
+pi = [
+    "fri-forecaster @ git+https://github.com/forecastingresearch/agent-box",
+]
 # Running the test suite: pytest, plus openpyxl for the question-set generator
 # tests (tests/test_autoarc_generator.py reads the Auto-ARC workbook).
 test = [
