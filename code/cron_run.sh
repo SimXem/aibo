@@ -229,9 +229,10 @@ notify "AIRO run $STAMP published" "$(grep -E 'ok, [0-9]+ failed' "$LOG" | tail 
 # the series: rows go to results/experiments/pi-shadow-*, protocol "...+pi".
 # Then code/compare_harness.py prints the two runs cell by cell, beside the
 # previous run as litellm's own spread. Off unless the env file sets
-# REDLINES_PI_SHADOW=1; needs agent-box in PY (`pip install -e '.[pi]'`) and
-# FORECASTER_PI (pi 0.99.2's cli.js) in the env file. It runs after
-# publication and can only notify: the published run is already done.
+# REDLINES_PI_SHADOW=1; needs agent-box in PY (`pip install -e '.[pi]'`), and
+# in the env file FORECASTER_PI (pi 0.99.2's cli.js) and a PATH with node on
+# it (cron's own PATH has none). It runs after publication and can only
+# notify: the published run is already done.
 pi_shadow() {
     local runs="$REPO/results/conditional_runs_combined" base prev shadow
     base="$(ls "$runs"/*.jsonl | sort | tail -1)"
