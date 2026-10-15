@@ -898,11 +898,11 @@ class TestGroupedSetOnTheTabs(unittest.TestCase):
         # Both tabs read the newest run in the combined log -- whichever
         # panel and protocol that run carried -- so the pins come from the
         # log, not from a hand-typed panel of the day.
-        import json
         from redlines.registry import model_colors
         from redlines.views import capability, conditional
         from redlines.instrument import instrument_rows
-        rows = instrument_rows([json.loads(l) for l in open(conditional.SOURCES[0][0])])
+        from redlines.logs import iter_rows
+        rows = instrument_rows(list(iter_rows(conditional.SOURCES[0][0])))
         if not rows:
             # A definition change creates an intentionally empty current
             # series until replacement forecasts land; no legacy fallback.
