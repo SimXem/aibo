@@ -6,6 +6,7 @@ here until `python3 -m redlines paper` is re-run and the result committed.
 The figure test only checks that each figure renders without TeX (agg
 backend); it skips if matplotlib is not installed.
 """
+import math
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,6 +15,27 @@ from redlines.config import REPO_ROOT
 from redlines.paper import FIG_ORDER, numbers
 
 TRACKED = REPO_ROOT / "paper" / "numbers.tex"
+
+
+def first_difference(a, b, path="$"):
+    """Where two JSON values first differ, or None. Floats agree to 12
+    significant digits: the last bits of a libm result differ between macOS
+    and Linux, and a tracked blob is written on one and tested on the other."""
+    if isinstance(a, float) or isinstance(b, float):
+        if (isinstance(a, (int, float)) and isinstance(b, (int, float))
+                and math.isclose(a, b, rel_tol=1e-12, abs_tol=1e-15)):
+            return None
+        return f"{path}: {a!r} != {b!r}"
+    if isinstance(a, dict) and isinstance(b, dict):
+        if a.keys() != b.keys():
+            return f"{path}: keys differ: {sorted(a.keys() ^ b.keys())}"
+        return next((d for k in a if (d := first_difference(a[k], b[k], f"{path}.{k}"))), None)
+    if isinstance(a, list) and isinstance(b, list):
+        if len(a) != len(b):
+            return f"{path}: length {len(a)} != {len(b)}"
+        return next((d for i, (x, y) in enumerate(zip(a, b))
+                     if (d := first_difference(x, y, f"{path}[{i}]"))), None)
+    return None if a == b else f"{path}: {a!r} != {b!r}"
 
 
 class TestNumbersGolden(unittest.TestCase):
@@ -75,8 +97,9 @@ class TestNumbersGolden(unittest.TestCase):
         spec.loader.exec_module(cb)
         import json
         tracked = json.loads(Path(cb.OUT).read_text(encoding="utf-8"))
-        self.assertEqual(cb.build(), tracked,
-                         "results/coherence_experiment.json is stale; run python3 code/coherence_blob.py")
+        diff = first_difference(cb.build(), tracked)
+        if diff:
+            self.fail("results/coherence_experiment.json is stale; run python3 code/coherence_blob.py\n" + diff)
 
     def test_prompt_macros_are_ascii_and_balanced(self):
         vals = numbers.collect()
