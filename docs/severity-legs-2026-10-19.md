@@ -72,10 +72,12 @@ inside the AI ladder's 100M rung) now names a leg and holds on both.
 ## The prompt
 
 Each incident cause's resolution criteria are printed once under its group
-heading rather than under all 17 of its questions. With the per-question form
-the joint prompt reached 158 KB; pi takes the prompt as one argument, which
-Linux caps at 128 KiB. The shared form is 105 KB. The archived instruments
-render under the same template, so their pinned prompt hashes moved with it
+heading rather than under all 17 of its questions: 105 KB instead of 158 KB.
+The per-question form had passed the 128 KiB Linux allows one argument, which
+was how agent-box handed pi the prompt; agent-box passes it on stdin since the
+same day, so the cap is gone, and the shared form is kept as a protocol-time
+cleanup (Nick Merrill, 2026-10-19). The archived instruments render under the
+same template, so their pinned prompt hashes moved with it
 (`tests/test_conditional.py`).
 
 ## The cutover

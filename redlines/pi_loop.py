@@ -61,6 +61,14 @@ def call_tools(model, prompt, tools, final_tool, *, max_iters=6, system=None,
     if run is None:
         from fri_forecaster import harness
         run = harness.run
+        # Linux hands one argument at most 128 KiB. agent-box passes the prompt
+        # on stdin since 2026-10-19 (harness.PROMPT_ON_STDIN); an older one
+        # passes it as an argument and would fail with E2BIG. Fail here, by
+        # name, before any paid call.
+        size = len(prompt.encode())
+        if size > 131072 and not getattr(harness, "PROMPT_ON_STDIN", False):
+            raise RuntimeError(f"the prompt is {size} bytes, past the 128 KiB one argument may hold, and this "
+                               "agent-box passes it as one: install an agent-box that passes it on stdin")
     names = {t["name"] for t in tools}
     specs = [*tools, *([partial_tool] if partial_tool else []), final_tool]
     cell_items = (partial_tool or final_tool)["parameters"]["properties"]["forecasts"]["items"]

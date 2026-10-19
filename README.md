@@ -103,6 +103,9 @@ python code/run_unified.py --joint --repeats 1 --workers 2 \
 
 Since combined-v9 the calls go through pi (redlines/pi_loop.py): node 22 and
 pi 0.99.2, whose `cli.js` `FORECASTER_PI` names (agent-box's README, "Requirements").
+agent-box hands pi the prompt on stdin since 2026-10-19; an earlier agent-box
+passes it as one argument, which Linux caps at 128 KiB, and the runner refuses
+a prompt past that rather than let pi fail.
 `--harness litellm --experiment <name>` runs the same instrument through
 redlines.llm's own loop, which is the cron's shadow.
 
