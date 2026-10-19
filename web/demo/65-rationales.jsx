@@ -70,21 +70,29 @@ function ForecastRationales({ qid, context, forecasts = [], date, controls }) {
     })}
   </details>;
 }
+// `causes`: [{key, label, rungs}], each cause's rungs from BOTH ladders (the
+// deaths questions, then the damages ones), keyed by question id.
 function LadderRationales({ causes, date }) {
   const [causeKey, setCauseKey] = useState("ai");
-  const [rungKey, setRungKey] = useState("1M");
+  const [qid, setQid] = useState(null);
   const cause = causes.find(c => c.key === causeKey) || causes[0];
   if (!cause) return null;
-  const rung = cause.rungs.find(r => r.rung === rungKey) || cause.rungs[0];
-  // The same cause and rung on every horizon the ladder was elicited on.
+  const rung = cause.rungs.find(r => r.qid === qid) || cause.rungs.find(r => r.rung === "1M") || cause.rungs[0];
+  if (!rung) return null;
+  // The same question on every horizon the ladder was elicited on, on
+  // whichever ladder it sits.
   const forecasts = G2.horizons.map(h => {
-    const c = ((G2.byHorizon[h] || {}).causes || []).find(x => x.key === cause.key);
-    const r = c && c.rungs.find(x => x.rung === rung.rung);
+    let r = null;
+    Object.values((G2.byHorizon[h] || {}).legs || {}).some(side => {
+      const c = (side.causes || []).find(x => x.key === cause.key);
+      r = c && c.rungs.find(x => x.qid === rung.qid);
+      return !!r;
+    });
     return { key: h, values: (r && r.per_model) || {} };
   });
   const controls = <div className="rationale-controls">
     <label>Explain cause <select value={cause.key} onChange={e => setCauseKey(e.target.value)}>{causes.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}</select></label>
-    <label>Severity <select value={rung.rung} onChange={e => setRungKey(e.target.value)}>{cause.rungs.map(r => <option key={r.rung} value={r.rung}>{r.label}</option>)}</select></label>
+    <label>Severity <select value={rung.qid} onChange={e => setQid(e.target.value)}>{cause.rungs.map(r => <option key={r.qid} value={r.qid}>{r.label}</option>)}</select></label>
   </div>;
   return <ForecastRationales qid={rung.qid} forecasts={forecasts} date={date} controls={controls}
     context={`${cause.label} · ${rung.label}`} />;

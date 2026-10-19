@@ -19,9 +19,9 @@ if __name__ == "__main__":
     blob = build()
     path = inject("GRAPH2", blob, json_out="results/graph2_data.json")
     for h, d in blob["byHorizon"].items():
-        print(f"  {h}: {len(d['causes'])} causes, "
-              f"{sum(len(c['rungs']) for c in d['causes'])} points, "
-              f"{len(d['anchors'])} XPT anchors, "
-              f"{len(d['violations'])} violation(s) / {d['pairsChecked']} pairs"
-              + (f", declines: {d['declines']}" if d["declines"] else ""))
+        for leg, s in d["legs"].items():
+            print(f"  {h} {leg}: {len(s['causes'])} causes, "
+                  f"{sum(len(c['rungs']) for c in s['causes'])} points, "
+                  f"{len(s['violations'])} violation(s) / {s['pairsChecked']} pairs"
+                  + (f", declines: {d['declines']}" if d["declines"] else ""))
     print(f"GRAPH2 -> {path.name}")

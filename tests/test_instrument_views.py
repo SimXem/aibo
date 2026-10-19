@@ -12,12 +12,13 @@ from redlines.runlog import (current_panel, instrument_info, latest_instrument_r
                              latest_pooled, rows_by_day, series_rows, complete_panel_rows)
 from redlines.views import axes, capability, conditional, databank, graph1, graph2, method, timeline
 from redlines import export
+from tests.legs import split_legs
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def current(rows):
-    rows = copy.deepcopy(rows)
+    rows = split_legs(rows)       # the real files predate the two-leg ladder
     spec, qs = load_ladder(), all_questions()
     for r in rows:
         r['instrument_version'] = CURRENT_INSTRUMENT
@@ -48,7 +49,7 @@ class TestInstrumentViews(unittest.TestCase):
                 if view == graph1:
                     self.assertFalse(any(q['median'] for q in b['questions']))
                 elif view == graph2:
-                    self.assertFalse(any(h['causes'] for h in b['byHorizon'].values()))
+                    self.assertFalse(any(s['causes'] for h in b['byHorizon'].values() for s in h['legs'].values()))
                 elif view == timeline:
                     # The timeline keeps the headline questions' earlier
                     # readings as explicitly legacy snapshots (2026-09-10
@@ -193,7 +194,12 @@ class TestInstrumentViews(unittest.TestCase):
         by = {r['instrument_version']: r for r in rows if r['horizon'] == '2030'}
         archived = by['legacy-2026-08-31']
         self.assertEqual(archived['instrument_version_source'], 'protocol-mapped')
-        self.assertEqual(archived['question'], export._legacy_questions()[old['question_id']]['text'])
+        self.assertEqual(archived['question'], export._archived_questions('legacy-2026-08-31')[old['question_id']]['text'])
+        # A row of the previous instrument reads its own archived wording, never today's.
+        v1 = copy.deepcopy(old);v1['instrument_version'] = 'airo-incidents-prospective-v1'
+        self.assertEqual(next(export._lines([v1], qs))['question'],
+                         export._archived_questions('airo-incidents-prospective-v1')[old['question_id']]['text'])
+        self.assertEqual(export._archived_questions('legacy-unversioned'), {})
         self.assertEqual(archived['onset_start'], '')
         self.assertEqual(by['legacy-unversioned']['question'], '')
         revised = by[CURRENT_INSTRUMENT]
@@ -205,6 +211,7 @@ class TestInstrumentViews(unittest.TestCase):
     def test_archive_contains_original_definitions(self):
         paths = dict(export._bundle_members())
         self.assertIn('questions/instruments/legacy-2026-08-31/autoarc_ladder.json', paths)
+        self.assertIn('questions/instruments/airo-incidents-prospective-v1/autoarc_ladder.json', paths)
         self.assertIn('questions/sources/definitions-2026-09-10.md', paths)
 
     def test_prompt_is_explicitly_preview_or_recorded(self):

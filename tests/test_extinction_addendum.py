@@ -28,7 +28,8 @@ from redlines.questions import (all_questions, human_baselines, load_crosscuttin
                                 load_crosscutting_doc, load_human_baselines,
                                 questions_asked_on, severity_deaths)
 from redlines.runlog import complete_panel_rows
-from redlines.views import graph1, graph2, timeline
+from redlines.views import graph1, timeline
+from tests.legs import split_legs
 
 ROOT = Path(__file__).resolve().parents[1]
 ARCHIVE = ROOT / "archive" / "legacy-questions" / "starter_questions.json"
@@ -41,7 +42,8 @@ XPT_SETS = {"extinction:general": "10. Total Extinction Risk",
 
 
 def _rows(path=RUN_BEFORE):
-    return [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+    """The 2026-09-14 run as the current instrument writes it (tests.legs)."""
+    return split_legs([json.loads(l) for l in path.read_text().splitlines() if l.strip()])
 
 
 def _with_pair(rows):
@@ -84,7 +86,7 @@ class TestThePairIsInTheSet(unittest.TestCase):
                 self.assertEqual(q["horizons"], cross["catastrophe:ai"]["horizons"])
         marks = json.load(open(ROOT / "data" / "historical_events.json"))["events"]
         ext = next(e for e in marks if e["id"] == "extinction")
-        self.assertEqual(ext["severity"]["central"], severity_deaths(cross["extinction:ai"]))
+        self.assertEqual(ext["deaths"]["central"], severity_deaths(cross["extinction:ai"]))
 
     def test_the_workbook_questions_carry_no_since(self):
         for q in load_crosscutting():
@@ -124,7 +126,7 @@ class TestRunsBeforeTheAddendumStayComplete(unittest.TestCase):
     def test_questions_asked_on(self):
         before, on = questions_asked_on("2026-09-14"), questions_asked_on(SINCE)
         # The extinction RUNG (a second addendum) entered a day after the pair.
-        rung = {f"ladder:{c}:extinction" for c in ("ai", "bio", "cyber", "misalign")}
+        rung = {f"ladder:{c}:extinction:deaths" for c in ("ai", "bio", "cyber", "misalign")}
         self.assertEqual(set(all_questions()) - set(before), set(PAIR) | rung)
         self.assertEqual(set(all_questions()) - set(on), rung)
         self.assertEqual(set(questions_asked_on("2026-09-16")), set(all_questions()))
@@ -161,30 +163,6 @@ class TestRunsBeforeTheAddendumStayComplete(unittest.TestCase):
             ids = {q["id"] for q in timeline.build()["questions"]}
         self.assertTrue(set(PAIR) <= ids)
 
-
-class TestSeverityChartAnchors(unittest.TestCase):
-    """Graph 2 drew the pair as diamonds at the Extinction mark from 2026-09-15
-    until the extinction RUNG joined every ladder on 2026-09-16 (project lead:
-    show the probabilities like normal). No anchors are drawn now, whether or
-    not a run answered the pair; the curves end at extinction themselves."""
-
-    def test_no_anchors_before_a_run_answers_the_pair(self):
-        with patch.object(graph2, "load_runlog", return_value=_rows()):
-            b = graph2.build()
-        self.assertTrue(all(v["anchors"] == [] for v in b["byHorizon"].values()))
-        self.assertIsNone(b["anchorsNote"])
-
-    def test_no_anchors_once_answered_either(self):
-        rows = _with_pair(_dated(_rows(), "2026-09-15"))
-        with patch.object(graph2, "load_runlog", return_value=rows):
-            b = graph2.build()
-        h = "2030"
-        self.assertEqual(b["byHorizon"][h]["anchors"], [])
-        # The curves carry one point per rung the run answered, and the pair
-        # is never a point of a curve.
-        for c in b["byHorizon"][h]["causes"]:
-            self.assertEqual(len(c["rungs"]), len([r for r in b["rungs"] if r["rung"] != "extinction"]))
-        self.assertIsNone(b["anchorsNote"])
 
 class TestCoherenceAndBaselines(unittest.TestCase):
 
@@ -269,13 +247,16 @@ class TestTheQuestionsNameNoSource(unittest.TestCase):
 
 class TestTheTagMoved(unittest.TestCase):
 
-    def test_combined_v9_with_its_lineage(self):
-        # v9 (2026-10-16, the pi loop) sits above v8 (2026-10-01, the pair
-        # unnamed), v7 (2026-09-16, the extinction rung) and v6 (the pair); a
-        # log holding only v5 and v6 rows still reads as v6 until a later run lands.
-        self.assertEqual(COMBINED_PROTOCOL, "unified-joint-combined-v10")
+    def test_combined_v11_with_its_lineage(self):
+        # v11 (2026-10-19 evening, the severity legs) sits above v10 (the
+        # minimal instrument under five prompts), v9 (2026-10-16, the pi loop),
+        # v8 (2026-10-01, the pair unnamed), v7 (2026-09-16, the extinction
+        # rung) and v6 (the pair); a log holding only v5 and v6 rows still
+        # reads as v6 until a later run lands.
+        self.assertEqual(COMBINED_PROTOCOL, "unified-joint-combined-v11")
         self.assertEqual(protocol_line(COMBINED_PROTOCOL)[1:],
-                         ("unified-joint-combined-v9", "unified-joint-combined-v8", "unified-joint-combined-v7", "unified-joint-combined-v6", "unified-joint-combined-v5",
+                         ("unified-joint-combined-v10", "unified-joint-combined-v9", "unified-joint-combined-v8",
+                          "unified-joint-combined-v7", "unified-joint-combined-v6", "unified-joint-combined-v5",
                           "unified-joint-combined-v4", "unified-joint-combined-v3",
                           "unified-joint-combined-v2", "unified-joint-combined-v1"))
         rows = [{"protocol": "unified-joint-combined-v5"}, {"protocol": "unified-joint-combined-v6"}]

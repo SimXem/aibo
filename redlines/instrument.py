@@ -2,10 +2,25 @@
 
 The joint call changes as a whole even though only the incident definitions
 changed. Old responses are retained, never inferred to answer the new rules.
+
+Versions, newest first (each one's generated question set is archived under
+data/instruments/<version>/ when the next replaces it):
+
+  airo-incidents-prospective-v2  2026-10-19: every severity rung is asked as
+                                 TWO questions, one resolving on deaths (or
+                                 equivalent morbidity) and one on economic
+                                 damages, instead of one deaths-OR-damages
+                                 question (docs/severity-legs-2026-10-19.md).
+                                 Thresholds, attribution, accounting and the
+                                 counting rules are v1's.
+  airo-incidents-prospective-v1  2026-09-10: the prospective counting rules
+                                 (docs/counting-rules-specification-2026-09-10.md).
+  legacy-2026-08-31              the August 31 definitions, before rows
+                                 carried a version.
 """
 from datetime import date
 
-CURRENT_INSTRUMENT = "airo-incidents-prospective-v1"
+CURRENT_INSTRUMENT = "airo-incidents-prospective-v2"
 
 
 def instrument_rows(rows, version=CURRENT_INSTRUMENT):

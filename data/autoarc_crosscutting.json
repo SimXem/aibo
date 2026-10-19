@@ -7,7 +7,7 @@
     "source_definitions": "data/auto-arc/definitions-2026-09-10.md",
     "sheet": "Auto-ARC questions - long",
     "generated_by": "code/make_autoarc_questions.py",
-    "status": "September 10 counting clarification accepted by Nick Merrill: all incident windows start at elicitation; cyber campaign onset is the first malicious action against a target. Older forecasts answer an earlier instrument. August 31 thresholds, attribution and accounting remain unchanged.",
+    "status": "September 10 counting clarification accepted by Nick Merrill: all incident windows start at elicitation; cyber campaign onset is the first malicious action against a target. Older forecasts answer an earlier instrument. August 31 thresholds, attribution and accounting remain unchanged. October 19 split accepted by Nick Merrill (asked by Ezra Karger the same day): every rung is asked as a deaths question and a damages question; the earlier deaths-OR-damages wording is archived under data/instruments/airo-incidents-prospective-v1/.",
     "addenda": [
       {
         "file": "data/auto-arc/addendum-extinction-2026-09-15.json",

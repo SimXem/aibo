@@ -114,9 +114,12 @@ def _version_source(row):
     return "protocol-mapped" if _instrument_version(row) == "legacy-2026-08-31" else "unknown"
 
 
-@lru_cache(maxsize=1)
-def _legacy_questions():
-    root = Path(__file__).resolve().parents[1] / "data/instruments/legacy-2026-08-31"
+@lru_cache(maxsize=None)
+def _archived_questions(version):
+    """{id: question} of an archived instrument version (data/instruments/
+    <version>/, written when the next version replaced it), or {} for a
+    version with no archive (legacy-unversioned)."""
+    root = Path(__file__).resolve().parents[1] / "data/instruments" / version
     out = {}
     for name in ("autoarc_ladder.json", "autoarc_crosscutting.json"):
         path = root / name
@@ -132,9 +135,7 @@ def _question_text(row, questions):
         return row["question_text"]
     if row.get("instrument_version") == CURRENT_INSTRUMENT:
         return questions.get(row["question_id"], {}).get("text", "")
-    if _instrument_version(row) == "legacy-2026-08-31":
-        return _legacy_questions().get(row["question_id"], {}).get("text", "")
-    return ""
+    return _archived_questions(_instrument_version(row)).get(row["question_id"], {}).get("text", "")
 
 
 def _lines(rows, qs):
@@ -372,7 +373,10 @@ Columns worth knowing:
   archived question text. No other unstamped protocol receives that mapping.
   legacy-unversioned means no version was established; it does not
   imply that the row answered today's definitions. Current dashboard series
-  include only airo-incidents-prospective-v1 and start anew at this change.
+  include only the current version (airo-incidents-prospective-v2 since
+  2026-10-19, when every severity rung became a deaths question and a damages
+  question) and start anew at each change; every earlier version's generated
+  questions are under questions/instruments/<version>/.
 - question: the recorded question text, or the version-matched current
   specification. Blank on legacy rows whose exact wording was not recorded;
   archived definitions are supplied separately and must not be assumed to

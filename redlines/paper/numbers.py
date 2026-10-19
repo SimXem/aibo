@@ -138,32 +138,36 @@ def collect(results: Path | None = None) -> dict[str, str]:
     for k, v in a["byConstraint"].items():
         out[f"g2:audit:{k.lower()}:bad"] = str(v["bad"])
         out[f"g2:audit:{k.lower()}:n"] = fmt_int(v["n"])
-    # Ladder medians: g2:ladder:<cause>:<rung>:<horizon>:median (+ :model:<slug>), in %.
-    from ..conditional import expected_loss, ladder_rungs
+    # Ladder medians: g2:ladder:<cause>:<rung>:<leg>:<horizon>:median (+ :model:<slug>),
+    # in %; the tail share of the expected-deaths fold from the deaths ladder.
+    from ..conditional import LOSS_LEG, expected_loss, ladder_rungs
     thresholds = ladder_rungs(ladder)
     for h, cell in g2["byHorizon"].items():
-        for c in cell["causes"]:
-            grids = {}
-            for r in c["rungs"]:
-                if r.get("median") is None:
+        for leg, side in cell["legs"].items():
+            for c in side["causes"]:
+                grids = {}
+                for r in c["rungs"]:
+                    if r.get("median") is None:
+                        continue
+                    k = f"g2:ladder:{c['key']}:{r['rung']}:{leg}:{h}"
+                    out[f"{k}:median"] = fmt_pct(r["median"])
+                    for label, v in (r.get("per_model") or {}).items():
+                        out[f"{k}:model:{_slug(label)}"] = fmt_pct(v)
+                        grids.setdefault(label, {})[r['rung']] = v / 100
+                if leg != LOSS_LEG:
                     continue
-                k = f"g2:ladder:{c['key']}:{r['rung']}:{h}"
-                out[f"{k}:median"] = fmt_pct(r["median"])
-                for label, v in (r.get("per_model") or {}).items():
-                    out[f"{k}:model:{_slug(label)}"] = fmt_pct(v)
-                    grids.setdefault(label, {})[r['rung']] = v / 100
-            shares = [value['top_share'] for grid in grids.values()
-                      if (value := expected_loss(grid, thresholds)) is not None
-                      and value.get('top_share') is not None]
-            if shares:
-                key = f"g2:loss:{c['key']}:{h}:tail"
-                out[f"{key}:min"] = f"{100 * min(shares):.0f}"
-                out[f"{key}:max"] = f"{100 * max(shares):.0f}"
+                shares = [value['top_share'] for grid in grids.values()
+                          if (value := expected_loss(grid, thresholds)) is not None
+                          and value.get('top_share') is not None]
+                if shares:
+                    key = f"g2:loss:{c['key']}:{h}:tail"
+                    out[f"{key}:min"] = f"{100 * min(shares):.0f}"
+                    out[f"{key}:max"] = f"{100 * max(shares):.0f}"
     # Legacy per-domain aliases for bio/cyber/misalign refer to their TOP
-    # incident rung (deaths OR damages), not the mortality catastrophe.
+    # incident rung on the deaths ladder, not the mortality catastrophe.
     # Never emit an AI-container alias here: g1:catastrophe:ai already names
     # the distinct 10%-of-humanity mortality question above. The unambiguous
-    # g2:ladder:ai:<rung>:<h>:median keys already expose the container ladder.
+    # g2:ladder:ai:<rung>:<leg>:<h>:median keys already expose the container ladder.
     # Keep the named rung so existing per-domain prose can state its scope.
     top = g2["rungs"][-1]
     top_key = top.get("short") or top.get("key") or top.get("rung")
@@ -171,7 +175,7 @@ def collect(results: Path | None = None) -> dict[str, str]:
     out["g1:catastrophe:cause:rung:label"] = str(top.get("label", top_key))
     out["mortality:run:date"] = out["run:latest"]
     for h, cell in g2["byHorizon"].items():
-        for c in cell["causes"]:
+        for c in cell["legs"][LOSS_LEG]["causes"]:
             if c["key"] == "ai":
                 continue
             r = next((r for r in c["rungs"] if r["rung"] == top_key and r.get("median") is not None), None)

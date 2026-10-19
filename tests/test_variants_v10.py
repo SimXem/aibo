@@ -32,7 +32,7 @@ ru = _runner()
 class TestTheSet(unittest.TestCase):
     def test_v10_declares_the_minimal_instrument_and_five_variants(self):
         cb = ru.load_policies(ru.COMBINED)
-        self.assertEqual(ru.set_protocol(cb), "unified-joint-combined-v10")
+        self.assertEqual(ru.set_protocol(cb), "unified-joint-combined-v11")
         self.assertEqual(ru.set_instrument(cb), "minimal")
         self.assertEqual(ru.set_variants(cb), ["none", "independent", "recent", "critical", "two-step"])
         self.assertEqual(set(ru.set_asked_variants(cb)), set(ru.VARIANTS))
@@ -150,7 +150,7 @@ class TestRunOneJoint(unittest.TestCase):
         self.assertIn(ru.VARIANTS["independent"], seen["prompt"])
         self.assertEqual({r["variant"] for r in rows}, {"independent"})
         self.assertTrue(rows[0]["call_id"].endswith(":independent"))
-        self.assertEqual(rows[0]["protocol"], "unified-joint-combined-v10")   # a declared variant: the set's tag
+        self.assertEqual(rows[0]["protocol"], "unified-joint-combined-v11")   # a declared variant: the set's tag
         self.assertEqual(rows[0]["system_prompt"], ru.MINIMAL_SYSTEM)
         self.assertTrue(all(r["forecasts"] for r in rows))
         # A pooled call: no guard reaches the loop, and the rows are as before.
@@ -167,11 +167,11 @@ class TestRunOneJoint(unittest.TestCase):
         self.assertEqual(seen["env"], {ru.BLOCK_ENV: guard})
         self.assertNotIn(ru.BLOCK_ENV, ru.os.environ)
         self.assertEqual(seen["system"], ru.MINIMAL_SYSTEM)
-        # The rows: the variant, the guard, unpooled; the protocol stays v10.
+        # The rows: the variant, the guard, unpooled; the protocol is the set's.
         self.assertEqual({r["variant"] for r in rows}, {"ai-banned"})
         self.assertEqual({r["url_block_patterns"] for r in rows}, {guard})
         self.assertEqual({r["pooled"] for r in rows}, {False})
-        self.assertEqual({r["protocol"] for r in rows}, {"unified-joint-combined-v10"})
+        self.assertEqual({r["protocol"] for r in rows}, {"unified-joint-combined-v11"})
         self.assertTrue(rows[0]["call_id"].endswith(":ai-banned"))
         self.assertTrue(all(r["forecasts"] for r in rows))
 

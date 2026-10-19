@@ -74,6 +74,7 @@ DEFS = os.path.join(SRC, "definitions-2026-09-10.md")
 ADDENDA = sorted(glob.glob(os.path.join(SRC, "addendum-*.json")))
 sys.path.insert(0, ROOT)
 from redlines.instrument import CURRENT_INSTRUMENT
+from redlines.questions import ladder_id
 OUT_CROSS = os.path.join(ROOT, "data", "autoarc_crosscutting.json")
 OUT_LADDER = os.path.join(ROOT, "data", "autoarc_ladder.json")
 
@@ -125,6 +126,19 @@ CAUSES = [
 # content, and neither can be derived, because "Biorisk" and "AI-related
 # human-caused epidemic" share no text. crosscheck() fails the build if either
 # stops resolving.
+
+# ── the two severity legs ────────────────────────────────────────────────────
+# Since 2026-10-19 (Ezra Karger: separate deaths and damages) every rung is
+# asked as TWO questions, one per leg, instead of one question that resolved on
+# either. The workbook's severity option ("1,000 deaths (or equivalent
+# morbidity) or $2.2 billion") is split at its "or": each leg's question takes
+# its own half of that text, verbatim, so no threshold is retyped. The display
+# names below are the only words here that are ours; they name the two
+# quantities her Severity definitions define.
+LEGS = [
+    {"key": "deaths", "label": "Deaths (or equivalent morbidity)", "unit": "deaths"},
+    {"key": "damages", "label": "Economic damages", "unit": "usd"},
+]
 
 # ── rolling near-term horizons ───────────────────────────────────────────────
 # The paper's lead author, 2026-08-17: the set also needs near-term horizons --
@@ -292,20 +306,47 @@ def parse_share(raw):
 
 
 def parse_severity(raw):
-    """-> a structured severity dict, or None if the row carries no ladder rung."""
+    """-> a structured severity RUNG, or None if the row carries no ladder rung.
+
+    A rung has two legs (LEGS). Her option text names both -- "1,000 deaths
+    (or equivalent morbidity) or $2.2 billion" -- and since 2026-10-19 each
+    leg is its own question, so `legs` carries each half of that text,
+    verbatim, for leg_severity() to build the two questions from. A rung
+    whose text names no dollar figure has a deaths leg only.
+    """
     m = re.match(r"([\d,]+)\s*(million|billion)?\s*deaths", raw, re.I)
     if not m:
         return None
     deaths = float(m.group(1).replace(",", ""))
     if m.group(2):
         deaths *= {"million": 1e6, "billion": 1e9}[m.group(2).lower()]
+    deaths_text, sep, damages_text = raw.partition(" or ")
+    legs = {"deaths": {"label": f"{human_count(deaths)} deaths", "short": human_count(deaths),
+                       "source_text": deaths_text.strip()}}
     money = None
-    mm = re.search(r"\$([\d.]+)\s*(million|billion|trillion|quadrillion)", raw, re.I)
-    if mm:
+    mm = re.search(r"\$([\d.]+)\s*(million|billion|trillion|quadrillion)", damages_text, re.I)
+    if sep and mm:
         money = float(mm.group(1)) * _MAG[mm.group(2).lower()]
-    return {"kind": "deaths_or_damages", "deaths": deaths, "damages_usd": money,
-            "label": f"{human_count(deaths)} deaths or {human_money(money)}",
-            "short": human_count(deaths), "source_text": raw}
+        legs["damages"] = {"label": f"{human_money(money)} in economic damages",
+                           "short": human_money(money), "source_text": damages_text.strip()}
+    return {"kind": "threshold", "deaths": deaths, "damages_usd": money,
+            "label": f"{human_count(deaths)} deaths · {human_money(money)}",
+            "short": human_count(deaths), "source_text": raw, "legs": legs}
+
+
+def leg_severity(rung, leg):
+    """The severity one leg's question carries, or None when the rung has no
+    such leg (the extinction rung has no dollar leg: no sum of direct losses
+    is an extinction)."""
+    if leg not in rung["legs"]:
+        return None
+    if rung["kind"] == "extinction":
+        return {k: v for k, v in rung.items() if k not in ("legs", "since", "source")}
+    mine = rung["legs"][leg]
+    return {"kind": leg,
+            "deaths": rung["deaths"] if leg == "deaths" else None,
+            "damages_usd": rung["damages_usd"] if leg == "damages" else None,
+            "label": mine["label"], "short": mine["short"], "source_text": mine["source_text"]}
 
 
 def human_count(n):
@@ -670,17 +711,22 @@ def addendum_rungs(addenda):
         if sev.get("kind") != "extinction":
             raise SystemExit(f"{doc['_file']}: ladder rung of kind {sev.get('kind')!r} is not "
                              "one this generator knows how to place on the axis")
+        short = sev.get("short") or "extinction"
         out.append({"kind": "extinction", "deaths": WORLD_POP, "deaths_equiv": WORLD_POP,
                     "damages_usd": None, "floor_population": sev["floor_population"],
-                    "label": sev["label"], "short": sev.get("short") or "extinction",
-                    "source_text": sev["source_text"], "since": doc["since"],
-                    "source": doc["_file"]})
+                    "label": sev["label"], "short": short,
+                    "source_text": sev["source_text"],
+                    "legs": {"deaths": {"label": sev["label"], "short": short,
+                                        "source_text": sev["source_text"]}},
+                    "since": doc["since"], "source": doc["_file"]})
     return out
 
 
 def build_ladder(rows, defs, addenda=()):
     """The incident grid: four causes, the workbook's eight rungs plus any an
-    addendum adds (the extinction rung, 2026-09-16), one wording each."""
+    addendum adds (the extinction rung, 2026-09-16), and since 2026-10-19 one
+    question per LEG of each rung -- deaths and damages asked apart -- in
+    cause, leg, rung order: 4 x (9 + 8) = 68 questions."""
     incident_rows = [r for r in rows
                      if r["Category"] in {c["sheet"] for c in CAUSES}
                      and r["Human comparisons (Project)"] != "P6 bio"]
@@ -716,43 +762,47 @@ def build_ladder(rows, defs, addenda=()):
     questions, featured = [], []
     for c in CAUSES:
         mine = [r for r in incident_rows if r["Category"] == c["sheet"]]
-        for rung in rungs:
-            wanted = sorted({parse_year(r["Date of question resolution"])
-                             for r in mine
-                             if (parse_severity(r["Severity"]) or {}).get("deaths")
-                             == rung["deaths"]
-                             and r.get("To be completed by humans?") == "y"})
-            qid = f"ladder:{c['key']}:{rung['short']}"
-            text = fill_template(template, incident_phrase(defs, c), rung, horizons)
-            questions.append({
-                "id": qid,
-                "cause": c["key"],
-                "cause_label": cause_label(defs, c),
-                "color": c["color"],
-                "category": "incident",
-                "value_kind": "probability",
-                "severity": rung,
-                "rung": rung["short"],
-                "horizons": horizons,
-                "text": text,
-                "criteria": incident_defs.get(c["def_key"], ""),
-                "details": shared,
-                "human": {},
-                "human_wanted": wanted,
-                "human_comparisons": comparisons_for(
-                    mine, lambda r, d=rung["deaths"]:
-                        (parse_severity(r["Severity"]) or {}).get("deaths") == d),
-                # An addendum rung's date of entry and file, so a run made
-                # before it is still complete (redlines.questions.questions_asked_on).
-                **({"since": rung["since"], "source": rung["source"]} if rung.get("since") else {}),
-            })
-            # Graph 1 plots these BY REFERENCE, so the question is not copied
-            # into the cross-cutting file and never elicited twice. The 1M rung
-            # is the one the workbook flags for human forecasting at every horizon,
-            # so it is the only row with a model-vs-human read across the whole
-            # time axis.
-            if rung["short"] == "1M":
-                featured.append(qid)
+        for leg in LEGS:
+            for rung in rungs:
+                sev = leg_severity(rung, leg["key"])
+                if sev is None:          # the extinction rung has no dollar leg
+                    continue
+                # Her comparison column flags a RUNG; both of its legs inherit it.
+                wanted = sorted({parse_year(r["Date of question resolution"])
+                                 for r in mine
+                                 if (parse_severity(r["Severity"]) or {}).get("deaths")
+                                 == rung["deaths"]
+                                 and r.get("To be completed by humans?") == "y"})
+                qid = ladder_id(c["key"], rung["short"], leg["key"])
+                text = fill_template(template, incident_phrase(defs, c), sev, horizons)
+                questions.append({
+                    "id": qid,
+                    "cause": c["key"],
+                    "cause_label": cause_label(defs, c),
+                    "color": c["color"],
+                    "category": "incident",
+                    "value_kind": "probability",
+                    "severity": sev,
+                    "rung": rung["short"],
+                    "leg": leg["key"],
+                    "horizons": horizons,
+                    "text": text,
+                    "criteria": incident_defs.get(c["def_key"], ""),
+                    "details": shared,
+                    "human": {},
+                    "human_wanted": wanted,
+                    "human_comparisons": comparisons_for(
+                        mine, lambda r, d=rung["deaths"]:
+                            (parse_severity(r["Severity"]) or {}).get("deaths") == d),
+                    # An addendum rung's date of entry and file, so a run made
+                    # before it is still complete (redlines.questions.questions_asked_on).
+                    **({"since": rung["since"], "source": rung["source"]} if rung.get("since") else {}),
+                })
+                # The 1M rung is the one the workbook flags for human forecasting
+                # at every horizon, so its deaths question is the only one with
+                # a model-vs-human read across the whole time axis.
+                if rung["short"] == "1M" and leg["key"] == "deaths":
+                    featured.append(qid)
 
     vsl = stated_vsl(defs)
     for r in rungs:
@@ -762,7 +812,8 @@ def build_ladder(rows, defs, addenda=()):
     causes_out = [{**{k: v for k, v in c.items() if k != "def_key"},
                    "label": cause_label(defs, c)} for c in CAUSES]
     return {
-        "title": f"Auto-ARC incident ladder — four AI incident types, {len(rungs)} severity rungs",
+        "title": f"Auto-ARC incident ladder — four AI incident types, {len(rungs)} severity rungs, "
+                 "deaths and damages asked apart",
         "instrument_version": CURRENT_INSTRUMENT,
         "provenance": {
             "author": "Bridget Williams, FRI",
@@ -776,19 +827,31 @@ def build_ladder(rows, defs, addenda=()):
                       "all incident windows start at elicitation; cyber campaign "
                       "onset is the first malicious action against a target. "
                       "Older forecasts answer an earlier instrument. August 31 "
-                      "thresholds, attribution and accounting remain unchanged.",
+                      "thresholds, attribution and accounting remain unchanged. "
+                      "October 19 split accepted by Nick Merrill (asked by Ezra "
+                      "Karger the same day): every rung is asked as a deaths "
+                      "question and a damages question; the earlier deaths-OR-"
+                      "damages wording is archived under data/instruments/"
+                      "airo-incidents-prospective-v1/.",
         },
         "notes": {
             "vsl_usd": vsl,
-            "severity_axis": "Each rung resolves on deaths OR damages, whichever "
-                             f"comes first. The two legs sit at a constant 1:{vsl:g} "
+            "severity_axis": "Each rung is asked as two questions, one resolving on "
+                             "deaths (or equivalent morbidity) and one on economic "
+                             "damages (since 2026-10-19; until then a rung resolved on "
+                             f"either). The two thresholds sit at a constant 1:{vsl:g} "
                              f"ratio — the ${vsl / 1e6:g}M value of a statistical life the "
-                             "criteria state — so the axis stays monotone and "
-                             "log-spaced whichever leg binds.",
-            "cyber": "Cyber is on the ladder for the first time. It was held out "
-                     "while the axis was deaths-only (per Jason, 2026-08-03: "
-                     "cyber belongs on a DAMAGES ladder); the disjunctive "
-                     "threshold is what admits it.",
+                             "criteria state — so the two ladders share rung positions "
+                             "and each stays monotone and log-spaced.",
+            "legs": "The Severity definitions count monetized mortality, at the stated "
+                    "VSL, toward economic damages, so an incident reaching a rung's "
+                    "death threshold has by definition reached its dollar threshold: "
+                    "the damages question contains the deaths question at every rung "
+                    "(relations.legs), and the deaths-OR-damages question the set asked "
+                    "until 2026-10-19 was the damages question.",
+            "cyber": "Cyber's damages ladder is the one its 2026-08-03 note asked for "
+                     "(cyber belongs on a DAMAGES ladder, not a deaths ladder); its "
+                     "deaths ladder is asked alongside, as for every cause.",
             "container": "'Any AI-related incident' contains the other three by "
                          "Bridget's definition, so it plays the role 'All "
                          "causes' used to. There is NO all-cause ladder in this "
@@ -802,6 +865,7 @@ def build_ladder(rows, defs, addenda=()):
                        "the date on which a forecast can be scored.",
         },
         "causes": causes_out,
+        "legs": LEGS,
         "rungs": [{k: v for k, v in r.items() if k != "source"} for r in rungs],
         "horizons": horizons,
         "rolling": ROLLING,
@@ -817,11 +881,12 @@ def build_ladder(rows, defs, addenda=()):
     }
 
 
-def fill_template(template, phrase, rung, horizons):
+def fill_template(template, phrase, severity, horizons):
     """The workbook's template with the incident, severity and date slots filled.
 
-    The severity slot takes its OWN option text verbatim ("1,000 deaths (or
-    equivalent morbidity) or $10 billion") rather than a reconstruction of it.
+    The severity slot takes the leg's OWN half of her option text verbatim
+    ("1,000 deaths (or equivalent morbidity)"; "$2.2 billion", followed by the
+    template's own "economic damages") rather than a reconstruction of it.
     Re-deriving prose we were handed is the same mistake as typing a threshold
     into a JSX file: it produces a second wording that can drift from the first.
 
@@ -830,9 +895,8 @@ def fill_template(template, phrase, rung, horizons):
     the slot and each horizon supplies its own preposition.
     """
     t = re.sub(r"\[incident:[^\]]*\]", phrase, template)
-    severity = (rung["source_text"] if rung.get("kind") == "extinction"
-                else f"{rung['source_text']} in economic damages")
-    t = re.sub(r"\[severity:[^\]]*\]", severity, t)
+    slot = severity["source_text"] + (" in economic damages" if severity["kind"] == "damages" else "")
+    t = re.sub(r"\[severity:[^\]]*\]", slot, t)
     t = re.sub(r"\bby\s*\[date:[^\]]*\]", horizon_phrase(horizons), t)
     return re.sub(r"\s+", " ", t).strip()
 
@@ -857,9 +921,14 @@ def build_relations(rungs):
     CROSS   every specific incident type is contained in "any AI-related
             incident", per the set's definition of that class.
     BRACKET the AI catastrophe question (10% of population, ~820M deaths) is
-            contained in the >=100M rung of the AI ladder. ONE SIDE ONLY: the
-            >=1B rung does not bound it, because 820M is below 1B on deaths but
-            that rung also resolves on $10Q, so neither event contains the other.
+            contained in the >=100M rung of the AI ladder, on BOTH legs: on
+            deaths outright, and on damages because the Severity definitions
+            count monetized mortality at the stated VSL toward economic
+            damages (820M x $2.2M is above the rung's $220T). ONE SIDE ONLY:
+            the >=1B rung does not bound it on either leg.
+    LEGS    at every rung the damages question contains the deaths question,
+            for the same reason: reaching the death threshold monetizes to at
+            least the dollar threshold.
     SUBSET  a global catastrophe caused by AI is a global catastrophe.
     """
     below = [r for r in rungs if r["deaths"] <= 0.10 * WORLD_POP]
@@ -868,11 +937,22 @@ def build_relations(rungs):
         "cross": {"container": "ai",
                   "contained": [c["key"] for c in CAUSES if not c.get("container")]},
         "bracket": [
-            {"narrower": "catastrophe:ai", "cause": "ai", "rung": bracket_rung,
-             "why": "10% of population (~820M) exceeds this rung's threshold on "
-                    "deaths, and the rung also resolves on damages, so the "
-                    "catastrophe question is strictly contained in it."},
+            {"narrower": "catastrophe:ai", "cause": "ai", "rung": bracket_rung, "leg": "deaths",
+             "why": "10% of population (~820M) exceeds this rung's death threshold, "
+                    "so the catastrophe question is strictly contained in it."},
+            {"narrower": "catastrophe:ai", "cause": "ai", "rung": bracket_rung, "leg": "damages",
+             "why": "the Severity definitions count monetized mortality at the stated "
+                    "VSL toward economic damages, so ~820M deaths also exceed this "
+                    "rung's dollar threshold and the catastrophe question is contained "
+                    "in it."},
         ],
+        "legs": {
+            "container": "damages", "contained": "deaths",
+            "why": "the Severity definitions count monetized mortality, at the stated "
+                   "VSL, toward economic damages, and each rung's dollar threshold is "
+                   "its death threshold times that VSL, so any incident reaching a "
+                   "rung's death threshold has reached its dollar threshold.",
+        },
         "subset": [
             {"narrower": "catastrophe:ai", "broader": "catastrophe:general",
              "why": "an AI-caused global catastrophe is a global catastrophe"},
@@ -1100,12 +1180,13 @@ def emit_workbook(rows, cross_doc, ladder_doc, path):
     # to a question, which is the only thing it exists to do. Keyed on
     # (category, deaths) so the rung comes from the sheet, not from row order.
     by_rung = {}
+    deaths_of = {r["short"]: r["deaths"] for r in ladder_doc["rungs"]}
     for c in ladder_doc["causes"]:
         q = next(x for x in ladder_doc["questions"] if x["cause"] == c["key"])
         by_row[c["sheet"]] = (None, f"{q['criteria']}\n\n{shared_text}")
         for x in ladder_doc["questions"]:
-            if x["cause"] == c["key"]:
-                by_rung[(c["sheet"], x["severity"]["deaths"])] = x["id"]
+            if x["cause"] == c["key"]:     # both legs' ids, on the rung's one row
+                by_rung.setdefault((c["sheet"], deaths_of[x["rung"]]), []).append(x["id"])
 
     wb = openpyxl.load_workbook(XLSX, data_only=True)
     ws = wb[SHEET]
@@ -1133,6 +1214,7 @@ def emit_workbook(rows, cross_doc, ladder_doc, path):
         if qid is None:                       # a ladder row: resolve its rung
             sev = parse_severity(row[SEV_COL].value)
             qid = by_rung.get((cat, sev["deaths"] if sev else None))
+            qid = "; ".join(qid) if qid else None
             if qid is None:
                 raise SystemExit(
                     f"{path}: row {i} of {cat!r} has severity "

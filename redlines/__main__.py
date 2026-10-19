@@ -73,10 +73,11 @@ def _build_g2():
 
     blob = graph2.build()
     path = inject("GRAPH2", blob, json_out="results/graph2_data.json")
-    n_causes = sum(len(d["causes"]) for d in blob["byHorizon"].values())
-    n_viol = sum(len(d["violations"]) for d in blob["byHorizon"].values())
-    print(f"g2: {len(blob['byHorizon'])} horizon(s), {n_causes} cause-curve(s), "
-          f"{n_viol} violation(s) -> {path.name}")
+    sides = [s for d in blob["byHorizon"].values() for s in d["legs"].values()]
+    n_causes = sum(len(s["causes"]) for s in sides)
+    n_viol = sum(len(s["violations"]) for s in sides)
+    print(f"g2: {len(blob['byHorizon'])} horizon(s) x {len(blob['legs'])} ladder(s), "
+          f"{n_causes} cause-curve(s), {n_viol} violation(s) -> {path.name}")
 
 
 # Graph 3 and Graph 4 are FROZEN artifacts: their inputs (the ForecastBench

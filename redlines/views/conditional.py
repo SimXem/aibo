@@ -19,7 +19,7 @@ the conditionals came from the same calls.
 import json
 
 from ..logs import log_exists
-from ..conditional import (COMBINED_PROTOCOL, CONDITIONAL_LOG, LOSS_PREFIX, POLICIES, USD_PER_DEATH, group_rows, group_view, load_conditional, method_notes, protocol_line, protocols_in, summarize)
+from ..conditional import (COMBINED_PROTOCOL, CONDITIONAL_LOG, LOSS_PREFIX, POLICIES, group_rows, group_view, load_conditional, loss_text, method_notes, protocol_line, protocols_in, summarize)
 from ..config import REPO_ROOT
 from pathlib import Path
 from ..questions import all_questions, cause_category, load_ladder, severity_label
@@ -153,16 +153,12 @@ def _question_meta(q, spec):
 
 
 def _loss_question(cause, spec):
-    """A synthetic question record for one cause's expected loss."""
+    """A synthetic question record for one cause's expected deaths."""
     c = next((c for c in spec["causes"] if c["key"] == cause), {"label": cause})
-    rungs = spec["rungs"]
-    return {"id": LOSS_PREFIX + cause, "name": f"{c['label']}: expected loss",
-            "text": (f"{c['label']}: expected combined loss in death-equivalents (not expected deaths) "
-                     f"(one death-equivalent = ${USD_PER_DEATH / 1e6:g}M in dollar-equivalents), a floor "
-                     f"computed from the eight rung forecasts {rungs[0]['label']} … {rungs[-1]['label']}: "
-                     "each band valued at its lower threshold, with severity capped at the top rung. Small probabilities at extreme thresholds can dominate this estimate; the floor is under the forecast distribution, not a guarantee about actual harm."),
+    return {"id": LOSS_PREFIX + cause, "name": f"{c['label']}: expected deaths",
+            "text": loss_text(c["label"], spec),
             "group": LOSS_GROUP, "groupKey": "loss", "short": c["label"],
-            "heading": f"{c['label']} — expected loss", "severity": None,
+            "heading": f"{c['label']} — expected deaths", "severity": None,
             "valueKind": "loss",
             # Rail row: the workbook category and the cause's colour, as on
             # Graph 1's rail and Graph 2's curves.
@@ -345,7 +341,6 @@ def build(log_path=None, experiment=None, horizons=DEFAULT_HORIZONS,
         "rows": v["rows"],
         "repeats": v["repeats"],
         "notes": policies.get("notes", {}),
-        "usdPerDeath": USD_PER_DEATH,
         "rungs": [{"short": r["short"], "label": r["label"], "deaths": r["deaths"]}
                   for r in spec["rungs"]],
         "method": method_notes("policy", "mean of the unconditional arms"),

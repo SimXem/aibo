@@ -12,7 +12,7 @@ from redlines.runlog import complete_panel_rows
 from redlines.views import graph2
 
 ROOT = Path(__file__).resolve().parent.parent
-RUNG = [f"ladder:{c}:extinction" for c in ("ai", "bio", "cyber", "misalign")]
+RUNG = [f"ladder:{c}:extinction:deaths" for c in ("ai", "bio", "cyber", "misalign")]
 
 
 class TestTheRung(unittest.TestCase):
@@ -28,6 +28,8 @@ class TestTheRung(unittest.TestCase):
             self.assertEqual(q["since"], "2026-09-16")
             self.assertEqual(q["source"], "data/auto-arc/addendum-extinction-rung-2026-09-16.json")
             self.assertEqual(q["severity"]["kind"], "extinction")
+            self.assertEqual(q["leg"], "deaths")        # no dollar leg, so no damages question
+            self.assertNotIn((qid.rsplit(":", 1)[0] + ":damages"), self.qs)
             self.assertIsNone(q["severity"]["damages_usd"])
             self.assertEqual(q["severity"]["floor_population"], 5000)
             self.assertIn("human extinction (a reduction of the global population below 5,000)", q["text"])
@@ -38,7 +40,7 @@ class TestTheRung(unittest.TestCase):
 
     def test_same_floor_as_the_pair(self):
         pair = json.loads((ROOT / "data" / "auto-arc" / "addendum-extinction-2026-09-15.json").read_text())
-        self.assertEqual(self.qs["ladder:ai:extinction"]["severity"]["floor_population"],
+        self.assertEqual(self.qs["ladder:ai:extinction:deaths"]["severity"]["floor_population"],
                          pair["severity"]["floor_population"])
 
     def test_loss_fold_ignores_the_rung(self):
@@ -57,7 +59,7 @@ class TestTheRung(unittest.TestCase):
         self.assertEqual(b["rungs"][-1]["rung"], "extinction")
         self.assertIsNone(b["rungs"][-1]["damages"])
         marks = json.load(open(ROOT / "data" / "historical_events.json"))["events"]
-        ext = next(e for e in marks if e["id"] == "extinction")["severity"]["central"]
+        ext = next(e for e in marks if e["id"] == "extinction")["deaths"]["central"]
         self.assertEqual(b["rungs"][-1]["deaths"], ext)
 
 

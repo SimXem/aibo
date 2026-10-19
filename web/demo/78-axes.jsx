@@ -16,7 +16,7 @@ const axFmtX = (fmt, v) => {
   return Number(v).toFixed(0);
 };
 // Probabilities arrive in PERCENT (the conditional summary's unit, as on the
-// Policy tab); losses in death-equivalents.
+// Policy tab); losses in deaths.
 const axFmtPct = v => {
   if (v == null) return "—";
   const p = Number(v);

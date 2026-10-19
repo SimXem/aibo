@@ -62,10 +62,10 @@ from ..registry import model_colors, published_panel
 from ..runlog import (answered_horizons, grounding, load_runlog, pool,
                       pooled_rows, rows_by_day, series_rows)
 from ..runlog import instrument_info, complete_panel_rows, current_panel, elicitation_date, SERIES_START
-from ..conditional import USD_PER_DEATH, apply_or, ladder_rungs, level_or
+from ..conditional import LOSS_LEG, apply_or, ladder_rungs, level_or
 from ..config import REPO_ROOT
 from ..questions import SEVERITY_AXIS
-from ..instrument import CURRENT_INSTRUMENT
+from ..instrument import CURRENT_INSTRUMENT, instrument_rows
 from .graph1 import _loss_question, _loss_series
 
 # code/run_unified.py VARIANTS, verbatim (the runner is not importable from
@@ -267,7 +267,7 @@ def _prob_row(q, rail, by_day, days, horizons, var_meds=None):
 
 
 def _loss_row(cause, rungs, by_day, days, horizons, spec):
-    """One cause's eight rungs folded to expected loss, per day -- the same
+    """One cause's deaths ladder folded to expected deaths, per day -- the same
     row Graph 1 shows (graph1._loss_series, run once per date), with the
     lists aligned to `days`. Loss intervals are on the log scale."""
     color = dict(MODEL_COLORS)
@@ -317,7 +317,7 @@ def _reference_marks():
     if not path.exists():
         return []
     doc = json.loads(path.read_text())
-    return [{"label": e.get("short") or e["label"], "v": e["severity"]["central"]}
+    return [{"label": e.get("short") or e["label"], "v": e["deaths"]["central"]}
             for e in doc.get("events", [])
             if e.get("kind") == "reference" and "xtinction" in e.get("label", "")]
 
@@ -330,14 +330,15 @@ def build():
     qs = rail_questions(spec)
     per_q, categories = rail_grouping(qs, spec)
     # Keep the top-line probability questions' historical readings visible.
-    # The September 10 instrument revision changed incident counting, so loss
-    # rows below still use only current-version rows; the unchanged headline
-    # questions can show their prior assessments as explicitly legacy points.
+    # An instrument revision (the 2026-09-10 counting rules, the 2026-10-19
+    # severity legs) re-versions the whole joint call, so the loss rows below
+    # use only current-version rows; the headline questions, whose wording did
+    # not change, show their earlier readings as explicitly legacy points.
     all_rows = load_runlog(panel_only=False)
-    current_rows_all = [r for r in all_rows if r.get("instrument_version")]
+    current_rows_all = instrument_rows(all_rows)
     legacy_probability_ids = {q["id"] for q in qs if not q.get("cause")}
     legacy_rows = [r for r in all_rows
-                   if not r.get("instrument_version")
+                   if r.get("instrument_version") != CURRENT_INSTRUMENT
                    and r.get("question_id") in legacy_probability_ids
                    and elicitation_date(r) >= SERIES_START]
     current_series_rows = [r for r in current_rows_all if elicitation_date(r) >= SERIES_START]
@@ -387,7 +388,8 @@ def build():
         pooled = [r for (dd, _, _), r in by_day.items() if dd == d]
         snapshots.append({
             "date": d,
-            "instrumentVersion": (CURRENT_INSTRUMENT if any(r.get("instrument_version") for r in drows)
+            "instrumentVersion": (CURRENT_INSTRUMENT
+                                  if any(r.get("instrument_version") == CURRENT_INSTRUMENT for r in drows)
                                   else "legacy"),
             "instrumentInfo": instrument_info(drows),
             "label": day_label(d),
@@ -421,7 +423,7 @@ def build():
     # instrument; their old definitions must not be silently joined to this
     # series. Probability rows use the combined history above.
     current_by_day = {}
-    for d, day_rows in rows_by_day([r for r in rows if r.get("instrument_version")]).items():
+    for d, day_rows in rows_by_day(instrument_rows(rows)).items():
         groups = defaultdict(list)
         for r in day_rows:
             groups[(r["question_id"], r["label"])].append(r)
@@ -469,12 +471,11 @@ def build():
         # one, and typed into the chunk so nothing caught it at the swap.
         "provenance": load_ladder().get("provenance", {}),
         "questions": questions,
-        # The loss rows' axis: the ladder's rungs, the shared severity axis,
-        # the ladder's rate, and the Extinction reference mark.
-        "rungs": [{"short": r["short"], "label": r["label"], "deaths": r["deaths"]}
+        # The expected-deaths rows' axis: the deaths ladder's rungs, the shared
+        # severity axis, and the Extinction reference mark.
+        "rungs": [{"short": r["short"], "label": r["legs"][LOSS_LEG]["label"], "deaths": r["deaths"]}
                   for r in spec["rungs"]],
         "severityAxis": SEVERITY_AXIS,
-        "usdPerDeath": USD_PER_DEATH,
         "marks": _reference_marks(),
         # The prompt variants a date may carry (combined-v10), for the lines'
         # labels and their hover text: the instruction, whether the variant is

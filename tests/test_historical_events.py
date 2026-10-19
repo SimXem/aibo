@@ -1,5 +1,5 @@
 """The historical markers must be generated, never edited, and must stay on the
-same severity axis the question set defines.
+severity axes the question set defines.
 
 Two failure modes this guards, both of which would put a wrong number in front
 of a reader with nothing to catch it:
@@ -8,11 +8,10 @@ of a reader with nothing to catch it:
      the citation in the generator no longer matches the figure on the page.
      test_generated_file_is_current diffs byte-for-byte.
 
-  2. The Auto-ARC rungs change their deaths:damages ratio — the $10M value of a
-     statistical life — while the marker placement rule keeps dividing by the
-     old constant. Every event with a damages leg then lands in the wrong
-     place, silently, because nothing else in the pipeline reads both files.
-     test_vsl_matches_the_ladder fails the build instead.
+  2. A mark lands on a ladder it has no figure for, or off a chart's axis.
+     Until 2026-10-19 the two legs were one axis joined by the ladder's value
+     of a statistical life and this file pinned that rate; since the legs are
+     asked apart nothing converts, and TestTwoLadders pins that instead.
 
 Run with:  python3 -m unittest tests.test_historical_events -v
 """
@@ -29,7 +28,6 @@ GEN = REPO / "code" / "make_historical_events.py"
 EVENTS = REPO / "data" / "historical_events.json"
 
 from redlines.historical import load_events, markers  # noqa: E402
-from redlines.questions import load_ladder  # noqa: E402
 
 
 def load_generator():
@@ -55,51 +53,50 @@ class TestGeneratedFile(unittest.TestCase):
         self.assertTrue(doc["caveat"].strip())
 
 
-class TestSeverityAxis(unittest.TestCase):
-    def test_vsl_matches_the_ladder(self):
-        """The placement rule's VSL must be the one the rungs actually imply."""
-        gen = load_generator()
-        for r in load_ladder()["rungs"]:
-            if r.get("damages_usd") is None:    # the extinction rung has no dollar leg
-                continue
-            self.assertAlmostEqual(
-                r["damages_usd"] / r["deaths"], gen.VSL_USD, delta=1,
-                msg=f"rung {r['short']} implies a value of a statistical life "
-                    f"of {r['damages_usd'] / r['deaths']:,.0f}, but "
-                    f"{GEN.name} places events using {gen.VSL_USD:,.0f}. "
-                    f"Every event with a damages leg is now misplaced.")
+class TestTwoLadders(unittest.TestCase):
+    """Since 2026-10-19 an event is drawn on the ladder(s) it has a figure for,
+    and nothing converts between deaths and dollars."""
 
-    def test_placement_takes_the_higher_leg(self):
-        """A rung is met on deaths OR damages, so the higher leg sets position."""
-        gen = load_generator()
-        both = {"deaths": {"low": 1e6, "central": 2e6, "high": 3e6},
-                "damages_usd": {"low": 1e12, "central": 1e12, "high": 1e12}}
-        # damages leg = 1e12 / 1e7 = 1e5, below every deaths value, so deaths win
-        self.assertEqual(gen.coordinate(both)["central"], 2e6)
-
-        damages_only = {"deaths": None,
-                        "damages_usd": {"low": 1e10, "central": 1e10, "high": 1e10}}
-        self.assertAlmostEqual(gen.coordinate(damages_only)["central"], 1e10 / gen.VSL_USD, delta=1e-6)
-
-    def test_covid_is_placed_on_its_deaths_leg(self):
-        """The case the rule exists for: COVID's output loss must not demote it."""
-        ev = next(e for e in load_events()["events"] if e["id"] == "covid-19")
-        self.assertAlmostEqual(ev["severity"]["central"], 14.83e6, delta=1)
-
-    def test_events_land_inside_the_plotted_axis(self):
-        """A band outside the chart's x-domain would render as a sliver at the
-        edge and read as a real position. Keep this in step with XLO/XHI in
-        web/demo/30-live-graph2.jsx."""
-        XLO, XHI = 800, 1.4e10
+    def test_every_event_has_a_band_on_at_least_one_ladder(self):
         for e in markers()["events"]:
-            self.assertGreater(e["low"], XLO, f"{e['id']} falls off the left edge")
-            self.assertLess(e["high"], XHI, f"{e['id']} falls off the right edge")
+            self.assertTrue(e["deaths"] or e["damagesUsd"], e["id"])
+
+    def test_covid_is_on_both_ladders_and_notpetya_on_damages_alone(self):
+        by = {e["id"]: e for e in markers()["events"]}
+        self.assertAlmostEqual(by["covid-19"]["deaths"]["central"], 14.83e6, delta=1)
+        self.assertAlmostEqual(by["covid-19"]["damagesUsd"]["central"], 12.5e12, delta=1)
+        self.assertIsNone(by["notpetya"]["deaths"])
+        self.assertEqual(by["notpetya"]["damagesUsd"]["central"], 10e9)
+        for i in ("black-death", "world-war-ii", "black-death-share", "extinction"):
+            self.assertIsNone(by[i]["damagesUsd"], i)
+
+    def test_nothing_converts_between_the_ladders(self):
+        gen = load_generator()
+        self.assertFalse(hasattr(gen, "VSL_USD"))
+        self.assertFalse(hasattr(gen, "coordinate"))
+        self.assertNotIn("conversion", load_events())
+        self.assertNotIn("death-equivalent", markers()["caveat"])
+
+    def test_events_land_inside_the_plotted_axes(self):
+        """A band outside a chart's x-domain would render as a sliver at the
+        edge and read as a real position. The axes are the ones the chunk
+        draws (redlines.questions, carried in the Graph 2 blob)."""
+        from redlines.questions import DAMAGES_AXIS, SEVERITY_AXIS
+        for e in markers()["events"]:
+            for band, axis in ((e["deaths"], SEVERITY_AXIS), (e["damagesUsd"], DAMAGES_AXIS)):
+                if not band:
+                    continue
+                self.assertGreater(band["low"], axis["lo"], f"{e['id']} falls off the left edge")
+                self.assertLess(band["high"], axis["hi"], f"{e['id']} falls off the right edge")
 
     def test_bands_are_ordered_and_positive(self):
         for e in markers()["events"]:
-            self.assertLessEqual(e["low"], e["central"], e["id"])
-            self.assertLessEqual(e["central"], e["high"], e["id"])
-            self.assertGreater(e["low"], 0, e["id"])
+            for band in (e["deaths"], e["damagesUsd"]):
+                if not band:
+                    continue
+                self.assertLessEqual(band["low"], band["central"], e["id"])
+                self.assertLessEqual(band["central"], band["high"], e["id"])
+                self.assertGreater(band["low"], 0, e["id"])
 
 
 class TestSourcing(unittest.TestCase):

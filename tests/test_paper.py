@@ -17,6 +17,15 @@ from redlines.paper import FIG_ORDER, numbers
 TRACKED = REPO_ROOT / "paper" / "numbers.tex"
 
 
+def _awaiting_first_run():
+    """True in the window between re-versioning the questions and the first
+    run under the new instrument: the current-instrument mirrors are empty
+    and paper/numbers.tex is the previous instrument's snapshot."""
+    import json
+    g1 = json.loads((REPO_ROOT / "results" / "graph1_data.json").read_text(encoding="utf-8"))
+    return not g1.get("instrumentInfo", {}).get("available")
+
+
 def first_difference(a, b, path="$"):
     """Where two JSON values first differ, or None. Floats agree to 12
     significant digits: the last bits of a libm result differ between macOS
@@ -39,6 +48,10 @@ def first_difference(a, b, path="$"):
 
 
 class TestNumbersGolden(unittest.TestCase):
+    def setUp(self):
+        if _awaiting_first_run():
+            self.skipTest("no run under the current instrument yet; numbers.tex is the previous instrument's snapshot")
+
     def test_numbers_tex_matches_tracked(self):
         self.assertTrue(TRACKED.exists(), f"{TRACKED} missing: run python3 -m redlines paper")
         fresh = numbers.render()
@@ -81,10 +94,10 @@ class TestNumbersGolden(unittest.TestCase):
         top = [r for r in g2["rungs"] if r.get("damages") is not None][-1]["rung"]
         distinct = False
         for h, median in q["median"].items():
-            cause = next(c for c in g2["byHorizon"][h]["causes"] if c["key"] == "ai")
+            cause = next(c for c in g2["byHorizon"][h]["legs"]["deaths"]["causes"] if c["key"] == "ai")
             rung = next(r for r in cause["rungs"] if r["rung"] == top)
             self.assertEqual(vals[f"g1:catastrophe:ai:{h}:median"], numbers.fmt_pct(median))
-            self.assertEqual(vals[f"g2:ladder:ai:{top}:{h}:median"], numbers.fmt_pct(rung["median"]))
+            self.assertEqual(vals[f"g2:ladder:ai:{top}:deaths:{h}:median"], numbers.fmt_pct(rung["median"]))
             distinct |= median != rung["median"]
         self.assertTrue(distinct, "Fixture must distinguish the two outcomes to detect namespace collisions")
 
@@ -140,6 +153,8 @@ class TestFiguresRender(unittest.TestCase):
             import matplotlib  # noqa: F401
         except ImportError:
             self.skipTest("matplotlib not installed (uv sync --extra paper)")
+        if _awaiting_first_run():
+            self.skipTest("no run under the current instrument yet; the ladder figure has nothing to draw")
 
     def test_every_figure_renders_without_tex(self):
         from redlines.paper import render_all

@@ -13,16 +13,14 @@ THREE EVENTS, DELIBERATELY. COVID-19, the Black Death and World War II (project
 lead, 2026-08-18: start with just these three, keep it simple). All three land
 between 14M and 85M, so they anchor the right-hand third of the axis and nothing
 below it. Adding a lower rung later -- Bhopal, Hiroshima and Nagasaki, the 2004
-tsunami -- is one dict in EVENTS; `coordinate()` already handles a damages-only
-event.
+tsunami -- is one dict in EVENTS; an event carries whichever legs it has.
 
 PLUS ONE DAMAGES-ONLY EVENT (project lead, 2026-09-10): NotPetya, the 2017 wiper,
-drawn as a single line at its ~$10B damages figure. It is the only mark that
-enters on the DAMAGES leg, so it is the only one that shows a reader where a
-dollar figure lands on an axis otherwise captioned in deaths -- and it
-anchors the bottom of the axis, beside the 1k rung, which nothing else does.
-It is a point, not a band: the $10B is one official estimate, not a
-published range, and the note says so.
+drawn as a single line at its ~$10B damages figure. It has no deaths, so it
+appears on the damages ladder alone, where it anchors the foot of that axis
+between the $2.2B and $22B rungs, which nothing else does. It is a point, not
+a band: the $10B is one official estimate, not a published range, and the
+note says so.
 
 PLUS TWO DEFINITIONAL REFERENCE MARKS (lead author's notes, 2026-08-19: extend the
 severity graph toward extinction, include "Extinction", and show the Black
@@ -45,15 +43,13 @@ spans 70-85 million across compilations. A dashed line at a single value would
 assert a precision the historiography does not have, so each event carries
 (low, central, high) and Graph 2 renders a shaded band.
 
-WHERE AN EVENT SITS ON THE AXIS. Each Auto-ARC rung resolves on deaths OR
-damages, whichever binds first, at the $10M value of a statistical life its
-criteria state (VSL_USD below). So an event's severity coordinate is
-
-    max(deaths, damages_usd / VSL_USD)
-
--- the higher of the two legs, because reaching either one is enough. COVID-19
-enters at ~14.8M on its deaths leg, not at the 1.25M its $12.5T output loss
-would imply.
+WHERE AN EVENT SITS. Since 2026-10-19 the ladder is two ladders, deaths and
+damages, asked apart, and an event is drawn on the ladder(s) whose figure it
+has: COVID-19 on both (14.8M excess deaths; $12.5T output loss), NotPetya on
+the damages ladder alone, the Black Death, World War II and the two reference
+marks on the deaths ladder alone. Nothing is converted between the two. (Until
+then one deaths-OR-damages question per rung put every mark on one axis at
+max(deaths, damages / the ladder's $2.2M value of a statistical life).)
 
 THESE MARKS ARE NOT COMPARABLE TO THE CURVES, AND THE PANEL SAYS SO. Every
 curve on Graph 2 is the probability of an AI-RELATED incident inside a horizon
@@ -77,11 +73,6 @@ OUT = Path(__file__).resolve().parent.parent / "data" / "historical_events.json"
 CROSSCUTTING = (Path(__file__).resolve().parent.parent
                 / "data" / "autoarc_crosscutting.json")
 
-# The deaths:damages conversion the Auto-ARC criteria state. Keep in step with
-# data/autoarc_ladder.json -- tests/test_historical_events.py fails if the
-# ladder's own rungs stop implying this ratio.
-VSL_USD = 2.2e6   # $2.2M since the question set's 2026-08-31 revision (was 1e7)
-
 VERIFIED = "2026-08-18"
 
 CAVEAT = (
@@ -92,21 +83,19 @@ CAVEAT = (
     "over years. Bands show the range across published estimates, not "
     "measurement error; the reference marks (Black Death as a population "
     "share, Extinction) are definitions drawn at today's population, not "
-    "tolls. NotPetya is a damages figure, placed by converting dollars to "
-    "death-equivalents at the ladder's own value of a statistical life."
+    "tolls. Each mark appears only on the ladder(s) it has a figure for."
 )
 
 # deaths / damages_usd are {low, central, high}. Omit `damages_usd` where no
-# credible aggregate figure exists -- an event is placed on whichever leg is
-# higher, so a missing damages leg simply never binds.
+# credible aggregate figure exists -- an event is drawn on the ladder(s) it
+# has a figure for, so a missing leg simply does not appear there.
 EVENTS = [
     {
         "id": "notpetya",
         "label": "NotPetya (~$10B damages)",
         "short": "NotPetya: $10B",
         "span": "2017",
-        "basis": "damages only — the White House's ~$10B estimate, at $2.2M "
-                 "per statistical life",
+        "basis": "damages only — the White House's ~$10B estimate",
         "deaths": None,
         "damages_usd": {"low": 10e9, "central": 10e9, "high": 10e9},
         "verified": "2026-09-10",
@@ -120,15 +109,14 @@ EVENTS = [
             "url": "https://www.wired.com/story/notpetya-cyberattack-ukraine-russia-code-crashed-the-world/",
         },
         "note": "DAMAGES ONLY: no deaths are attributed to NotPetya, so it "
-                "enters on the dollar leg and its position is $10B / $2.2M "
-                "per statistical life ≈ 4.5k death-equivalents. The $10B is "
+                "appears on the damages ladder alone, at $10B. The $10B is "
                 "a single U.S. government estimate in 2017 dollars (the "
                 "rungs are stated in 2026 USD; inflating it would move the "
                 "mark a few percent, invisible on a log axis). Disclosed "
                 "corporate write-downs alone (Merck, Maersk, FedEx/TNT, "
                 "Saint-Gobain, Mondelez) sum to over $3B. It is here to show "
-                "where the costliest cyberattack on record sits: at the "
-                "foot of the ladder.",
+                "where the costliest cyberattack on record sits: near the "
+                "foot of the damages ladder.",
     },
     {
         "id": "covid-19",
@@ -146,9 +134,8 @@ EVENTS = [
         },
         "note": "Excess mortality, not the ~7M laboratory-confirmed deaths — the "
                 "ladder's criteria ask for excess mortality attributable to the "
-                "event. The damages leg (IMF cumulative output loss, $12.5T over "
-                "2020-21 rising to $22T through 2025) implies only ~1.25M "
-                "death-equivalent, so the deaths leg binds and sets the position.",
+                "event. On the damages ladder it is drawn at the IMF's cumulative "
+                "output loss, $12.5T over 2020-21 rising to $22T through 2025.",
     },
     {
         "id": "black-death",
@@ -284,31 +271,20 @@ def reference_marks(pop):
     ]
 
 
-def coordinate(ev):
-    """Where this event sits on the log-death axis: (low, central, high).
-
-    An Auto-ARC rung is met on deaths OR damages, so an event reaches the rung
-    given by the HIGHER of its two legs. Missing legs never bind.
-    """
-    band = []
-    for key in ("low", "central", "high"):
-        legs = []
-        if ev["deaths"]:
-            legs.append(ev["deaths"][key])
-        if ev["damages_usd"]:
-            legs.append(ev["damages_usd"][key] / VSL_USD)
-        if not legs:
-            raise ValueError(f"{ev['id']}: no deaths and no damages — unplaceable")
-        band.append(max(legs))
-    lo, ce, hi = band
-    if not lo <= ce <= hi:
-        raise ValueError(f"{ev['id']}: band not ordered: {lo} {ce} {hi}")
-    return {"low": lo, "central": ce, "high": hi}
+def check_bands(ev):
+    """An event has at least one leg, and every band it has is ordered."""
+    if not ev["deaths"] and not ev["damages_usd"]:
+        raise ValueError(f"{ev['id']}: no deaths and no damages — unplaceable")
+    for leg in ("deaths", "damages_usd"):
+        band = ev[leg]
+        if band and not band["low"] <= band["central"] <= band["high"]:
+            raise ValueError(f"{ev['id']}: {leg} band not ordered: {band}")
 
 
 def build():
     events = []
     for ev in EVENTS + reference_marks(population_basis()):
+        check_bands(ev)
         events.append({
             "id": ev["id"],
             "kind": ev.get("kind", "event"),
@@ -318,14 +294,14 @@ def build():
             "basis": ev["basis"],
             "deaths": ev["deaths"],
             "damages_usd": ev["damages_usd"],
-            "severity": coordinate(ev),
             "source": ev["source"],
             "note": ev["note"],
             "verified": ev.get("verified", VERIFIED),
         })
-    events.sort(key=lambda e: e["severity"]["central"])
+    # The deaths ladder's order; a damages-only mark has no place in it and leads.
+    events.sort(key=lambda e: (e["deaths"] or {}).get("central", 0))
     return {
-        "title": "Historical events, placed on the Auto-ARC severity axis",
+        "title": "Historical events, placed on the Auto-ARC severity ladders",
         "provenance": {
             "requested_by": "Jason Abaluck, 2026-08-17 call; reference marks "
                             "from his 2026-08-19 notes",
@@ -333,19 +309,13 @@ def build():
                      "(Nick, 2026-08-18), plus two definitional reference "
                      "marks — Black Death as a population share, and "
                      "Extinction — at the question set's population basis "
-                     "(Jason, 2026-08-19), plus NotPetya on the damages leg "
-                     "(Nick, 2026-09-10), the one mark below 14M.",
+                     "(Jason, 2026-08-19), plus NotPetya on the damages ladder "
+                     "(Nick, 2026-09-10).",
             "curated_by": "this project — hand-curated, one citation per row",
             "generated_by": "code/make_historical_events.py",
             "verified": VERIFIED,
             "status": "Figures checked against the cited sources on the "
                       "`verified` date. Re-check before the paper is frozen.",
-        },
-        "conversion": {
-            "vsl_usd": VSL_USD,
-            "rule": "severity = max(deaths, damages_usd / vsl_usd)",
-            "why": "Each rung resolves on deaths OR damages, whichever binds "
-                   "first, so an event reaches the rung set by its higher leg.",
         },
         "caveat": CAVEAT,
         "events": events,

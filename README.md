@@ -31,8 +31,10 @@ One page, `index.html`, assembled from the chunks under `web/demo/`. Its panels:
   (general catastrophe, AI catastrophe, human disempowerment) and one
   expected-loss row per AI-related incident cause, with prior human panels
   (XPT, LEAP) as hollow diamonds where a comparable question exists.
-- **Graph 2** — the incident severity ladders: probability against a
-  deaths-or-damages threshold for four AI-related incident causes, plus a
+- **Graph 2** — the incident severity ladders: probability against a severity
+  threshold for four AI-related incident causes, on two charts since 2026-10-19
+  — one for deaths (or equivalent morbidity), one for economic damages, each
+  rung a separate question on each (`docs/severity-legs-2026-10-19.md`) — plus a
   resolution-free coherence check (P of a stronger event must never exceed P of
   a weaker event it implies).
 - **Data bank** — the bottom-line forecasts collated with their resolution
@@ -117,15 +119,17 @@ identical from the outside, so the runner refuses instead;
 `--allow-ungrounded` makes that an explicit choice.
 
 **The published protocol** (since 2026-08-27; rows are tagged with a protocol
-id, currently `unified-joint-combined-v6`, see `redlines/conditional.py`) is the
+id, currently `unified-joint-combined-v11`, see `redlines/conditional.py`) is the
 single instrument: `--joint` is one call per model that answers every question ×
 horizon cell unconditionally *and* under each condition in one submission, with
 no coherence relation stated in the prompt (coherence is measured afterwards).
-The prompt is 37 questions (four AI incident types × 8 severity rungs, plus
-five cross-cutting questions: the two 10%-of-population catastrophe questions,
-human disempowerment, and since 2026-09-15 the two extinction questions in
-XPT's wording, `docs/extinction-questions-2026-09-15.md`) over six horizons,
-two of them rolling. Since
+The prompt is 73 questions (four AI incident types × 9 severity rungs on the
+deaths ladder and × 8 on the damages ladder — since 2026-10-19 each rung is a
+deaths question and a damages question, `docs/severity-legs-2026-10-19.md` —
+plus five cross-cutting questions: the two 10%-of-population catastrophe
+questions, human disempowerment, and since 2026-09-15 the two extinction
+questions in XPT's wording, `docs/extinction-questions-2026-09-15.md`) over six
+horizons, two of them rolling. Since
 2026-09-02 each model is asked once per run (`--repeats 1`); the same-day
 repeats that preceded it bought a re-asking spread, and their budget went to
 the agentic search harness instead, so the views draw no interval on a
@@ -155,11 +159,14 @@ the single source: `code/make_autoarc_questions.py` generates
 `data/autoarc_ladder.json` and `data/autoarc_crosscutting.json` from them, the
 runner and every panel read only the generated files, and
 `tests/test_autoarc_generator.py` fails if either is hand-edited. Definition
-changes are versioned as instruments: the 2026-09-10 counting rules
-(`docs/counting-rules-specification-2026-09-10.md`) are instrument
-`airo-incidents-prospective-v1`, the previous instrument is archived under
-`data/instruments/legacy-2026-08-31/`, and rows carry the instrument id so a
-view never answers a revised question with an older probability.
+changes are versioned as instruments (`redlines/instrument.py`): the
+2026-10-19 split of every rung into a deaths question and a damages question
+is instrument `airo-incidents-prospective-v2`, the 2026-09-10 counting rules
+(`docs/counting-rules-specification-2026-09-10.md`) were
+`airo-incidents-prospective-v1`, each superseded instrument's generated
+questions are archived under `data/instruments/<version>/`, and rows carry the
+instrument id so a view never answers a revised question with an older
+probability.
 
 ### Rebuild the Graph 4 corpus (deterministic; needs the forecastbench-sim checkout)
 

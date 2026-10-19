@@ -63,7 +63,7 @@ function ExpectedLossNote() {
   if (!method) return null;
   return (
     <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-soft)", marginTop: 10 }}>
-      <strong>Expected loss.</strong> {method}
+      <strong>Expected deaths.</strong> {method}
     </div>
   );
 }

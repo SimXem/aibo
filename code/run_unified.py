@@ -44,7 +44,9 @@ tests/test_coherence.py::test_prompt_states_no_constraint guards this file
 against a quiet re-instruction.
 
 Composition (Auto-ARC set, 2026-08-18):
-  - the four incident causes, each spanning all eight severity rungs
+  - the four incident causes, each spanning all nine severity rungs on the
+    deaths ladder and eight on the damages ladder (one question per rung per
+    leg since 2026-10-19; one deaths-OR-damages question per rung before)
   - the cross-cutting questions (five since 2026-09-15) as their own group; they belong to no
     cause, because a catastrophe at 10% of population is not a rung of any
     incident type
@@ -815,10 +817,11 @@ def constraint_block(spec, groups, by_group):
 def load_batch(ladder_path, cross_path, exclude):
     """-> (groups, {group_key: [question, ...]}, horizons, skipped)
 
-    Every question in one call. The ladder's four causes, in severity order,
-    plus the cross-cutting questions as their own group — they belong to no
-    cause by design, since a catastrophe at 10% of population is not a rung of
-    any incident type.
+    Every question in one call. The ladder's four causes -- each leg's rungs
+    in severity order, the deaths ladder then the damages ladder -- plus the
+    cross-cutting questions as their own group: they belong to no cause by
+    design, since a catastrophe at 10% of population is not a rung of any
+    incident type.
 
     No category-to-cause map any more: each ladder question names its own cause
     and each cross-cutting one names none, so the old config.BATCH_CAUSE (and
@@ -828,6 +831,8 @@ def load_batch(ladder_path, cross_path, exclude):
     spec = json.load(open(ladder_path))
     cross = json.load(open(cross_path))["questions"]
     rung_order = [r["short"] for r in spec["rungs"]]
+    # An archived spec from before 2026-10-19 has no legs: one question per rung.
+    leg_order = [l["key"] for l in spec.get("legs", [])]
     horizons = sorted([h for h in spec["horizons"] if h],
                       key=lambda h: horizon_sort_key(h, spec))
 
@@ -835,7 +840,8 @@ def load_batch(ladder_path, cross_path, exclude):
     by_group = {}
     for c in spec["causes"]:
         rungs = [q for q in spec["questions"] if q["cause"] == c["key"]]
-        by_group[c["key"]] = sorted(rungs, key=lambda q: rung_order.index(q["rung"]))
+        by_group[c["key"]] = sorted(rungs, key=lambda q: (leg_order.index(q["leg"]) if leg_order else 0,
+                                                          rung_order.index(q["rung"])))
 
     skipped = []
     groups.append({"key": "crosscutting", "label": "Cross-cutting"})
@@ -888,8 +894,13 @@ def build_prompt(groups, by_group, horizons, spec, today=None,
     to send.
 
     Shared blocks (severity, dates, the perfect-knowledge clause) are printed
-    ONCE at the end rather than repeated under all 32 rungs, which would be
-    about 100k characters of duplication and would bury the questions.
+    ONCE at the end rather than repeated under all 68 ladder questions, which
+    would be about 200k characters of duplication and would bury the questions.
+    For the same reason a group whose questions all share one criteria text
+    (each incident cause: its definition is the same for every rung on both
+    legs) prints it once under the group heading (2026-10-19, when the legs
+    split took the per-question form past the 128 KiB a pi argument may hold);
+    the cross-cutting questions keep their own criteria under each question.
     """
     today = today or date.today()
     blocks, n, cells, shared = "", 0, 0, None
@@ -898,6 +909,10 @@ def build_prompt(groups, by_group, horizons, spec, today=None,
         if not qs:
             continue
         blocks += f"===== {g['label'].upper()} =====\n\n"
+        criteria = {q.get("criteria") or "" for q in qs}
+        group_criteria = next(iter(criteria)) if len(qs) > 1 and len(criteria) == 1 else ""
+        if group_criteria:
+            blocks += f"Resolution criteria for every question in this group:\n{group_criteria}\n\n"
         for q in qs:
             # Per-question horizons, because they genuinely differ. The
             # cross-cutting questions are not asked over a rolling window:
@@ -911,7 +926,7 @@ def build_prompt(groups, by_group, horizons, spec, today=None,
             blocks += f"--- {q['id']} (severity: {q['severity']['label']}) ---\n"
             blocks += f"{q['text']}\n"
             blocks += f"Horizons for this question: {', '.join(mine)}\n"
-            if q.get("criteria"):
+            if q.get("criteria") and not group_criteria:
                 blocks += f"\nResolution criteria:\n{q['criteria']}\n"
             blocks += "\n"
             shared = shared or q.get("details")

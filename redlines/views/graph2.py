@@ -1,16 +1,22 @@
-"""Graph 2: the severity ladder, and the coherence check that needs no resolution.
+"""Graph 2: the severity ladders, and the coherence check that needs no resolution.
 
-Four AI incident types, eight rungs each, one wording per cause with the
+Four AI incident types, nine rungs each, one wording per cause with the
 threshold as the only variable — so every curve spans the whole severity axis
 and causes are directly comparable at equal severity.
 
-TWO THINGS CHANGED SHAPE IN THE AUTO-ARC SWAP, and both are visible here.
+TWO LADDERS SINCE 2026-10-19 (Ezra Karger: separate deaths and damages). Every
+rung used to be one question resolving on deaths OR damages; it is now two,
+one resolving on deaths (or equivalent morbidity) and one on economic damages,
+so the panel is two charts -- a deaths ladder and a damages ladder -- each with
+its own axis, rung ticks and historical marks (`legs`). The Severity
+definitions count monetized mortality toward damages, so the damages question
+contains the deaths question at every rung; that ordering is one of the
+constraints audited below (LEG), never imposed.
 
-Cyber is on the ladder. It was held out by design while the axis was
+Cyber is on both ladders. It was held out by design while the axis was
 deaths-only (per the paper's lead author, 2026-08-03: cyber belongs on a
-DAMAGES ladder). Every Auto-ARC rung resolves on deaths OR damages, at the $10M
-value of a statistical life its criteria state, so the two legs are exactly
-convertible and cyber sits on the same axis as the rest.
+DAMAGES ladder); the damages ladder is that ladder, and its deaths ladder is
+asked alongside like every cause's.
 
 The container is "any AI-related incident", not "all causes". The set's
 definition makes that class contain the other three, so it plays the role the
@@ -19,16 +25,12 @@ nuclear and natural pandemics are outside this question set entirely — so the
 CROSS check it anchors is AI-internal. That is a real narrowing and the panel
 says so rather than letting the slate curve imply a totality it does not have.
 
-The two catastrophe questions are NOT drawn here (removed 2026-08-18: they
-read as marks belonging to no curve, and nobody had asked for them). The two
-EXTINCTION questions ARE (project lead, 2026-09-15: include the extinction
-forecasts on this chart): two of our own live forecasts, drawn as diamonds at
-the Extinction reference mark -- the whole population, where the axis already
-ends -- one for extinction of any cause, one for AI-caused extinction. They
-are marks beside the curves, never joined to one: XPT's wording, a population
-floor rather than a death count, no damages leg, no onset window, and AI
-attribution by XPT's rule rather than the ladder's. `anchors` per horizon,
-`anchorsNote` for the page.
+The catastrophe and extinction questions are NOT drawn here: the catastrophe
+pair came off on 2026-08-18 (marks belonging to no curve, and nobody had asked
+for them) and the extinction pair on 2026-09-16, the day the extinction RUNG
+joined every deaths ladder (project lead: "just show us the probabilities like
+normal"). Both pairs are their own questions on Graph 1; the BRACKET and
+SUBSET relations that tie them to the ladder are audited here regardless.
 
 Coherence is REPORTED here, never enforced. The prompt states no relation
 between these questions (code/run_unified.py), so a violation is a measurement.
@@ -37,9 +39,8 @@ import statistics
 
 from ..coherence import audit as full_audit
 from ..historical import markers as historical_markers
-from ..questions import (SEVERITY_AXIS, cause_category, horizon_label, horizon_sort_key,
-                         load_crosscutting_doc, load_ladder, severity_deaths,
-                         severity_label)
+from ..questions import (DAMAGES_AXIS, SEVERITY_AXIS, cause_category, horizon_label,
+                         horizon_sort_key, ladder_index, load_ladder)
 from ..registry import model_colors as _model_colors
 from ..conditional import apply_or, level_or
 from ..runlog import current_rows, latest_pooled, load_runlog, instrument_info
@@ -91,10 +92,13 @@ DISPLAY_ROWS = (
     ("LADDER", ("LADDER",),
      "The probability of reaching a higher severity threshold is never higher than "
      "the probability of reaching a lower one."),
-    ("SUBSET", ("SUBSET", "CROSS", "BRACKET"),
+    ("SUBSET", ("SUBSET", "CROSS", "BRACKET", "LEG"),
      "Some questions are special cases of another, and a special case can "
      "never be likelier than the general one."),
 )
+
+# Each leg's axis (redlines.questions), keyed as the spec keys its legs.
+LEG_AXES = {"deaths": SEVERITY_AXIS, "damages": DAMAGES_AXIS}
 
 
 def _display_rows(res):
@@ -111,19 +115,17 @@ def _display_rows(res):
     return rows
 
 
-def _anchors_note(cross_doc):
-    """One sentence on the extinction marks, or None when the set has none."""
-    ext = [q for q in cross_doc["questions"] if q["severity"].get("kind") == "extinction"]
-    if not ext:
-        return None
-    floor = ext[0]["severity"].get("floor_population")
-    names = " and ".join(q["name"].lower() for q in ext)
-    return (f"The diamonds are the {names} forecasts: separate questions in the "
-            "Existential Risk Persuasion Tournament's 2022 wording, resolving on the "
-            f"global population falling below {floor:,} rather than on a deaths-or-damages "
-            "threshold, with no onset window and, for the AI question, XPT's own attribution "
-            "rule rather than the ladder's. They are drawn at the Extinction mark for scale "
-            "and are not rungs of any curve.")
+def _rung_value(r, leg):
+    """Where a rung sits on one ladder's axis."""
+    return r["deaths"] if leg == "deaths" else r["damages_usd"]
+
+
+def _leg_rungs(spec, leg):
+    """The rung ticks of one ladder: every rung with that leg, in order, with
+    the leg's own label and short label from the spec."""
+    return [{"rung": r["short"], "value": _rung_value(r, leg),
+             "label": r["legs"][leg]["label"], "short": r["legs"][leg]["short"]}
+            for r in spec["rungs"] if leg in r["legs"]]
 
 
 def build(source_rows=None, include_history=True):
@@ -139,7 +141,6 @@ def build(source_rows=None, include_history=True):
     present = {label for _, label in latest}
     model_colors = [(l, c) for l, c in model_colors if l in present]
     spec = load_ladder()
-    cross_doc = load_crosscutting_doc()
     as_of = max((elicitation_date(r) for r in rows), default=None)
 
     # From the spec, not from questions[0]: the set has questions on different
@@ -147,73 +148,54 @@ def build(source_rows=None, include_history=True):
     # every other question to it.
     horizons = sorted([h for h in spec["horizons"] if h],
                       key=lambda h: horizon_sort_key(h, spec))
-    by_cause_rung = {(q["cause"], q["rung"]): q for q in spec["questions"]}
+    index = ladder_index(spec)
     container = spec["relations"]["cross"]["container"]
+    legs = [l["key"] for l in spec["legs"]]
 
     out_h = {}
     for h in horizons:
-        causes, violations, declines = [], [], {}
-        for c in spec["causes"]:
-            rungs = []
-            for r in spec["rungs"]:
-                q = by_cause_rung.get((c["key"], r["short"]))
-                if not q or h not in q["horizons"]:
+        declines, by_leg = {}, {}
+        for leg in legs:
+            causes, violations = [], []
+            for c in spec["causes"]:
+                rungs = []
+                for r in spec["rungs"]:
+                    q = index.get((c["key"], r["short"], leg))
+                    if not q or h not in q["horizons"]:
+                        continue
+                    per = probs(latest, model_colors, q["id"], h)
+                    for label, _ in model_colors:
+                        row = latest.get((q["id"], label))
+                        if row and not row["forecasts"]:
+                            declines[label] = declines.get(label, 0) + 1
+                    if not per:
+                        continue
+                    med = round(statistics.median(per.values()), 4)
+                    rungs.append({"rung": r["short"], "value": _rung_value(r, leg),
+                                  "label": q["severity"]["label"], "short": q["severity"]["short"],
+                                  "qid": q["id"], "per_model": per,
+                                  "median": med,
+                                  "ci": point_ci(latest, model_colors, q["id"], h, med)})
+                if len(rungs) < 2:
                     continue
-                per = probs(latest, model_colors, q["id"], h)
-                for label, _ in model_colors:
-                    row = latest.get((q["id"], label))
-                    if row and not row["forecasts"]:
-                        declines[label] = declines.get(label, 0) + 1
-                if not per:
-                    continue
-                med = round(statistics.median(per.values()), 4)
-                rungs.append({"rung": r["short"], "deaths": r["deaths"],
-                              "damages": r["damages_usd"], "label": r["label"],
-                              "qid": q["id"], "per_model": per,
-                              "median": med,
-                              "ci": point_ci(latest, model_colors, q["id"], h, med)})
-            if len(rungs) < 2:
-                continue
-            for a, b in zip(rungs, rungs[1:]):
-                for m in sorted(set(a["per_model"]) & set(b["per_model"])):
-                    if b["per_model"][m] > a["per_model"][m]:
-                        violations.append({
-                            "model": m, "cause": cause_category(c), "horizon": h,
-                            "broader": a["rung"], "narrower": b["rung"],
-                            "p_broader": a["per_model"][m],
-                            "p_narrower": b["per_model"][m]})
-            causes.append({"key": c["key"], "label": cause_category(c),
-                           "color": c["color"],
-                           "container": bool(c.get("container")),
-                           "rungs": rungs})
-
-        # NO EXTINCTION ANCHORS. Drawn 2026-09-15 to 2026-09-16 as diamonds at
-        # the Extinction mark (the XPT-worded extinction pair, before any curve
-        # reached that far); removed the day the extinction RUNG joined every
-        # ladder (project lead, 2026-09-16: "just show us the probabilities like
-        # normal"). The pair stays in the set for the XPT comparison and is
-        # plotted as its own questions on Graph 1; here the curves end at
-        # extinction themselves. `anchors` is kept empty for the chunk's shape.
-        anchors = []
-
-        # NO CATASTROPHE ANCHORS. Removed 2026-08-18.
-        #
-        # This panel used to plot the two 10%-of-population questions as
-        # diamonds on the severity axis, at their ~820M death equivalent. That
-        # was our own invention, not anything the question set asks for, and it
-        # read as two disconnected marks belonging to no curve on a chart where
-        # everything else is a ladder (project lead: nobody asked for it). The
-        # catastrophe questions are their own questions and are plotted as such
-        # on Graph 1.
-        #
-        # The BRACKET constraint still relates catastrophe:ai to the ai:100M
-        # rung -- that is an audit relation, reported in the coherence table,
-        # and it does not need a mark on this chart to hold.
-        checked = sum(len(c["rungs"]) - 1 for c in causes) * len(model_colors)
-        out_h[h] = {"causes": causes, "violations": violations,
-                    "declines": declines,
-                    "pairsChecked": checked,
-                    "anchors": anchors}
+                for a, b in zip(rungs, rungs[1:]):
+                    for m in sorted(set(a["per_model"]) & set(b["per_model"])):
+                        if b["per_model"][m] > a["per_model"][m]:
+                            violations.append({
+                                "model": m, "cause": cause_category(c), "leg": leg, "horizon": h,
+                                "broader": a["rung"], "narrower": b["rung"],
+                                "broaderLabel": a["label"], "narrowerLabel": b["label"],
+                                "p_broader": a["per_model"][m],
+                                "p_narrower": b["per_model"][m]})
+                causes.append({"key": c["key"], "label": cause_category(c),
+                               "color": c["color"],
+                               "container": bool(c.get("container")),
+                               "rungs": rungs})
+            by_leg[leg] = {"causes": causes, "violations": violations,
+                           # Adjacent-rung pairs per cause, times the models:
+                           # the LADDER constraint at this horizon on this leg.
+                           "pairsChecked": sum(len(c["rungs"]) - 1 for c in causes) * len(model_colors)}
+        out_h[h] = {"legs": by_leg, "declines": declines}
 
     # What each incident type MEANS, for the definitions modal. The set's own
     # first sentence, trimmed — the modal used to carry a hand-written taxonomy
@@ -260,13 +242,15 @@ def build(source_rows=None, include_history=True):
                 continue
             previous = build(day_rows, include_history=False)
             history.append({"date": day, "instrumentInfo": previous["instrumentInfo"],
-                            "byHorizon": {h: {"causes": [
+                            "byHorizon": {h: {"legs": {leg: {"causes": [
                                 {"key": c["key"], "rungs": [
-                                    {k: r[k] for k in ("rung", "deaths", "median")}
+                                    {k: r[k] for k in ("rung", "value", "median")}
                                     for r in c["rungs"]]}
-                                for c in d["causes"]]}
+                                for c in side["causes"]]}
+                                for leg, side in d["legs"].items()}}
                                 for h, d in previous["byHorizon"].items()}})
 
+    general = next(q for q in spec["questions"] if q["cause"] == container)
     return {
         "history": history[-2:],
         "horizons": horizons,
@@ -285,42 +269,49 @@ def build(source_rows=None, include_history=True):
             # (question-set author, 2026-08-19: the old titles — "P non-decreasing
             # over time" — explained nothing to a reader who is not already us;
             # project lead, 2026-08-27: CROSS and BRACKET were not intuitive either).
-            # Both of those ARE special-case orderings — an epidemic is one
+            # Those, and LEG, ARE special-case orderings — an epidemic is one
             # kind of AI-related incident, a 10%-of-population catastrophe is
-            # one way to pass the 100M rung — so their pairs fold into the
-            # SUBSET row rather than vanishing. The headline above stays the
-            # whole audit; byConstraint keeps the five-way split for the
-            # paper and for tests/test_coherence.py.
+            # one way to pass the 100M rung, a death toll is one way to reach
+            # a dollar figure — so their pairs fold into the SUBSET row rather
+            # than vanishing. The headline above stays the whole audit;
+            # byConstraint keeps the six-way split for the paper and for
+            # tests/test_coherence.py.
             "rows": _display_rows(res),
         },
         "horizonLabels": {h: horizon_label(h, spec, as_of) for h in horizons},
         "models": [{"label": l, "color": c} for l, c in model_colors],
+        # The two ladders: each leg's axis and rung ticks, from the spec. The
+        # page draws one chart per entry and types none of these numbers.
+        "legs": [{"key": l["key"], "label": l["label"], "unit": l["unit"],
+                  "axis": LEG_AXES[l["key"]], "rungs": _leg_rungs(spec, l["key"])}
+                 for l in spec["legs"]],
+        # The rung index -- both thresholds of each severity level -- for the
+        # Definitions modal's list.
         "rungs": [{"rung": r["short"], "deaths": r["deaths"],
                    "damages": r["damages_usd"], "label": r["label"]}
                   for r in spec["rungs"]],
         "byHorizon": out_h,
         "container": container,
-        # What the extinction diamonds are, for the legend and the caption --
-        # from the question set, not typed into the chunk.
-        "anchorsNote": None,   # no anchors are drawn since 2026-09-16
         "notes": spec["notes"],
         # The ladder's resolution criteria, verbatim, for the Definitions
         # modal (project lead, 2026-09-10: the modal had paraphrased the onset
         # window, the QALY rate and the damages accounting by hand). Every
-        # rung of a cause shares one criteria/details block; the container's
-        # is the general one.
-        "ladder": {"criteria": by_cause_rung[(container, spec["rungs"][0]["short"])]["criteria"],
-                   "details": by_cause_rung[(container, spec["rungs"][0]["short"])]["details"]},
+        # question of a cause shares one criteria/details block; the
+        # container's is the general one.
+        "ladder": {"criteria": general["criteria"], "details": general["details"]},
+        # The deaths axis the expected-deaths panels share (Graph 1, the
+        # Timeline, the Policy-levers tab), so a loss reads at its rung.
         "severityAxis": SEVERITY_AXIS,
-        # Historical events on the severity axis, as shaded bands. The paper's
-        # lead author asked for these on 2026-08-17 so a reader can tell whether
-        # a threshold is frightening; the band, not a line, because the published
-        # estimates for two of the three disagree by a factor approaching two.
+        # Historical events on the severity axes, as shaded bands, each on the
+        # ladder(s) it has a figure for. The paper's lead author asked for these
+        # on 2026-08-17 so a reader can tell whether a threshold is frightening;
+        # the band, not a line, because the published estimates for two of the
+        # three disagree by a factor approaching two.
         #
         # They are severity-axis context ONLY. Every curve here is an
-        # AI-related incident inside a horizon window; all three events are
-        # non-AI and accumulated over years. `historical.caveat` says so and
-        # the panel renders it — without that a reader compares curve height
+        # AI-related incident inside a horizon window; the events are non-AI
+        # and accumulated over years. `historical.caveat` says so and the
+        # panel renders it — without that a reader compares curve height
         # against the Black Death, which is not a comparison this chart makes.
         "historical": historical_markers(),
         # Coherence is measured, not imposed. The page must say so where it
@@ -328,8 +319,9 @@ def build(source_rows=None, include_history=True):
         "coherence": {
             "enforced": False,
             "note": "The models are told nothing about how these questions "
-                    "relate. Every rung of every cause is answered in one call, "
-                    "and the orderings are checked afterwards. No forecast is "
-                    "adjusted or discarded for failing one.",
+                    "relate. Every rung of every cause, on both ladders, is "
+                    "answered in one call, and the orderings are checked "
+                    "afterwards. No forecast is adjusted or discarded for "
+                    "failing one.",
         },
     }

@@ -12,10 +12,10 @@ const cFmtBig = (v, prefix) => {
   return p + Number(v.toPrecision(3));
 };
 // Death-equivalents, with the dollar reading at the ladder's own rate.
-const cFmtLoss = v => (v == null ? "—" : cFmtBig(v) + " (" + cFmtBig(v * ((COND && COND.usdPerDeath) || 2.2e6), "$") + ")");
-const cFmtLossShort = v => (v == null ? "—" : cFmtBig(v));
+const cFmtLoss = v => (v == null ? "—" : cFmtBig(v));
+const cFmtLossShort = cFmtLoss;
 // One formatter per value kind: a probability cell prints percent, a loss cell
-// prints death-equivalents.
+// prints deaths.
 const cFmtV = (kind, v) => (kind === "loss" ? cFmtLossShort(v) : cFmtP(v));
 
 // The one reading of a change the page plots: conditional ÷ unconditional, on
@@ -34,8 +34,8 @@ function condSymmetricTicks(values) {
   return { ticks, lo: Math.pow(2, -n * step), hi: Math.pow(2, n * step) };
 }
 
-// The expected-loss axis: graph 2's rung ticks (dollars beneath, at the
-// ladder's rate), on a domain CROPPED to the data — the decades that bracket
+// The expected-deaths axis: graph 2's deaths-ladder rung ticks, on a domain
+// CROPPED to the data — the decades that bracket
 // every value on every domain-specific row at every horizon (bars, dots,
 // CIs, the band). One domain for all four causes and both horizons, so a
 // bar's position means the same thing on every loss row; cropped, rather
@@ -64,8 +64,8 @@ function condSeverityAxis(values, ctx) {
 //
 // Two axes for two kinds of cell. A probability cell plots RATIOS: baselines
 // differ twentyfold across models, so each dot is a model's move against its
-// own baseline and the line is 1×. An expected-loss cell plots LEVELS in
-// death-equivalents (lives, or dollars at the ladder's rate): the unit is the
+// own baseline and the line is 1×. An expected-deaths cell plots LEVELS in
+// deaths: the unit is the
 // point, so the dots are absolute, the line is the ensemble-median baseline,
 // and a top row shows each model's own unconditional value so a colour's move
 // is still readable.
@@ -139,9 +139,9 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
     return pad.l + Math.min(1, Math.max(0, t)) * (W - pad.l - pad.r);
   };
   const x0 = x(zero);
-  // Match the severity ladder: dollar-equivalent first, deaths beneath.
-  const tickLabel = t => (loss ? cFmtBig(t * ((C && C.usdPerDeath) || 2.2e6), "$") : (t >= 1 ? t.toFixed(t === Math.round(t) ? 0 : 1) + "×" : "1/" + (1 / t).toFixed(1 / t === Math.round(1 / t) ? 0 : 1)));
-  const tickSub = t => (loss ? cFmtBig(t) : null);
+  // Match the deaths ladder: the rung's death count.
+  const tickLabel = t => (loss ? cFmtBig(t) : (t >= 1 ? t.toFixed(t === Math.round(t) ? 0 : 1) + "×" : "1/" + (1 / t).toFixed(1 / t === Math.round(1 / t) ? 0 : 1)));
+  const tickSub = () => null;
   const rowY = i => pad.t + rowH * (i + baseRow) + rowH / 2;
   const [hv, setHv] = useState(null);      // hovered condition: shows its policy text
 

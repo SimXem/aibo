@@ -24,7 +24,7 @@ const tlFmtBig = (v, prefix) => {
   for (const [cut, suf] of units) if (Math.abs(v) >= cut) return p + Number((v / cut).toPrecision(3)) + suf;
   return p + Number(v.toPrecision(3));
 };
-const tlFmtLoss = v => (v == null ? "—" : tlFmtBig(v) + " (" + tlFmtBig(v * ((TL && TL.usdPerDeath) || 2.2e6), "$") + ")");
+const tlFmtLoss = v => (v == null ? "—" : tlFmtBig(v));
 const tlFmtRatio = r => (r == null || !isFinite(r) ? "—" : "×" + (r >= 10 ? r.toFixed(0) : r.toFixed(2)));
 // One formatter per row kind.
 const tlFmtFor = q => (q && q.value_kind === "loss" ? tlFmtBig : tlFmt);
@@ -35,8 +35,8 @@ const tlFmtFor = q => (q && q.value_kind === "loss" ? tlFmtBig : tlFmt);
 // trajectory -- and the ensemble median as the ink line, for the ONE horizon
 // the panel's picker selects (Nick, 2026-09-09: a horizon picker, Graph 2's,
 // in place of the six shaded lines of the day before; with one line the
-// model dots always draw). Expected-loss rows plot death-equivalents on the
-// shared severity axis (rung ticks, dollars beneath, Extinction marked), log
+// model dots always draw). Expected-deaths rows plot deaths on the shared
+// severity axis (rung ticks, Extinction marked), log
 // only. Any per-date interval the blob carries (a date with more than one
 // draw per model) is drawn as a grey bar behind the median; on the current
 // one-call-per-run series there is none.
@@ -112,7 +112,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
     const rungs = (TL.rungs || []).filter(r => r.deaths >= LO && r.deaths <= HI);
     yticks = rungs.map(r => r.deaths);
     tickText = t => (rungs.find(r => r.deaths === t) || {}).short;
-    tickSub = t => tlFmtBig(t * (TL.usdPerDeath || 2.2e6), "$");
+    tickSub = () => null;
   } else if (scale === "linear") {
     // Linear (the default since 2026-09-08), topped just above the largest
     // value on the line or any model dot at this horizon, as Graph 1's
@@ -274,7 +274,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>
             {snapshots[hv].date} · <span style={{ color: "var(--ink)", fontWeight: 600 }}>by {h}</span>
             {hasVar(hv) ? ` · ${pooledVariants.filter(v => v.vals[hv] != null).length} prompts per model · point = mean of the prompts`
-              : snapshots[hv].draws > 1 ? ` · ${snapshots[hv].draws} draws per model · point = mean, range = 95% CI` : ""}{loss ? " · death-equivalents" : ""}
+              : snapshots[hv].draws > 1 ? ` · ${snapshots[hv].draws} draws per model · point = mean, range = 95% CI` : ""}{loss ? " · deaths" : ""}
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12.5, fontWeight: 600, marginBottom: 4 }}>
             <span>Ensemble median</span>
@@ -365,10 +365,10 @@ function TimelineTable({ q, horizon, snapshots }) {
 const TL_HEADLINE = "catastrophe:ai";
 
 // The same panel, one row each: the headline (catastrophe:ai) and, since
-// 2026-09-10 (Nick), the expected-loss row loss:ai as "Statistical lives
-// lost" -- the eight ladder rungs folded to a floor on E[loss], in
-// death-equivalents, on the shared severity axis (see the LossPanel below
-// and redlines/views/timeline.py::_loss_row).
+// 2026-09-10 (Nick), the expected-deaths row loss:ai as "Statistical lives
+// lost" -- the deaths ladder's eight rungs folded to a floor on E[deaths], on
+// the shared severity axis (see the LossPanel below and
+// redlines/views/timeline.py::_loss_row).
 function TimelinePanel(props = {}) {
   const q = TL && TL.questions.find(q => q.id === (props.qid || TL_HEADLINE));
   if (!q || !q.horizons.length || !TL.snapshots.length) return <ForecastUnavailable title={props.title || "Probability of an AI catastrophe"} info={TL && TL.instrumentInfo} />;
@@ -480,11 +480,11 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
 }
 
 // "Statistical lives lost": the loss:ai row, between the headline and the
-// severity ladder (Nick, 2026-09-10; the shared "AI risk dashboard" mockup's
+// severity ladders (Nick, 2026-09-10; the shared "AI risk dashboard" mockup's
 // panel 2, which was computed from this row). Nothing new is elicited: the
-// ladder's eight rungs are P(cumulative loss >= x) at eight points, and the
-// row is that survival function integrated with every band valued at its
-// lower rung -- a floor, in death-equivalents at the ladder's own $2.2M rate.
+// deaths ladder's eight rungs are P(cumulative deaths >= x) at eight points,
+// and the row is that survival function integrated with every band valued at
+// its lower rung -- a floor on expected deaths.
 function LossPanel() {
   // No explainer box under the chart (Nick, 2026-09-10): the question text
   // the blob carries already says what the fold is, and ExpectedLossNote
@@ -492,6 +492,6 @@ function LossPanel() {
   return (
     <TimelinePanel qid="loss:ai"
       title="Statistical lives lost"
-      sub="Expected loss from AI-related incidents, in death-equivalents · a lower bound" />
+      sub="Expected deaths from AI-related incidents · a lower bound" />
   );
 }
