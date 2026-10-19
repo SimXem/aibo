@@ -47,8 +47,9 @@ log "question set is up"
 
 # Every condition runs the top N models by ECI, N its member count: warn
 # (never block) if the latest ranking says otherwise. The ranking comes from
-# eci_ranked, a function round.env may define (model names, best first).
-ECI_RANKED="$(declare -F eci_ranked >/dev/null && eci_ranked 2>/dev/null)"
+# eci_ranked, a function round.env may define (model names, best first); without
+# one, fri_forecaster.eci fetches Epoch's published index and ranks it.
+ECI_RANKED="$(declare -F eci_ranked >/dev/null && eci_ranked 2>/dev/null || "$PY" -m fri_forecaster.eci --fetch --names 2>/dev/null)"
 eci_check() {  # condition
   local names n ours want
   names="$("$PY" -m fri_forecaster.names eci "$1" | sort)"
