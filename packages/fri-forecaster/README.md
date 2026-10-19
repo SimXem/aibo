@@ -1,5 +1,7 @@
 # agent-box
 
+Since 2026-10-19 this package lives in the AIRO repository ([forecastingresearch/airo](https://github.com/forecastingresearch/airo)) under `packages/fri-forecaster`, with its history; it was split out of AIRO on 2026-10-11 as agent-box and rejoined. Install it from that checkout (`pip install -e packages/fri-forecaster`) or from git (`pip install 'fri-forecaster @ git+https://github.com/forecastingresearch/airo#subdirectory=packages/fri-forecaster'`).
+
 Agentic forecasting jobs for FRI. Today this is the FRI Forecaster package
 (`fri_forecaster`); the job queue it is growing into is specced in issue #1.
 

@@ -21,10 +21,13 @@ acquire = [
     # "xhigh" to OpenAI reasoning.effort (redlines/llm.py LITELLM_MIN).
     "litellm>=1.96",
 ]
-# The pi loop (redlines/pi_loop.py; the published loop since combined-v9): FRI's
-# agent-box, which drives pi 0.99.2 -- FORECASTER_PI names its cli.js.
+# The pi loop (redlines/pi_loop.py; the published loop since combined-v9): the
+# FRI Forecaster harness, which drives pi 0.99.2 -- FORECASTER_PI names its
+# cli.js. Since 2026-10-19 it lives in this repository, packages/fri-forecaster
+# (a uv workspace member, [tool.uv.sources]); with plain pip install it from
+# the path: pip install -e ./packages/fri-forecaster
 pi = [
-    "fri-forecaster @ git+https://github.com/forecastingresearch/agent-box",
+    "fri-forecaster",
 ]
 # Running the test suite: pytest, plus openpyxl for the question-set generator
 # tests (tests/test_autoarc_generator.py reads the Auto-ARC workbook).
@@ -34,9 +37,20 @@ test = [
 ]
 
 [tool.pytest.ini_options]
-# Only tests/ is a test suite; archive/ and the vendored code/causal/ carry
-# files pytest would otherwise try to collect.
-testpaths = ["tests"]
+# Two test suites: AIRO's and the harness's (packages/fri-forecaster/tests,
+# which runs pi_tools.ts through the pinned pi against a scripted model --
+# `npm ci` in that directory first, else those tests skip). archive/ and the
+# vendored code/causal/ carry files pytest would otherwise try to collect.
+testpaths = ["tests", "packages/fri-forecaster/tests"]
 
 [tool.setuptools]
 packages = ["redlines", "redlines.views", "redlines.paper"]
+
+# One repository, two distributions: this one (redlines, the dashboard
+# pipeline) and packages/fri-forecaster (the harness), which other projects
+# install on its own.
+[tool.uv.workspace]
+members = ["packages/fri-forecaster"]
+
+[tool.uv.sources]
+fri-forecaster = { workspace = true }
