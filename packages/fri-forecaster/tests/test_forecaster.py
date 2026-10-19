@@ -252,3 +252,87 @@ class NamesTest(unittest.TestCase):
 
     def test_places_unique(self):
         self.assertEqual(len(self.reg["places"]), len(set(self.reg["places"])))
+
+
+class SyncTest(unittest.TestCase):
+    """names.sync: the registry follows the panel (members and code) with no hand step."""
+
+    def setUp(self):
+        import copy
+        from fri_forecaster import names
+        self.names = names
+        self.reg = copy.deepcopy(names.load(EXAMPLE_REGISTRY))
+        self.have = [m["eci_name"] for m in self.reg["names"]["ensemble-oak"]["members"]]
+        self.panel = [(m["eci_name"], m["pi_model"], m["lab"]) for m in self.reg["names"]["ensemble-oak"]["members"]]
+        self.panel.append(("GPT-5.5 Pro", "openai/gpt-5.5-pro", "OpenAI"))
+
+    def lines(self, panel):
+        return ["\t".join(p) + "\n" for p in panel]
+
+    def test_unchanged_panel_keeps_every_name(self):
+        import copy
+        before = copy.deepcopy(self.reg)
+        panel = self.names.parse_panel(self.lines(self.panel))
+        for cond in self.reg["conditions"]:
+            name, note = self.names.sync(self.reg, cond, panel)
+            self.assertEqual(name, f"{cond}-oak")
+            self.assertIn("code unchanged", note)
+        self.assertEqual(self.reg, before)
+
+    def test_a_moved_top_n_registers_the_next_place_for_each_condition(self):
+        newcomer = ("Claude Fable 5.1", "anthropic/claude-fable-5-1", "Anthropic")
+        panel = self.names.parse_panel(self.lines(self.panel[:3] + [newcomer] + self.panel[3:]))
+        self.assertEqual(self.names.sync(self.reg, "ensemble", panel, today="2026-10-19")[0], "ensemble-elm")
+        self.assertEqual(self.names.sync(self.reg, "unaided", panel)[0], "unaided-elm")
+        self.assertEqual(self.names.sync(self.reg, "solo", panel)[0], "solo-oak")       # the top model is the same
+        e = self.reg["names"]["ensemble-elm"]
+        self.assertEqual(self.names.current(self.reg, "ensemble"), "ensemble-elm")    # its fingerprint matches the code
+        self.assertEqual([m["eci_name"] for m in e["members"]], self.have[:3] + ["Claude Fable 5.1"])
+        new = e["members"][3]
+        self.assertEqual((new["pi_model"], new["model_key"], new["provider"], new["provider_model_id"], new["lab"]),
+                         ("anthropic/claude-fable-5-1", "claude-fable-5-1", "anthropic", "claude-fable-5-1", "Anthropic"))
+        self.assertEqual(new["options"], e["members"][0]["options"])                   # the condition's options
+        self.assertEqual(new["one_shot_baseline"], None)                               # unknown for a newcomer
+        self.assertEqual(e["members"][0]["one_shot_baseline"],                         # kept for a model it already knew
+                         self.reg["names"]["ensemble-oak"]["members"][0]["one_shot_baseline"])
+        self.assertEqual(self.reg["names"]["unaided-elm"]["members"][3]["options"]["tools"], ["submit_forecast"])
+        self.assertEqual(e["reason"], "sync 2026-10-19: members " + ", ".join(self.have) + " -> " +
+                         ", ".join(self.have[:3] + ["Claude Fable 5.1"]))
+        self.assertEqual(self.reg["names"]["ensemble-oak"]["members"][3]["eci_name"], self.have[3])  # never edited
+        self.assertEqual(self.names.member_specs(self.reg, "ensemble")[3], "anthropic/claude-fable-5-1@high,research")
+
+    def test_names_alone_cannot_register_so_the_current_name_is_kept_with_a_warning(self):
+        panel = self.names.parse_panel([f"{n}\n" for n in self.have[:3] + ["Claude Fable 5.1"]])
+        name, note = self.names.sync(self.reg, "ensemble", panel)
+        self.assertEqual(name, "ensemble-oak")
+        self.assertTrue(note.startswith("WARNING"))
+        self.assertIn("Claude Fable 5.1", note)
+        self.assertNotIn("ensemble-elm", self.reg["names"])
+
+    def test_code_drift_registers_the_next_place_with_the_same_members(self):
+        self.reg["names"]["solo-oak"]["fingerprint"] = "0000000000000000"
+        panel = self.names.parse_panel(self.lines(self.panel))
+        name, note = self.names.sync(self.reg, "solo", panel)
+        self.assertEqual(name, "solo-elm")
+        self.assertIn("fingerprint", note)
+        self.assertEqual(self.reg["names"]["solo-elm"]["members"], self.reg["names"]["solo-oak"]["members"])
+        self.assertEqual(self.names.current(self.reg, "solo"), "solo-elm")
+
+    def test_cli_saves_unless_dry_run(self):
+        import io
+        import shutil
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "names.json")
+            shutil.copy(EXAMPLE_REGISTRY, path)
+            os.environ["FORECASTER_NAMES"] = path
+            try:
+                moved = self.lines(self.panel[:3] + [("Claude Fable 5.1", "anthropic/claude-fable-5-1", "Anthropic")])
+                self.names.main(["sync", "--dry-run"], stdin=io.StringIO("".join(moved)))
+                self.assertEqual(json.load(open(path))["conditions"]["ensemble"]["current"], "ensemble-oak")
+                self.names.main(["sync"], stdin=io.StringIO("".join(moved)))
+                reg = json.load(open(path))
+                self.assertEqual(reg["conditions"]["ensemble"]["current"], "ensemble-elm")
+                self.assertEqual(reg["conditions"]["solo"]["current"], "solo-oak")
+                self.assertFalse(os.path.exists(path + ".tmp"))
+            finally:
+                os.environ.pop("FORECASTER_NAMES")

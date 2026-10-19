@@ -8,13 +8,14 @@ private and live outside the repo (`~/.config/fri-forecaster/`); `examples/` sho
 shape.
 
 ```
- Epoch's ECI ──> pick models ──> registry: conditions, their members, a fingerprint
-                 (once, when a                     │
-                  configuration is registered)     │
-                                                   ▼
- round day:  1 check   each condition's name still matches the code, or stop
-             2 wait    for <due>-llm.json in forecastbench-datasets
-             3 ECI     re-read the ranking; warn if a condition's models moved
+ Epoch's ECI ──> the panel ──> registry: conditions, their members, a fingerprint
+                 (the models this            │
+                  machine can run,           │
+                  best first)                ▼
+ round day:  1 wait    for <due>-llm.json in forecastbench-datasets
+             2 sync    each condition against the panel: a moved top N or drifted
+                       code registers the condition's next place, then and there
+             3 check   each condition's name matches the code (it does, after sync)
              4 run     each member forecasts every question: one pi call each
              5 build   each condition = the mean of its members' forecasts
                        ──> <due>.<team>.<N>.json, ready to upload
@@ -32,12 +33,13 @@ Capabilities Index). The example registry has three:
 | `unaided`  | the same 4 models                | no       |
 | `solo`     | the top model by ECI             | yes      |
 
-The pick happens **once, when a configuration is registered**, not every round. The
-registry entry records why in its `reason` (e.g. which Epoch snapshot the pick came
-from), each member in fri-utils'
-`ModelRun` shape (model, provider, thinking level, tools, the one-shot baseline's
-`model_run_key`), and a fingerprint of the code that shapes forecasts: the system prompt,
-the question prompt and the tool descriptions.
+The pick happens **every round, at sync**: the round reads the panel (the models this
+machine can run, best by ECI first) and a condition whose members are not the panel's
+top N gets a new registry entry with them. The entry records why in its `reason` (what
+sync found changed, and when), each member in fri-utils' `ModelRun` shape (model,
+provider, thinking level, tools, the one-shot baseline's `model_run_key`), and a
+fingerprint of the code that shapes forecasts: the system prompt, the question prompt
+and the tool descriptions.
 
 A configuration gets a leaderboard name, `<condition>-<place>` (e.g. `ensemble-oak`), and
 a registered entry is never edited. When anything that changes forecasts changes
@@ -49,25 +51,31 @@ upgrade.
 ```sh
 python -m fri_forecaster.names show                  # each condition's current name
 python -m fri_forecaster.names current ensemble      # its name, or exit 1 if the code drifted
-python -m fri_forecaster.names fingerprint ensemble  # for registering a new name
+python -m fri_forecaster.names sync --dry-run < panel.tsv   # what the panel would change
+python -m fri_forecaster.names fingerprint ensemble  # for registering a name by hand
 ```
 
 ## 2. The round
-
-**Check.** Before anything runs, every condition's registered fingerprint is compared
-with the code. A mismatch stops the round (exit 3) and names the place to register next.
 
 **Wait.** The question set `<due>-llm.json` appears in
 [forecastbench-datasets](https://github.com/forecastingresearch/forecastbench-datasets)
 at 00:00 UTC on the due date. The script polls every two minutes and gives up at
 `WAIT_UNTIL` (08:00 UTC by default).
 
-**ECI.** `fri_forecaster.eci` fetches Epoch's published index and ranks it (the same
-module AIRO's panel is chosen from; `python -m fri_forecaster.eci --fetch --names`), or
-`eci_ranked`, a function `round.env` may define, prints the ranking instead. If a
-condition's members are no longer the top N, the round says so in its log and summary.
-It does not swap models: a new top N is a new configuration, registered under the next
-place.
+**Sync.** The panel comes from `panel_members`, a function `round.env` defines, one
+model per line, best first: `<Epoch name> TAB <pi model id> TAB <lab>`. On AIRO's box
+that is `python -m redlines.registry`, so the round runs the same ensemble as the AIRO
+runs (ranked by `fri_forecaster.eci`, one seat per model family, only models the
+machine can run). `names sync` then compares every condition with the panel's top N:
+a moved top N, or code that no longer matches the registered fingerprint, registers
+the condition under its next place with the panel's models and the live code, and the
+round runs under the new name. Nothing waits for a hand step; the log and summary say
+what was registered and why. Without a hook the ranking is Epoch's published index,
+names only (`python -m fri_forecaster.eci --fetch --names`): a moved top N is then
+logged, not registered, because a name alone does not say how to run the model.
+
+**Check.** After sync, every condition's registered fingerprint is compared with the
+code once more; a mismatch stops the round (exit 3).
 
 **Run.** A **member** is one model at one thinking level, with research on or off. The
 three conditions above need 8: four models with research, the same four without (solo's
@@ -101,7 +109,7 @@ looks like this:
 }
 ```
 
-**Report.** `summary.txt`: the ECI check, coverage for each set, the files to upload, and
+**Report.** `summary.txt`: what sync found, coverage for each set, the files to upload, and
 API cost per member.
 
 ## On disk
@@ -128,6 +136,15 @@ stored login, so every call is billed to API keys.
 ```sh
 SAMPLE=8 scripts/fb_round.sh 2026-10-11 rehearsal   # a cheap end-to-end check on a past set
 scripts/fb_round.sh 2026-10-25                       # the real round
+```
+
+Unattended, cron runs `scripts/fb_cron.sh <due>` instead: the same round, its output in
+`<ROUNDS_DIR>/<due>/logs/cron.out`, then one ntfy push (`NTFY_TOPIC` in `round.env` or
+the keys file) saying how many sets are ready to upload. One crontab line per due date,
+a few minutes after the question set appears:
+
+```
+5 0 25 10 * /usr/bin/flock -n /tmp/fb-round.lock <checkout>/scripts/fb_cron.sh 2026-10-25
 ```
 
 ## Modules

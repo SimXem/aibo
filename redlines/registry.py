@@ -431,19 +431,17 @@ def model_colors() -> list[tuple[str, str]]:
            [(m["label"], RETIRED_COLOR) for m in rest]
 
 
+def main(argv=None):
+    """`python -m redlines.registry [K]`: the panel's top K runnable models (default
+    PANEL_K), best first, one per line as `<Epoch name> TAB <pi model id> TAB <lab>`:
+    the panel as fri_forecaster.names sync reads it, so a ForecastBench round on
+    this machine runs the same ensemble as the AIRO runs do."""
+    from .pi_loop import pi_model
+    argv = sys.argv[1:] if argv is None else argv
+    k = int(argv[0]) if argv else PANEL_K
+    for m, r in panel(k):
+        print(r["model"], pi_model(m["litellm_id"]), r.get("organization") or "", sep="\t")
+
+
 if __name__ == "__main__":
-    for gf in (False, True):
-        rows = demo_set_with_eci(include_gap_fillers=gf)
-        lo, hi = rows[0]["eci"], rows[-1]["eci"]
-        print(f"\nDemo set{' + gap-fillers' if gf else ''} "
-              f"({len(rows)} models, ECI {lo} -> {hi}):")
-        for r in rows:
-            print(f"  {r['eci']:>3}  {r['label']:14s}  {r['model_id']:52s} [{r['access']}]")
-    day, path = _eci.latest()
-    print(f"\npanel ({PANEL_SET}, k={PANEL_K}) from {path.name}, {_eci.age_days()} days old:")
-    for m, r in panel():
-        print(f"  {r['eci']:>5g}  rank {r['rank']:2d}  {m['label']:14s}  {m['litellm_id']}")
-    for w in panel_warnings():
-        print(f"  WARN {w}")
-    print(f"\nfrontier5: {frontier_models()}")
-    print(f"model_colors: {model_colors()}")
+    main()
