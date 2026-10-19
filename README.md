@@ -210,7 +210,8 @@ redlines/                   the pipeline package (stdlib only; litellm only insi
   __main__.py               CLI: build / assemble / export-fb / paper
   config.py                 paths (env-overridable), round pins, thresholds
   registry.py               the single model table (ids, labels, ECI, colors) + panel()
-  eci.py                    the Epoch Capabilities Index snapshots: which exist, which is newest
+  eci.py                    the Epoch Capabilities Index: fri_forecaster.eci (one implementation,
+                            shared with the ForecastBench rounds) bound to data/ and the pinned vintages
   questions.py              schema-checked loaders for the Auto-ARC question set
   instrument.py             question-version boundaries and dated incident onset windows
   runlog.py                 run-log loading, the series start, replicate pooling

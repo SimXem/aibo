@@ -62,7 +62,9 @@ with the code. A mismatch stops the round (exit 3) and names the place to regist
 at 00:00 UTC on the due date. The script polls every two minutes and gives up at
 `WAIT_UNTIL` (08:00 UTC by default).
 
-**ECI.** `eci_ranked`, a function `round.env` may define, prints the current ranking. If a
+**ECI.** `fri_forecaster.eci` fetches Epoch's published index and ranks it (the same
+module AIRO's panel is chosen from; `python -m fri_forecaster.eci --fetch --names`), or
+`eci_ranked`, a function `round.env` may define, prints the ranking instead. If a
 condition's members are no longer the top N, the round says so in its log and summary.
 It does not swap models: a new top N is a new configuration, registered under the next
 place.
