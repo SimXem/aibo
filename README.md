@@ -161,6 +161,10 @@ dropped.
   or its `cli.js`). pi owns model auth.
 - `TAVILY_API_KEY` for research, and the providers' API keys, from the environment or an
   env file (`keys.py`).
+- Optional: `FORECASTER_BLOCK_URL_PATTERNS`, regular expressions separated by commas or
+  newlines, matched case-insensitively against URLs. When set, `web_search` drops matching
+  results and `read_page` refuses matching URLs; unset or empty, nothing changes. Pass it
+  per run with `harness.run(env=...)`.
 
 ```sh
 git clone https://github.com/forecastingresearch/agent-box && cd agent-box

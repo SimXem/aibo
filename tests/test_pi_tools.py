@@ -135,6 +135,7 @@ class PiCase(unittest.TestCase):
                     cell_schema=SCHEMA, key_fields=["k"], allowed_keys=["a", "b"], tool_descriptions=DESC,
                     min_research=2, thinking="off", timeout=120,
                     env={"PI_CODING_AGENT_DIR": agent, "PI_OFFLINE": "1", "PI_TELEMETRY": "0"})
+        args["env"].update(kw.pop("env", {}))
         args.update(kw)
         return harness.run(**args), model
 
@@ -288,6 +289,27 @@ class LoopOptionsTest(PiCase):
         self.assertEqual(model.tools(5), {"submit_debrief"})
         self.assertEqual(res["debrief"], {"result": {"a": "why a"}, "complete": True,
                                           "attempts": 2, "problems": [], "error": None})
+
+
+@NEEDS_PI
+class UrlGuardPassthroughTest(PiCase):
+    """FORECASTER_BLOCK_URL_PATTERNS handed to harness.run(env=...) reaches the
+    tool process: pi, pi_tools.ts and the real tool_cli, down to tools.py."""
+
+    def test_env_reaches_read_page(self):
+        harness.TOOL_CLI = self.real_cli    # the real CLI; with no Tavily key nothing is fetched
+        res, model = self.run_pi([
+            ("read_page", {"url": "https://example.com/paper.pdf"}),         # 1: blocked by the guard
+            ("read_page", {"url": "https://example.org/other"}),             # 2: passes it, stops at the key
+            ("submit_forecast", {"forecasts": [{"k": "a", "probability": 0.5}, {"k": "b", "probability": 0.5}],
+                                 "rationale": "r"}),
+            "done",
+        ], min_research=0, env={"FORECASTER_BLOCK_URL_PATTERNS": "example\\.com",
+                                "TAVILY_API_KEY": "", "FORECASTER_ENV_FILE": os.path.join(self.tmp.name, "no-env")})
+        self.assertEqual(res["rc"], 0, open(os.path.join(res["workdir"], "stderr.txt")).read())
+        self.assertIn("page read failed: page unavailable", model.tool_result(2))
+        self.assertIn("no TAVILY_API_KEY set", model.tool_result(3))
+        self.assertEqual((res["usage"]["research_ok"], res["usage"]["research_failed"]), (0, 2))
 
 
 if __name__ == "__main__":
