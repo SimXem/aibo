@@ -16,8 +16,14 @@ permissions:
 
 jobs:
   test:
+    name: test (py${{ matrix.python-version }})
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # both pyproject.tomls: requires-python = ">=3.11"
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
@@ -29,8 +35,42 @@ jobs:
           cache-dependency-path: packages/fri-forecaster/package-lock.json
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
       - run: npm ci
         working-directory: packages/fri-forecaster
       - run: pip install -e '.[test]' -e './packages/fri-forecaster[dev]'
       - run: python -m pytest -q -rs
+
+  # README promises that `build` and `assemble` round-trip to the tracked
+  # bytes. Rebuild everything on a fresh checkout and fail if anything tracked
+  # changed or anything untracked (and not gitignored) appeared. This checks
+  # reproduction only, never what the blobs contain.
+  #
+  # Nothing is installed: the build stage is stdlib-only, so running it straight
+  # from the checkout also enforces that (redlines.eci finds fri_forecaster in
+  # packages/ on its own; an editable install would also leave an untracked
+  # redlines.egg-info/ behind). The ForecastBench sets and the forecastbench-sim
+  # corpus are absent here, so Graph 3 and Graph 4 read their tracked mirrors
+  # (results/graph3_data.json, results/graph4_combined.json), as on any fresh
+  # clone.
+  reproduce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - run: python -m redlines build
+      - run: python -m redlines assemble
+      - name: tree matches the tracked bytes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::redlines build + assemble did not reproduce the tracked files"
+            git status --porcelain
+            git diff --stat
+            exit 1
+          fi
+          echo "build + assemble reproduced the tracked files"
