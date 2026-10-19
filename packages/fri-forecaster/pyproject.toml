@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fri-forecaster"
+version = "0.1.0"
+description = "agent-box: agentic forecasting jobs (the FRI Forecaster harness: pi + shared research tools)"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+dependencies = []            # stdlib only; the agent loop is pi (node), pinned in harness.py
+
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.setuptools]
+packages = ["fri_forecaster"]
+
+[tool.setuptools.package-data]
+fri_forecaster = ["pi_tools.ts"]
