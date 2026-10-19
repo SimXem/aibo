@@ -72,30 +72,37 @@ class TestSetShape(unittest.TestCase):
         cls.ladder = json.loads(LADDER.read_text(encoding="utf-8"))
 
     def test_counts(self):
-        """41 questions: 5 cross-cutting (3 from the workbook, the extinction
-        pair from the 2026-09-15 addendum), and 4 causes x 9 rungs (the
-        workbook's eight plus the extinction rung, the 2026-09-16 addendum)."""
+        """73 questions: 5 cross-cutting (3 from the workbook, the extinction
+        pair from the 2026-09-15 addendum), and 4 causes x (9 deaths rungs + 8
+        damages rungs): the workbook's eight rungs plus the extinction rung
+        (the 2026-09-16 addendum), each asked as a deaths question and a
+        damages question since 2026-10-19 -- the extinction rung has no
+        dollar leg."""
         self.assertEqual(len(self.cross["questions"]), 5)
         self.assertEqual([q["id"] for q in self.cross["questions"] if q.get("since")],
                          ["extinction:general", "extinction:ai"])
         self.assertEqual(len(self.ladder["causes"]), 4)
+        self.assertEqual([l["key"] for l in self.ladder["legs"]], ["deaths", "damages"])
         self.assertEqual(len(self.ladder["rungs"]), 9)
-        self.assertEqual(len(self.ladder["questions"]), 36)
+        self.assertEqual(len(self.ladder["questions"]), 68)
         self.assertEqual([q["id"] for q in self.ladder["questions"] if q.get("since")],
-                         [f"ladder:{c}:extinction" for c in ("ai", "bio", "cyber", "misalign")])
+                         [f"ladder:{c}:extinction:deaths" for c in ("ai", "bio", "cyber", "misalign")])
 
     def test_every_cause_spans_every_rung(self):
         """The ladder's whole point: causes comparable at equal severity.
 
         A cause missing a rung is not a gap in a chart, it is a cause that
-        cannot be compared with the others at that severity.
+        cannot be compared with the others at that severity. On the deaths
+        ladder every rung; on the damages ladder every rung with a dollar leg.
         """
         rungs = {r["short"] for r in self.ladder["rungs"]}
+        dollar = {r["short"] for r in self.ladder["rungs"] if r["damages_usd"] is not None}
         for c in self.ladder["causes"]:
-            got = {q["rung"] for q in self.ladder["questions"]
-                   if q["cause"] == c["key"]}
-            with self.subTest(cause=c["key"]):
-                self.assertEqual(got, rungs, f"{c['key']} is missing {rungs - got}")
+            for leg, want in (("deaths", rungs), ("damages", dollar)):
+                got = {q["rung"] for q in self.ladder["questions"]
+                       if q["cause"] == c["key"] and q["leg"] == leg}
+                with self.subTest(cause=c["key"], leg=leg):
+                    self.assertEqual(got, want, f"{c['key']} {leg} is missing {want - got}")
 
     def test_severity_is_structured_never_prose(self):
         """No threshold may reach a view as a string it has to parse.
@@ -112,24 +119,28 @@ class TestSetShape(unittest.TestCase):
                     self.assertIsInstance(s["deaths"], (int, float))
                     self.assertIsNone(s["damages_usd"])
                     continue
-                self.assertEqual(s["kind"], "deaths_or_damages")
-                self.assertIsInstance(s["deaths"], (int, float))
-                self.assertIsInstance(s["damages_usd"], (int, float))
+                # One leg per question since 2026-10-19: the other leg is None.
+                self.assertEqual(s["kind"], q["leg"])
+                if q["leg"] == "deaths":
+                    self.assertIsInstance(s["deaths"], (int, float))
+                    self.assertIsNone(s["damages_usd"])
+                else:
+                    self.assertIsInstance(s["damages_usd"], (int, float))
+                    self.assertIsNone(s["deaths"])
         for q in self.cross["questions"]:
             with self.subTest(q=q["id"]):
                 self.assertIn(q["severity"]["kind"], ("population_share", "none", "extinction"))
 
     def test_the_two_severity_legs_agree_with_the_stated_vsl(self):
-        """Deaths and dollars must stay one ladder, not two.
+        """The two ladders line up rung for rung.
 
         The criteria state a value of a statistical life ($10M until the set's
-        2026-08-31 revision, $2.2M since), so each rung's dollar leg should be
-        that many times its death leg. If that ratio drifts, the two legs
-        disagree about which rung is harder and the axis stops being monotone
-        — at which point a curve on Graph 2 means nothing. The number is
-        parsed from the definitions (make_autoarc_questions.stated_vsl) and
-        written to the ladder's notes, and every consumer of the exchange
-        rate reads or pins THAT, never a typed 1e7.
+        2026-08-31 revision, $2.2M since), so each rung's dollar threshold
+        should be that many times its death threshold. If that ratio drifts,
+        the two legs disagree about which rung is harder and the ladders stop
+        sharing rung positions — at which point the LEG constraint and the
+        paired charts mean nothing. The number is parsed from the definitions
+        (make_autoarc_questions.stated_vsl) and written to the ladder's notes.
         """
         import importlib.util
         spec = importlib.util.spec_from_file_location("gen", REPO / "code" / "make_autoarc_questions.py")
@@ -142,11 +153,7 @@ class TestSetShape(unittest.TestCase):
                 continue
             with self.subTest(rung=r["short"]):
                 self.assertAlmostEqual(r["damages_usd"] / r["deaths"], vsl, delta=1.0)
-        from redlines.conditional import USD_PER_DEATH
-        from redlines.config import REPO_ROOT  # noqa: F401
-        self.assertEqual(USD_PER_DEATH, vsl)
-        hist = json.load(open(REPO / "data" / "historical_events.json"))
-        self.assertEqual(hist["conversion"]["vsl_usd"], vsl)
+                self.assertEqual(set(r["legs"]), {"deaths", "damages"})
 
     def test_rungs_ascend(self):
         deaths = [r["deaths"] for r in self.ladder["rungs"]]
@@ -291,11 +298,15 @@ class TestSetShape(unittest.TestCase):
             self.assertIn(k, causes)
         self.assertNotIn(rel["cross"]["container"], rel["cross"]["contained"])
 
+        legs = {l["key"] for l in self.ladder["legs"]}
         for b in rel["bracket"]:
-            with self.subTest(bracket=b["narrower"]):
+            with self.subTest(bracket=b["narrower"], leg=b["leg"]):
                 self.assertIn(b["narrower"], qids)
                 self.assertIn(b["cause"], causes)
                 self.assertIn(b["rung"], rungs)
+                self.assertIn(b["leg"], legs)
+                self.assertIn(f"ladder:{b['cause']}:{b['rung']}:{b['leg']}", qids)
+        self.assertEqual({rel["legs"]["container"], rel["legs"]["contained"]}, legs)
         for p in rel["subset"]:
             with self.subTest(subset=p["narrower"]):
                 self.assertIn(p["narrower"], qids)
@@ -490,6 +501,7 @@ class TestNothingIsHandWritten(unittest.TestCase):
         (or, for an addendum question, in its addendum's severity block)."""
         sevs = {r["Severity"].strip() for r in self.rows}
         addenda = self._addenda()
+        rungs = {r["short"]: r for r in self.ladder["rungs"]}
         for q in self.ladder["questions"] + self.cross["questions"]:
             src = q["severity"].get("source_text")
             if q["severity"]["kind"] == "none":
@@ -501,6 +513,13 @@ class TestNothingIsHandWritten(unittest.TestCase):
                 if q.get("source"):   # an addendum RUNG: its own file's severity text
                     doc = json.loads((REPO / q["source"]).read_text())
                     self.assertEqual(src, doc["severity"]["source_text"])
+                    continue
+                if q.get("leg"):      # a leg's question: its half of the rung's option text
+                    whole = rungs[q["rung"]]["source_text"]
+                    self.assertIn(whole, sevs,
+                                  f"{q['id']} rung {whole!r} is not a value in her Severity column")
+                    self.assertIn(src, whole.split(" or "),
+                                  f"{q['id']} severity {src!r} is not a half of {whole!r}")
                     continue
                 self.assertIn(src, sevs,
                               f"{q['id']} severity {src!r} is not a value in "
@@ -597,22 +616,30 @@ class TestEmittedWorkbook(unittest.TestCase):
                       if "<" in str(r[self.col("Question ID")])})
         self.assertEqual(bad, [], f"placeholder(s) left in the id column: {bad}")
 
+    @staticmethod
+    def ids(cell):
+        """A rung's row names both legs' questions, "; "-joined."""
+        return [i.strip() for i in str(cell).split(";") if i.strip()]
+
     def test_every_id_matches_its_rows_severity(self):
-        """The id names a rung; the row names a severity. They must agree."""
+        """The ids name a rung; the row names a severity. They must agree."""
         ladder = json.loads((REPO / "data" / "autoarc_ladder.json").read_text())
         by_id = {q["id"]: q for q in ladder["questions"]}
+        rungs = {r["short"]: r for r in ladder["rungs"]}
         sev_col, id_col = self.col("Severity"), self.col("Question ID")
         checked = 0
         for r in self.rows:
-            q = by_id.get(r[id_col])
-            if not q:
+            qs = [by_id[i] for i in self.ids(r[id_col]) if i in by_id]
+            if not qs:
                 continue          # cross-cutting or the P6-bio comparison rows
             checked += 1
-            self.assertEqual(
-                q["severity"]["source_text"], str(r[sev_col]).strip(),
-                f"{r[id_col]} is on a row whose severity is "
-                f"{r[sev_col]!r}, but that id's rung is "
-                f"{q['severity']['source_text']!r}")
+            self.assertEqual([q["leg"] for q in qs], ["deaths", "damages"])
+            for q in qs:
+                self.assertEqual(
+                    rungs[q["rung"]]["source_text"], str(r[sev_col]).strip(),
+                    f"{q['id']} is on a row whose severity is "
+                    f"{r[sev_col]!r}, but that id's rung is "
+                    f"{rungs[q['rung']]['source_text']!r}")
         self.assertEqual(checked, 128,
                          "expected the 4 causes x 8 rungs x 4 of her horizons; "
                          f"matched {checked}")
@@ -621,6 +648,6 @@ class TestEmittedWorkbook(unittest.TestCase):
         ladder = json.loads((REPO / "data" / "autoarc_ladder.json").read_text())
         # An addendum rung is generated from its own file, not from her sheet.
         want = {q["id"] for q in ladder["questions"] if not q.get("since")}
-        got = {r[self.col("Question ID")] for r in self.rows}
+        got = {i for r in self.rows for i in self.ids(r[self.col("Question ID")])}
         self.assertEqual(want - got, set(),
                          "ladder question(s) missing from the workbook")

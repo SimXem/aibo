@@ -129,7 +129,11 @@ JOIN = {
     ("catastrophe:general", "LEAP"): "leap-general-catastrophe-10-of-population",
     ("catastrophe:ai", "XPT"): "xpt-ai-catastrophe-10-of-population",
     ("catastrophe:ai", "LEAP"): "leap-ai-catastrophe-10-of-population",
-    ("ladder:ai:10k", "LEAP"): "leap-ai-catastrophe-50-deaths-or-100b",
+    # Her column flags the RUNG; since 2026-10-19 a rung is two questions
+    # (deaths, damages) and both inherit the comparison. LEAP's question is
+    # disjunctive ("50 deaths or $100b"), so it is an exact match for neither.
+    ("ladder:ai:10k:deaths", "LEAP"): "leap-ai-catastrophe-50-deaths-or-100b",
+    ("ladder:ai:10k:damages", "LEAP"): "leap-ai-catastrophe-50-deaths-or-100b",
     ("extinction:general", "XPT"): "xpt-total-extinction-below-5000",
     ("extinction:ai", "XPT"): "xpt-ai-extinction-below-5000",
     ("extinction:ai", "ESPAI"): "espai-2023-ai-extinction-or-disempowerment-100y",

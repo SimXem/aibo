@@ -1,19 +1,14 @@
 {
-  "title": "Historical events, placed on the Auto-ARC severity axis",
+  "title": "Historical events, placed on the Auto-ARC severity ladders",
   "provenance": {
     "requested_by": "Jason Abaluck, 2026-08-17 call; reference marks from his 2026-08-19 notes",
-    "scope": "COVID-19, Black Death and World War II (Nick, 2026-08-18), plus two definitional reference marks \u2014 Black Death as a population share, and Extinction \u2014 at the question set's population basis (Jason, 2026-08-19), plus NotPetya on the damages leg (Nick, 2026-09-10), the one mark below 14M.",
+    "scope": "COVID-19, Black Death and World War II (Nick, 2026-08-18), plus two definitional reference marks \u2014 Black Death as a population share, and Extinction \u2014 at the question set's population basis (Jason, 2026-08-19), plus NotPetya on the damages ladder (Nick, 2026-09-10).",
     "curated_by": "this project \u2014 hand-curated, one citation per row",
     "generated_by": "code/make_historical_events.py",
     "verified": "2026-08-18",
     "status": "Figures checked against the cited sources on the `verified` date. Re-check before the paper is frozen."
   },
-  "conversion": {
-    "vsl_usd": 2200000.0,
-    "rule": "severity = max(deaths, damages_usd / vsl_usd)",
-    "why": "Each rung resolves on deaths OR damages, whichever binds first, so an event reaches the rung set by its higher leg."
-  },
-  "caveat": "These marks locate historical events and two definitional reference points on the severity axis. They are NOT comparable to the curves: every curve is the probability of an AI-related incident inside one horizon window, while the historical events are non-AI and accumulated over years. Bands show the range across published estimates, not measurement error; the reference marks (Black Death as a population share, Extinction) are definitions drawn at today's population, not tolls. NotPetya is a damages figure, placed by converting dollars to death-equivalents at the ladder's own value of a statistical life.",
+  "caveat": "These marks locate historical events and two definitional reference points on the severity axis. They are NOT comparable to the curves: every curve is the probability of an AI-related incident inside one horizon window, while the historical events are non-AI and accumulated over years. Bands show the range across published estimates, not measurement error; the reference marks (Black Death as a population share, Extinction) are definitions drawn at today's population, not tolls. Each mark appears only on the ladder(s) it has a figure for.",
   "events": [
     {
       "id": "notpetya",
@@ -21,24 +16,19 @@
       "label": "NotPetya (~$10B damages)",
       "short": "NotPetya: $10B",
       "span": "2017",
-      "basis": "damages only \u2014 the White House's ~$10B estimate, at $2.2M per statistical life",
+      "basis": "damages only \u2014 the White House's ~$10B estimate",
       "deaths": null,
       "damages_usd": {
         "low": 10000000000.0,
         "central": 10000000000.0,
         "high": 10000000000.0
       },
-      "severity": {
-        "low": 4545.454545454545,
-        "central": 4545.454545454545,
-        "high": 4545.454545454545
-      },
       "source": {
         "org": "White House estimate, as reported by Wired (Greenberg, 2018)",
         "title": "The Untold Story of NotPetya, the Most Devastating Cyberattack in History: \"more than $10 billion in total damages\" (Tom Bossert, then Homeland Security adviser)",
         "url": "https://www.wired.com/story/notpetya-cyberattack-ukraine-russia-code-crashed-the-world/"
       },
-      "note": "DAMAGES ONLY: no deaths are attributed to NotPetya, so it enters on the dollar leg and its position is $10B / $2.2M per statistical life \u2248 4.5k death-equivalents. The $10B is a single U.S. government estimate in 2017 dollars (the rungs are stated in 2026 USD; inflating it would move the mark a few percent, invisible on a log axis). Disclosed corporate write-downs alone (Merck, Maersk, FedEx/TNT, Saint-Gobain, Mondelez) sum to over $3B. It is here to show where the costliest cyberattack on record sits: at the foot of the ladder.",
+      "note": "DAMAGES ONLY: no deaths are attributed to NotPetya, so it appears on the damages ladder alone, at $10B. The $10B is a single U.S. government estimate in 2017 dollars (the rungs are stated in 2026 USD; inflating it would move the mark a few percent, invisible on a log axis). Disclosed corporate write-downs alone (Merck, Maersk, FedEx/TNT, Saint-Gobain, Mondelez) sum to over $3B. It is here to show where the costliest cyberattack on record sits: near the foot of the damages ladder.",
       "verified": "2026-09-10"
     },
     {
@@ -58,17 +48,12 @@
         "central": 12500000000000.0,
         "high": 22000000000000.0
       },
-      "severity": {
-        "low": 13230000.0,
-        "central": 14830000.0,
-        "high": 16580000.0
-      },
       "source": {
         "org": "World Health Organization",
         "title": "Global excess deaths associated with COVID-19, January 2020 - December 2021: 14.83M (13.23-16.58M)",
         "url": "https://www.who.int/data/stories/global-excess-deaths-associated-with-covid-19-january-2020-december-2021"
       },
-      "note": "Excess mortality, not the ~7M laboratory-confirmed deaths \u2014 the ladder's criteria ask for excess mortality attributable to the event. The damages leg (IMF cumulative output loss, $12.5T over 2020-21 rising to $22T through 2025) implies only ~1.25M death-equivalent, so the deaths leg binds and sets the position.",
+      "note": "Excess mortality, not the ~7M laboratory-confirmed deaths \u2014 the ladder's criteria ask for excess mortality attributable to the event. On the damages ladder it is drawn at the IMF's cumulative output loss, $12.5T over 2020-21 rising to $22T through 2025.",
       "verified": "2026-08-18"
     },
     {
@@ -84,11 +69,6 @@
         "high": 50000000.0
       },
       "damages_usd": null,
-      "severity": {
-        "low": 25000000.0,
-        "central": 35000000.0,
-        "high": 50000000.0
-      },
       "source": {
         "org": "Benedictow 2004; Alfani & Murphy 2017, Journal of Economic History 77(1), 314-343",
         "title": "The Black Death 1346-1353: The Complete History (up to 60% mortality), reviewed against the 40-60% range in Plague and Lethal Epidemics in the Pre-Industrial World",
@@ -110,11 +90,6 @@
         "high": 85000000.0
       },
       "damages_usd": null,
-      "severity": {
-        "low": 70000000.0,
-        "central": 77000000.0,
-        "high": 85000000.0
-      },
       "source": {
         "org": "Compiled national estimates; battle-death subset in the Correlates of War project",
         "title": "The 70-85M range synthesises national archives, postwar demographic studies and census-loss estimates; only the ~16.6M battle-death subset comes from a single dataset",
@@ -136,11 +111,6 @@
         "high": 2050000000.0
       },
       "damages_usd": null,
-      "severity": {
-        "low": 2050000000.0,
-        "central": 2050000000.0,
-        "high": 2050000000.0
-      },
       "source": {
         "org": "U.S. Census Bureau, Historical Estimates of World Population (compiling Biraben, Durand, McEvedy & Jones); Alchon 2003",
         "title": "Compiled world-population estimates fall from ~443-475M on the eve of the plague to 350-375M after it",
@@ -162,11 +132,6 @@
         "high": 8200000000.0
       },
       "damages_usd": null,
-      "severity": {
-        "low": 8200000000.0,
-        "central": 8200000000.0,
-        "high": 8200000000.0
-      },
       "source": {
         "org": "United Nations, World Population Prospects 2024",
         "title": "World population ~8.2B \u2014 the figure the question set carries as world_pop and converts '10% of population' through (820M)",

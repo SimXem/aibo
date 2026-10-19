@@ -32,7 +32,7 @@ import statistics as st
 from datetime import datetime
 
 from ..logs import log_exists
-from ..conditional import (USD_PER_DEATH, group_rows, group_view, load_conditional, method_notes, newest_protocol, protocol_line)
+from ..conditional import (LOSS_LEG, group_rows, group_view, load_conditional, method_notes, newest_protocol, protocol_line)
 from ..config import REPO_ROOT
 from ..instrument import instrument_rows
 from ..runlog import elicitation_date
@@ -276,8 +276,7 @@ def build(horizons=DEFAULT_HORIZONS, variants=VARIANTS):
             "repeats": v["repeats"],
             "forecast": {"models": models, "ensemble": ens},
             "notes": spec.get("notes", {}),
-            "usdPerDeath": USD_PER_DEATH,
-            "rungs": [{"short": r["short"], "label": r["label"], "deaths": r["deaths"]}
+            "rungs": [{"short": r["short"], "label": r["legs"][LOSS_LEG]["label"], "deaths": r["deaths"]}
                       for r in ladder["rungs"]],
             "method": _method(spec),
         })

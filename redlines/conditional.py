@@ -29,15 +29,16 @@ THREE MEASURES, ONE STORY
   dlogit       logit(p_cond) - logit(p_uncond). Symmetric in raise/lower;
                kept in the summary for the record.
 
-EXPECTED LOSS: THE LADDER COMPRESSED TO ONE NUMBER
-Each cause's eight rungs are P(loss >= x_k) at log-spaced thresholds x_k
-(100 deaths or $220M ... 1B deaths or $2.2Q). Those are points on a survival
-function, and E[loss] = integral of S(x) dx. With S known only at the rungs,
-the sum  sum_k S(x_k) (x_k - x_{k-1})  with x_0 = 0 is a FLOOR on E[loss]:
-it values every band at its lower threshold and counts nothing above 1B
-beyond 1B itself. The unit is death-equivalents at the ladder's own
-exchange rate, 1 death = $2.2M since 2026-08-31 (the "or" in "100 deaths or
-$220M"; $10M, "100 deaths or $1B", before). Because
+EXPECTED DEATHS: THE LADDER COMPRESSED TO ONE NUMBER
+Each cause's deaths ladder is P(deaths >= x_k) at eight log-spaced thresholds
+x_k (100 ... 1B; LOSS_LEG). Those are points on a survival function, and
+E[deaths] = integral of S(x) dx. With S known only at the rungs, the sum
+sum_k S(x_k) (x_k - x_{k-1})  with x_0 = 0 is a FLOOR on E[deaths]: it values
+every band at its lower threshold and counts nothing above 1B beyond 1B
+itself. (Until 2026-10-19 each rung was one deaths-OR-damages question and
+the fold read in death-equivalents at the ladder's $2.2M value of a
+statistical life; the damages ladder is now its own set of questions and is
+not folded.) Because
 the thresholds rise tenfold per rung, the top rungs dominate the sum; the
 summary carries each cell's top-two-rung share so a reader can see how much
 of "expected lives" is the 100M and 1B rungs. A non-monotone ladder (a
@@ -65,11 +66,13 @@ POLICIES = REPO_ROOT / "data" / "leap_policies.json"
 DEFAULT_HORIZONS = ("2030", "2050")
 EPS = 1e-5
 LOSS_PREFIX = "loss:"
-# The ladder's rate: the value of a statistical life its criteria state --
-# "100 deaths or $220M" since the ladder's 2026-08-31 revision ($2.2M; it was
-# $10M, "100 deaths or $1B"). data/autoarc_ladder.json notes.vsl_usd carries
-# the same number and tests/test_autoarc_generator.py pins the two together.
-USD_PER_DEATH = 2.2e6
+# The ladder the expected-loss rows fold (Graph 1, the Timeline, the
+# Policy-levers tab): the DEATHS leg, since 2026-10-19 when each rung became a
+# deaths question and a damages question. The fold is then a floor on expected
+# deaths; the damages ladder is drawn on Graph 2 and not folded. Until then the
+# one deaths-OR-damages question per rung folded to "death-equivalents" at the
+# ladder's $2.2M value of a statistical life, a rate nothing reads any more.
+LOSS_LEG = "deaths"
 
 
 def _logit(p):
@@ -83,6 +86,18 @@ def _logit(p):
 # falls back down the line, so the tab keeps its rows on the day of a bump and
 # switches the day the first run under the new tag lands.
 PROTOCOL_LINEAGE = {
+    # 2026-10-19 evening, v11: THE GRID changes. Every severity rung is asked
+    # as two questions, one resolving on deaths (or equivalent morbidity) and
+    # one on economic damages, in place of one deaths-OR-damages question
+    # (redlines.instrument.CURRENT_INSTRUMENT airo-incidents-prospective-v2;
+    # docs/severity-legs-2026-10-19.md): 41 -> 73 questions, 246 -> 438 cells.
+    # Asked by Ezra Karger (2026-10-19) so the severity chart can be split.
+    # The prompt variants, the sixth call, the conditions and the loop are v10's.
+    "unified-joint-combined-v11": ("unified-joint-combined-v10", "unified-joint-combined-v9",
+                                   "unified-joint-combined-v8", "unified-joint-combined-v7",
+                                   "unified-joint-combined-v6", "unified-joint-combined-v5",
+                                   "unified-joint-combined-v4", "unified-joint-combined-v3",
+                                   "unified-joint-combined-v2", "unified-joint-combined-v1"),
     # 2026-10-19, v10: the INSTRUMENT changes. The minimal prompt -- no system
     # prompt, no research advice, no research floor or coverage rule, no
     # debrief; the questions, conditions and delivery mechanics are v9's --
@@ -176,7 +191,7 @@ PROTOCOL_LINEAGE = {
 # the same string (tests pin the two together); the views, the run log's
 # grounding line and the coherence test all read it from here, so a bump is
 # one edit plus the lineage entry above.
-COMBINED_PROTOCOL = "unified-joint-combined-v10"
+COMBINED_PROTOCOL = "unified-joint-combined-v11"
 # The first combined tag elicited by the agentic harness (iterative search +
 # page reads, 2026-09-02); v1 (2026-08-28) still ran the legacy grounding.
 AGENTIC_SINCE = "unified-joint-combined-v2"
@@ -506,19 +521,33 @@ def outside_noise(cond_values, uncond_values):
 
 def ladder_rungs(spec=None):
     """[(rung short, deaths)] ascending, from the ladder spec: the LOSS rungs,
-    i.e. those with a dollar leg. The extinction rung (2026-09-16, an
-    addendum) is a population floor with no damages leg -- no sum of direct
-    losses is an extinction -- so it is not a point on the loss ladder the
-    fold integrates, and every run before it stays foldable."""
+    the workbook's eight. The extinction rung (2026-09-16, an addendum) is a
+    population floor with no damages leg -- no sum of direct losses is an
+    extinction -- so it is not a point on the loss ladder the fold integrates,
+    and every run before it stays foldable. The fold reads these rungs'
+    deaths questions (LOSS_LEG)."""
     if spec is None:
         from .questions import load_ladder
         spec = load_ladder()
     return [(r["short"], float(r["deaths"])) for r in spec["rungs"]
-            if r.get("kind", "deaths_or_damages") == "deaths_or_damages"]
+            if r.get("damages_usd") is not None]
+
+
+def loss_text(cause_label, spec):
+    """What an expected-deaths row is, worded once for Graph 1, the Timeline
+    and the Policy-levers tab."""
+    label = {r["short"]: r["legs"][LOSS_LEG]["label"] for r in spec["rungs"]}
+    labels = [label[short] for short, _ in ladder_rungs(spec)]
+    return (f"{cause_label}: expected deaths (or equivalent morbidity), a floor computed from "
+            f"the deaths ladder's {len(labels)} rung forecasts {labels[0]} … {labels[-1]}: each "
+            "band valued at its lower threshold, with severity capped at the top rung. Small "
+            "probabilities at extreme thresholds can dominate this estimate; the floor is under "
+            "the forecast distribution, not a guarantee about actual harm. The damages ladder "
+            "is not folded.")
 
 
 def expected_loss(survival, rungs):
-    """Floor on E[loss] in death-equivalents from P(loss >= x_k) at the rungs.
+    """Floor on E[deaths] from P(deaths >= x_k) at the rungs.
 
     survival: {rung short: p}. Every rung must be present, else None.
     Returns {"value", "top_share" (share of the sum from the top two rungs),
@@ -557,8 +586,8 @@ def _ladder_cells(rows, rungs):
                                  "grounded": {}})
     for r in rows:
         qid = r["question_id"]
-        parts = qid.split(":")
-        if len(parts) != 3 or parts[0] != "ladder" or parts[2] not in want:
+        parts = qid.split(":")      # ladder:<cause>:<rung>:<leg>; the fold reads one leg
+        if len(parts) != 4 or parts[0] != "ladder" or parts[2] not in want or parts[3] != LOSS_LEG:
             continue
         cause, rung = parts[1], parts[2]
         call = r.get("call_id") or r.get("arm") or r.get("run_id")
@@ -646,9 +675,9 @@ def summarize(rows, policies=None, horizons=DEFAULT_HORIZONS, questions=None,
     the per-model deltas. Models with no baseline in the session are skipped
     for that cell, not silently given someone else's.
 
-    Ladder questions also fold into one `loss:<cause>` entry per cause and
-    horizon -- the expected loss in death-equivalents (see module docstring),
-    with the same per-model-then-ensemble arithmetic. Pass rungs=[] to skip.
+    The deaths ladder's questions also fold into one `loss:<cause>` entry per
+    cause and horizon -- the expected deaths (see module docstring), with the
+    same per-model-then-ensemble arithmetic. Pass rungs=[] to skip.
     """
     policies = policies or json.load(open(POLICIES))
     cond_order = [c["id"] for c in policies["conditions"]]
@@ -795,7 +824,6 @@ def summarize(rows, policies=None, horizons=DEFAULT_HORIZONS, questions=None,
                  "condition_set": policies.get("slug", "leap"),
                  "experiments": sorted({r.get("experiment") for r in rows} - {None}),
                  "horizons": want_h, "source": policies["source"],
-                 "usd_per_death": USD_PER_DEATH,
                  "rungs": [{"short": r, "deaths": x} for r, x in rungs] if rungs else []},
     }
 
@@ -825,9 +853,10 @@ def method_notes(compare, baseline, conditioning=None):
                    "repeats of the same call. Ensemble: a bootstrap percentile interval "
                    "for the median across models of those per-model means, resampling "
                    "models and repeats.",
-        "loss": "Sum over rungs of P(loss ≥ rung) × (rung − previous rung): a "
-                "floor under the forecast distribution for combined severity, in death-equivalents at the "
-                f"ladder's own rate of one death-equivalent per ${USD_PER_DEATH / 1e6:g}M. This is not expected deaths; small probabilities at extreme thresholds can dominate the estimate.",
+        "loss": "Sum over the deaths ladder's rungs of P(deaths ≥ rung) × (rung − previous "
+                "rung): a floor under the forecast distribution for deaths (or equivalent "
+                "morbidity). Small probabilities at extreme thresholds can dominate the "
+                "estimate; the damages ladder is not folded.",
     }
     if conditioning is not None:
         notes["conditioning"] = conditioning
@@ -835,7 +864,7 @@ def method_notes(compare, baseline, conditioning=None):
 
 
 def fmt_loss(v):
-    """3.4M, 120k, 1.2B -- death-equivalents."""
+    """3.4M, 120k, 1.2B -- deaths."""
     if v is None:
         return "-"
     for cut, suf in ((1e9, "B"), (1e6, "M"), (1e3, "k")):
@@ -860,7 +889,7 @@ def table(summary, qid, horizon, measure="delta_pp"):
     base_fmt = fmt_loss if loss else (lambda v: f"{100 * v:.2f}%")
     w = max(12, *(len(m) for m in models))
     head = (f"{qid} @ {horizon}  [{measure}]  baseline median {base_fmt(entry['baseline_median'])}"
-            + ("  (expected loss, death-equivalents; floor)" if loss else ""))
+            + ("  (expected deaths; floor)" if loss else ""))
     if entry["noise"]:
         n = entry["noise"]
         head += (f"  noise floor x{n['ratio']:.2f}" if n.get("ratio") else "") + \

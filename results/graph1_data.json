@@ -1,85 +1,17 @@
 {
-  "runs": [
-    "2026-09-18T1200Z"
-  ],
+  "runs": [],
   "instrumentInfo": {
-    "version": "airo-incidents-prospective-v1",
-    "available": true,
-    "runDate": "2026-09-18",
-    "countingWindows": {
-      "6mo": [
-        {
-          "start": "2026-09-18",
-          "end": "2027-03-18",
-          "timezone": "UTC",
-          "harm_years": 3
-        }
-      ],
-      "12mo": [
-        {
-          "start": "2026-09-18",
-          "end": "2027-09-18",
-          "timezone": "UTC",
-          "harm_years": 3
-        }
-      ],
-      "2028": [
-        {
-          "start": "2026-09-18",
-          "end": "2028-12-31",
-          "timezone": "UTC",
-          "harm_years": 3
-        }
-      ],
-      "2030": [
-        {
-          "start": "2026-09-18",
-          "end": "2030-12-31",
-          "timezone": "UTC",
-          "harm_years": 3
-        }
-      ],
-      "2050": [
-        {
-          "start": "2026-09-18",
-          "end": "2050-12-31",
-          "timezone": "UTC",
-          "harm_years": 3
-        }
-      ],
-      "2100": [
-        {
-          "start": "2026-09-18",
-          "end": "2100-12-31",
-          "timezone": "UTC",
-          "harm_years": 3
-        }
-      ]
-    },
-    "change": "Incident counting rules changed: only incidents beginning on or after the elicitation date qualify. The entire joint forecast series starts anew because the questions are elicited together. Earlier forecasts remain in the download under their original recorded version or as unversioned legacy rows. Current charts require all four panel models on the same elicitation date.",
+    "version": "airo-incidents-prospective-v2",
+    "available": false,
+    "runDate": null,
+    "countingWindows": {},
+    "change": "Each severity rung is now asked as two questions, one resolving on deaths (or equivalent morbidity) and one on economic damages, in place of one deaths-or-damages question. The entire joint forecast series starts anew because the questions are elicited together. Earlier forecasts remain in the download under their recorded instrument version or as unversioned legacy rows. Current charts require all four panel models on the same elicitation date.",
     "windowChange": "Incident onset starts advance with each elicitation date, including for fixed-year deadlines. Changes across runs therefore reflect changing intervals as well as revised beliefs.",
     "archiveUrl": "redlines-data.zip"
   },
-  "latest": "2026-09-18T13:52:56+00:00",
-  "grounding": "agentic web search (Tavily): iterative search + page reads",
-  "models": [
-    {
-      "label": "GPT-6 Astra",
-      "color": "#0e7c7b"
-    },
-    {
-      "label": "Fable 5.1",
-      "color": "#8e2a63"
-    },
-    {
-      "label": "Opus 5",
-      "color": "#7a4fa3"
-    },
-    {
-      "label": "GPT-5.5 Pro",
-      "color": "#c25a2e"
-    }
-  ],
+  "latest": null,
+  "grounding": "shared web search (Tavily) + Metaculus cross-check",
+  "models": [],
   "categories": [
     {
       "key": "cross:catastrophe:general",
@@ -137,21 +69,71 @@
     }
   ],
   "humanCoverage": {
-    "with": [
-      "catastrophe:ai",
-      "catastrophe:general",
-      "extinction:ai",
-      "extinction:general"
-    ],
+    "with": [],
     "without": [
-      "disempowerment",
       "loss:ai",
       "loss:bio",
       "loss:cyber",
       "loss:misalign"
     ],
     "unplotted": {
-      "ladder:ai:10k": {
+      "catastrophe:ai": {
+        "2030": [
+          "LEAP",
+          "XPT"
+        ],
+        "2050": [
+          "LEAP",
+          "XPT"
+        ],
+        "2100": [
+          "LEAP",
+          "XPT"
+        ]
+      },
+      "catastrophe:general": {
+        "2030": [
+          "LEAP",
+          "XPT"
+        ],
+        "2050": [
+          "LEAP",
+          "XPT"
+        ],
+        "2100": [
+          "LEAP",
+          "XPT"
+        ]
+      },
+      "extinction:ai": {
+        "2030": [
+          "XPT"
+        ],
+        "2050": [
+          "XPT"
+        ],
+        "2100": [
+          "ESPAI",
+          "XPT"
+        ]
+      },
+      "extinction:general": {
+        "2030": [
+          "XPT"
+        ],
+        "2050": [
+          "XPT"
+        ],
+        "2100": [
+          "XPT"
+        ]
+      },
+      "ladder:ai:10k:damages": {
+        "2050": [
+          "LEAP"
+        ]
+      },
+      "ladder:ai:10k:deaths": {
         "2050": [
           "LEAP"
         ]
@@ -209,7 +191,12 @@
           "ESPAI"
         ]
       },
-      "ladder:ai:10k": {
+      "ladder:ai:10k:deaths": {
+        "2050": [
+          "LEAP"
+        ]
+      },
+      "ladder:ai:10k:damages": {
         "2050": [
           "LEAP"
         ]
@@ -267,7 +254,12 @@
           "XPT"
         ]
       },
-      "ladder:ai:10k": {
+      "ladder:ai:10k:deaths": {
+        "2050": [
+          "LEAP"
+        ]
+      },
+      "ladder:ai:10k:damages": {
         "2050": [
           "LEAP"
         ]
@@ -279,1983 +271,137 @@
       "XPT": "2022-10-01"
     },
     "plotted": true,
-    "note": "Superforecaster medians from prior FRI panels, and the AI-researcher median from the 2023 Expert Survey on Progress in AI (ESPAI), are shown as hollow diamonds, each labelled with its panel (experts and the public are in the data but not plotted). On the catastrophe questions they answer close but not identical wordings \u2014 XPT counted deaths where this question set counts attributable excess mortality, and both XPT and LEAP require the AI's involvement within a year of the event where she sets no time limit \u2014 so they are a dated reference, not a like-for-like overlay. The extinction questions are asked in XPT's own words, so those XPT diamonds are like-for-like; the AI researchers were asked about extinction OR similarly permanent and severe disempowerment, within 100 years of late 2023, so that diamond sits at 2100 as the nearest horizon, not the same one. 4 of the plotted questions have a prior panel; the rest show models alone. A human number also exists for ladder:ai:10k at 2050 (LEAP), a severity rung this panel folds into its expected-loss row, so it is not drawn here."
+    "note": "Superforecaster medians from prior FRI panels, and the AI-researcher median from the 2023 Expert Survey on Progress in AI (ESPAI), are shown as hollow diamonds, each labelled with its panel (experts and the public are in the data but not plotted). On the catastrophe questions they answer close but not identical wordings \u2014 XPT counted deaths where this question set counts attributable excess mortality, and both XPT and LEAP require the AI's involvement within a year of the event where she sets no time limit \u2014 so they are a dated reference, not a like-for-like overlay. The extinction questions are asked in XPT's own words, so those XPT diamonds are like-for-like; the AI researchers were asked about extinction OR similarly permanent and severe disempowerment, within 100 years of late 2023, so that diamond sits at 2100 as the nearest horizon, not the same one. No plotted question has a prior panel yet. A human number also exists for catastrophe:ai at 2030, 2050, 2100 (LEAP, XPT); catastrophe:general at 2030, 2050, 2100 (LEAP, XPT); extinction:ai at 2030, 2050, 2100 (ESPAI, XPT); extinction:general at 2030, 2050, 2100 (XPT); ladder:ai:10k:damages at 2050 (LEAP); ladder:ai:10k:deaths at 2050 (LEAP), a severity rung this panel folds into its expected-deaths row or does not draw, so it is not drawn here."
   },
   "questions": [
-    {
-      "id": "catastrophe:general",
-      "short": "General catastrophe",
-      "category": "cross:catastrophe:general",
-      "railLabel": "General catastrophe",
-      "color": null,
-      "severity": "deaths reaching 10% of the population",
-      "severityShort": "10% of population",
-      "valueKind": "probability",
-      "text": "What is the probability that any global catastrophe (deaths reaching at least 10% of the population alive at the start of the measurement window) will occur within 6 months / within 12 months / by the end of 2028 / by the end of 2030 / by the end of 2050 / by the end of 2100?",
-      "criteria": "* Catastrophe threshold and the measurement window: A catastrophe at the 10% level means that deaths attributable to the catastrophe (excess mortality, i.e., deaths beyond the baseline that would have occurred anyway) reach at least 10% of the population alive at the start of the measurement window.  \n* The measurement window is any contiguous period of at most five years during which the attributable deaths accumulate to the threshold. The window must begin on or after December 31, 2025 and end on or before December 31 of the resolution year (2030, 2050, or 2100). A faster event; the five years is a ceiling on the span over which deaths are counted, not a required duration.  \n* For a threshold to resolve positively, the deaths must arise from a single catastrophe or a single causally-linked chain of events, not from summing unrelated causes.  \n* Data and disagreement: For fatality and population data, we will rely on broadly recognized sources (e.g., Our World in Data, the Economist, the United Nations). Where these disagree in ways that would change resolution, we will resolve by the majority opinion of a panel of experts in demographics and fields relevant to the specific catastrophe (e.g., epidemiology for a pandemic). If reasonable people disagree about whether the event occurred, the question resolves via the same expert panel.\n* [Scope of \"the resolution year\", added 2026-08-28 when these questions moved onto the incident ladder's horizon grid: read it as the resolution date of whichever horizon you are answering, which for a rolling horizon is that many months after today's date. The rule is otherwise unchanged -- the measurement window still begins on or after December 31, 2025, must end on or before that resolution date, and still spans at most five years.]",
-      "details": null,
-      "horizons": [
-        "6mo",
-        "12mo",
-        "2028",
-        "2030",
-        "2050",
-        "2100"
-      ],
-      "horizonLabels": {
-        "6mo": "within 6 months (by 2027-03-18)",
-        "12mo": "within 12 months (by 2027-09-18)",
-        "2028": "by 2028",
-        "2030": "by 2030",
-        "2050": "by 2050",
-        "2100": "by 2100"
-      },
-      "resolvesOn": {
-        "6mo": "2027-03-18",
-        "12mo": "2027-09-18",
-        "2028": "2028-12-31",
-        "2030": "2030-12-31",
-        "2050": "2050-12-31",
-        "2100": "2100-12-31"
-      },
-      "series": [
-        {
-          "label": "GPT-6 Astra",
-          "color": "#0e7c7b",
-          "ps": {
-            "12mo": 0.106,
-            "2028": 0.472,
-            "2030": 1.22,
-            "2050": 9.6,
-            "2100": 18.6,
-            "6mo": 0.031
-          },
-          "draws": {
-            "12mo": [
-              0.106
-            ],
-            "2028": [
-              0.472
-            ],
-            "2030": [
-              1.22
-            ],
-            "2050": [
-              9.6
-            ],
-            "2100": [
-              18.6
-            ],
-            "6mo": [
-              0.031
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "Fable 5.1",
-          "color": "#8e2a63",
-          "ps": {
-            "12mo": 0.03,
-            "2028": 0.5,
-            "2030": 1.2,
-            "2050": 6.5,
-            "2100": 13.0,
-            "6mo": 0.005
-          },
-          "draws": {
-            "12mo": [
-              0.03
-            ],
-            "2028": [
-              0.5
-            ],
-            "2030": [
-              1.2
-            ],
-            "2050": [
-              6.5
-            ],
-            "2100": [
-              13.0
-            ],
-            "6mo": [
-              0.005
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "Opus 5",
-          "color": "#7a4fa3",
-          "ps": {
-            "12mo": 0.08,
-            "2028": 0.3,
-            "2030": 0.7,
-            "2050": 4.5,
-            "2100": 11.0,
-            "6mo": 0.03
-          },
-          "draws": {
-            "12mo": [
-              0.08
-            ],
-            "2028": [
-              0.3
-            ],
-            "2030": [
-              0.7
-            ],
-            "2050": [
-              4.5
-            ],
-            "2100": [
-              11.0
-            ],
-            "6mo": [
-              0.03
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "GPT-5.5 Pro",
-          "color": "#c25a2e",
-          "ps": {
-            "12mo": 0.04,
-            "2028": 0.35,
-            "2030": 1.1,
-            "2050": 8.5,
-            "2100": 18.5,
-            "6mo": 0.018
-          },
-          "draws": {
-            "12mo": [
-              0.04
-            ],
-            "2028": [
-              0.35
-            ],
-            "2030": [
-              1.1
-            ],
-            "2050": [
-              8.5
-            ],
-            "2100": [
-              18.5
-            ],
-            "6mo": [
-              0.018
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        }
-      ],
-      "declined": [],
-      "median": {
-        "6mo": 0.024,
-        "12mo": 0.06,
-        "2028": 0.411,
-        "2030": 1.15,
-        "2050": 7.5,
-        "2100": 15.75
-      },
-      "ci": {},
-      "replicates": 1,
-      "human": [
-        {
-          "panel": "XPT",
-          "group": "superforecaster",
-          "date": "2022-10-01",
-          "color": "#3f5566",
-          "ps": {
-            "2030": 0.85,
-            "2050": 3.85,
-            "2100": 9.09
-          }
-        },
-        {
-          "panel": "LEAP",
-          "group": "superforecaster",
-          "date": "2026-06-01",
-          "color": "#7c6a54",
-          "ps": {
-            "2030": 0.6,
-            "2050": 3.0,
-            "2100": 9.0
-          }
-        }
-      ]
-    },
-    {
-      "id": "catastrophe:ai",
-      "short": "AI catastrophe",
-      "category": "cross:catastrophe:ai",
-      "railLabel": "AI catastrophe",
-      "color": null,
-      "severity": "deaths reaching 10% of the population",
-      "severityShort": "10% of population",
-      "valueKind": "probability",
-      "text": "What is the probability that a global AI-related catastrophe (AI being the proximate cause, per the but-for standard, of attributable deaths reaching at least 10% of the population alive at the start of the measurement window) will occur within 6 months / within 12 months / by the end of 2028 / by the end of 2030 / by the end of 2050 / by the end of 2100?",
-      "criteria": "* Catastrophe threshold and the measurement window: A catastrophe at the 10% level means that deaths attributable to the catastrophe (excess mortality, i.e., deaths beyond the baseline that would have occurred anyway) reach at least 10% of the population alive at the start of the measurement window.  \n* The measurement window is any contiguous period of at most five years during which the attributable deaths accumulate to the threshold. The window must begin on or after December 31, 2025 and end on or before December 31 of the resolution year (2030, 2050, or 2100). A faster event; the five years is a ceiling on the span over which deaths are counted, not a required duration.  \n* For a threshold to resolve positively, the deaths must arise from a single catastrophe or a single causally-linked chain of events, not from summing unrelated causes.  \n* Data and disagreement: For fatality and population data, we will rely on broadly recognized sources (e.g., Our World in Data, the Economist, the United Nations). Where these disagree in ways that would change resolution, we will resolve by the majority opinion of a panel of experts in demographics and fields relevant to the specific catastrophe (e.g., epidemiology for a pandemic). If reasonable people disagree about whether the event occurred, the question resolves via the same expert panel.\n\n[Carried forward from \"General large-scale catastrophe\"]\n\n* The points above also apply to this question.  \n* Artificial intelligence: Defined as the development of machines capable of sophisticated (intelligent) information processing (Dafoe 2018, AI Governance: A Research Agenda, p. 5 fn. 2).  \n* AI as proximate cause (but-for standard): We consider AI a proximate cause of death under a but-for test: the event would not have occurred, or would have been counterfactually extremely unlikely to occur, but for the substantial involvement of AI.  \n  * Examples that count: an AI-powered system directly killing people at the relevant magnitude; AI autonomously triggering a nuclear launch (including deaths from subsequent nuclear winter); AI being substantially responsible for creating a superweapon that later causes deaths at the relevant magnitude; AI acting autonomously in armed conflict and causing deaths at the relevant magnitude.  \n  * Examples that do not count: AI assisting in targeting a weapon that humans could and would have launched anyway (the AI did not counterfactually enable the event).  \n* There is no fixed time limit between the AI's involvement and the deaths. Creation of a superweapon may precede its use by years and still satisfy the but-for standard; the test is counterfactual materiality, rather than timing.\n* [Scope of \"the resolution year\", added 2026-08-28 when these questions moved onto the incident ladder's horizon grid: read it as the resolution date of whichever horizon you are answering, which for a rolling horizon is that many months after today's date. The rule is otherwise unchanged -- the measurement window still begins on or after December 31, 2025, must end on or before that resolution date, and still spans at most five years.]",
-      "details": null,
-      "horizons": [
-        "6mo",
-        "12mo",
-        "2028",
-        "2030",
-        "2050",
-        "2100"
-      ],
-      "horizonLabels": {
-        "6mo": "within 6 months (by 2027-03-18)",
-        "12mo": "within 12 months (by 2027-09-18)",
-        "2028": "by 2028",
-        "2030": "by 2030",
-        "2050": "by 2050",
-        "2100": "by 2100"
-      },
-      "resolvesOn": {
-        "6mo": "2027-03-18",
-        "12mo": "2027-09-18",
-        "2028": "2028-12-31",
-        "2030": "2030-12-31",
-        "2050": "2050-12-31",
-        "2100": "2100-12-31"
-      },
-      "series": [
-        {
-          "label": "GPT-6 Astra",
-          "color": "#0e7c7b",
-          "ps": {
-            "12mo": 0.006,
-            "2028": 0.072,
-            "2030": 0.42,
-            "2050": 6.6,
-            "2100": 12.6,
-            "6mo": 0.001
-          },
-          "draws": {
-            "12mo": [
-              0.006
-            ],
-            "2028": [
-              0.072
-            ],
-            "2030": [
-              0.42
-            ],
-            "2050": [
-              6.6
-            ],
-            "2100": [
-              12.6
-            ],
-            "6mo": [
-              0.001
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "Fable 5.1",
-          "color": "#8e2a63",
-          "ps": {
-            "12mo": 0.005,
-            "2028": 0.08,
-            "2030": 0.4,
-            "2050": 3.2,
-            "2100": 5.8,
-            "6mo": 0.001
-          },
-          "draws": {
-            "12mo": [
-              0.005
-            ],
-            "2028": [
-              0.08
-            ],
-            "2030": [
-              0.4
-            ],
-            "2050": [
-              3.2
-            ],
-            "2100": [
-              5.8
-            ],
-            "6mo": [
-              0.001
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "Opus 5",
-          "color": "#7a4fa3",
-          "ps": {
-            "12mo": 0.015,
-            "2028": 0.1,
-            "2030": 0.3,
-            "2050": 3.0,
-            "2100": 7.0,
-            "6mo": 0.005
-          },
-          "draws": {
-            "12mo": [
-              0.015
-            ],
-            "2028": [
-              0.1
-            ],
-            "2030": [
-              0.3
-            ],
-            "2050": [
-              3.0
-            ],
-            "2100": [
-              7.0
-            ],
-            "6mo": [
-              0.005
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "GPT-5.5 Pro",
-          "color": "#c25a2e",
-          "ps": {
-            "12mo": 0.01,
-            "2028": 0.13,
-            "2030": 0.47,
-            "2050": 6.0,
-            "2100": 12.2,
-            "6mo": 0.005
-          },
-          "draws": {
-            "12mo": [
-              0.01
-            ],
-            "2028": [
-              0.13
-            ],
-            "2030": [
-              0.47
-            ],
-            "2050": [
-              6.0
-            ],
-            "2100": [
-              12.2
-            ],
-            "6mo": [
-              0.005
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        }
-      ],
-      "declined": [],
-      "median": {
-        "6mo": 0.003,
-        "12mo": 0.008,
-        "2028": 0.09,
-        "2030": 0.41,
-        "2050": 4.6,
-        "2100": 9.6
-      },
-      "ci": {},
-      "replicates": 1,
-      "human": [
-        {
-          "panel": "XPT",
-          "group": "superforecaster",
-          "date": "2022-10-01",
-          "color": "#3f5566",
-          "ps": {
-            "2030": 0.01,
-            "2050": 0.725,
-            "2100": 2.125
-          }
-        },
-        {
-          "panel": "LEAP",
-          "group": "superforecaster",
-          "date": "2026-06-01",
-          "color": "#7c6a54",
-          "ps": {
-            "2030": 0.1,
-            "2050": 0.88,
-            "2100": 2.4
-          }
-        }
-      ]
-    },
-    {
-      "id": "disempowerment",
-      "short": "Human disempowerment",
-      "category": "cross:disempowerment",
-      "railLabel": "Human disempowerment",
-      "color": null,
-      "severity": null,
-      "severityShort": "\u2014",
-      "valueKind": "probability",
-      "text": "What is the probability that disempowerment of humanity will occur within 6 months / within 12 months / by the end of 2028 / by the end of 2030 / by the end of 2050 / by the end of 2100?",
-      "criteria": "* Disempowerment of humanity is defined as a state where AI systems are the primary determinant of human events globally.   \n* This could occur via an overt takeover, where an AI system takes control of global systems of power (such as national governments, international organizations, multinational corporations) and humans have no role in executing power. It could also occur if the majority of human events are determined by AI decision, even if humans are nominally in control but humans could not behave differently if they wanted to, for example because they do not understand the decisions well enough to make a decision, or they are coerced into certain actions due to threats or other means.",
-      "details": null,
-      "horizons": [
-        "6mo",
-        "12mo",
-        "2028",
-        "2030",
-        "2050",
-        "2100"
-      ],
-      "horizonLabels": {
-        "6mo": "within 6 months (by 2027-03-18)",
-        "12mo": "within 12 months (by 2027-09-18)",
-        "2028": "by 2028",
-        "2030": "by 2030",
-        "2050": "by 2050",
-        "2100": "by 2100"
-      },
-      "resolvesOn": {
-        "6mo": "2027-03-18",
-        "12mo": "2027-09-18",
-        "2028": "2028-12-31",
-        "2030": "2030-12-31",
-        "2050": "2050-12-31",
-        "2100": "2100-12-31"
-      },
-      "series": [
-        {
-          "label": "GPT-6 Astra",
-          "color": "#0e7c7b",
-          "ps": {
-            "12mo": 0.012,
-            "2028": 0.36,
-            "2030": 2.4,
-            "2050": 19.8,
-            "2100": 29.4,
-            "6mo": 0.001
-          },
-          "draws": {
-            "12mo": [
-              0.012
-            ],
-            "2028": [
-              0.36
-            ],
-            "2030": [
-              2.4
-            ],
-            "2050": [
-              19.8
-            ],
-            "2100": [
-              29.4
-            ],
-            "6mo": [
-              0.001
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "Fable 5.1",
-          "color": "#8e2a63",
-          "ps": {
-            "12mo": 0.01,
-            "2028": 0.15,
-            "2030": 0.6,
-            "2050": 10.0,
-            "2100": 24.0,
-            "6mo": 0.002
-          },
-          "draws": {
-            "12mo": [
-              0.01
-            ],
-            "2028": [
-              0.15
-            ],
-            "2030": [
-              0.6
-            ],
-            "2050": [
-              10.0
-            ],
-            "2100": [
-              24.0
-            ],
-            "6mo": [
-              0.002
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "Opus 5",
-          "color": "#7a4fa3",
-          "ps": {
-            "12mo": 0.15,
-            "2028": 0.6,
-            "2030": 1.8,
-            "2050": 13.0,
-            "2100": 25.0,
-            "6mo": 0.05
-          },
-          "draws": {
-            "12mo": [
-              0.15
-            ],
-            "2028": [
-              0.6
-            ],
-            "2030": [
-              1.8
-            ],
-            "2050": [
-              13.0
-            ],
-            "2100": [
-              25.0
-            ],
-            "6mo": [
-              0.05
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "GPT-5.5 Pro",
-          "color": "#c25a2e",
-          "ps": {
-            "12mo": 0.04,
-            "2028": 0.3,
-            "2030": 1.2,
-            "2050": 15.5,
-            "2100": 28.0,
-            "6mo": 0.015
-          },
-          "draws": {
-            "12mo": [
-              0.04
-            ],
-            "2028": [
-              0.3
-            ],
-            "2030": [
-              1.2
-            ],
-            "2050": [
-              15.5
-            ],
-            "2100": [
-              28.0
-            ],
-            "6mo": [
-              0.015
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        }
-      ],
-      "declined": [],
-      "median": {
-        "6mo": 0.009,
-        "12mo": 0.026,
-        "2028": 0.33,
-        "2030": 1.5,
-        "2050": 14.25,
-        "2100": 26.5
-      },
-      "ci": {},
-      "replicates": 1,
-      "human": []
-    },
-    {
-      "id": "extinction:general",
-      "short": "Human extinction",
-      "category": "cross:extinction:general",
-      "railLabel": "Human extinction",
-      "color": null,
-      "severity": "human extinction (global population below 5,000)",
-      "severityShort": "Extinction",
-      "valueKind": "probability",
-      "text": "What is the overall probability of human extinction or a reduction in the global population below 5,000 within 6 months / within 12 months / by the end of 2028 / by the end of 2030 / by the end of 2050 / by the end of 2100?",
-      "criteria": "* Extinction here means that the global human population falls below 5,000, from any cause, natural or anthropogenic.\n* The population must have fallen below 5,000 on or before the resolution date of the horizon you are answering, which for a rolling horizon is that many months after today's date. For population data we rely on broadly recognized sources (e.g., Our World in Data, the United Nations); if reasonable people disagree about whether the event occurred, the question resolves by the majority opinion of a panel of experts, as the catastrophe questions do.",
-      "details": null,
-      "horizons": [
-        "6mo",
-        "12mo",
-        "2028",
-        "2030",
-        "2050",
-        "2100"
-      ],
-      "horizonLabels": {
-        "6mo": "within 6 months (by 2027-03-18)",
-        "12mo": "within 12 months (by 2027-09-18)",
-        "2028": "by 2028",
-        "2030": "by 2030",
-        "2050": "by 2050",
-        "2100": "by 2100"
-      },
-      "resolvesOn": {
-        "6mo": "2027-03-18",
-        "12mo": "2027-09-18",
-        "2028": "2028-12-31",
-        "2030": "2030-12-31",
-        "2050": "2050-12-31",
-        "2100": "2100-12-31"
-      },
-      "series": [
-        {
-          "label": "GPT-6 Astra",
-          "color": "#0e7c7b",
-          "ps": {
-            "12mo": 0.0,
-            "2028": 0.003,
-            "2030": 0.073,
-            "2050": 2.62,
-            "2100": 5.12,
-            "6mo": 0.0
-          },
-          "draws": {
-            "12mo": [
-              0.0
-            ],
-            "2028": [
-              0.003
-            ],
-            "2030": [
-              0.073
-            ],
-            "2050": [
-              2.62
-            ],
-            "2100": [
-              5.12
-            ],
-            "6mo": [
-              0.0
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "Fable 5.1",
-          "color": "#8e2a63",
-          "ps": {
-            "12mo": 0.004,
-            "2028": 0.04,
-            "2030": 0.22,
-            "2050": 1.6,
-            "2100": 3.7,
-            "6mo": 0.001
-          },
-          "draws": {
-            "12mo": [
-              0.004
-            ],
-            "2028": [
-              0.04
-            ],
-            "2030": [
-              0.22
-            ],
-            "2050": [
-              1.6
-            ],
-            "2100": [
-              3.7
-            ],
-            "6mo": [
-              0.001
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "Opus 5",
-          "color": "#7a4fa3",
-          "ps": {
-            "12mo": 0.02,
-            "2028": 0.08,
-            "2030": 0.22,
-            "2050": 1.6,
-            "2100": 3.3,
-            "6mo": 0.007
-          },
-          "draws": {
-            "12mo": [
-              0.02
-            ],
-            "2028": [
-              0.08
-            ],
-            "2030": [
-              0.22
-            ],
-            "2050": [
-              1.6
-            ],
-            "2100": [
-              3.3
-            ],
-            "6mo": [
-              0.007
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "GPT-5.5 Pro",
-          "color": "#c25a2e",
-          "ps": {
-            "12mo": 0.009,
-            "2028": 0.04,
-            "2030": 0.18,
-            "2050": 2.5,
-            "2100": 5.0,
-            "6mo": 0.004
-          },
-          "draws": {
-            "12mo": [
-              0.009
-            ],
-            "2028": [
-              0.04
-            ],
-            "2030": [
-              0.18
-            ],
-            "2050": [
-              2.5
-            ],
-            "2100": [
-              5.0
-            ],
-            "6mo": [
-              0.004
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        }
-      ],
-      "declined": [],
-      "median": {
-        "6mo": 0.003,
-        "12mo": 0.006,
-        "2028": 0.04,
-        "2030": 0.2,
-        "2050": 2.05,
-        "2100": 4.35
-      },
-      "ci": {},
-      "replicates": 1,
-      "human": [
-        {
-          "panel": "XPT",
-          "group": "superforecaster",
-          "date": "2022-10-01",
-          "color": "#3f5566",
-          "ps": {
-            "2030": 0.01,
-            "2050": 0.3,
-            "2100": 1.0
-          }
-        }
-      ]
-    },
-    {
-      "id": "extinction:ai",
-      "short": "AI extinction",
-      "category": "cross:extinction:ai",
-      "railLabel": "AI extinction",
-      "color": null,
-      "severity": "human extinction (global population below 5,000)",
-      "severityShort": "Extinction",
-      "valueKind": "probability",
-      "text": "What is the probability that artificial intelligence will cause human extinction or reduce the global population below 5,000 within 6 months / within 12 months / by the end of 2028 / by the end of 2030 / by the end of 2050 / by the end of 2100?",
-      "criteria": "* Artificial intelligence is defined here as \u2018the development of machines capable of sophisticated (intelligent) information processing (Dafoe 2018, AI Governance: A Research Agenda; See pg 5 footnote 2 for more.)\n* AI would be considered to have \"caused\" extinction if it is the direct or proximate cause of the deaths. For example, if a terminator-style robot powered by AI kills all humans, that will count for this question. Alternatively, if AI, operating without direct human intervention, causes the launch of nuclear weapons that kill all humans, that will also count for the purposes of this question. And if that same incident does not kill all humans, but the subsequent nuclear winter does, that will also count for the purposes of this question.\n* If an extinction event (global population is reduced below 5,000) is caused by multiple sources including AI, it will count as an extinction event caused by AI.\n* The population must have fallen below 5,000 on or before the resolution date of the horizon you are answering, which for a rolling horizon is that many months after today's date. Population data and disagreements resolve as for the \"Human extinction\" question.",
-      "details": null,
-      "horizons": [
-        "6mo",
-        "12mo",
-        "2028",
-        "2030",
-        "2050",
-        "2100"
-      ],
-      "horizonLabels": {
-        "6mo": "within 6 months (by 2027-03-18)",
-        "12mo": "within 12 months (by 2027-09-18)",
-        "2028": "by 2028",
-        "2030": "by 2030",
-        "2050": "by 2050",
-        "2100": "by 2100"
-      },
-      "resolvesOn": {
-        "6mo": "2027-03-18",
-        "12mo": "2027-09-18",
-        "2028": "2028-12-31",
-        "2030": "2030-12-31",
-        "2050": "2050-12-31",
-        "2100": "2100-12-31"
-      },
-      "series": [
-        {
-          "label": "GPT-6 Astra",
-          "color": "#0e7c7b",
-          "ps": {
-            "12mo": 0.0,
-            "2028": 0.002,
-            "2030": 0.072,
-            "2050": 2.42,
-            "2100": 4.62,
-            "6mo": 0.0
-          },
-          "draws": {
-            "12mo": [
-              0.0
-            ],
-            "2028": [
-              0.002
-            ],
-            "2030": [
-              0.072
-            ],
-            "2050": [
-              2.42
-            ],
-            "2100": [
-              4.62
-            ],
-            "6mo": [
-              0.0
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "Fable 5.1",
-          "color": "#8e2a63",
-          "ps": {
-            "12mo": 0.002,
-            "2028": 0.03,
-            "2030": 0.18,
-            "2050": 1.3,
-            "2100": 2.8,
-            "6mo": 0.001
-          },
-          "draws": {
-            "12mo": [
-              0.002
-            ],
-            "2028": [
-              0.03
-            ],
-            "2030": [
-              0.18
-            ],
-            "2050": [
-              1.3
-            ],
-            "2100": [
-              2.8
-            ],
-            "6mo": [
-              0.001
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "Opus 5",
-          "color": "#7a4fa3",
-          "ps": {
-            "12mo": 0.015,
-            "2028": 0.06,
-            "2030": 0.18,
-            "2050": 1.3,
-            "2100": 2.8,
-            "6mo": 0.005
-          },
-          "draws": {
-            "12mo": [
-              0.015
-            ],
-            "2028": [
-              0.06
-            ],
-            "2030": [
-              0.18
-            ],
-            "2050": [
-              1.3
-            ],
-            "2100": [
-              2.8
-            ],
-            "6mo": [
-              0.005
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        },
-        {
-          "label": "GPT-5.5 Pro",
-          "color": "#c25a2e",
-          "ps": {
-            "12mo": 0.006,
-            "2028": 0.025,
-            "2030": 0.12,
-            "2050": 1.8,
-            "2100": 3.5,
-            "6mo": 0.003
-          },
-          "draws": {
-            "12mo": [
-              0.006
-            ],
-            "2028": [
-              0.025
-            ],
-            "2030": [
-              0.12
-            ],
-            "2050": [
-              1.8
-            ],
-            "2100": [
-              3.5
-            ],
-            "6mo": [
-              0.003
-            ]
-          },
-          "ci": {},
-          "ciOr": {
-            "12mo": null,
-            "2028": null,
-            "2030": null,
-            "2050": null,
-            "2100": null,
-            "6mo": null
-          }
-        }
-      ],
-      "declined": [],
-      "median": {
-        "6mo": 0.002,
-        "12mo": 0.004,
-        "2028": 0.028,
-        "2030": 0.15,
-        "2050": 1.55,
-        "2100": 3.15
-      },
-      "ci": {},
-      "replicates": 1,
-      "human": [
-        {
-          "panel": "XPT",
-          "group": "superforecaster",
-          "date": "2022-10-01",
-          "color": "#3f5566",
-          "ps": {
-            "2030": 0.0001,
-            "2050": 0.03,
-            "2100": 0.375
-          }
-        },
-        {
-          "panel": "ESPAI",
-          "group": "ai_researcher",
-          "date": "2023-10-11",
-          "color": "#7c6a54",
-          "ps": {
-            "2100": 5.0
-          }
-        }
-      ]
-    },
     {
       "id": "loss:ai",
       "short": "AI-related incident",
       "category": "inc:ai",
-      "railLabel": "Expected loss",
+      "railLabel": "Expected deaths",
       "color": "#3a4150",
       "severity": null,
       "severityShort": null,
       "valueKind": "loss",
-      "text": "AI-related incident: expected combined loss in death-equivalents (not expected deaths) (one death-equivalent = $2.2M in dollar-equivalents), a floor computed from the eight rung forecasts 100 deaths or $220M \u2026 human extinction (global population below 5,000): each band valued at its lower threshold, with severity capped at the top rung. Small probabilities at extreme thresholds can dominate this estimate; the floor is under the forecast distribution, not a guarantee about actual harm. The rungs themselves are on the severity ladder (Graph 2).",
+      "text": "AI-related incident: expected deaths (or equivalent morbidity), a floor computed from the deaths ladder's 8 rung forecasts 100 deaths \u2026 1B deaths: each band valued at its lower threshold, with severity capped at the top rung. Small probabilities at extreme thresholds can dominate this estimate; the floor is under the forecast distribution, not a guarantee about actual harm. The damages ladder is not folded. The rungs themselves are on the severity ladders (Graph 2).",
       "criteria": "",
       "details": null,
-      "horizons": [
-        "6mo",
-        "12mo",
-        "2028",
-        "2030",
-        "2050",
-        "2100"
-      ],
-      "horizonLabels": {
-        "6mo": "within 6 months (by 2027-03-18)",
-        "12mo": "within 12 months (by 2027-09-18)",
-        "2028": "by 2028",
-        "2030": "by 2030",
-        "2050": "by 2050",
-        "2100": "by 2100"
-      },
-      "resolvesOn": {
-        "6mo": "2027-03-18",
-        "12mo": "2027-09-18",
-        "2028": "2028-12-31",
-        "2030": "2030-12-31",
-        "2050": "2050-12-31",
-        "2100": "2100-12-31"
-      },
-      "series": [
-        {
-          "label": "GPT-6 Astra",
-          "color": "#0e7c7b",
-          "ps": {
-            "6mo": 112215.0,
-            "12mo": 319427.0,
-            "2028": 1552743.7,
-            "2030": 7141500.9,
-            "2050": 77537529.1,
-            "2100": 140652009.5
-          },
-          "draws": {
-            "6mo": [
-              112215.0
-            ],
-            "12mo": [
-              319427.0
-            ],
-            "2028": [
-              1552743.7
-            ],
-            "2030": [
-              7141500.9
-            ],
-            "2050": [
-              77537529.1
-            ],
-            "2100": [
-              140652009.5
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9219,
-          "repaired": 0
-        },
-        {
-          "label": "Fable 5.1",
-          "color": "#8e2a63",
-          "ps": {
-            "6mo": 151096.0,
-            "12mo": 379572.0,
-            "2028": 1787361.0,
-            "2030": 5785775.0,
-            "2050": 40172846.0,
-            "2100": 68798523.5
-          },
-          "draws": {
-            "6mo": [
-              151096.0
-            ],
-            "12mo": [
-              379572.0
-            ],
-            "2028": [
-              1787361.0
-            ],
-            "2030": [
-              5785775.0
-            ],
-            "2050": [
-              40172846.0
-            ],
-            "2100": [
-              68798523.5
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9303,
-          "repaired": 0
-        },
-        {
-          "label": "Opus 5",
-          "color": "#7a4fa3",
-          "ps": {
-            "6mo": 303570.0,
-            "12mo": 600835.0,
-            "2028": 1978369.0,
-            "2030": 4772186.5,
-            "2050": 31671072.3,
-            "2100": 60759351.5
-          },
-          "draws": {
-            "6mo": [
-              303570.0
-            ],
-            "12mo": [
-              600835.0
-            ],
-            "2028": [
-              1978369.0
-            ],
-            "2030": [
-              4772186.5
-            ],
-            "2050": [
-              31671072.3
-            ],
-            "2100": [
-              60759351.5
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9228,
-          "repaired": 0
-        },
-        {
-          "label": "GPT-5.5 Pro",
-          "color": "#c25a2e",
-          "ps": {
-            "6mo": 238688.5,
-            "12mo": 490842.0,
-            "2028": 1747865.0,
-            "2030": 5101313.0,
-            "2050": 63066465.0,
-            "2100": 115069586.4
-          },
-          "draws": {
-            "6mo": [
-              238688.5
-            ],
-            "12mo": [
-              490842.0
-            ],
-            "2028": [
-              1747865.0
-            ],
-            "2030": [
-              5101313.0
-            ],
-            "2050": [
-              63066465.0
-            ],
-            "2100": [
-              115069586.4
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9688,
-          "repaired": 0
-        }
-      ],
+      "horizons": [],
+      "horizonLabels": {},
+      "resolvesOn": {},
+      "series": [],
       "declined": [],
-      "median": {
-        "6mo": 194892.25,
-        "12mo": 435207.0,
-        "2028": 1767613.0,
-        "2030": 5443544.0,
-        "2050": 51619655.5,
-        "2100": 91934054.95
-      },
+      "median": {},
       "ci": {},
-      "replicates": 1,
+      "replicates": 0,
       "human": []
     },
     {
       "id": "loss:bio",
       "short": "AI-related human-caused epidemic",
       "category": "inc:bio",
-      "railLabel": "Expected loss",
+      "railLabel": "Expected deaths",
       "color": "#a63d76",
       "severity": null,
       "severityShort": null,
       "valueKind": "loss",
-      "text": "AI-related human-caused epidemic: expected combined loss in death-equivalents (not expected deaths) (one death-equivalent = $2.2M in dollar-equivalents), a floor computed from the eight rung forecasts 100 deaths or $220M \u2026 human extinction (global population below 5,000): each band valued at its lower threshold, with severity capped at the top rung. Small probabilities at extreme thresholds can dominate this estimate; the floor is under the forecast distribution, not a guarantee about actual harm. The rungs themselves are on the severity ladder (Graph 2).",
+      "text": "AI-related human-caused epidemic: expected deaths (or equivalent morbidity), a floor computed from the deaths ladder's 8 rung forecasts 100 deaths \u2026 1B deaths: each band valued at its lower threshold, with severity capped at the top rung. Small probabilities at extreme thresholds can dominate this estimate; the floor is under the forecast distribution, not a guarantee about actual harm. The damages ladder is not folded. The rungs themselves are on the severity ladders (Graph 2).",
       "criteria": "",
       "details": null,
-      "horizons": [
-        "6mo",
-        "12mo",
-        "2028",
-        "2030",
-        "2050",
-        "2100"
-      ],
-      "horizonLabels": {
-        "6mo": "within 6 months (by 2027-03-18)",
-        "12mo": "within 12 months (by 2027-09-18)",
-        "2028": "by 2028",
-        "2030": "by 2030",
-        "2050": "by 2050",
-        "2100": "by 2100"
-      },
-      "resolvesOn": {
-        "6mo": "2027-03-18",
-        "12mo": "2027-09-18",
-        "2028": "2028-12-31",
-        "2030": "2030-12-31",
-        "2050": "2050-12-31",
-        "2100": "2100-12-31"
-      },
-      "series": [
-        {
-          "label": "GPT-6 Astra",
-          "color": "#0e7c7b",
-          "ps": {
-            "6mo": 26918.2,
-            "12mo": 86865.2,
-            "2028": 494440.8,
-            "2030": 1861798.2,
-            "2050": 16236130.9,
-            "2100": 31234141.1
-          },
-          "draws": {
-            "6mo": [
-              26918.2
-            ],
-            "12mo": [
-              86865.2
-            ],
-            "2028": [
-              494440.8
-            ],
-            "2030": [
-              1861798.2
-            ],
-            "2050": [
-              16236130.9
-            ],
-            "2100": [
-              31234141.1
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9203,
-          "repaired": 0
-        },
-        {
-          "label": "Fable 5.1",
-          "color": "#8e2a63",
-          "ps": {
-            "6mo": 13739.1,
-            "12mo": 38842.7,
-            "2028": 154183.0,
-            "2030": 499408.2,
-            "2050": 3620105.0,
-            "2100": 14146057.0
-          },
-          "draws": {
-            "6mo": [
-              13739.1
-            ],
-            "12mo": [
-              38842.7
-            ],
-            "2028": [
-              154183.0
-            ],
-            "2030": [
-              499408.2
-            ],
-            "2050": [
-              3620105.0
-            ],
-            "2100": [
-              14146057.0
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9357,
-          "repaired": 0
-        },
-        {
-          "label": "Opus 5",
-          "color": "#7a4fa3",
-          "ps": {
-            "6mo": 47899.4,
-            "12mo": 95707.8,
-            "2028": 295971.7,
-            "2030": 646032.3,
-            "2050": 8539712.0,
-            "2100": 20173290.0
-          },
-          "draws": {
-            "6mo": [
-              47899.4
-            ],
-            "12mo": [
-              95707.8
-            ],
-            "2028": [
-              295971.7
-            ],
-            "2030": [
-              646032.3
-            ],
-            "2050": [
-              8539712.0
-            ],
-            "2100": [
-              20173290.0
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9488,
-          "repaired": 0
-        },
-        {
-          "label": "GPT-5.5 Pro",
-          "color": "#c25a2e",
-          "ps": {
-            "6mo": 126485.7,
-            "12mo": 252207.4,
-            "2028": 735931.3,
-            "2030": 1882003.5,
-            "2050": 18786517.0,
-            "2100": 23851590.0
-          },
-          "draws": {
-            "6mo": [
-              126485.7
-            ],
-            "12mo": [
-              252207.4
-            ],
-            "2028": [
-              735931.3
-            ],
-            "2030": [
-              1882003.5
-            ],
-            "2050": [
-              18786517.0
-            ],
-            "2100": [
-              23851590.0
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9796,
-          "repaired": 0
-        }
-      ],
+      "horizons": [],
+      "horizonLabels": {},
+      "resolvesOn": {},
+      "series": [],
       "declined": [],
-      "median": {
-        "6mo": 37408.8,
-        "12mo": 91286.5,
-        "2028": 395206.25,
-        "2030": 1253915.25,
-        "2050": 12387921.45,
-        "2100": 22012440.0
-      },
+      "median": {},
       "ci": {},
-      "replicates": 1,
+      "replicates": 0,
       "human": []
     },
     {
       "id": "loss:cyber",
       "short": "AI-related cyber incident",
       "category": "inc:cyber",
-      "railLabel": "Expected loss",
+      "railLabel": "Expected deaths",
       "color": "#a1801a",
       "severity": null,
       "severityShort": null,
       "valueKind": "loss",
-      "text": "AI-related cyber incident: expected combined loss in death-equivalents (not expected deaths) (one death-equivalent = $2.2M in dollar-equivalents), a floor computed from the eight rung forecasts 100 deaths or $220M \u2026 human extinction (global population below 5,000): each band valued at its lower threshold, with severity capped at the top rung. Small probabilities at extreme thresholds can dominate this estimate; the floor is under the forecast distribution, not a guarantee about actual harm. The rungs themselves are on the severity ladder (Graph 2).",
+      "text": "AI-related cyber incident: expected deaths (or equivalent morbidity), a floor computed from the deaths ladder's 8 rung forecasts 100 deaths \u2026 1B deaths: each band valued at its lower threshold, with severity capped at the top rung. Small probabilities at extreme thresholds can dominate this estimate; the floor is under the forecast distribution, not a guarantee about actual harm. The damages ladder is not folded. The rungs themselves are on the severity ladders (Graph 2).",
       "criteria": "",
       "details": null,
-      "horizons": [
-        "6mo",
-        "12mo",
-        "2028",
-        "2030",
-        "2050",
-        "2100"
-      ],
-      "horizonLabels": {
-        "6mo": "within 6 months (by 2027-03-18)",
-        "12mo": "within 12 months (by 2027-09-18)",
-        "2028": "by 2028",
-        "2030": "by 2030",
-        "2050": "by 2050",
-        "2100": "by 2100"
-      },
-      "resolvesOn": {
-        "6mo": "2027-03-18",
-        "12mo": "2027-09-18",
-        "2028": "2028-12-31",
-        "2030": "2030-12-31",
-        "2050": "2050-12-31",
-        "2100": "2100-12-31"
-      },
-      "series": [
-        {
-          "label": "GPT-6 Astra",
-          "color": "#0e7c7b",
-          "ps": {
-            "6mo": 18738.0,
-            "12mo": 53907.5,
-            "2028": 268416.3,
-            "2030": 1112301.8,
-            "2050": 9364867.2,
-            "2100": 21870774.1
-          },
-          "draws": {
-            "6mo": [
-              18738.0
-            ],
-            "12mo": [
-              53907.5
-            ],
-            "2028": [
-              268416.3
-            ],
-            "2030": [
-              1112301.8
-            ],
-            "2050": [
-              9364867.2
-            ],
-            "2100": [
-              21870774.1
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.8158,
-          "repaired": 0
-        },
-        {
-          "label": "Fable 5.1",
-          "color": "#8e2a63",
-          "ps": {
-            "6mo": 53098.0,
-            "12mo": 136054.0,
-            "2028": 620194.0,
-            "2030": 1808107.0,
-            "2050": 12581986.5,
-            "2100": 24802648.7
-          },
-          "draws": {
-            "6mo": [
-              53098.0
-            ],
-            "12mo": [
-              136054.0
-            ],
-            "2028": [
-              620194.0
-            ],
-            "2030": [
-              1808107.0
-            ],
-            "2050": [
-              12581986.5
-            ],
-            "2100": [
-              24802648.7
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9038,
-          "repaired": 0
-        },
-        {
-          "label": "Opus 5",
-          "color": "#7a4fa3",
-          "ps": {
-            "6mo": 111200.0,
-            "12mo": 216856.0,
-            "2028": 777120.0,
-            "2030": 1777237.5,
-            "2050": 10907604.0,
-            "2100": 21023973.0
-          },
-          "draws": {
-            "6mo": [
-              111200.0
-            ],
-            "12mo": [
-              216856.0
-            ],
-            "2028": [
-              777120.0
-            ],
-            "2030": [
-              1777237.5
-            ],
-            "2050": [
-              10907604.0
-            ],
-            "2100": [
-              21023973.0
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.8767,
-          "repaired": 0
-        },
-        {
-          "label": "GPT-5.5 Pro",
-          "color": "#c25a2e",
-          "ps": {
-            "6mo": 18832.5,
-            "12mo": 44211.0,
-            "2028": 221878.0,
-            "2030": 968838.0,
-            "2050": 19357028.0,
-            "2100": 39248352.5
-          },
-          "draws": {
-            "6mo": [
-              18832.5
-            ],
-            "12mo": [
-              44211.0
-            ],
-            "2028": [
-              221878.0
-            ],
-            "2030": [
-              968838.0
-            ],
-            "2050": [
-              19357028.0
-            ],
-            "2100": [
-              39248352.5
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9391,
-          "repaired": 0
-        }
-      ],
+      "horizons": [],
+      "horizonLabels": {},
+      "resolvesOn": {},
+      "series": [],
       "declined": [],
-      "median": {
-        "6mo": 35965.25,
-        "12mo": 94980.75,
-        "2028": 444305.15,
-        "2030": 1444769.65,
-        "2050": 11744795.25,
-        "2100": 23336711.4
-      },
+      "median": {},
       "ci": {},
-      "replicates": 1,
+      "replicates": 0,
       "human": []
     },
     {
       "id": "loss:misalign",
       "short": "Misaligned AI incident",
       "category": "inc:misalign",
-      "railLabel": "Expected loss",
+      "railLabel": "Expected deaths",
       "color": "#33a8bd",
       "severity": null,
       "severityShort": null,
       "valueKind": "loss",
-      "text": "Misaligned AI incident: expected combined loss in death-equivalents (not expected deaths) (one death-equivalent = $2.2M in dollar-equivalents), a floor computed from the eight rung forecasts 100 deaths or $220M \u2026 human extinction (global population below 5,000): each band valued at its lower threshold, with severity capped at the top rung. Small probabilities at extreme thresholds can dominate this estimate; the floor is under the forecast distribution, not a guarantee about actual harm. The rungs themselves are on the severity ladder (Graph 2).",
+      "text": "Misaligned AI incident: expected deaths (or equivalent morbidity), a floor computed from the deaths ladder's 8 rung forecasts 100 deaths \u2026 1B deaths: each band valued at its lower threshold, with severity capped at the top rung. Small probabilities at extreme thresholds can dominate this estimate; the floor is under the forecast distribution, not a guarantee about actual harm. The damages ladder is not folded. The rungs themselves are on the severity ladders (Graph 2).",
       "criteria": "",
       "details": null,
-      "horizons": [
-        "6mo",
-        "12mo",
-        "2028",
-        "2030",
-        "2050",
-        "2100"
-      ],
-      "horizonLabels": {
-        "6mo": "within 6 months (by 2027-03-18)",
-        "12mo": "within 12 months (by 2027-09-18)",
-        "2028": "by 2028",
-        "2030": "by 2030",
-        "2050": "by 2050",
-        "2100": "by 2100"
-      },
-      "resolvesOn": {
-        "6mo": "2027-03-18",
-        "12mo": "2027-09-18",
-        "2028": "2028-12-31",
-        "2030": "2030-12-31",
-        "2050": "2050-12-31",
-        "2100": "2100-12-31"
-      },
-      "series": [
-        {
-          "label": "GPT-6 Astra",
-          "color": "#0e7c7b",
-          "ps": {
-            "6mo": 37956.0,
-            "12mo": 120628.0,
-            "2028": 728570.0,
-            "2030": 3888106.0,
-            "2050": 56230748.0,
-            "2100": 93673719.1
-          },
-          "draws": {
-            "6mo": [
-              37956.0
-            ],
-            "12mo": [
-              120628.0
-            ],
-            "2028": [
-              728570.0
-            ],
-            "2030": [
-              3888106.0
-            ],
-            "2050": [
-              56230748.0
-            ],
-            "2100": [
-              93673719.1
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9405,
-          "repaired": 0
-        },
-        {
-          "label": "Fable 5.1",
-          "color": "#8e2a63",
-          "ps": {
-            "6mo": 90452.0,
-            "12mo": 228831.0,
-            "2028": 1139735.0,
-            "2030": 4269212.0,
-            "2050": 28097753.0,
-            "2100": 47180707.0
-          },
-          "draws": {
-            "6mo": [
-              90452.0
-            ],
-            "12mo": [
-              228831.0
-            ],
-            "2028": [
-              1139735.0
-            ],
-            "2030": [
-              4269212.0
-            ],
-            "2050": [
-              28097753.0
-            ],
-            "2100": [
-              47180707.0
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9534,
-          "repaired": 0
-        },
-        {
-          "label": "Opus 5",
-          "color": "#7a4fa3",
-          "ps": {
-            "6mo": 90842.0,
-            "12mo": 181684.0,
-            "2028": 674837.0,
-            "2030": 1674177.0,
-            "2050": 17285495.0,
-            "2100": 36040551.0
-          },
-          "draws": {
-            "6mo": [
-              90842.0
-            ],
-            "12mo": [
-              181684.0
-            ],
-            "2028": [
-              674837.0
-            ],
-            "2030": [
-              1674177.0
-            ],
-            "2050": [
-              17285495.0
-            ],
-            "2100": [
-              36040551.0
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9539,
-          "repaired": 0
-        },
-        {
-          "label": "GPT-5.5 Pro",
-          "color": "#c25a2e",
-          "ps": {
-            "6mo": 65026.2,
-            "12mo": 162039.4,
-            "2028": 849980.5,
-            "2030": 3080296.5,
-            "2050": 49449352.0,
-            "2100": 94393740.0
-          },
-          "draws": {
-            "6mo": [
-              65026.2
-            ],
-            "12mo": [
-              162039.4
-            ],
-            "2028": [
-              849980.5
-            ],
-            "2030": [
-              3080296.5
-            ],
-            "2050": [
-              49449352.0
-            ],
-            "2100": [
-              94393740.0
-            ]
-          },
-          "ci": {},
-          "ciRatio": {},
-          "topShare": 0.9764,
-          "repaired": 0
-        }
-      ],
+      "horizons": [],
+      "horizonLabels": {},
+      "resolvesOn": {},
+      "series": [],
       "declined": [],
-      "median": {
-        "6mo": 77739.1,
-        "12mo": 171861.7,
-        "2028": 789275.25,
-        "2030": 3484201.25,
-        "2050": 38773552.5,
-        "2100": 70427213.05
-      },
+      "median": {},
       "ci": {},
-      "replicates": 1,
+      "replicates": 0,
       "human": []
     }
   ],
   "rungs": [
     {
       "short": "100",
-      "label": "100 deaths or $220M",
+      "label": "100 deaths",
       "deaths": 100.0
     },
     {
       "short": "1k",
-      "label": "1k deaths or $2.2B",
+      "label": "1k deaths",
       "deaths": 1000.0
     },
     {
       "short": "10k",
-      "label": "10k deaths or $22B",
+      "label": "10k deaths",
       "deaths": 10000.0
     },
     {
       "short": "100k",
-      "label": "100k deaths or $220B",
+      "label": "100k deaths",
       "deaths": 100000.0
     },
     {
       "short": "1M",
-      "label": "1M deaths or $2.2T",
+      "label": "1M deaths",
       "deaths": 1000000.0
     },
     {
       "short": "10M",
-      "label": "10M deaths or $22T",
+      "label": "10M deaths",
       "deaths": 10000000.0
     },
     {
       "short": "100M",
-      "label": "100M deaths or $220T",
+      "label": "100M deaths",
       "deaths": 100000000.0
     },
     {
       "short": "1B",
-      "label": "1B deaths or $2.2Q",
+      "label": "1B deaths",
       "deaths": 1000000000.0
     },
     {
@@ -2263,6 +409,5 @@
       "label": "human extinction (global population below 5,000)",
       "deaths": 8200000000.0
     }
-  ],
-  "usdPerDeath": 2200000.0
+  ]
 }

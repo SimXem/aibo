@@ -29,7 +29,7 @@ import json
 import statistics as st
 
 from ..logs import log_exists
-from ..conditional import (USD_PER_DEATH, group_rows, group_view, load_conditional,
+from ..conditional import (group_rows, group_view, load_conditional,
                            newest_protocol, protocol_line)
 from ..config import REPO_ROOT
 from ..instrument import instrument_rows
@@ -264,6 +264,5 @@ def build(horizons=HORIZONS, log_path=None, experiment=None, set_path=None):
         "questions": questions or [],
         "models": [{"label": l, "color": c} for l, c in model_colors() if l in present],
         "axes": axes,
-        "usdPerDeath": USD_PER_DEATH,
         "notes": spec.get("notes", {}),
     }

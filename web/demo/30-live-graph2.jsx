@@ -2,8 +2,8 @@
 // Shape-guarded: a stale/partial blob falls back to the mock panel rather than
 // throwing during render (which blanks the whole page).
 const G2_RAW = (typeof window !== "undefined" && window.__GRAPH2__) || null;
-const G2 = (G2_RAW && Array.isArray(G2_RAW.rungs) && G2_RAW.byHorizon &&
-  Object.values(G2_RAW.byHorizon).every(v => Array.isArray(v.causes)))
+const G2 = (G2_RAW && Array.isArray(G2_RAW.legs) && G2_RAW.byHorizon &&
+  Object.values(G2_RAW.byHorizon).every(v => v.legs && Object.values(v.legs).every(s => Array.isArray(s.causes))))
   ? G2_RAW : null;
 
 // Historical severity markers, shape-guarded like the blob itself: an older
@@ -12,47 +12,42 @@ const G2 = (G2_RAW && Array.isArray(G2_RAW.rungs) && G2_RAW.byHorizon &&
 const HIST = (G2 && G2.historical && Array.isArray(G2.historical.events) &&
   G2.historical.events.length) ? G2.historical : null;
 
-// Full severity ladder: every cause asked at every rung, so each curve spans the
-// whole severity axis and causes are comparable at equal severity.
-//
-// The diamonds are the two EXTINCTION questions (an addendum, 2026-09-15; the
-// project lead asked for them on this chart), drawn at the Extinction
-// reference mark: hollow for extinction of any cause, filled for AI-caused.
-// They are NOT rungs and are never joined to a curve -- XPT's wording, a
-// population floor (below 5,000) rather than a deaths-or-damages threshold,
-// no onset window, and AI attribution by XPT's rule rather than the ladder's.
-// What they are comes from the blob (G2.anchorsNote), not from prose here.
-// They are our own live forecasts, so they move between runs; the catastrophe
-// questions (10% of population) stay off this chart (removed 2026-08-18).
-const g2Diamond = (cx, cy, r) => `M ${cx} ${cy - r} L ${cx + r} ${cy} L ${cx} ${cy + r} L ${cx - r} ${cy} Z`;
-// The two marks share one x (the whole population); a small fixed offset keeps
-// both legible, any-cause to the left of the mark, AI-caused to the right.
-const anchorX = (x, a) => x(a.deaths) + (a.ai ? 7 : -7);
+// TWO LADDERS (since 2026-10-19; Ezra Karger: separate deaths and damages).
+// Every rung is asked as two questions, one resolving on deaths (or equivalent
+// morbidity) and one on economic damages, so this panel is two charts, one per
+// leg (G2.legs): each with its own axis, rung ticks and historical marks, all
+// from the blob. Every curve spans its whole axis, so causes are comparable at
+// equal severity and the two ladders at equal rung.
 //
 // Coherence violations (P rising with severity — logically impossible) are
 // ringed. They are REPORTED, never corrected: the models are told nothing about
 // how these questions relate. See G2.coherence.
-// The severity axis domain, in deaths: a hair under the 1k rung to a hair past
-// Extinction (8.2B). One definition, two charts -- graph 2's curves and the
-// Conditional-on tab's expected-loss rows, which must line up with this
-// axis so a loss reads at its rung.
+//
+// The deaths axis, in deaths: a hair under the 1k rung to a hair past
+// Extinction (8.2B). One definition, three charts -- the deaths ladder here,
+// Graph 1's and the Conditional-on tab's expected-deaths rows, which must line
+// up with this axis so a loss reads at its rung.
 const SEVERITY_AXIS = (G2_RAW && G2_RAW.severityAxis) || { lo: 800, hi: 1.4e10 };   // from redlines.questions.SEVERITY_AXIS
 
 // The reference marks' axis captions. The Black Death share mark is drawn at
 // 25% of TODAY'S population, not a toll (Eva, 2026-08-31: "Black Death 25%
 // needs clarity"), so its caption says so; every other mark keeps its short name.
 const histShort = e => (e.id === "black-death-share" ? "Black Death (pop. weighted)" : (e.short || e.label));
+// A leg's unit: counts on the deaths ladder, dollars on the damages ladder.
+const g2Fmt = (leg, v) => (leg.unit === "usd" ? cFmtBig(v, "$") : cFmtBig(v));
+// A historical mark's band on one ladder, or null where it has no figure there.
+const histBand = (leg, e) => (leg.unit === "usd" ? e.damagesUsd : e.deaths);
 
-function SeverityChart({ d, h, showModels, scale }) {
+function SeverityChart({ leg, d, h, showModels, scale }) {
   // Width is measured (web/shared/responsive.jsx); under 620px the curve-end
   // labels go (the legend names the causes) and the rung labels shrink.
   const box = React.useRef(null);
   const cw = useContainerWidth(box, 880);
   const narrow = cw < 620;
-  const W = Math.max(320, cw), H = narrow ? 360 : 420;
-  const pad = { l: 58, r: narrow ? 16 : 132, t: 18, b: 72 };
-  const XLO = Math.min(SEVERITY_AXIS.lo, ...G2.rungs.map(r => r.deaths * 0.8));
-  const XHI = SEVERITY_AXIS.hi, YLO = 0.003, YHI = 100;
+  const W = Math.max(320, cw), H = narrow ? 340 : 400;
+  const pad = { l: 58, r: narrow ? 16 : 132, t: 18, b: 58 };
+  const XLO = Math.min(leg.axis.lo, ...leg.rungs.map(r => r.value * 0.8));
+  const XHI = leg.axis.hi, YLO = 0.003, YHI = 100;
   const linear = scale === "linear";
   const x = v => pad.l + (Math.log10(v) - Math.log10(XLO)) / (Math.log10(XHI) - Math.log10(XLO)) * (W - pad.l - pad.r);
   const y = v => pad.t + (1 - (linear
@@ -61,18 +56,18 @@ function SeverityChart({ d, h, showModels, scale }) {
   const [hov, setHov] = useState(null);
   const [hist, setHist] = useState(null);
   const fmtP = v => (v >= 10 ? v.toFixed(0) : v >= 1 ? v.toFixed(1) : v >= 0.1 ? v.toFixed(2) : v.toFixed(3)) + "%";
-  const fmtN = v => v >= 1e6 ? (v / 1e6).toFixed(v >= 1e7 ? 0 : 1) + "M" : v >= 1e3 ? (v / 1e3).toFixed(v >= 1e4 ? 0 : 1) + "k" : String(Math.round(v));
-  const fmtUSD = v => "$" + (v >= 1e12 ? (v / 1e12).toFixed(v >= 1e13 ? 0 : 1) + "T" : v >= 1e9 ? (v / 1e9).toFixed(v >= 1e10 ? 0 : 1) + "B" : v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : String(Math.round(v)));
   const yticks = linear ? [0, 20, 40, 60, 80, 100] : [0.01, 0.1, 1, 10, 100];
-  // Rung ticks come from the blob (r.rung), so a question-set change relabels
-  // the axis without touching this file.
+  // Rung ticks come from the blob (leg.rungs), so a question-set change
+  // relabels the axis without touching this file.
+  const tick = r => (r.rung === "extinction" ? "Extinction" : r.short);
+  const marks = HIST ? HIST.events.filter(e => histBand(leg, e)) : [];
 
   const ends = d.causes.map(c => {
     const last = c.rungs[c.rungs.length - 1];
-    return { label: c.label, color: c.color, xe: x(last.deaths), ye: y(last.median), actualY: y(last.median) };
+    return { label: c.label, color: c.color, xe: x(last.value), ye: y(last.median), actualY: y(last.median) };
   }).sort((a, b) => a.ye - b.ye);
   for (let i = 1; i < ends.length; i++) if (ends[i].ye - ends[i - 1].ye < 13) ends[i].ye = ends[i - 1].ye + 13;
-  // Keep crowded endpoint labels above the paired severity tick labels.
+  // Keep crowded endpoint labels above the rung tick labels.
   const labelOverflow = ends.length ? Math.max(0, ends[ends.length - 1].ye - (H - pad.b - 6)) : 0;
   ends.forEach(e => { e.ye -= labelOverflow; });
 
@@ -85,17 +80,15 @@ function SeverityChart({ d, h, showModels, scale }) {
             <text x={pad.l - 9} y={y(t) + 4} textAnchor="end" fontSize="10.5" fill="var(--ink-faint)" className="mono">{t >= 1 || t === 0 ? t : t.toFixed(t >= 0.1 ? 1 : 2)}%</text>
           </g>
         ))}
-        {G2.rungs.map((r, i) => (
+        {leg.rungs.map((r, i) => (
           <g key={r.rung}>
             <title>{r.label}</title>
-            <line x1={x(r.deaths)} x2={x(r.deaths)} y1={pad.t} y2={H - pad.b} stroke="var(--line-soft)" />
-            {(!narrow || i % 2 === 0 || i === G2.rungs.length - 1) && <>
-              <text x={x(r.deaths)} y={H - pad.b + 16} textAnchor="middle" fontSize={narrow ? 8.5 : 9.5} fill="var(--ink-soft)">{r.damages == null ? "" : cFmtBig(r.damages, "$")}</text>
-              <text x={x(r.deaths)} y={H - pad.b + 30} textAnchor="middle" fontSize={narrow ? 9 : 10} fill="var(--ink-soft)">{r.damages == null ? "Extinction" : r.rung}</text>
-            </>}
+            <line x1={x(r.value)} x2={x(r.value)} y1={pad.t} y2={H - pad.b} stroke="var(--line-soft)" />
+            {(!narrow || i % 2 === 0 || i === leg.rungs.length - 1) &&
+              <text x={x(r.value)} y={H - pad.b + 16} textAnchor="middle" fontSize={narrow ? 9 : 10} fill="var(--ink-soft)">{tick(r)}</text>}
           </g>
         ))}
-        <text x={(pad.l + W - pad.r) / 2} y={H - 18} textAnchor="middle" fontSize={narrow ? 9 : 10.5} fill="var(--ink-soft)">Economic damages OR deaths (or equivalent morbidity)</text>
+        <text x={(pad.l + W - pad.r) / 2} y={H - 18} textAnchor="middle" fontSize={narrow ? 9 : 10.5} fill="var(--ink-soft)">{leg.label}{leg.unit === "usd" ? " (2026 USD)" : ""}</text>
         <text x={(pad.l + W - pad.r) / 2} y={H - 4} textAnchor="middle" fontSize="9.5" fill="var(--ink-faint)">Cumulative severity · log scale →</text>
 
         {/* Historical events, as SHADED BANDS not dashed lines. Requested by
@@ -105,24 +98,26 @@ function SeverityChart({ d, h, showModels, scale }) {
             rate — and drawing a single line would assert a precision the
             historiography does not have.
 
-            NotPetya (Nick, 2026-09-10) is the one damages-leg mark: no
-            deaths, so its position is dollars / VSL and its tooltip reads in
-            dollars. It is a point, so it too draws as a line.
+            Each mark appears on the ladder(s) it has a figure for: the tolls
+            on the deaths ladder; NotPetya (Nick, 2026-09-10) and COVID-19's
+            output loss on the damages ladder. A point (NotPetya's one
+            official estimate) draws as a line.
 
             Two kind="reference" marks (Jason's 2026-08-19 notes) share this
-            layer: Black Death as a share of today's population, and
-            Extinction. They are definitions, not tolls, so they are points —
-            the band rect degenerates to a sliver and only the dashed line
-            and label read. They anchor the top decade of the axis, which no
-            historical toll reaches.
+            layer on the deaths ladder: Black Death as a share of today's
+            population, and Extinction. They are definitions, not tolls, so
+            they are points — the band rect degenerates to a sliver and only
+            the dashed line and label read. They anchor the top decade of the
+            axis, which no historical toll reaches.
 
             Drawn BEFORE the curves so the curves sit on top: these are
             context for the axis, not data competing with the forecasts. They
             are also not comparable to the curves at all (non-AI, accumulated
             over years) — see the caveat rendered under the chart, which comes
             from the data, not from prose typed here. */}
-        {HIST && HIST.events.map(e => {
-          const xl = x(e.low), xh = x(e.high), xc = x(e.central);
+        {marks.map(e => {
+          const b = histBand(leg, e);
+          const xl = x(b.low), xh = x(b.high), xc = x(b.central);
           const on = hist && hist.id === e.id;
           return (
             <g key={e.id} style={{ cursor: "pointer" }}
@@ -152,22 +147,16 @@ function SeverityChart({ d, h, showModels, scale }) {
             curve). The model legend appears with them. */}
         {showModels && d.causes.map(c => G2.models.map(m =>
           c.rungs.filter(r => r.per_model[m.label] != null).map(r => (
-            <circle key={c.key + m.label + r.rung} cx={x(r.deaths)} cy={y(r.per_model[m.label])} r="3.2"
+            <circle key={c.key + m.label + r.rung} cx={x(r.value)} cy={y(r.per_model[m.label])} r="3.2"
               fill={m.color} opacity="0.7" stroke="var(--panel)" strokeWidth="0.8">
               <title>{m.label} · {c.label} · {r.label}: {fmtP(r.per_model[m.label])}</title>
             </circle>
           ))
         ))}
-        {showModels && (d.anchors || []).map(a => G2.models.filter(m => a.per_model[m.label] != null).map(m => (
-          <circle key={a.qid + m.label} cx={anchorX(x, a)} cy={y(a.per_model[m.label])} r="3.2"
-            fill={m.color} opacity="0.7" stroke="var(--panel)" strokeWidth="0.8">
-            <title>{m.label} · {a.label}: {fmtP(a.per_model[m.label])}</title>
-          </circle>
-        )))}
 
         {d.causes.map(c => (
           <g key={c.key}>
-            <path d={c.rungs.map((r, i) => (i ? "L" : "M") + x(r.deaths).toFixed(1) + " " + y(r.median).toFixed(1)).join(" ")}
+            <path d={c.rungs.map((r, i) => (i ? "L" : "M") + x(r.value).toFixed(1) + " " + y(r.median).toFixed(1)).join(" ")}
               fill="none" stroke={c.color} strokeWidth="2.4" strokeLinejoin="round" strokeLinecap="round" />
             {c.rungs.map(r => {
               const nbad = (d.violations || []).filter(v => v.cause === c.label && v.narrower === r.rung);
@@ -177,42 +166,19 @@ function SeverityChart({ d, h, showModels, scale }) {
                       a whisker in the cause's colour, drawn under the dot. */}
                   {r.ci && r.ci[1] > r.ci[0] && (
                     <g stroke={c.color} strokeWidth="1.5" opacity="0.6">
-                      <line x1={x(r.deaths)} x2={x(r.deaths)} y1={y(r.ci[1])} y2={y(r.ci[0])} />
-                      <line x1={x(r.deaths) - 3.5} x2={x(r.deaths) + 3.5} y1={y(r.ci[1])} y2={y(r.ci[1])} />
-                      <line x1={x(r.deaths) - 3.5} x2={x(r.deaths) + 3.5} y1={y(r.ci[0])} y2={y(r.ci[0])} />
+                      <line x1={x(r.value)} x2={x(r.value)} y1={y(r.ci[1])} y2={y(r.ci[0])} />
+                      <line x1={x(r.value) - 3.5} x2={x(r.value) + 3.5} y1={y(r.ci[1])} y2={y(r.ci[1])} />
+                      <line x1={x(r.value) - 3.5} x2={x(r.value) + 3.5} y1={y(r.ci[0])} y2={y(r.ci[0])} />
                     </g>
                   )}
-                  {nbad.length > 0 && <circle cx={x(r.deaths)} cy={y(r.median)} r="9" fill="none" stroke="var(--warn-ink)" strokeWidth="1.6" strokeDasharray="2 2" />}
-                  <circle cx={x(r.deaths)} cy={y(r.median)} r="4.6" fill={c.color} stroke="var(--panel)" strokeWidth="1.5"
+                  {nbad.length > 0 && <circle cx={x(r.value)} cy={y(r.median)} r="9" fill="none" stroke="var(--warn-ink)" strokeWidth="1.6" strokeDasharray="2 2" />}
+                  <circle cx={x(r.value)} cy={y(r.median)} r="4.6" fill={c.color} stroke="var(--panel)" strokeWidth="1.5"
                     style={{ cursor: "pointer" }} onMouseEnter={() => setHov({ ...r, cause: c.label, color: c.color, bad: nbad })} onMouseLeave={() => setHov(null)} />
                 </g>
               );
             })}
           </g>
         ))}
-
-        {/* The extinction diamonds (see the header comment): one per
-            question at the Extinction mark, with the same CI whisker a rung
-            gets, hollow = any cause, filled = AI-caused. Drawn after the
-            curves and never joined to one. */}
-        {(d.anchors || []).map(a => {
-          const cx = anchorX(x, a), cy = y(a.median);
-          return (
-            <g key={a.qid}>
-              {a.ci && a.ci[1] > a.ci[0] && (
-                <g stroke="var(--ink)" strokeWidth="1.5" opacity="0.6">
-                  <line x1={cx} x2={cx} y1={y(a.ci[1])} y2={y(a.ci[0])} />
-                  <line x1={cx - 3.5} x2={cx + 3.5} y1={y(a.ci[1])} y2={y(a.ci[1])} />
-                  <line x1={cx - 3.5} x2={cx + 3.5} y1={y(a.ci[0])} y2={y(a.ci[0])} />
-                </g>
-              )}
-              <path d={g2Diamond(cx, cy, 6)} fill={a.ai ? "var(--ink)" : "var(--panel)"} stroke="var(--ink)" strokeWidth="1.8"
-                style={{ cursor: "pointer" }}
-                onMouseEnter={() => setHov({ ...a, cause: a.label, label: a.severity, color: "var(--ink)", bad: [], extinction: true })}
-                onMouseLeave={() => setHov(null)} />
-            </g>
-          );
-        })}
 
         {/* End labels ride the same estimated-width chip as the rotated
             marker labels: the reference marks' dashed lines run through this
@@ -226,23 +192,23 @@ function SeverityChart({ d, h, showModels, scale }) {
           </g>
         ))}
       </svg>
-      {hist && (
-        <div style={{ position: "absolute", top: 8, left: `${(x(hist.central) / W) * 100}%`,
-          transform: x(hist.central) > W * 0.55 ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
+      {hist && (() => {
+        const b = histBand(leg, hist);
+        return (
+        <div style={{ position: "absolute", top: 8, left: `${(x(b.central) / W) * 100}%`,
+          transform: x(b.central) > W * 0.55 ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
           background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "9px 11px",
           boxShadow: "var(--shadow)", pointerEvents: "none", minWidth: 210, maxWidth: "min(300px, calc(100% - 16px))" }}>
           <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 1 }}>{hist.label}</div>
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>{hist.span} · {hist.basis}</div>
           <div style={{ fontSize: 12, marginBottom: 6 }}>
             {hist.kind === "reference"
-              ? <><span className="mono">{fmtN(hist.central)}</span>
+              ? <><span className="mono">{g2Fmt(leg, b.central)}</span>
                   <span style={{ color: "var(--ink-faint)" }}> — definitional, at today’s population</span></>
-              : hist.leg === "damages"
-              ? <><span className="mono">{fmtUSD(hist.damagesUsd)}</span>
-                  <span style={{ color: "var(--ink-faint)" }}> in damages ≈ </span>
-                  <span className="mono">{fmtN(hist.central)}</span>
-                  <span style={{ color: "var(--ink-faint)" }}> death-equivalents at {fmtUSD((HIST.conversion || {}).vsl_usd || 0)} per statistical life</span></>
-              : <><span className="mono">{fmtN(hist.low)}–{fmtN(hist.high)}</span>
+              : b.low === b.high
+              ? <><span className="mono">{g2Fmt(leg, b.central)}</span>
+                  <span style={{ color: "var(--ink-faint)" }}> — one published estimate</span></>
+              : <><span className="mono">{g2Fmt(leg, b.low)}–{g2Fmt(leg, b.high)}</span>
                   <span style={{ color: "var(--ink-faint)" }}> across published estimates</span></>}
           </div>
           <div style={{ fontSize: 11, color: "var(--ink-soft)", lineHeight: 1.5 }}>{hist.note}</div>
@@ -250,10 +216,11 @@ function SeverityChart({ d, h, showModels, scale }) {
             {hist.source}
           </div>
         </div>
-      )}
-      {hov && !hov.anchor && (
-        <div style={{ position: "absolute", top: 8, left: `${(x(hov.deaths) / W) * 100}%`,
-          transform: x(hov.deaths) > W * 0.55 ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
+        );
+      })()}
+      {hov && (
+        <div style={{ position: "absolute", top: 8, left: `${(x(hov.value) / W) * 100}%`,
+          transform: x(hov.value) > W * 0.55 ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
           background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "9px 11px",
           boxShadow: "var(--shadow)", pointerEvents: "none", minWidth: 195, maxWidth: "min(265px, calc(100% - 16px))" }}>
           <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 1 }}>{hov.cause}</div>
@@ -274,14 +241,9 @@ function SeverityChart({ d, h, showModels, scale }) {
               <span>95% CI</span><span className="mono">{fmtP(hov.ci[0])}–{fmtP(hov.ci[1])}</span>
             </div>
           )}
-          {hov.extinction && (
-            <div style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 6, paddingTop: 5, borderTop: "1px solid var(--line-soft)" }}>
-              A separate question in the Existential Risk Persuasion Tournament's wording (population below 5,000), not a rung of any curve.
-            </div>
-          )}
           {hov.bad && hov.bad.length > 0 && (
             <div style={{ fontSize: 11, color: "var(--warn-ink)", marginTop: 6, paddingTop: 5, borderTop: "1px solid var(--line-soft)" }}>
-              ⚠ incoherent: {hov.bad.map(v => v.model).join(", ")} rate this above the weaker “{hov.bad[0].broader}” event.
+              ⚠ incoherent: {hov.bad.map(v => v.model).join(", ")} rate this above the weaker “{hov.bad[0].broaderLabel}” event.
             </div>
           )}
         </div>
@@ -291,7 +253,7 @@ function SeverityChart({ d, h, showModels, scale }) {
 }
 
 // One collapsed warning summarising every data-quality issue for the current
-// horizon; expands to the itemised list.
+// horizon, across both ladders; expands to the itemised list.
 function IssuesPanel({ viol, declines }) {
   const [open, setOpen] = useState(false);
   const decl = Object.entries(declines);
@@ -314,14 +276,14 @@ function IssuesPanel({ viol, declines }) {
           {viol.map((v, i) => (
             <div key={i} style={{ fontSize: 12.5, color: "var(--warn-ink)", paddingTop: 5,
               borderTop: i ? "1px solid var(--warn-line)" : "none", marginTop: i ? 5 : 0 }}>
-              <strong>{v.model}</strong> · {v.cause}: “{v.narrower}” at <span className="mono">{v.p_narrower}%</span> exceeds
-              the weaker “{v.broader}” at <span className="mono">{v.p_broader}%</span>.
+              <strong>{v.model}</strong> · {v.cause}: “{v.narrowerLabel}” at <span className="mono">{v.p_narrower}%</span> exceeds
+              the weaker “{v.broaderLabel}” at <span className="mono">{v.p_broader}%</span>.
             </div>
           ))}
           {decl.length > 0 && (
             <div style={{ fontSize: 12.5, color: "var(--warn-ink)", marginTop: viol.length ? 9 : 0,
               paddingTop: viol.length ? 8 : 0, borderTop: viol.length ? "1px solid var(--warn-line)" : "none" }}>
-              <strong>Declined to forecast</strong> (excluded from those medians): {decl.map(([m, c]) => `${m} — ${c} rung${c > 1 ? "s" : ""}`).join("; ")}.
+              <strong>Declined to forecast</strong> (excluded from those medians): {decl.map(([m, c]) => `${m} — ${c} question${c > 1 ? "s" : ""}`).join("; ")}.
             </div>
           )}
         </div>
@@ -331,7 +293,7 @@ function IssuesPanel({ viol, declines }) {
 }
 
 function LiveGraph2({ onDefinitions }) {
-  if (!G2 || !Object.values(G2.byHorizon).some(v => v.causes.length)) return <ForecastUnavailable title="How risk scales with severity" info={G2 && G2.instrumentInfo} onDefinitions={onDefinitions} />;
+  if (!G2 || !Object.values(G2.byHorizon).some(v => Object.values(v.legs).some(s => s.causes.length))) return <ForecastUnavailable title="How risk scales with severity" info={G2 && G2.instrumentInfo} onDefinitions={onDefinitions} />;
   return <LiveGraph2Current onDefinitions={onDefinitions} />;
 }
 function LiveGraph2Current({ onDefinitions }) {
@@ -344,27 +306,28 @@ function LiveGraph2Current({ onDefinitions }) {
   const [only, setOnly] = useState(null);
   const all = G2.byHorizon[h];
   const windows = ((G2.instrumentInfo || {}).countingWindows || {})[h] || [];
-  // Everything downstream reads `d`, so filtering here filters the curve, the
-  // per-model faint lines, the supers diamonds, the ringed violations AND the
-  // coherence stats together. Leaving the stats global while the chart showed
-  // one cause would put a number next to a picture it does not describe.
-  const d = useMemo(() => {
-    const c = only && all.causes.find(x => x.key === only);
-    if (!c) return all;
-    return {
-      ...all,
+  // Everything downstream reads `sides`, one per ladder, so filtering here
+  // filters the curves, the per-model dots, the ringed violations AND the
+  // coherence stats together, on both ladders. Leaving the stats global while
+  // the chart showed one cause would put a number next to a picture it does
+  // not describe.
+  const sides = useMemo(() => G2.legs.map(leg => {
+    const side = all.legs[leg.key] || { causes: [], violations: [], pairsChecked: 0 };
+    const c = only && side.causes.find(x => x.key === only);
+    if (!c) return { leg, d: side };
+    return { leg, d: {
+      ...side,
       causes: [c],
-      // Anchors are cross-cutting: they belong to no cause, so isolating one
-      // cause must not hide them.
-
-      violations: (all.violations || []).filter(v => v.cause === c.label),
+      violations: (side.violations || []).filter(v => v.cause === c.label),
       // Same arithmetic as redlines/views/graph2.py: adjacent pairs per cause,
       // times the models. One cause here, so no sum.
       pairsChecked: (c.rungs.length - 1) * G2.models.length,
-    };
-  }, [all, only]);
-  const viol = d.violations || [];
-  const A = G2.audit && G2.audit.n ? G2.audit : null;
+    } };
+  }), [all, only]);
+  // The legend's causes: the same four on both ladders, so the first ladder's.
+  const causes = ((all.legs[G2.legs[0].key] || {}).causes) || [];
+  const viol = sides.flatMap(s => s.d.violations || []);
+  const anyCi = sides.some(s => s.d.causes.some(c => c.rungs.some(r => r.ci)));
   const btn = (on, fn, label) => (
     <button onClick={fn} style={{ border: "1px solid var(--line)", background: on ? "var(--bg)" : "transparent",
       borderRadius: 7, cursor: "pointer", padding: "3px 9px", fontSize: 11.5, color: "var(--ink-soft)" }}>{label}</button>
@@ -380,13 +343,13 @@ function LiveGraph2Current({ onDefinitions }) {
 
       <div style={{ marginTop: 14 }}>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 6, alignItems: "center" }}>
-          {all.causes.map(c => (
+          {causes.map(c => (
             <LegendDot key={c.key} color={c.color} label={c.label}
               onClick={() => setOnly(o => (o === c.key ? null : c.key))}
               dim={only != null && only !== c.key}
               title={only === c.key ? "Show all causes" : "Show only " + c.label} />
           ))}
-          {all.causes.some(c => c.rungs.some(r => r.ci)) && (
+          {anyCi && (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, color: "var(--ink-soft)" }}>
               <svg width="15" height="15" style={{ display: "block" }} stroke="var(--ink-soft)" strokeWidth="1.5">
                 <line x1="7.5" x2="7.5" y1="2" y2="13" /><line x1="4" x2="11" y1="2" y2="2" /><line x1="4" x2="11" y1="13" y2="13" />
@@ -403,14 +366,6 @@ function LiveGraph2Current({ onDefinitions }) {
               coherence violation
             </span>
           )}
-          {(d.anchors || []).map(a => (
-            <span key={a.qid} style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, color: "var(--ink-soft)" }}>
-              <svg width="15" height="15" style={{ display: "block" }}>
-                <path d={g2Diamond(7.5, 7.5, 5.5)} fill={a.ai ? "var(--ink)" : "var(--panel)"} stroke="var(--ink)" strokeWidth="1.6" />
-              </svg>
-              {a.label}{a.ai ? "" : " (any cause)"}
-            </span>
-          ))}
           {only && btn(true, () => setOnly(null), "show all causes")}
           {btn(showModels, () => setShowModels(s => !s), (showModels ? "hide" : "show") + " individual models")}
           <ScaleToggle value={scale} onChange={setScale} style={{ marginLeft: "auto" }} />
@@ -420,21 +375,27 @@ function LiveGraph2Current({ onDefinitions }) {
             {G2.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
           </div>
         )}
-        <SeverityChart d={d} h={h} showModels={showModels} scale={scale} />
-        <QuestionBox q={{ text: "What is the probability that one or more [incident: AI-related incident / AI-related human-caused epidemic / AI-related cyber incident / misaligned AI incident] cumulatively causes [severity: the death of more than X million people (or equivalent morbidity) or $Y economic damages] by [date: each of the following resolution years]?" }} />
+        {/* One chart per ladder, the leg's own name from the blob above it. */}
+        {sides.map(({ leg, d }) => d.causes.length > 0 && (
+          <div key={leg.key} style={{ marginTop: 10 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink-soft)", marginBottom: 2 }}>{leg.label}</div>
+            <SeverityChart leg={leg} d={d} h={h} showModels={showModels} scale={scale} />
+          </div>
+        ))}
+        <QuestionBox q={{ text: "What is the probability that one or more [incident: AI-related incident / AI-related human-caused epidemic / AI-related cyber incident / misaligned AI incident] cumulatively causes [severity: the death of more than X million people (or equivalent morbidity) — or, as a separate question, $Y in economic damages] by [date: each of the following resolution years]?" }} />
         <p style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-soft)", margin: "8px 0 0" }}>
-          Each of the four curves shows forecasts from asking the ensemble model to predict the likelihood of one or more qualifying incidents of the given severity level and time horizon. Severity is measured in any combination of deaths (or equivalent morbidity) <strong>OR</strong> economic damages. In other words, a cyber-attack causing economic damage of the relevant scale would count, as would a mortality event. Event types are not exclusive, so an event could fit multiple categories. That is why the sub-event types do not necessarily sum to the overall forecast.
+          Each curve shows forecasts from asking the ensemble model to predict the likelihood of one or more qualifying incidents of the given severity level and time horizon. Severity is asked on two separate ladders, each rung its own question: deaths (or equivalent morbidity), and economic damages. Because the resolution criteria count monetized mortality toward economic damages, an incident that reaches a death threshold also reaches the matching dollar threshold, so the damages curve should sit at or above the deaths curve at every rung; whether it does is measured, not imposed. Event types are not exclusive, so an event could fit multiple categories. That is why the sub-event types do not necessarily sum to the overall forecast.
         </p>
-        {G2.anchorsNote && (d.anchors || []).length > 0 && (
-          <p style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-soft)", margin: "8px 0 0" }}>{G2.anchorsNote}</p>
-        )}
         <details style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-soft)", marginTop: 6 }}>
           <summary style={{ cursor: "pointer" }}>Time windows and reference markers</summary>
-          <p style={{ margin: "6px 0" }}>The selected horizon is an incident-onset deadline. Harm is counted over the three years after onset, so it can extend beyond that deadline. Dollar thresholds use 2026 USD. Historical and extinction markers show mortality, except NotPetya, a damages figure converted at the ladder’s value of a statistical life; they are context for the thresholds, not forecasts of the combined deaths-or-damages outcome.</p>
+          <p style={{ margin: "6px 0" }}>The selected horizon is an incident-onset deadline. Harm is counted over the three years after onset, so it can extend beyond that deadline. Dollar thresholds use 2026 USD. Historical and reference markers appear on the ladder they have a figure for — tolls on the deaths ladder, NotPetya and COVID-19’s output loss on the damages ladder; they are context for the thresholds, not forecasts.</p>
           {windows.map((w, i) => <p key={i} style={{ margin: "6px 0" }}>Eligible incident onset: {w.start} through {w.end}, inclusive ({w.timezone}). The start advances with each run, including for fixed-year deadlines.</p>)}
         </details>
         {onDefinitions && <button className="linkbtn" onClick={onDefinitions} style={{ fontSize: 12, marginTop: 6 }}>Definitions and full severity ladder →</button>}
-        <LadderRationales causes={d.causes} date={G2.instrumentInfo.runDate} />
+        <IssuesPanel viol={viol} declines={all.declines || {}} />
+        <LadderRationales causes={causes.map(c => ({ key: c.key, label: c.label,
+          rungs: sides.flatMap(s => (all.legs[s.leg.key].causes.find(x => x.key === c.key) || {}).rungs || []) }))}
+          date={G2.instrumentInfo.runDate} />
       </div>
     </Panel>
   );
@@ -456,7 +417,7 @@ function LiveCoherence({ embedded }) {
   const G2 = window.__GRAPH2__;
   const A = G2 && G2.audit && G2.audit.n ? G2.audit : null;
   if (!A) return null;
-  // Three rows, from the blob (audit.rows). CROSS and BRACKET are pooled
+  // Three rows, from the blob (audit.rows). CROSS, BRACKET and LEG are pooled
   // into SUBSET there — they are special-case orderings too — so the rows
   // still sum to the headline. Copy: project decision, 2026-08-27; the
   // earlier intro ("no resolution required", "measured, not imposed") is in

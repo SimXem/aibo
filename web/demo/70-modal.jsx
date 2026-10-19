@@ -63,7 +63,7 @@ function Modal({ onClose }) {
 
         <h3 style={{ fontSize: 17, marginTop: 22, marginBottom: 8 }}>The severity ladder</h3>
         <p style={{ fontSize: 13.5, color: "var(--ink-soft)", marginTop: 0, marginBottom: 6 }}>
-          Every incident category is asked at each rung, one question per rung:
+          Every incident category is asked at each rung, as two questions: one resolving on the deaths (or equivalent morbidity), one on the economic damages. The extinction rung has no dollar leg.
         </p>
         <ul style={{ fontSize: 13.5, color: "var(--ink-soft)", margin: "0 0 4px", paddingLeft: 20 }}>
           {((G2_RAW && G2_RAW.rungs) || []).map(r => <li key={r.rung} style={{ marginBottom: 3 }}>{r.label}</li>)}

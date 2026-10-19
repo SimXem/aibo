@@ -26,7 +26,7 @@ class PerQuestionDebrief(unittest.TestCase):
         ids = [q["id"] for q in self.qs]
         self.assertEqual(len(ids), len(set(ids)))
         self.assertGreaterEqual(len(ids), 35)
-        self.assertIn("ladder:cyber:1B", ids)
+        self.assertIn("ladder:cyber:1B:deaths", ids)
         tool = self.ru.debrief_tool(self.qs)
         keys = [self.ru.debrief_key(i) for i in ids]
         self.assertEqual(sorted(tool["parameters"]["required"]), sorted(keys))
@@ -36,18 +36,18 @@ class PerQuestionDebrief(unittest.TestCase):
             self.assertRegex(k, r"^[a-zA-Z0-9_.-]{1,64}$")
             self.assertEqual(self.ru.debrief_qid(k), ids[keys.index(k)])
         for k in ("rationale", "key_sources", "weakest_link"):
-            self.assertIn(k, tool["parameters"]["properties"]["ladder__cyber__1B"]["properties"])
-        self.assertTrue(tool["parameters"]["properties"]["ladder__cyber__1B"]["description"].startswith("ladder:cyber:1B: "))
+            self.assertIn(k, tool["parameters"]["properties"]["ladder__cyber__1B__deaths"]["properties"])
+        self.assertTrue(tool["parameters"]["properties"]["ladder__cyber__1B__deaths"]["description"].startswith("ladder:cyber:1B:deaths: "))
         prompt = self.ru.debrief_prompt(self.qs)
         for k in keys:
             self.assertIn(k, prompt)
         self.assertIn("entries merge", prompt)
 
     def test_answer_is_stored_by_question_id(self):
-        state = {"result": {"ladder__cyber__1B": {"rationale": "r"}, "disempowerment": {"rationale": "d"}},
+        state = {"result": {"ladder__cyber__1B__deaths": {"rationale": "r"}, "disempowerment": {"rationale": "d"}},
                  "complete": True, "attempts": 1, "problems": [], "error": None}
         f = self.ru.debrief_fields(state, True)
-        self.assertEqual(set(f["debrief"]), {"ladder:cyber:1B", "disempowerment"})
+        self.assertEqual(set(f["debrief"]), {"ladder:cyber:1B:deaths", "disempowerment"})
         self.assertEqual(self.ru.debrief_fields(state, False), {"debrief": None, "debrief_status": None})
 
     def test_validator_names_the_question(self):
@@ -57,13 +57,13 @@ class PerQuestionDebrief(unittest.TestCase):
                           "weakest_link": "that the outage persists"} for q in self.qs}
         self.assertEqual(self.ru.validate_debrief(good, self.qs), [])
         bad = json.loads(json.dumps(good))
-        del bad["ladder__cyber__1B"]
-        bad["ladder__bio__1k"]["rationale"] = "short"
+        del bad["ladder__cyber__1B__deaths"]
+        bad["ladder__bio__1k__damages"]["rationale"] = "short"
         bad["catastrophe__ai"]["key_sources"] = []
         bad["disempowerment"]["weakest_link"] = ""
         problems = self.ru.validate_debrief(bad, self.qs)
-        self.assertIn("ladder:cyber:1B: missing", problems)
-        self.assertIn("ladder:bio:1k: rationale needs 2-4 sentences", problems)
+        self.assertIn("ladder:cyber:1B:deaths: missing", problems)
+        self.assertIn("ladder:bio:1k:damages: rationale needs 2-4 sentences", problems)
         self.assertIn("catastrophe:ai: key_sources needs 1-3 items, each with url and contribution", problems)
         self.assertIn("disempowerment: weakest_link missing", problems)
         self.assertEqual(self.ru.validate_debrief("x", self.qs), ["the debrief must be an object keyed by question id"])
@@ -90,7 +90,7 @@ class DebriefExport(unittest.TestCase):
         return r
 
     def test_question_and_group_entries_both_export(self):
-        per_q = self._row({"ladder:cyber:1B": {"rationale": "why", "key_sources": [{"url": "u", "contribution": "c"}],
+        per_q = self._row({"ladder:cyber:1B:deaths": {"rationale": "why", "key_sources": [{"url": "u", "contribution": "c"}],
                                                "weakest_link": "w"},
                            "extinction:ai": {"rationale": "why2", "key_sources": [], "weakest_link": "w2"},
                            "disempowerment": {"rationale": "why3", "key_sources": [], "weakest_link": "w3"}})
@@ -98,9 +98,9 @@ class DebriefExport(unittest.TestCase):
                                      "compelling_arguments": [{"claim": "x"}]}}, call_id="c0")
         lines = {(l["call_id"], l["key"]): l for l in export._debrief_lines([per_q, per_g, per_q])}
         self.assertEqual(len(lines), 4)
-        q = lines[("c1", "ladder:cyber:1B")]
+        q = lines[("c1", "ladder:cyber:1B:deaths")]
         self.assertEqual((q["group"], q["question_id"], q["rationale"], q["weakest_link"]),
-                         ("cyber", "ladder:cyber:1B", "why", "w"))
+                         ("cyber", "ladder:cyber:1B:deaths", "why", "w"))
         self.assertEqual(lines[("c1", "extinction:ai")]["group"], "crosscutting")
         self.assertEqual(lines[("c1", "disempowerment")]["group"], "crosscutting")
         g = lines[("c0", "cyber")]

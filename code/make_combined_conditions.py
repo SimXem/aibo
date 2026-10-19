@@ -111,6 +111,16 @@ and `pooled: false`; the five's rows and prompts are unchanged, so the protocol
 tag stays v10. A failed sixth call does not fail the run: the day is complete
 when the five are (code/validate_launch_run.py).
 
+v10 -> v11 on 2026-10-19 evening: THE SEVERITY LEGS. Every rung of the incident
+ladder is asked as two questions, one resolving on deaths (or equivalent
+morbidity) and one on economic damages, in place of one deaths-OR-damages
+question (redlines.instrument.CURRENT_INSTRUMENT airo-incidents-prospective-v2,
+code/make_autoarc_questions.py LEGS; docs/severity-legs-2026-10-19.md): 41 -> 73
+questions, 246 -> 438 cells, 6,132 probabilities a call. Asked by Ezra Karger
+(2026-10-19) so the severity chart can be split. Nothing in this file changed;
+the tag moves because the grid a model answers beside these conditions did.
+First scheduled run under v11: the first cron run after the box carries this code.
+
 v5 -> v6 on 2026-09-15: THE EXTINCTION PAIR. Two cross-cutting questions in
 XPT's wording (human extinction, AI extinction: data/auto-arc/
 addendum-extinction-2026-09-15.json, docs/extinction-questions-2026-09-15.md)
@@ -131,7 +141,7 @@ CAP = os.path.join(ROOT, "data", "eci_self6mo_conditions.json")
 OUT = os.path.join(ROOT, "data", "combined_conditions.json")
 
 SLUG = "combined"
-PROTOCOL = "unified-joint-combined-v10"
+PROTOCOL = "unified-joint-combined-v11"
 # The loop the protocol is elicited through (code/run_unified.py set_harness):
 # agent-box's pi since v9 (redlines/conditional.py PROTOCOL_LINEAGE).
 HARNESS = "pi"

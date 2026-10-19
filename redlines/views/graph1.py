@@ -7,12 +7,15 @@ Nine questions in two rail groups:
                 AI extinction; an addendum in XPT's wording). Severity is
                 fixed -- 10% of population, none, a population floor of
                 5,000 -- and only dates vary.
-  incident      one EXPECTED-LOSS row per cause (since 2026-08-27): the
-                eight rung forecasts folded to a floor on E[loss] in
-                death-equivalents, the arithmetic the Conditional-on tab
-                uses (redlines.conditional.expected_loss). The rungs
-                themselves stay on Graph 2's severity ladder; here a cause
-                is one row, not eight.
+  incident      one EXPECTED-DEATHS row per cause (since 2026-08-27): the
+                deaths ladder's eight rung forecasts folded to a floor on
+                E[deaths], the arithmetic the Conditional-on tab uses
+                (redlines.conditional.expected_loss). The rungs themselves
+                stay on Graph 2's severity ladders; here a cause is one row,
+                not seventeen. Until 2026-10-19 a rung resolved on deaths OR
+                damages and the fold read in death-equivalents; since then
+                the two legs are separate questions and the damages ladder
+                is not folded (redlines.conditional.LOSS_LEG).
 
 Featured questions are referenced, never copied. Duplicating one into the
 cross-cutting file would get it elicited twice in the same call and put two
@@ -38,10 +41,10 @@ in humanCoverage.note, not reconciled here).
 """
 import statistics
 
-from ..conditional import (LOSS_PREFIX, USD_PER_DEATH, _level_ci, _lg, apply_or,
-                           expected_loss, ladder_rungs, level_or, or_to_ratios)
+from ..conditional import (LOSS_LEG, LOSS_PREFIX, _level_ci, _lg, apply_or,
+                           expected_loss, ladder_rungs, level_or, loss_text, or_to_ratios)
 from ..questions import (horizon_label, horizon_sort_key, human_baselines,
-                         human_comparisons_wanted, is_future,
+                         human_comparisons_wanted, is_future, ladder_id,
                          load_human_baselines, load_ladder, resolves_on,
                          severity_label)
 from ..rail import grouping as rail_grouping, panel_questions as rail_questions
@@ -142,7 +145,7 @@ def _ensemble(series, horizons, kind="probability"):
 
 
 def _loss_series(cause, rungs, latest, horizons):
-    """One cause's eight rungs folded to expected loss: (series, declined).
+    """One cause's deaths ladder folded to expected deaths: (series, declined).
 
     Per draw k -- the k-th call of the day, aligned across rungs because all
     eight rungs are answered in the same call -- expected_loss() of that
@@ -153,7 +156,7 @@ def _loss_series(cause, rungs, latest, horizons):
     """
     series, declined = [], []
     for label, color in MODEL_COLORS:
-        rows = {r: latest.get((f"ladder:{cause}:{r}", label)) for r, _ in rungs}
+        rows = {r: latest.get((ladder_id(cause, r, LOSS_LEG), label)) for r, _ in rungs}
         if all(v is None for v in rows.values()):
             continue
         if any(v is None or not v["forecasts"] for v in rows.values()):
@@ -192,22 +195,17 @@ def _loss_series(cause, rungs, latest, horizons):
 
 
 def _loss_question(cause, spec):
-    """The synthetic question record for one cause's expected-loss row."""
+    """The synthetic question record for one cause's expected-deaths row."""
     c = next(c for c in spec["causes"] if c["key"] == cause)
-    rungs = spec["rungs"]
     return {
         "id": LOSS_PREFIX + cause,
         "short": c["label"],
         "category": f"inc:{cause}",
-        "railLabel": "Expected loss",
+        "railLabel": "Expected deaths",
         "color": c.get("color"),
         "severity": None, "severityShort": None,
         "valueKind": "loss",
-        "text": (f"{c['label']}: expected combined loss in death-equivalents (not expected deaths) "
-                 f"(one death-equivalent = ${USD_PER_DEATH / 1e6:g}M in dollar-equivalents), a floor "
-                 f"computed from the eight rung forecasts {rungs[0]['label']} … {rungs[-1]['label']}: "
-                 "each band valued at its lower threshold, with severity capped at the top rung. Small probabilities at extreme thresholds can dominate this estimate; the floor is under the forecast distribution, not a guarantee about actual harm. "
-                 "The rungs themselves are on the severity ladder (Graph 2)."),
+        "text": loss_text(c["label"], spec) + " The rungs themselves are on the severity ladders (Graph 2).",
         "criteria": "", "details": None,
     }
 
@@ -277,7 +275,7 @@ def build():
                 "series": series, "declined": declined,
                 "median": median, "ci": ci,
                 "replicates": max((r.get("replicates", 1) for r in
-                                   (latest.get((f"ladder:{q['cause']}:{r}", l))
+                                   (latest.get((ladder_id(q["cause"], r, LOSS_LEG), l))
                                     for r, _ in rungs for l, _ in MODEL_COLORS) if r),
                                   default=0),
                 "human": [],
@@ -372,10 +370,9 @@ def build():
         # blank.
         "humanCoverage": human_coverage(qs, plotted={q["id"] for q in questions}),
         "questions": questions,
-        # The loss rows' axis: the ladder's rungs (deaths) and its rate.
-        "rungs": [{"short": r["short"], "label": r["label"], "deaths": r["deaths"]}
+        # The expected-deaths rows' axis: the deaths ladder's rungs.
+        "rungs": [{"short": r["short"], "label": r["legs"][LOSS_LEG]["label"], "deaths": r["deaths"]}
                   for r in spec["rungs"]],
-        "usdPerDeath": USD_PER_DEATH,
     }
 
 
@@ -422,7 +419,7 @@ def human_coverage(qs, plotted=None):
         cells = "; ".join(f"{qid} at {', '.join(sorted(hs))} ({', '.join(sorted({p for ps in hs.values() for p in ps}))})"
                           for qid, hs in unplotted.items())
         gap = (f" A human number also exists for {cells}, a severity rung this "
-               "panel folds into its expected-loss row, so it is not drawn here.")
+               "panel folds into its expected-deaths row or does not draw, so it is not drawn here.")
     without = ([qid for qid in sorted(plotted) if qid not in have] if plotted is not None
                else [q["id"] for q in qs if q["id"] not in have])
     return {

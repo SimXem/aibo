@@ -12,9 +12,14 @@ shim over this module.
 Constraints:
 
   HORIZON    P must not fall as the horizon extends (cumulative questions).
-  LADDER     Within a cause, P must not rise as the death threshold rises.
-  CROSS      No specific cause may exceed "all causes" at the same threshold.
-  BRACKET    A cross-cutting question sits at a death threshold on a ladder; its
+  LADDER     Within a cause and a leg, P must not rise as the threshold rises.
+  CROSS      No specific cause may exceed "any AI-related incident" at the
+             same rung of the same leg.
+  LEG        At every rung the damages question contains the deaths question
+             (relations.legs): the Severity definitions count monetized
+             mortality at the stated VSL toward economic damages, so reaching
+             the death threshold reaches the dollar threshold.
+  BRACKET    A cross-cutting question sits at a threshold on a ladder; its
              probability must sit on the correct side of that rung. The wording
              is not identical to the ladder's, so only the side the wording
              licenses is checked. The catastrophe questions resolve on 10% of
@@ -34,7 +39,7 @@ import json
 from collections import defaultdict
 
 from .config import REPO_ROOT
-from .questions import horizon_sort_key
+from .questions import horizon_sort_key, ladder_id
 from .runlog import latest_per, load_runlog
 
 LADDER_SPEC = REPO_ROOT / "data" / "autoarc_ladder.json"
@@ -54,7 +59,7 @@ LADDER_SPEC = REPO_ROOT / "data" / "autoarc_ladder.json"
 # prompt states no relation at all, so every rate below measures the models
 # rather than repeating our own instruction back to us.
 
-CONSTRAINTS = ("HORIZON", "LADDER", "CROSS", "BRACKET", "SUBSET")
+CONSTRAINTS = ("HORIZON", "LADDER", "CROSS", "LEG", "BRACKET", "SUBSET")
 
 EPS = 1e-9
 
@@ -112,13 +117,14 @@ def audit(P, spec=None, labels=None, horizons=None):
 
     rungs = [r["short"] for r in spec["rungs"]]
     causes = [c["key"] for c in spec["causes"]]
+    legs = [l["key"] for l in spec["legs"]]
     rel = spec["relations"]
 
     def g(qid, lab, h):
         return P.get((qid, lab), {}).get(h)
 
-    def lad(cause, rung, lab, h):
-        return g(f"ladder:{cause}:{rung}", lab, h)
+    def lad(cause, rung, leg, lab, h):
+        return g(ladder_id(cause, rung, leg), lab, h)
 
     def horizon_cases():
         for (qid, lab), byh in P.items():
@@ -128,12 +134,13 @@ def audit(P, spec=None, labels=None, horizons=None):
 
     def ladder_cases():
         for c in causes:
-            for lab in labels:
-                for h in horizons:
-                    seq = [(r, lad(c, r, lab, h)) for r in rungs
-                           if lad(c, r, lab, h) is not None]
-                    for (ra, a), (rb, b) in zip(seq, seq[1:]):
-                        yield b <= a + EPS, f"{lab} {c} {h}: {ra}={a:g} -> {rb}={b:g}"
+            for leg in legs:
+                for lab in labels:
+                    for h in horizons:
+                        seq = [(r, lad(c, r, leg, lab, h)) for r in rungs
+                               if lad(c, r, leg, lab, h) is not None]
+                        for (ra, a), (rb, b) in zip(seq, seq[1:]):
+                            yield b <= a + EPS, f"{lab} {c} {leg} {h}: {ra}={a:g} -> {rb}={b:g}"
 
     def cross_cases():
         """Every specific incident type sits inside "any AI-related incident".
@@ -145,35 +152,53 @@ def audit(P, spec=None, labels=None, horizons=None):
         """
         top = rel["cross"]["container"]
         for c in rel["cross"]["contained"]:
-            for lab in labels:
-                for r in rungs:
+            for leg in legs:
+                for lab in labels:
+                    for r in rungs:
+                        for h in horizons:
+                            v, t = lad(c, r, leg, lab, h), lad(top, r, leg, lab, h)
+                            if v is None or t is None:
+                                continue
+                            yield v <= t + EPS, f"{lab} {c} {r} {leg} {h}: {v:g} > {top} {t:g}"
+
+    def leg_cases():
+        """At every rung the damages question contains the deaths question
+        (relations.legs; the reason is in the spec, not here)."""
+        pair = rel.get("legs")
+        if not pair:
+            return
+        for c in causes:
+            for r in rungs:
+                for lab in labels:
                     for h in horizons:
-                        v, t = lad(c, r, lab, h), lad(top, r, lab, h)
-                        if v is None or t is None:
+                        a = lad(c, r, pair["contained"], lab, h)
+                        b = lad(c, r, pair["container"], lab, h)
+                        if a is None or b is None:
                             continue
-                        yield v <= t + EPS, f"{lab} {c} {r} {h}: {v:g} > {top} {t:g}"
+                        yield a <= b + EPS, (f"{lab} {c} {r} {h}: {pair['contained']}={a:g} > "
+                                             f"{pair['container']}={b:g}")
 
     def bracket_cases():
         """A cross-cutting question against the ladder rung that contains it.
 
-        One side only, and the data says which. The AI catastrophe question is
-        10% of population, about 820M deaths, which sits BETWEEN the 100M and 1B
-        rungs. The >=100M rung is a strictly easier event on both legs, so it
-        bounds the question; the >=1B rung does not, because 820M is below 1B on
-        deaths but that rung also resolves on $10 quadrillion, so neither event
-        contains the other. Checking the side the wording does not license would
+        One side only, and the data says which -- the rung AND the leg. The AI
+        catastrophe question is 10% of population, about 820M deaths, which
+        sits BETWEEN the 100M and 1B rungs. The >=100M rung is a strictly
+        easier event on both legs (on damages because monetized mortality
+        counts toward them), so it bounds the question; the >=1B rung does not
+        on either leg. Checking the side the wording does not license would
         manufacture violations out of our own carelessness.
         """
         for b in rel["bracket"]:
             for lab in labels:
                 for h in horizons:
                     x = g(b["narrower"], lab, h)
-                    y = lad(b["cause"], b["rung"], lab, h)
+                    y = lad(b["cause"], b["rung"], b["leg"], lab, h)
                     if x is None or y is None:
                         continue
                     yield x <= y + EPS, (
                         f"{lab} {b['narrower']} {h}: {x:g} > "
-                        f"{b['cause']}:{b['rung']}={y:g}")
+                        f"{b['cause']}:{b['rung']}:{b['leg']}={y:g}")
 
     def subset_cases():
         for pair in rel["subset"]:
@@ -189,6 +214,7 @@ def audit(P, spec=None, labels=None, horizons=None):
         "HORIZON": _tally(horizon_cases()),
         "LADDER": _tally(ladder_cases()),
         "CROSS": _tally(cross_cases()),
+        "LEG": _tally(leg_cases()),
         "BRACKET": _tally(bracket_cases()),
         "SUBSET": _tally(subset_cases()),
     }

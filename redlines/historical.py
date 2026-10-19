@@ -8,7 +8,9 @@ reason: the 2026-08-17 call found an eighty-fold error in a headline that had
 been typed into a JSX chunk rather than joined to the data it labelled.
 
 Every label a reader sees — the event name, its span, its range — comes from
-here, never from prose typed into the page.
+here, never from prose typed into the page. An event carries a band on each
+ladder it has a figure for (deaths, damages_usd); since 2026-10-19 the two
+ladders are asked apart and nothing converts between them.
 """
 import json
 
@@ -16,11 +18,12 @@ from .config import REPO_ROOT
 
 EVENTS_PATH = REPO_ROOT / "data" / "historical_events.json"
 
-TOP_KEYS = ("title", "provenance", "conversion", "caveat", "events")
+TOP_KEYS = ("title", "provenance", "caveat", "events")
 EVENT_KEYS = ("id", "kind", "label", "short", "span", "basis", "deaths",
-              "damages_usd", "severity", "source", "note", "verified")
+              "damages_usd", "source", "note", "verified")
 SOURCE_KEYS = ("org", "title", "url")
 BAND_KEYS = ("low", "central", "high")
+LEGS = ("deaths", "damages_usd")
 
 
 def _require(d, keys, what):
@@ -32,7 +35,7 @@ def _require(d, keys, what):
 
 
 def load_events(path=EVENTS_PATH):
-    """-> the validated marker document, events ascending by severity."""
+    """-> the validated marker document."""
     with open(path) as fh:
         doc = json.load(fh)
     _require(doc, TOP_KEYS, str(path))
@@ -46,35 +49,35 @@ def load_events(path=EVENTS_PATH):
             raise ValueError(f"{path}: duplicate event id {ev['id']!r}")
         seen.add(ev["id"])
         _require(ev["source"], SOURCE_KEYS, f"{path} {ev['id']} source")
-        _require(ev["severity"], BAND_KEYS, f"{path} {ev['id']} severity")
-        band = ev["severity"]
-        if not band["low"] <= band["central"] <= band["high"]:
-            raise ValueError(f"{path}: {ev['id']} severity band not ordered: "
-                             f"{band}")
-        if band["low"] <= 0:
-            raise ValueError(f"{path}: {ev['id']} severity must be positive "
-                             f"(the axis is logarithmic): {band}")
-        if ev["deaths"] is None and ev["damages_usd"] is None:
+        legs = [leg for leg in LEGS if ev[leg]]
+        if not legs:
             raise ValueError(f"{path}: {ev['id']} has neither deaths nor "
                              f"damages, so it cannot be placed")
-
-    order = [e["severity"]["central"] for e in doc["events"]]
-    if order != sorted(order):
-        raise ValueError(f"{path}: events not ascending by severity")
+        for leg in legs:
+            band = ev[leg]
+            _require(band, BAND_KEYS, f"{path} {ev['id']} {leg}")
+            if not band["low"] <= band["central"] <= band["high"]:
+                raise ValueError(f"{path}: {ev['id']} {leg} band not ordered: "
+                                 f"{band}")
+            if band["low"] <= 0:
+                raise ValueError(f"{path}: {ev['id']} {leg} must be positive "
+                                 f"(the axis is logarithmic): {band}")
     return doc
 
 
 def markers(path=EVENTS_PATH):
     """-> the display-ready marker list for Graph 2, plus its caveat.
 
-    Trimmed to what the chart draws. The full record — every figure, its basis
-    and its citation — stays in the JSON for the definitions modal and for
-    anyone auditing where a band came from.
+    Each event carries the band(s) it has: `deaths` for the deaths ladder,
+    `damagesUsd` for the damages ladder, None where it has no figure on that
+    leg. The page draws an event on the ladder(s) it has a band for and words
+    the tooltip in that ladder's unit. Trimmed to what the chart draws; the
+    full record — every figure, its basis and its citation — stays in the
+    JSON for the definitions modal and for anyone auditing a band.
     """
     doc = load_events(path)
     return {
         "caveat": doc["caveat"],
-        "conversion": doc["conversion"],
         "events": [{
             "id": e["id"],
             # "event" = a historical toll, drawn as an estimate band;
@@ -85,14 +88,8 @@ def markers(path=EVENTS_PATH):
             "short": e["short"],
             "span": e["span"],
             "basis": e["basis"],
-            "low": e["severity"]["low"],
-            "central": e["severity"]["central"],
-            "high": e["severity"]["high"],
-            # Which leg placed it. "damages" = no deaths figure, so the
-            # position is dollars / VSL; the page words the tooltip in
-            # dollars for those, not in a death count it never had.
-            "leg": "damages" if e["deaths"] is None else "deaths",
-            "damagesUsd": (e["damages_usd"] or {}).get("central"),
+            "deaths": e["deaths"],
+            "damagesUsd": e["damages_usd"],
             "source": e["source"]["org"],
             "sourceTitle": e["source"]["title"],
             "url": e["source"]["url"],

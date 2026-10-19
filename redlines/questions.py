@@ -10,8 +10,11 @@ if either drifts from what the generator produces.
                        2026-08-18: a catastrophe is 10% of population, so there
                        is no ladder; all that varies are dates), so these are
                        three questions rather than a ladder.
-  load_ladder()        the 4 x 8 incident grid, plus causes, rungs, horizons,
-                       the coherence relations and the featured ids.
+  load_ladder()        the incident grid -- four causes x nine rungs, each rung
+                       asked as a deaths question and a damages question since
+                       2026-10-19 (the extinction rung has no dollar leg: 68
+                       questions) -- plus causes, legs, rungs, horizons, the
+                       coherence relations and the featured ids.
 
 WHY THE LABEL HELPERS LIVE HERE. Every threshold string a human reads — a graph
 title, an axis tick, a tooltip, the modal — comes from severity_label() or
@@ -35,14 +38,18 @@ LADDER_PATH = REPO_ROOT / "data" / "autoarc_ladder.json"
 
 CROSS_KEYS = ("id", "name", "short", "category", "value_kind", "severity",
               "horizons", "text", "criteria", "human")
-LADDER_TOP_KEYS = ("title", "provenance", "notes", "causes", "rungs", "horizons",
-                   "rolling", "fixed_horizons", "featured", "relations",
-                   "questions")
+LADDER_TOP_KEYS = ("title", "provenance", "notes", "causes", "legs", "rungs",
+                   "horizons", "rolling", "fixed_horizons", "featured",
+                   "relations", "questions")
 LADDER_QUESTION_KEYS = ("id", "cause", "cause_label", "color", "category",
-                        "value_kind", "severity", "rung", "horizons", "text",
-                        "criteria", "human")
+                        "value_kind", "severity", "rung", "leg", "horizons",
+                        "text", "criteria", "human")
 CAUSE_KEYS = ("key", "label", "color")
-RUNG_KEYS = ("deaths", "damages_usd", "short", "label")
+LEG_KEYS = ("key", "label", "unit")
+# A rung is the INDEX of a severity level: both thresholds, and under `legs`
+# each leg's own label and option text (the extinction rung has a deaths leg
+# only). The questions carry one leg's severity each.
+RUNG_KEYS = ("deaths", "damages_usd", "short", "label", "legs")
 
 
 def _require(d, keys, what):
@@ -72,11 +79,14 @@ def load_crosscutting_doc(path=CROSS_PATH):
 
 
 def load_ladder(path=LADDER_PATH):
-    """-> the full validated ladder spec; spec["questions"] is the 32 rungs."""
+    """-> the full validated ladder spec; spec["questions"] is the 68 ladder
+    questions (4 causes x 9 deaths rungs + 4 causes x 8 damages rungs)."""
     doc = json.loads(open(path).read())
     _require(doc, LADDER_TOP_KEYS, str(path))
     for c in doc["causes"]:
         _require(c, CAUSE_KEYS, f"{path}: cause {c.get('key', '<unknown>')!r}")
+    for leg in doc["legs"]:
+        _require(leg, LEG_KEYS, f"{path}: leg {leg.get('key', '<unknown>')!r}")
     for r in doc["rungs"]:
         _require(r, RUNG_KEYS, f"{path}: rung {r!r}")
     for q in doc["questions"]:
@@ -85,11 +95,25 @@ def load_ladder(path=LADDER_PATH):
     return doc
 
 
-# The severity axis every chart that plots deaths shares (Graph 2's curves,
-# Graph 1's and the Timeline's expected-loss rows): a hair under the 1k rung
-# to a hair past Extinction (8.2B). Emitted into the blobs; no chunk types
-# these numbers.
+# The severity axis every chart that plots deaths shares (Graph 2's deaths
+# ladder, Graph 1's and the Timeline's expected-deaths rows): a hair under the
+# 1k rung to a hair past Extinction (8.2B). The damages ladder has its own,
+# a hair under the $220M rung to the same headroom past its top rung ($2.2Q)
+# that the deaths axis leaves past Extinction, so the curve-end labels fit on
+# both charts. Emitted into the blobs; no chunk types these numbers.
 SEVERITY_AXIS = {"lo": 800, "hi": 1.4e10}
+DAMAGES_AXIS = {"lo": 1.76e8, "hi": 3.8e15}
+
+
+def ladder_id(cause, rung, leg):
+    """The id of one ladder question, as the generator writes it."""
+    return f"ladder:{cause}:{rung}:{leg}"
+
+
+def ladder_index(spec):
+    """{(cause key, rung short, leg key): question} -- the one way to find a
+    ladder question, so no view composes an id by hand."""
+    return {(q["cause"], q["rung"], q["leg"]): q for q in spec["questions"]}
 
 
 def all_questions():
@@ -126,8 +150,11 @@ def questions_asked_on(run_date, questions=None):
 def severity_label(q, short=False):
     """The threshold, rendered. Never type one of these into a page chunk.
 
-    Three severity kinds, because the set genuinely has three:
-      deaths_or_damages  a ladder rung: "1M deaths or $10T"
+    Five severity kinds, because the set genuinely has five:
+      deaths             a ladder rung's deaths leg: "1M deaths"
+      damages            a ladder rung's damages leg: "$2.2T in economic damages"
+                         (the two legs of one rung are separate questions
+                         since 2026-10-19; a rung used to resolve on either)
       population_share   the catastrophe questions: "10% of population". This
                          one FLOATS — it resolves on a share, so its
                          death-equivalent moves with population while the rungs
@@ -149,13 +176,14 @@ def severity_label(q, short=False):
 
 
 def severity_deaths(q):
-    """Where this question sits on the log-death axis, or None.
+    """Where this question sits on the log-death axis, or None (a damages
+    question is not on it).
 
     A population share is converted through its stored deaths_equiv rather than
     recomputed, so the axis position and the label can never disagree.
     """
     s = q["severity"]
-    if s["kind"] == "deaths_or_damages":
+    if s["kind"] == "deaths":
         return s["deaths"]
     if s["kind"] in ("population_share", "extinction"):
         return s["deaths_equiv"]

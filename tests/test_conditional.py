@@ -46,7 +46,7 @@ from redlines.conditional import expected_loss, summarize, table  # noqa: E402
 # 201 -> 210 on 2026-08-28, when the three cross-cutting questions moved onto
 # the ladder's six-horizon grid (3 questions x 3 added horizons); 210 -> 222 on
 # 2026-09-15, when the extinction pair joined (2 questions x 6 horizons).
-QUESTIONS, CELLS = 41, 246
+QUESTIONS, CELLS = 73, 438
 
 # Our framing (the CONDITION_BLOCK literal) may state neither a relation
 # between the questions -- the same ban tests/test_coherence.py puts on the
@@ -97,7 +97,7 @@ class TestConditionBlock(unittest.TestCase):
         self.assertNotIn("{condition}", p)
         # The slot sits between the date line and the question header, and
         # renders to exactly the blank line that was always there.
-        self.assertIn("Today is 2026-08-27.\n\nBelow are 41 forecasting", p)
+        self.assertIn("Today is 2026-08-27.\n\nBelow are 73 forecasting", p)
         self.assertEqual((n, cells), (QUESTIONS, CELLS))
 
     def test_every_condition_renders_with_leap_instruction(self):
@@ -111,7 +111,7 @@ class TestConditionBlock(unittest.TestCase):
             self.assertIn(c["assume"], p)
             self.assertIn(self.policies["conditioning"]["frontier_model"], p)
             # The questions follow the block unchanged.
-            self.assertIn("Below are 41 forecasting questions", p)
+            self.assertIn("Below are 73 forecasting questions", p)
             self.assertTrue(p.index("=====\n\nBelow are") < p.index("===== AI-RELATED INCIDENT"))
 
     def test_condition_text_states_no_relation_or_direction(self):
@@ -378,7 +378,7 @@ class TestExpectedLoss(unittest.TestCase):
 
     def test_summarize_folds_ladder_into_loss_row(self):
         def row(rung, label, p, cond=None, call="u0"):
-            return {"run_id": "r", "question_id": f"ladder:ai:{rung}", "label": label,
+            return {"run_id": "r", "question_id": f"ladder:ai:{rung}:deaths", "label": label,
                     "call_id": f"r:{call}:{label}", "grounded": True,
                     "forecasts": [{"horizon": "2030", "probability": p}],
                     "condition": ({"id": cond, "leap_id": "P5", "label": cond} if cond else None)}
@@ -398,9 +398,9 @@ class TestExpectedLoss(unittest.TestCase):
         self.assertIsNone(a["conditions"]["p5"]["delta_pp"])
         self.assertAlmostEqual(cell["ensemble"]["p5"]["ratio"], 0.5)
         self.assertEqual((cell["ensemble"]["p5"]["lowered"], cell["ensemble"]["p5"]["raised"]), (1, 0))
-        self.assertIn("expected loss", table(s, "loss:ai", "2030", "ratio"))
+        self.assertIn("expected deaths", table(s, "loss:ai", "2030", "ratio"))
         # The rung rows themselves are still summarised.
-        self.assertIn("ladder:ai:1B", s["questions"])
+        self.assertIn("ladder:ai:1B:deaths", s["questions"])
 
 
 if __name__ == "__main__":
@@ -454,12 +454,15 @@ class TestConditionSets(unittest.TestCase):
     LEAP_PROMPT_SHA_2026_09_16_RUNG = "cbe9b29179d740e3f2860242d3c9e8d5e42b1bd570852c451aa73e048794f6aa"
     # 2026-10-01: the extinction pair's criteria stop naming their source
     # (XPT, AIRO); same rules, same cells. Tag unified-joint-v6 / combined-v8.
-    LEAP_PROMPT_SHA_CURRENT = "5f9f47b8c3c25dec3e6f35b255e9494bc9fdac4debe05c4b9225e28d9dc4fef0"
+    LEAP_PROMPT_SHA_2026_10_19_V10 = "5f9f47b8c3c25dec3e6f35b255e9494bc9fdac4debe05c4b9225e28d9dc4fef0"
+    # 2026-10-19 evening: every rung a deaths question and a damages question, each
+    # group's criteria printed once (docs/severity-legs-2026-10-19.md).
+    LEAP_PROMPT_SHA_CURRENT = "19252244951477fad4c91df778f8027de7245b74ec68fa1fbec3dbdeb10aab28"
     # The archived 2026-08-31 definitions rendered by the CURRENT template
     # (test_archived_definitions_reproduce_the_old_prompt): stable while the
     # archive is untouched; moves whenever the template does, as on 2026-09-15
     # and 2026-09-16.
-    LEAP_PROMPT_SHA_ARCHIVED = "b705585878ec49a2d202490cf0225dda2a04b049f8e285c4e6d76f5053a9b3d4"
+    LEAP_PROMPT_SHA_ARCHIVED = "ac19d18a375715291c9b1c400589ac57e6d3514be4f54719da6393c59f3e3a74"
 
     @classmethod
     def setUpClass(cls):
@@ -481,7 +484,8 @@ class TestConditionSets(unittest.TestCase):
                                                         self.LEAP_PROMPT_SHA_2026_09_15,
                                                         self.LEAP_PROMPT_SHA_2026_09_15_EXTINCTION,
                                                         self.LEAP_PROMPT_SHA_2026_09_16_DEBRIEF,
-                                                        self.LEAP_PROMPT_SHA_2026_09_16_RUNG))
+                                                        self.LEAP_PROMPT_SHA_2026_09_16_RUNG,
+                                                        self.LEAP_PROMPT_SHA_2026_10_19_V10))
 
     def test_archived_definitions_reproduce_the_old_prompt(self):
         import hashlib
@@ -631,9 +635,12 @@ class TestSelfElicitedSet(unittest.TestCase):
             self.assertIn(c["assume"], p)
         self.assertNotIn("\n\n\n\n", cond)      # bare conditions, no blank-line residue
         # The trend projection is what the answers are compared to; never shown.
+        # (The conditions proper: the delivery paragraph after them counts the
+        # grid -- 438 cells x 6 = 2628 probabilities -- and is not a projection.)
+        body = cond[:cond.index("\nHorizons: ")]
         for w in ("231", "210.4", "262", "metr", "trend", "percentile of the projection",
                   "Status Quo", "liability"):
-            self.assertNotIn(w, cond, w)
+            self.assertNotIn(w, body, w)
         lit = (self.es["conditioning"]["instruction"] + self.es["conditioning"]["definitions"]
                + self.es["elicit"]["text"] + "".join(c["assume"] for c in self.es["conditions"])).lower()
         found = [b for b in BANNED_RELATION + BANNED_DIRECTION if b in lit]
@@ -750,7 +757,7 @@ class TestCombinedSet(unittest.TestCase):
                          [c["id"] for c in self.leap["conditions"]] + [c["id"] for c in self.es["conditions"]])
         self.assertEqual([g["key"] for g in cb["groups"]], ["policy", "capability"])
         self.assertEqual([c["group"] for c in cb["conditions"]], ["policy"] * 8 + ["capability"] * 5)
-        self.assertEqual(self.ru.set_protocol(cb), "unified-joint-combined-v10")   # October 16: the pi loop; October 1: the pair unnamed; September 15: the extinction pair (v5 = September 10 counting version)
+        self.assertEqual(self.ru.set_protocol(cb), "unified-joint-combined-v11")   # October 19 evening: the severity legs; October 16: the pi loop; October 1: the pair unnamed; September 15: the extinction pair (v5 = September 10 counting version)
         self.assertEqual(self.ru.set_slug(cb), "combined")
         self.assertNotIn(self.ru.set_protocol(cb), (self.ru.PROTOCOL_JOINT, self.ru.set_protocol(self.es)))
         self.assertEqual(cb["elicit"], self.es["elicit"])
@@ -880,7 +887,7 @@ class TestGroupedSetOnTheTabs(unittest.TestCase):
         self.assertEqual(pol["source"]["panel"], "LEAP")
         self.assertIn("eci_p50", pol["conditioning"]["assumption"])
         self.assertEqual(pol["slug"], "combined")                       # the log is still the combined one
-        self.assertEqual(pol["protocol"], "unified-joint-combined-v10")
+        self.assertEqual(pol["protocol"], "unified-joint-combined-v11")
         cap = group_view(self.cb, "capability")
         self.assertEqual([c["field"] for c in cap["conditions"]], ["p10", "p25", "p50", "p75", "p90"])
         self.assertEqual(cap["conditioning"]["instruction"], self.es["conditioning"]["instruction"])
@@ -912,7 +919,7 @@ class TestGroupedSetOnTheTabs(unittest.TestCase):
                 self.assertEqual(view["questions"], [])
                 self.assertEqual(view["models"], [])
                 self.assertFalse(view["instrumentInfo"]["available"])
-                self.assertEqual(view["protocol"], "unified-joint-combined-v10")
+                self.assertEqual(view["protocol"], "unified-joint-combined-v11")
             return
         # Separate provider retries may have distinct run IDs but share the
         # single explicitly recorded elicitation date and incident windows.

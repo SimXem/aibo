@@ -8,15 +8,18 @@ import unittest
 from unittest.mock import patch
 
 from redlines.instrument import CURRENT_INSTRUMENT, counting_windows
-from redlines.questions import load_ladder
+from redlines.questions import ladder_index, load_ladder
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
 class TestCountingInstrument(unittest.TestCase):
+    V1 = ROOT / 'data/instruments/airo-incidents-prospective-v1'
+
     def test_scientific_change_is_limited_to_dates_and_cyber_boundaries(self):
+        """The 2026-09-10 change, pinned between its two archives."""
         old = json.loads((ROOT / 'data/instruments/legacy-2026-08-31/autoarc_ladder.json').read_text())
-        new = load_ladder()
+        new = json.loads((self.V1 / 'autoarc_ladder.json').read_text())
         # 2026-09-16: the extinction rung is an addendum's, beside the archived eight.
         self.assertEqual(old['rungs'], [r for r in new['rungs'] if not r.get('since')])
         # 2026-09-15: the extinction addendum ADDS one subset relation; every
@@ -37,7 +40,7 @@ class TestCountingInstrument(unittest.TestCase):
             if after['cause'] != 'cyber':
                 self.assertEqual(before['criteria'], after['criteria'])
         old_cross = json.loads((ROOT / 'data/instruments/legacy-2026-08-31/autoarc_crosscutting.json').read_text())
-        new_cross = json.loads((ROOT / 'data/autoarc_crosscutting.json').read_text())
+        new_cross = json.loads((self.V1 / 'autoarc_crosscutting.json').read_text())
         # The workbook's three questions are unchanged; the only additions are
         # the addendum's extinction pair, each stamped with its `since`.
         new_by_id = {q['id']: q for q in new_cross['questions']}
@@ -46,6 +49,42 @@ class TestCountingInstrument(unittest.TestCase):
         added = [q for q in new_cross['questions'] if q['id'] not in {o['id'] for o in old_cross['questions']}]
         self.assertEqual([q['id'] for q in added], ['extinction:general', 'extinction:ai'])
         self.assertTrue(all(q.get('since') == '2026-09-15' for q in added))
+
+    def test_the_legs_split_changes_only_the_severity_slot(self):
+        """The 2026-10-19 change: every v1 question becomes a deaths question
+        and, unless it is the extinction rung, a damages question. Thresholds,
+        criteria, details and horizons are v1's; the text differs only in the
+        severity slot; the cross-cutting questions are untouched."""
+        v1 = json.loads((self.V1 / 'autoarc_ladder.json').read_text())
+        cur = load_ladder()
+        self.assertEqual([(r['short'], r['deaths'], r['damages_usd']) for r in v1['rungs']],
+                         [(r['short'], r['deaths'], r['damages_usd']) for r in cur['rungs']])
+        self.assertEqual([l['key'] for l in cur['legs']], ['deaths', 'damages'])
+        index = ladder_index(cur)
+        for q in v1['questions']:
+            d = index[(q['cause'], q['rung'], 'deaths')]
+            if q['severity']['kind'] == 'extinction':
+                self.assertNotIn((q['cause'], q['rung'], 'damages'), index)
+                self.assertEqual(d['text'], q['text'])
+                # v1 copied the rung record whole, `since`/`source` included; those are question fields now.
+                self.assertEqual(d['severity'], {k: v for k, v in q['severity'].items() if k not in ('since', 'source')})
+                continue
+            m = index[(q['cause'], q['rung'], 'damages')]
+            deaths_text, damages_text = q['severity']['source_text'].split(' or ')
+            slot = f"{deaths_text} or {damages_text} in economic damages"
+            self.assertIn(slot, q['text'])
+            self.assertEqual(d['text'], q['text'].replace(slot, deaths_text))
+            self.assertEqual(m['text'], q['text'].replace(slot, f"{damages_text} in economic damages"))
+            self.assertEqual((d['severity']['deaths'], d['severity']['damages_usd']), (q['severity']['deaths'], None))
+            self.assertEqual((m['severity']['deaths'], m['severity']['damages_usd']), (None, q['severity']['damages_usd']))
+            for leg_q in (d, m):
+                for k in ('criteria', 'details', 'horizons', 'cause_label', 'human_comparisons'):
+                    self.assertEqual(leg_q[k], q[k], (leg_q['id'], k))
+        self.assertEqual(len(cur['questions']), 2 * len(v1['questions']) - len(cur['causes']))
+        v1_cross = json.loads((self.V1 / 'autoarc_crosscutting.json').read_text())
+        cur_cross = json.loads((ROOT / 'data/autoarc_crosscutting.json').read_text())
+        self.assertEqual(v1_cross['questions'], cur_cross['questions'])
+        self.assertEqual(CURRENT_INSTRUMENT, 'airo-incidents-prospective-v2')
 
     def test_windows_advance_for_every_incident_horizon_and_handle_short_months(self):
         spec = load_ladder()

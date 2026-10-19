@@ -1,9 +1,30 @@
 """Explanations and trails must refer to the forecasts actually displayed."""
+import copy
+import json
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 from redlines.runlog import (load_runlog, complete_panel_rows,
                             latest_instrument_rows, current_rows)
 from redlines.views import graph2, rationales
+from tests.legs import split_legs
+
+ROOT = Path(__file__).resolve().parents[1]
+RUN = ROOT / "results" / "runs" / "2026-09-18T1200Z.jsonl"     # a complete 41-question day
+
+
+def _day(day, scale=1.0):
+    """The 2026-09-18 run, as the current instrument writes it, on `day`."""
+    rows = split_legs([json.loads(l) for l in RUN.read_text().splitlines() if l.strip()])
+    for r in rows:
+        r["run_date"] = day
+        r["run_id"] = f"{day}T1200Z"
+        r["elicited_at"] = f"{day}T12:30:00+00:00"
+        r["call_id"] = f"{r['run_id']}:{r['label']}"
+        for f in r["forecasts"]:
+            f["probability"] = min(1.0, f["probability"] * scale)
+    return rows
 
 
 class TestRationalesAndHistory(unittest.TestCase):
@@ -23,26 +44,27 @@ class TestRationalesAndHistory(unittest.TestCase):
                 self.assertTrue(d['rationale'])
 
     def test_history_does_not_change_latest_forecasts(self):
-        with_history = graph2.build()
-        without_history = graph2.build(include_history=False)
+        rows = _day("2026-10-20") + _day("2026-10-22", scale=0.9)
+        with_history = graph2.build(rows)
+        without_history = graph2.build(rows, include_history=False)
         history = with_history.pop('history')
         without_history.pop('history')
         self.assertEqual(with_history, without_history)
-        dates = [s['date'] for s in history]
-        self.assertTrue(dates)
-        self.assertEqual(dates, sorted(dates))
-        self.assertTrue(all(d < with_history['instrumentInfo']['runDate'] for d in dates))
+        self.assertEqual([s['date'] for s in history], ["2026-10-20"])
+        self.assertEqual(with_history['instrumentInfo']['runDate'], "2026-10-22")
         for snapshot in history:
             self.assertEqual(snapshot['instrumentInfo']['version'],
                              with_history['instrumentInfo']['version'])
-            if snapshot['date'] >= '2026-09-16':    # the extinction rung's first run
-                continue
             for horizon in snapshot['byHorizon'].values():
-                for cause in horizon['causes']:
-                    self.assertEqual(len(cause['rungs']), 8)
-                    self.assertNotIn('extinction', [r['rung'] for r in cause['rungs']])
+                self.assertEqual(set(horizon['legs']), {"deaths", "damages"})
+                for leg, side in horizon['legs'].items():
+                    self.assertEqual(len(side['causes']), 4)
+                    for cause in side['causes']:
+                        # The deaths ladder reaches extinction; the damages ladder has no such rung.
+                        self.assertEqual(len(cause['rungs']), 9 if leg == "deaths" else 8)
 
     def test_incomplete_prior_panel_is_not_a_trail(self):
-        rows = [r for r in load_runlog()
-                if not (r.get('run_date') == '2026-09-14' and r['label'] == 'GPT-6 Astra')]
-        self.assertNotIn('2026-09-14', [s['date'] for s in graph2.build(rows)['history']])
+        earlier = _day("2026-10-20")
+        gone = earlier[0]["label"]
+        rows = [r for r in earlier if r["label"] != gone] + _day("2026-10-22")
+        self.assertNotIn("2026-10-20", [s['date'] for s in graph2.build(rows)['history']])

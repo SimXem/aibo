@@ -50,6 +50,7 @@ from redlines.coherence import (CONSTRAINTS, audit, load_spec, read,  # noqa: E4
                                 totals)
 from redlines.questions import all_questions, horizon_sort_key  # noqa: E402
 from redlines.config import UNBATCHED  # noqa: E402
+from redlines.instrument import instrument_rows  # noqa: E402
 from redlines.runlog import KNOWN_PROTOCOLS, load_runlog  # noqa: E402
 from redlines.conditional import COMBINED_PROTOCOL  # noqa: E402
 
@@ -98,13 +99,17 @@ class TestLiveLogCoherence(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.rows = load_runlog()
-        cls.results = audit(read(rows=cls.rows))
-        if not cls.rows:
+        # The audit reads the CURRENT instrument's rows: its relations name
+        # today's question ids, and an earlier instrument's answers must not
+        # be scored against them (redlines.instrument).
+        current = instrument_rows(cls.rows)
+        cls.results = audit(read(rows=current))
+        if not current:
             # No forecasts yet: a fresh checkout, or the window between
-            # retiring one question set and running the next. There is nothing
+            # re-versioning the questions and the next run. There is nothing
             # to say about coherence, and saying it loudly would train people
             # to ignore this file.
-            raise unittest.SkipTest("run log is empty — nothing forecast yet")
+            raise unittest.SkipTest("no forecasts under the current instrument yet")
 
     def test_every_batched_forecast_came_from_a_batch(self):
         """A batched question forecast outside a batch is a protocol regression.
@@ -230,22 +235,25 @@ class TestGuardActuallyFires(unittest.TestCase):
         rungs = [r["short"] for r in spec["rungs"]]
         rel = spec["relations"]
         top, sub = rel["cross"]["container"], rel["cross"]["contained"][0]
+        deaths, damages = rel["legs"]["contained"], rel["legs"]["container"]
         hs = sorted([h for h in spec["horizons"]],
                     key=lambda h: horizon_sort_key(h, spec))
         near, far = hs[0], hs[-1]
 
         P = {}
         # HORIZON: a cumulative probability that falls as the horizon extends.
-        P[(f"ladder:{top}:{rungs[0]}", lab)] = {near: 40.0, far: 10.0}
+        P[(f"ladder:{top}:{rungs[0]}:{deaths}", lab)] = {near: 40.0, far: 10.0}
         # LADDER: a harder threshold made more likely than an easier one.
-        P[(f"ladder:{sub}:{rungs[0]}", lab)] = {far: 5.0}
-        P[(f"ladder:{sub}:{rungs[1]}", lab)] = {far: 50.0}
+        P[(f"ladder:{sub}:{rungs[0]}:{deaths}", lab)] = {far: 5.0}
+        P[(f"ladder:{sub}:{rungs[1]}:{deaths}", lab)] = {far: 50.0}
         # CROSS: a contained cause above its container.
-        P[(f"ladder:{top}:{rungs[1]}", lab)] = {far: 1.0}
+        P[(f"ladder:{top}:{rungs[1]}:{deaths}", lab)] = {far: 1.0}
+        # LEG: a rung's deaths question above its damages question.
+        P[(f"ladder:{top}:{rungs[0]}:{damages}", lab)] = {far: 1.0}
         # BRACKET and SUBSET: the narrower event above the broader one.
         b = rel["bracket"][0]
         P[(b["narrower"], lab)] = {far: 99.0}
-        P[(f"ladder:{b['cause']}:{b['rung']}", lab)] = {far: 1.0}
+        P[(f"ladder:{b['cause']}:{b['rung']}:{b['leg']}", lab)] = {far: 1.0}
         for pair in rel["subset"]:
             P[(pair["narrower"], lab)] = {far: 99.0}
             P.setdefault((pair["broader"], lab), {})[far] = 1.0

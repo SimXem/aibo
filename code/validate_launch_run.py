@@ -186,6 +186,7 @@ def main():
                                     'evidence': len(evidence), 'usage': first.get('usage'),
                                     'submission': first.get('delivery')})
         rungs = [r['short'] for r in spec['rungs']]
+        legs = [l['key'] for l in spec['legs']]
 
         def ordered(left, right, kind):
             a, b = probabilities.get(left), probabilities.get(right)
@@ -203,13 +204,17 @@ def main():
                 for h in horizons:
                     ordered((label,v,'catastrophe:ai',c,h), (label,v,'catastrophe:general',c,h), 'ai_within_general')
                     for cause in ('ai','cyber','bio','misalign'):
-                        for lo, hi in zip(rungs, rungs[1:]):
-                            ordered((label,v,f'ladder:{cause}:{hi}',c,h),
-                                    (label,v,f'ladder:{cause}:{lo}',c,h), 'severity')
-                        if cause != 'ai':
-                            for rung in rungs:
-                                ordered((label,v,f'ladder:{cause}:{rung}',c,h),
-                                        (label,v,f'ladder:ai:{rung}',c,h), 'subtype_within_ai')
+                        for leg in legs:
+                            for lo, hi in zip(rungs, rungs[1:]):
+                                ordered((label,v,f'ladder:{cause}:{hi}:{leg}',c,h),
+                                        (label,v,f'ladder:{cause}:{lo}:{leg}',c,h), 'severity')
+                            if cause != 'ai':
+                                for rung in rungs:
+                                    ordered((label,v,f'ladder:{cause}:{rung}:{leg}',c,h),
+                                            (label,v,f'ladder:ai:{rung}:{leg}',c,h), 'subtype_within_ai')
+                        for rung in rungs:   # the damages question contains the deaths question
+                            ordered((label,v,f'ladder:{cause}:{rung}:deaths',c,h),
+                                    (label,v,f'ladder:{cause}:{rung}:damages',c,h), 'deaths_within_damages')
         # 4 x 6 = 24 calls under combined-v10 + the sixth; the unpooled ones
         # count where they answered, and are listed as missing where not.
         report['instruments'][slug] = {'file_sha256': hashlib.sha256(raw).hexdigest(),

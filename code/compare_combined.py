@@ -140,7 +140,7 @@ def main():
             if not cells:
                 continue
             kind = next(iter(cells.values())).get("value_kind", "probability")
-            unit = "%" if kind == "probability" else "death-equivalents"
+            unit = "%" if kind == "probability" else "deaths"
             print(f"\n== {qid} @ {h}  ({unit}) ==")
             # Unconditional per model, every instrument.
             names = [n for n in ("combined", "eci_top4", "frontier_v1", "frontier_v2", "eciself") if n in cells]

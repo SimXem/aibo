@@ -21,10 +21,10 @@ const groupShort = g => GROUP_SHORT[g] || g;
 // (graph1.py::_human_series).
 //
 // Two kinds of row. A probability row plots percent on a 0.01–100% log axis
-// (or linear, by the toggle). An expected-loss row — one per incident cause,
-// the eight rungs folded to a floor on E[loss] — plots death-equivalents on
-// graph 2's severity axis (SEVERITY_AXIS: rung ticks, dollars beneath at the
-// ladder's rate, Extinction marked), log only, so a loss reads at its rung.
+// (or linear, by the toggle). An expected-deaths row — one per incident cause,
+// the deaths ladder's eight rungs folded to a floor on E[deaths] — plots
+// deaths on graph 2's deaths axis (SEVERITY_AXIS: rung ticks, Extinction
+// marked), log only, so a loss reads at its rung.
 function HorizonChart({ q, models, scale }) {
   const loss = q.valueKind === "loss";
   // Laid out in the width the column gives it (web/shared/responsive.jsx);
@@ -78,7 +78,7 @@ function HorizonChart({ q, models, scale }) {
   const rungTicks = loss ? (G1.rungs || []).filter(r => r.deaths >= LO && r.deaths <= HIY) : [];
   const ticks = loss ? rungTicks.map(r => r.deaths) : linear ? linearTicks(linTop) : [0.01, 0.1, 1, 10, 100];
   const tickText = t => (loss ? (rungTicks.find(r => r.deaths === t) || {}).short : fmtTick(t) + "%");
-  const tickSub = t => (loss ? cFmtBig(t * (G1.usdPerDeath || 2.2e6), "$") : null);
+  const tickSub = () => null;
   const marks = loss && typeof HIST !== "undefined" && HIST
     ? HIST.events.filter(e => e.kind === "reference" && /extinction/i.test(e.label)).map(e => ({ v: e.central, label: e.short || e.label }))
     : (loss ? [{ v: 8.2e9, label: "Extinction" }] : []);
@@ -189,7 +189,7 @@ function HorizonChart({ q, models, scale }) {
           <div style={{ position: "absolute", top: 6, left: `${(x(hv) / W) * 100}%`, transform: x(hv) > W * 0.6 ? "translateX(calc(-100% - 8px))" : "translateX(8px)",
             background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 10px",
             boxShadow: "var(--shadow)", pointerEvents: "none", minWidth: 170, maxWidth: "calc(100% - 16px)" }}>
-            <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 5 }}>by end of {hv}{loss ? " · death-equivalents" : ""}</div>
+            <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 5 }}>by end of {hv}{loss ? " · deaths" : ""}</div>
             {rows.map(r => (
               <div key={r.label} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12, fontWeight: r.bold ? 600 : 400 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 2, transform: r.human ? "rotate(45deg)" : "none", background: r.human ? "var(--panel)" : r.color, border: r.human ? "1.5px solid " + r.color : "none", opacity: r.ci ? 0.35 : 1 }}></span>{r.label}</span>

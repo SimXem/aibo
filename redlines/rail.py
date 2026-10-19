@@ -9,7 +9,7 @@ graphs named the same causes differently). This module is the single source for
 all three, built from the ladder spec, so a question-set change relabels every
 panel from here.
 """
-from .questions import (cause_category, load_crosscutting, severity_label)
+from .questions import (cause_category, ladder_index, load_crosscutting, severity_label)
 
 # The dot colour for the cross-cutting categories (catastrophe / disempowerment).
 CROSS_COLOR = "#3a4150"
@@ -22,14 +22,16 @@ GROUP_DOMAIN = "Domain-specific"
 
 def panel_questions(spec):
     """The whole set in rail order: cross-cutting first, then every incident
-    rung, cause by cause and rung by rung — not just the featured 1M rungs."""
-    by_cr = {(q["cause"], q["rung"]): q for q in spec["questions"]}
+    question, cause by cause, leg by leg (deaths, then damages) and rung by
+    rung — not just the featured 1M rungs."""
+    index = ladder_index(spec)
     order = []
     for c in spec["causes"]:
-        for r in spec["rungs"]:
-            q = by_cr.get((c["key"], r["short"]))
-            if q:
-                order.append(q)
+        for leg in spec["legs"]:
+            for r in spec["rungs"]:
+                q = index.get((c["key"], r["short"], leg["key"]))
+                if q:
+                    order.append(q)
     return load_crosscutting() + order
 
 

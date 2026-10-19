@@ -3,7 +3,7 @@
   "generated_by": "code/fetch_human_baselines.py",
   "asked_for_by": "the 'Human comparisons (Project)' column of data/auto-arc/questions-2026-08-31.xlsx, and the human_comparisons of data/auto-arc/addendum-*.json, carried into data/autoarc_*.json as each question's human_comparisons",
   "adjusted": false,
-  "note": "Medians as each panel reported them, in percent, unadjusted. Every entry carries the question the panel answered; the wordings differ from ours and no reconciliation is applied here.",
+  "note": "Medians as each panel reported them, in percent, unadjusted. Every entry carries the question the panel answered; the wordings differ from ours and no reconciliation is applied here. Re-keyed 2026-10-19 when each ladder rung became a deaths question and a damages question: the LEAP comparison the workbook flags for the ai:10k rung is carried on both of its questions.",
   "baselines": [
     {
       "question_id": "catastrophe:ai",
@@ -872,7 +872,57 @@
       }
     },
     {
-      "question_id": "ladder:ai:10k",
+      "question_id": "ladder:ai:10k:deaths",
+      "horizon": "2050",
+      "project": "LEAP",
+      "prior_question_id": "leap-ai-catastrophe-50-deaths-or-100b",
+      "units": "percent",
+      "groups": {
+        "expert": {
+          "median": 65.0,
+          "mean": 61.596,
+          "p25": 35.0,
+          "p75": 90.0,
+          "n": 201
+        },
+        "superforecaster": {
+          "median": 70.0,
+          "mean": 62.3774,
+          "p25": 40.0,
+          "p75": 90.0,
+          "n": 53
+        },
+        "public": {
+          "median": 35.0,
+          "mean": 43.9493,
+          "p25": 15.0,
+          "p75": 75.0,
+          "n": 614
+        }
+      },
+      "elicited": {
+        "date": "2026-06-01",
+        "project": "fri-data-warehouse",
+        "survey": "Wave 9: Risks",
+        "start": "2026-05-19",
+        "end": "2026-06-10"
+      },
+      "source_question": {
+        "category": "AI catastrophe",
+        "severity": "50 deaths or $100b",
+        "text": "What is the probability that an event, primarily driven by at least one AI system, will cause at least 50 deaths or $100 billion (in 2025 USD) in damages by the end of 2050?",
+        "criteria": "",
+        "resolution_dates": [
+          "2050"
+        ]
+      },
+      "our_question": {
+        "text": "What is the probability that one or more AI-related incidents cumulatively causes 10,000 deaths (or equivalent morbidity) or $100 billion in economic damages within 6 months / within 12 months / by the end of 2028 / by the end of 2030 / by the end of 2050 / by the end of 2100?",
+        "severity": "10k deaths or $100B"
+      }
+    },
+    {
+      "question_id": "ladder:ai:10k:damages",
       "horizon": "2050",
       "project": "LEAP",
       "prior_question_id": "leap-ai-catastrophe-50-deaths-or-100b",
