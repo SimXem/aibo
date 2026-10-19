@@ -293,8 +293,10 @@ class SyncTest(unittest.TestCase):
                          ("anthropic/claude-fable-5-1", "claude-fable-5-1", "anthropic", "claude-fable-5-1", "Anthropic"))
         self.assertEqual(new["options"], e["members"][0]["options"])                   # the condition's options
         self.assertEqual(new["one_shot_baseline"], None)                               # unknown for a newcomer
-        self.assertEqual(e["members"][0]["one_shot_baseline"],                         # kept for a model it already knew
-                         self.reg["names"]["ensemble-oak"]["members"][0]["one_shot_baseline"])
+        for i in range(3):                                                             # kept for the models it already knew,
+            self.assertEqual(e["members"][i]["one_shot_baseline"],                     # from the research entries, not unaided's None
+                             self.reg["names"]["ensemble-oak"]["members"][i]["one_shot_baseline"])
+            self.assertIsNotNone(e["members"][i]["one_shot_baseline"])
         self.assertEqual(self.reg["names"]["unaided-elm"]["members"][3]["options"]["tools"], ["submit_forecast"])
         self.assertEqual(e["reason"], "sync 2026-10-19: members " + ", ".join(self.have) + " -> " +
                          ", ".join(self.have[:3] + ["Claude Fable 5.1"]))
