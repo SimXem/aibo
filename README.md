@@ -95,17 +95,19 @@ pytest
 ## Elicit new forecasts
 
 ```bash
-pip install -e '.[acquire,pi]'                   # litellm, and agent-box (the pi loop)
+pip install -e '.[acquire]' -e ./packages/fri-forecaster   # litellm, and the harness (the pi loop)
+(cd packages/fri-forecaster && npm ci)                       # pi 0.99.2, pinned there
 python code/run_unified.py --joint --dry-run     # print the prompt, call nothing
 python code/run_unified.py --joint --repeats 1 --workers 2 \
     --conditions data/combined_conditions.json --out results/runs/<stamp>.jsonl
 ```
 
-Since combined-v9 the calls go through pi (redlines/pi_loop.py): node 22 and
-pi 0.99.2, whose `cli.js` `FORECASTER_PI` names (agent-box's README, "Requirements").
-agent-box hands pi the prompt on stdin since 2026-10-19; an earlier agent-box
-passes it as one argument, which Linux caps at 128 KiB, and the runner refuses
-a prompt past that rather than let pi fail.
+Since combined-v9 the calls go through pi (redlines/pi_loop.py) by way of the
+FRI Forecaster harness in `packages/fri-forecaster/` (its README, "Requirements"):
+node 22 and pi 0.99.2, whose `cli.js` `FORECASTER_PI` names. The harness hands
+pi the prompt on stdin since 2026-10-19; an earlier one passed it as one
+argument, which Linux caps at 128 KiB, and the runner refuses a prompt past
+that rather than let pi fail.
 `--harness litellm --experiment <name>` runs the same instrument through
 redlines.llm's own loop, which is the cron's shadow.
 
@@ -200,6 +202,10 @@ web/
   shared/                   question-rail.jsx, responsive.jsx — helpers the chunks share
   img/                      the FRI logo and the ForecastBench parity figure (web/fonts/ is ignored:
                             Season Sans is licensed for the live site only; clones use the fallback stack)
+packages/fri-forecaster/    the FRI Forecaster harness -- pi, the research tools, the ForecastBench
+                            driver -- as its own distribution, pip-installable from this repository
+                            (its README). It was the agent-box repository from 2026-10-11 to
+                            2026-10-19 and rejoined with its history.
 redlines/                   the pipeline package (stdlib only; litellm only inside llm.py at call time)
   __main__.py               CLI: build / assemble / export-fb / paper
   config.py                 paths (env-overridable), round pins, thresholds

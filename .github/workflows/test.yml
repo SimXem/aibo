@@ -1,6 +1,9 @@
-# The test suite on every PR and on main. No secrets: nothing in tests/ needs
-# an API key (the build stage is stdlib-only, and redlines/llm.py imports its
-# provider client inside the call). Actions are pinned by commit.
+# The test suites on every PR and on main: AIRO's (tests/) and the harness's
+# (packages/fri-forecaster/tests, which runs pi_tools.ts through the pinned pi
+# against a scripted model on a local port). No secrets: nothing needs an API
+# key (the build stage is stdlib-only, redlines/llm.py imports its provider
+# client inside the call, and pi talks to the scripted model only). Actions
+# are pinned by commit.
 name: test
 
 on:
@@ -19,8 +22,15 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: "22.19"     # pi 0.99.2's engines floor
+          cache: npm
+          cache-dependency-path: packages/fri-forecaster/package-lock.json
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.12"
-      - run: pip install -e '.[test]'
-      - run: python -m pytest -q
+      - run: npm ci
+        working-directory: packages/fri-forecaster
+      - run: pip install -e '.[test]' -e './packages/fri-forecaster[dev]'
+      - run: python -m pytest -q -rs
