@@ -20,3 +20,17 @@ class TestLogs(unittest.TestCase):
             plain = Path(d) / "experiment.jsonl"
             plain.write_text('{"a": 1}\n\n')
             self.assertEqual(list(logs.iter_rows(plain)), [{"a": 1}])
+
+    def test_an_old_row_reads_with_the_scenario_fields(self):
+        stamp = {"id": "p5", "label": "Compute caps", "set": "combined"}
+        old = {"question_id": "q", "condition": stamp, "condition_set": "combined",
+               "joint_conditions": ["unconditional", "p5"]}
+        r = logs.read_row(json.dumps(old))
+        self.assertEqual(r["scenario"], stamp)
+        self.assertEqual(r["scenario_set"], "combined")
+        self.assertEqual(r["joint_scenarios"], ["unconditional", "p5"])
+        self.assertNotIn("condition", r)
+        self.assertIsNone(logs.read_row(json.dumps({"condition": None}))["scenario"])   # the unconditional
+        new = {"question_id": "q", "scenario": stamp, "scenario_set": "combined"}
+        self.assertEqual(logs.read_row(json.dumps(new)), new)
+        self.assertEqual(logs.read_row('{"a": 1}'), {"a": 1})                          # another runner's row

@@ -104,7 +104,7 @@ def main():
         shas = {v: hashlib.sha256(p.encode()).hexdigest() for v, p in prompts.items()}
         scenario_ids = {None} | {c['id'] for c in scenarios}
         expected = {(label, v, q, c) for label in labels for v in variants for q in qs for c in scenario_ids}
-        keys = Counter((r['label'], r.get('variant') or 'none', r['question_id'], (r.get('condition') or {}).get('id'))
+        keys = Counter((r['label'], r.get('variant') or 'none', r['question_id'], (r.get('scenario') or {}).get('id'))
                        for r in rows)
         pooled_keys = Counter({k: n for k, n in keys.items() if k[1] not in unpooled})
         check(set(pooled_keys) == expected and all(v == 1 for v in pooled_keys.values()), 'complete_unique_grid',
@@ -131,7 +131,7 @@ def main():
             if q is None:
                 continue
             v = r.get('variant') or 'none'
-            ident = [slug, r['label'], v, r['question_id'], (r.get('condition') or {}).get('id')]
+            ident = [slug, r['label'], v, r['question_id'], (r.get('scenario') or {}).get('id')]
             hs = {h for h in horizons if h in q['horizons']}
             fs = r.get('forecasts') or []
             check_call(len(fs) == len(hs) and {f['horizon'] for f in fs} == hs,

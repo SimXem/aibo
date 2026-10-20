@@ -1415,13 +1415,13 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
                                 + ("" if variant in set_asked_variants(policies) else f"+{variant}")
                                 + ("" if minimal == (set_instrument(policies) == "minimal") else
                                    ("+minimal" if minimal else "+standard")),
-                    "condition_set": set_slug(policies),
+                    "scenario_set": set_slug(policies),
                     "call_id": call_id, "attempts": attempts,
                     "batch_size": len(qids),
                     "cause": q.get("cause"), "group": g["key"],
                     "asked_horizons": q.get("horizons"),
                     "raw_forecasts": (None if grids else answer.get("forecasts")) if first else None,
-                    "condition": stamps[key],
+                    "scenario": stamps[key],
                     # The elicited quantity (a self-conditioned set), on every
                     # row of the call; None for other sets.
                     "elicited": ({**elicited,
@@ -1438,7 +1438,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
                     "variant": variant,
                     # Which scenarios this call was asked, so a partial
                     # submission is visibly partial.
-                    "joint_conditions": [UNCONDITIONAL_KEY] + scenario_ids,
+                    "joint_scenarios": [UNCONDITIONAL_KEY] + scenario_ids,
                     # Which model set this call belongs to -- for the ECI
                     # panel, which snapshot chose it (redlines.registry).
                     "panel": panel,
@@ -1745,7 +1745,7 @@ def main_joint(args):
             with lock:
                 for r in rows:
                     fc.write(json.dumps(r) + "\n")
-                    if r["condition"] is None:
+                    if r["scenario"] is None:
                         f.write(json.dumps(r) + "\n")
                 f.flush(); fc.flush()
             done += 1

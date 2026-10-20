@@ -18,21 +18,23 @@ itself: a loop difference that sits inside that spread is not a difference
 yet. The loops are named from the rows (usage.harness; none = litellm).
 """
 import argparse
-import json
+import os
 import statistics
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from redlines.logs import iter_rows  # noqa: E402
+
 
 def load(path):
-    with open(path) as f:
-        return [json.loads(line) for line in f if line.strip()]
+    return list(iter_rows(path))
 
 
 def cells(rows):
     """{(label, question, scenario, horizon): probability}"""
     out = {}
     for r in rows:
-        scenario = (r.get("condition") or {}).get("id") or "unconditional"
+        scenario = (r.get("scenario") or {}).get("id") or "unconditional"
         for f in r.get("forecasts") or []:
             if isinstance(f, dict) and isinstance(f.get("probability"), (int, float)):
                 out[(r["label"], r["question_id"], scenario, f.get("horizon"))] = float(f["probability"])

@@ -162,7 +162,7 @@ def _scenario_values(rows):
     """{scenario id: median over calls of the level the scenario named}."""
     by = {}
     for r in rows:
-        c = r.get("condition")
+        c = r.get("scenario")
         if c and c.get("value") is not None:
             by.setdefault(c["id"], {})[r["call_id"]] = c["value"]
     return {cid: st.median(v.values()) for cid, v in by.items()}

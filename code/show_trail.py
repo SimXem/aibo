@@ -27,12 +27,14 @@ import sys
 from collections import OrderedDict
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, ROOT)
+from redlines.logs import iter_rows  # noqa: E402
+
 RUNS_DIR = os.path.join(ROOT, "results", "runs")
 
 
 def load(path):
-    with open(path) as f:
-        return [json.loads(l) for l in f if l.strip()]
+    return list(iter_rows(path))
 
 
 def calls(rows):

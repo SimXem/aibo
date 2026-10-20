@@ -86,7 +86,7 @@ def write_run(results, rows, drop=()):
     with open(runs / f"{RUN_ID}.jsonl", "w") as f, open(cond / f"{RUN_ID}.jsonl", "w") as fc:
         for r in rows:
             fc.write(json.dumps(r) + "\n")
-            if r["condition"] is None:
+            if r["scenario"] is None:
                 f.write(json.dumps(r) + "\n")
     return rows
 

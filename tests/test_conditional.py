@@ -116,7 +116,7 @@ class TestSummarize(unittest.TestCase):
         return {"run_id": run, "question_id": qid, "label": label,
                 "forecasts": [{"horizon": "2030", "probability": p2030},
                               {"horizon": "2050", "probability": min(1, 3 * p2030)}],
-                "condition": ({"id": scenario, "leap_id": scenario.upper(), "label": scenario} if scenario else None),
+                "scenario": ({"id": scenario, "leap_id": scenario.upper(), "label": scenario} if scenario else None),
                 "experiment": "t"}
 
     def test_per_model_then_ensemble(self):
@@ -226,7 +226,7 @@ class TestProtocolTransition(unittest.TestCase):
         return [{"question_id": "catastrophe:ai", "label": "m", "protocol": proto,
                  "elicited_at": f"{day}T12:00:00+00:00", "experiment": None,
                  "forecasts": [{"horizon": "2030", "probability": 0.01}],
-                 "condition": None}
+                 "scenario": None}
                 for proto, day in specs]
 
     def test_newest_protocol_on_the_latest_day_wins_and_the_other_is_dropped(self):
@@ -267,7 +267,7 @@ class TestOutsideNoise(unittest.TestCase):
         def row(label, p, scenario=None, call="u"):
             return {"run_id": "r", "question_id": "q", "label": label, "call_id": f"r:{call}:{label}",
                     "forecasts": [{"horizon": "2030", "probability": p}],
-                    "condition": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
+                    "scenario": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
         policies = {"conditions": [{"id": "p5", "label": "b", "leap_id": "P5"}], "source": {"wave": "t"}}
         # Three models, three repeats each, the SAME call answering both sides:
         # the ratio is paired within the call, so between-call wander cancels.
@@ -302,7 +302,7 @@ class TestOutsideNoise(unittest.TestCase):
         def row(label, p, scenario=None, call="u"):
             return {"run_id": "r", "question_id": "q", "label": label, "call_id": f"r:{call}:{label}",
                     "forecasts": [{"horizon": "2030", "probability": p}],
-                    "condition": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
+                    "scenario": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
         policies = {"conditions": [{"id": "p5", "label": "b", "leap_id": "P5"}], "source": {"wave": "t"}}
         rows = [row("A", 0.10, call="u1"), row("A", 0.12, call="u2"), row("A", 0.11, call="u3"),
                 row("A", 0.02, "p5", call="p5")]
@@ -349,7 +349,7 @@ class TestExpectedLoss(unittest.TestCase):
             return {"run_id": "r", "question_id": f"ladder:ai:{rung}:deaths", "label": label,
                     "call_id": f"r:{call}:{label}", "grounded": True,
                     "forecasts": [{"horizon": "2030", "probability": p}],
-                    "condition": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
+                    "scenario": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
         rows = []
         for i, (r, _) in enumerate(RUNGS):
             rows.append(row(r, "A", 0.5 ** i))                       # arm 0
@@ -518,7 +518,7 @@ class TestScenarioSets(unittest.TestCase):
             return {"run_id": "r", "question_id": "catastrophe:ai", "label": label, "grounded": True,
                     "protocol": "unified-joint-eci-v1", "call_id": call,
                     "forecasts": [{"horizon": "2030", "probability": p}, {"horizon": "2100", "probability": p}],
-                    "condition": ({"id": scenario} if scenario else None)}
+                    "scenario": ({"id": scenario} if scenario else None)}
         rows = [row("m", 0.01, call="c1"), row("m", 0.02, "eci210", "c1"),
                 row("m", 0.012, call="c2"), row("m", 0.024, "eci210", "c2")]
         s = summarize(rows, policies=self.eci, horizons=("2030",), rungs=[])
@@ -864,9 +864,9 @@ class TestGroupedSetOnTheTabs(unittest.TestCase):
         self.assertEqual(cap["history"], self.es["history"])
         self.assertIn("No policy condition applies", cap["conditioning"]["assumption"])
         self.assertIs(group_view(self.leap, "policy"), self.leap)       # a plain set is untouched
-        rows = [{"condition": None, "x": 1}, {"condition": {"id": "p5", "group": "policy"}},
-                {"condition": {"id": "eci_p50", "group": "capability"}}]
-        self.assertEqual([r.get("condition", {}) and r["condition"]["id"] for r in group_rows(rows, "policy")], [None, "p5"])
+        rows = [{"scenario": None, "x": 1}, {"scenario": {"id": "p5", "group": "policy"}},
+                {"scenario": {"id": "eci_p50", "group": "capability"}}]
+        self.assertEqual([r.get("scenario", {}) and r["scenario"]["id"] for r in group_rows(rows, "policy")], [None, "p5"])
         self.assertEqual(len(group_rows(rows, "capability")), 2)
 
     def test_the_tabs_take_the_newest_instrument(self):
@@ -897,8 +897,8 @@ class TestGroupedSetOnTheTabs(unittest.TestCase):
         self.assertEqual(len(protocol), 1)
         protocol = protocol.pop()
         present = {r["label"] for r in newest_rows}
-        cap_ids = sorted({r["condition"]["id"] for r in newest_rows
-                          if r.get("condition") and r["condition"].get("group") == "capability"})
+        cap_ids = sorted({r["scenario"]["id"] for r in newest_rows
+                          if r.get("scenario") and r["scenario"].get("group") == "capability"})
         target = sorted({(r.get("elicited") or {}).get("target_date") for r in newest_rows} - {None})[-1]
 
         b = conditional.build()

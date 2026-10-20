@@ -59,6 +59,7 @@ import statistics as st
 from collections import defaultdict
 
 from .config import REPO_ROOT
+from .logs import iter_rows, log_files
 from .superseded import is_superseded
 
 CONDITIONAL_LOG = REPO_ROOT / "results" / "conditional_runs.jsonl"
@@ -224,23 +225,18 @@ def load_conditional(path=CONDITIONAL_LOG, experiment=None, protocol=None, poole
     mean of the five prompts; False reads everything."""
     rows = []
     for one in _paths(path):
-        with open(one) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                r = json.loads(line)
-                if experiment and r.get("experiment") != experiment:
-                    continue
-                if protocol and r.get("protocol") != protocol:
-                    continue
-                if not isinstance(r.get("forecasts"), list):
-                    continue
-                if is_superseded(r):       # redlines.superseded: replaced the same day
-                    continue
-                if pooled_only and not r.get("pooled", True):
-                    continue
-                rows.append(r)
+        for r in iter_rows(one):
+            if experiment and r.get("experiment") != experiment:
+                continue
+            if protocol and r.get("protocol") != protocol:
+                continue
+            if not isinstance(r.get("forecasts"), list):
+                continue
+            if is_superseded(r):       # redlines.superseded: replaced the same day
+                continue
+            if pooled_only and not r.get("pooled", True):
+                continue
+            rows.append(r)
     return rows
 
 
@@ -273,8 +269,8 @@ def group_view(policies, group):
 def group_rows(rows, group):
     """The rows one group's view reads: every unconditional row (the same
     call's baseline) and the rows of that group's scenarios."""
-    return [r for r in rows if r.get("condition") is None
-            or (r["condition"] or {}).get("group") == group]
+    return [r for r in rows if r.get("scenario") is None
+            or (r["scenario"] or {}).get("group") == group]
 
 
 def _paths(path):
@@ -285,7 +281,6 @@ def _paths(path):
         ps = path.split(":")
     else:
         ps = [path]
-    from .logs import log_files
     return [f for p in ps for f in log_files(p)]
 
 
@@ -293,13 +288,9 @@ def protocols_in(path=CONDITIONAL_LOG):
     """-> {protocol: {"experiments": [...], "runs": [...], "rows": n}}"""
     out = {}
     for one in _paths(path):
-        with open(one) as f:
-            for line in f:
-                if not line.strip():
-                    continue
-                r = json.loads(line)
-                e = out.setdefault(r.get("protocol"), {"experiments": set(), "runs": set(), "rows": 0})
-                e["experiments"].add(r.get("experiment")); e["runs"].add(r.get("run_id")); e["rows"] += 1
+        for r in iter_rows(one):
+            e = out.setdefault(r.get("protocol"), {"experiments": set(), "runs": set(), "rows": 0})
+            e["experiments"].add(r.get("experiment")); e["runs"].add(r.get("run_id")); e["rows"] += 1
     return {k: {"experiments": sorted(x for x in v["experiments"] if x),
                 "runs": sorted(v["runs"]), "rows": v["rows"]} for k, v in out.items()}
 
@@ -334,8 +325,8 @@ def _cells(rows):
         call = _call(r)
         for f in r["forecasts"]:
             key = (r["question_id"], f["horizon"], r["label"])
-            if r.get("condition"):
-                cid = r["condition"]["id"]
+            if r.get("scenario"):
+                cid = r["scenario"]["id"]
                 d = cells[key]["cond"][cid]
                 d[_slot(d, call)] = f["probability"]
                 cells[key]["grounded"][cid] = (cells[key]["grounded"].get(cid, True)
@@ -593,8 +584,8 @@ def _ladder_cells(rows, rungs):
         call = r.get("call_id") or r.get("arm") or r.get("run_id")
         for f in r["forecasts"]:
             key = (cause, f["horizon"], r["label"])
-            if r.get("condition"):
-                cid = r["condition"]["id"]
+            if r.get("scenario"):
+                cid = r["scenario"]["id"]
                 cells[key]["cond"][cid][call][rung] = f["probability"]
                 cells[key]["grounded"][cid] = (cells[key]["grounded"].get(cid, True)
                                                and bool(r.get("grounded")))
@@ -898,7 +889,7 @@ def table(summary, qid, horizon, measure="delta_pp"):
     else:
         head += "  no repeats"
     lines = [head]
-    lines.append("  ".join(["condition".ljust(34)] + [m.rjust(w) for m in models] + ["ensemble".rjust(w)]))
+    lines.append("  ".join(["scenario".ljust(34)] + [m.rjust(w) for m in models] + ["ensemble".rjust(w)]))
     base = ["baseline (unconditional)".ljust(34)]
     for m in models:
         base.append(base_fmt(entry["models"][m]["baseline"]).rjust(w))

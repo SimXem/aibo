@@ -128,8 +128,10 @@ id, currently `unified-joint-combined-v11`, see `redlines/conditional.py`) is th
 single instrument: one call per model that answers every question ×
 horizon cell unconditionally *and* under each scenario in one submission, with
 no coherence relation stated in the prompt (coherence is measured afterwards).
-The prompt calls the scenarios "conditions", LEAP's word, and so do the stored
-rows (`condition`), the set files and the download; the code says scenario.
+The prompt calls the scenarios "conditions", LEAP's word, and so do the set
+files and the rows written before 2026-10-21 (`condition`, which
+`redlines.logs.read_row` renames on reading); the code, the newer rows and the
+download say scenario.
 The prompt is 73 questions (four AI incident types × 9 severity rungs on the
 deaths ladder and × 8 on the damages ladder — since 2026-10-19 each rung is a
 deaths question and a damages question, `docs/severity-legs-2026-10-19.md` —

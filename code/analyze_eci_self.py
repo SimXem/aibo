@@ -112,7 +112,7 @@ def uncond_by_model(path, proto, qids, horizon, runs=None):
         return out, set()
     seen_runs = set()
     for r in load_conditional(path, protocol=proto):
-        if r.get("condition") or r["question_id"] not in out:
+        if r.get("scenario") or r["question_id"] not in out:
             continue
         if runs and r["run_id"] not in runs:
             continue

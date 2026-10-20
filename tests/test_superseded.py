@@ -15,7 +15,7 @@ def _row(run_id, label, qid="ladder:ai:1k", scenario=None):
          "elicited_at": f"{run_id[:10]}T12:00:00", "run_date": run_id[:10],
          "forecasts": [{"horizon": "2030", "probability": 0.1}], "protocol": "unified-joint-combined-v7"}
     if scenario:
-        r["condition"] = {"id": scenario}
+        r["scenario"] = {"id": scenario}
     return r
 
 

@@ -14,13 +14,13 @@ against the frontier five's same-day instrument.
 
 Usage: python3 code/compare_eci_top4.py [--date 2026-08-28]
 """
-import argparse, glob, json, os, statistics as st
+import argparse, glob, os, statistics as st
 from collections import defaultdict
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 import sys  # noqa: E402
 sys.path.insert(0, REPO)
-from redlines.logs import log_exists, log_files  # noqa: E402
+from redlines.logs import iter_rows, log_exists  # noqa: E402
 PUBLISHED = os.path.join(REPO, "results", "conditional_runs.jsonl")
 NEW_GLOB = os.path.join(REPO, "results", "experiments", "eci_top4", "instrument_*.jsonl")
 FRONTIER5 = ["Fable 5", "GPT-5.5", "Opus 4.8", "Gemini 3.1 Pro", "Grok 4.20"]
@@ -33,16 +33,14 @@ def load(paths, date, protocol="unified-joint-v1"):
     for p in paths:
         if not log_exists(p):
             continue
-        for f in (open(fp) for fp in log_files(p)):
-            for line in f:
-                d = json.loads(line)
-                if d.get("protocol") != protocol or (date and d.get("run_date") != date):
-                    continue
-                c = d.get("condition")
-                scenario = (c.get("id") if isinstance(c, dict) else c) or "unconditional"
-                for fc in d.get("forecasts") or []:
-                    out[(scenario, d["question_id"], fc["horizon"])][d["label"]].append(
-                        fc["probability"])
+        for d in iter_rows(p):
+            if d.get("protocol") != protocol or (date and d.get("run_date") != date):
+                continue
+            c = d.get("scenario")
+            scenario = (c.get("id") if isinstance(c, dict) else c) or "unconditional"
+            for fc in d.get("forecasts") or []:
+                out[(scenario, d["question_id"], fc["horizon"])][d["label"]].append(
+                    fc["probability"])
     return out
 
 

@@ -81,7 +81,7 @@ def main():
     p = coherence(rows, "unconditional")
     arms = defaultdict(list)
     for r in combined:
-        arms[(r.get("condition") or {}).get("id", "unconditional")].append(r)
+        arms[(r.get("scenario") or {}).get("id", "unconditional")].append(r)
     for name, rs in arms.items():
         if name != "unconditional":
             coherence(rs, name)
