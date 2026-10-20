@@ -1,6 +1,6 @@
 """The same call as redlines.llm.call_tools, with pi as the loop: the
-published loop since combined-v9 (2026-10-16), whose scenario set names it
-(`"harness": "pi"`; code/run_unified.py set_harness).
+published loop since combined-v9 (2026-10-16): a condition's
+`harness = "pi"` (redlines/experiments.py; experiments/airo.toml).
 
 Under pi, run_unified swaps this in for call_tools and changes nothing else: the prompt, the tools and their schemas, the research floor, the
 coverage rule, the turn limit, the debrief and its validator, the cell
@@ -9,10 +9,10 @@ cleaning and the rows are the instrument's own. The loop is FRI's agent-box
 pi drives the model, and its extension enforces the rules above with the
 loop options that mirror call_tools (agent-box README, "How it works").
 
-So the loop is the only difference between v8 and v9. A run through the loop
-a set does not name (`--harness litellm` on v9, the cron's shadow) carries
-protocol "<protocol>+<harness>" and may only be written as an experiment
-(run_unified refuses otherwise): it never pools with the series.
+So the loop is the only difference between v8 and v9. Until 2026-10-21 a
+run through the loop a set did not name (the cron's shadow) carried protocol
+"<protocol>+<harness>"; now the loop is a condition's setting, and a condition
+with another loop is its own condition, with its own condition_sha256.
 
 Where the loops differ, by design of pi rather than of the instrument:
   * pi cannot force a tool choice, so the last turn ASKS for submit_forecast

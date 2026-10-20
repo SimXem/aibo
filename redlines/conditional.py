@@ -108,7 +108,7 @@ PROTOCOL_LINEAGE = {
     # 2026-10-14..19, where the dropped guidance moved no headline forecast.
     # The same evening a SIXTH call per model joined the run -- the baseline
     # prompt with the AI-forecast ban and a URL guard against AIRO's own pages
-    # (code/make_combined_conditions.py, `unpooled_variants`) -- drawn on the
+    # (experiments/airo.toml, a condition outside `pooled`) -- drawn on the
     # Timeline and never pooled (redlines.runlog.pooled_rows). The five's rows
     # and prompts did not change, so the tag did not move.
     "unified-joint-combined-v10": ("unified-joint-combined-v9", "unified-joint-combined-v8",

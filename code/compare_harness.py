@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """The same instrument through two loops, cell by cell: the cron's published
-run against a `--harness` shadow run of the same day through the other loop
-(pi since combined-v9, litellm before; redlines/pi_loop.py says what differs).
+run against a run of the same day through the other loop -- a condition with
+another `harness` (redlines/experiments.py) -- (pi since combined-v9, litellm
+before; redlines/pi_loop.py says what differs).
 
     python code/compare_harness.py \\
         --base results/conditional_runs_combined/2026-10-21T1200Z.jsonl \\

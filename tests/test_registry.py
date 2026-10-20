@@ -264,19 +264,20 @@ class TestPanel(unittest.TestCase):
         spec = importlib.util.spec_from_file_location("run_unified", REPO / "code" / "run_unified.py")
         ru = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(ru)
-        self.assertEqual(ru.DEFAULT_MODEL_SET, "eci_topk")
-        args = SimpleNamespace(model_set="eci_topk", models=None, smoke=False)
+        from redlines import experiments
+        self.assertEqual(experiments.DEFAULTS["model_set"], "eci_topk")
+        args = SimpleNamespace(models=None, smoke=False)
         with redirect_stderr(io.StringIO()):
             import contextlib
             with contextlib.redirect_stdout(io.StringIO()) as out:
-                models, stamp = ru.select_models(args)
+                models, stamp = ru.select_models("eci_topk", args)
         self.assertEqual(len(models), registry.PANEL_K)
         self.assertEqual(stamp, {"set": "eci_topk", "k": registry.PANEL_K,
                                  "snapshot": eci.latest()[0].isoformat()})
         self.assertIn("panel eci_topk: top 4 by ECI, snapshot", out.getvalue())
-        args = SimpleNamespace(model_set="frontier5", models="fable 5", smoke=False)
+        args = SimpleNamespace(models="fable 5", smoke=False)
         with contextlib.redirect_stdout(io.StringIO()):
-            models, stamp = ru.select_models(args)
+            models, stamp = ru.select_models("frontier5", args)
         self.assertEqual(models, [("Fable 5", "anthropic/claude-fable-5")])
         self.assertEqual(stamp, {"set": "frontier5"})
 

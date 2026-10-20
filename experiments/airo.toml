@@ -1,0 +1,50 @@
+# AIRO: the published series (redlines/experiments.py says what an experiment
+# and a condition are).
+#
+# The combined instrument -- every question, unconditionally and under each
+# LEAP Wave 12 policy and each six-month capability scenario, in one call per
+# model (data/combined_conditions.json, code/make_combined_conditions.py) --
+# asked under five prompts whose mean is each model's published number, and a
+# sixth that is drawn on the Timeline and enters no number.
+#
+# The settings below are every condition's unless its own table says otherwise.
+# A change to what a call is asked moves each affected condition's
+# condition_sha256 on its rows; when it changes the published number, bump the
+# scenario set's protocol tag too (code/make_combined_conditions.py PROTOCOL).
+
+scenarios = "data/combined_conditions.json"
+# Since combined-v10 (2026-10-19): the MINIMAL instrument -- no system prompt,
+# no research advice, no research floor or coverage rule, no debrief
+# (code/run_unified.py minimal_joint_prompt). The prompt-variant experiments of
+# 2026-10-14..19 found the instrument's guidance moved no headline forecast.
+instrument = "minimal"
+# Agent-box's pi since combined-v9 (redlines/conditional.py PROTOCOL_LINEAGE).
+harness = "pi"
+publish = true
+
+# Jason's five prompts (2026-10-14). They run together: a model's published
+# number is the mean of its five calls on one day (redlines.runlog.pool).
+pooled = ["none", "independent", "recent", "critical", "two-step"]
+
+[conditions.none]
+
+[conditions.independent]
+variant = "independent"
+
+[conditions.recent]
+variant = "recent"
+
+[conditions.critical]
+variant = "critical"
+
+[conditions.two-step]
+variant = "two-step"
+
+# THE SIXTH (2026-10-19 evening): the baseline prompt with the AI-forecast ban,
+# and agent-box's URL guard keeping AIRO's own published forecasts out of its
+# search -- the `both` arm of the anchor-guard experiment of 2026-10-16
+# (elsehow/airo#5). Its rows carry `pooled: false` and the guard; a failed
+# call does not fail the run (code/validate_launch_run.py).
+[conditions.ai-banned]
+variant = "ai-banned"
+url_block_patterns = 'forecastingresearch\.org/pdf/airo,forecastingresearch\.org/research/airo,airo\.forecastingresearch\.org'

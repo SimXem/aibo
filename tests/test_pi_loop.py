@@ -116,24 +116,27 @@ class PiLoopTest(unittest.TestCase):
         self.assertTrue(problems[0].endswith(": missing"))
 
 
-class HarnessFlagTest(unittest.TestCase):
-    def setUp(self):
-        self.ru = _load_runner()
+class HarnessSettingTest(unittest.TestCase):
+    """The loop is a condition's setting (redlines/experiments.py)."""
 
-    def test_the_set_names_its_loop(self):
-        cb = json.load(open(REPO / "data" / "combined_conditions.json"))
-        self.assertEqual(self.ru.set_harness(cb), "pi")                        # since combined-v9
-        self.assertEqual(self.ru.row_protocol(cb, "pi"), "unified-joint-combined-v11")
-        self.assertEqual(self.ru.row_protocol(cb, "litellm"), "unified-joint-combined-v11+litellm")
-        legacy = {"protocol": "unified-joint-v6"}                              # a set naming none: litellm
-        self.assertEqual(self.ru.row_protocol(legacy, "litellm"), "unified-joint-v6")
-        self.assertEqual(self.ru.row_protocol(legacy, "pi"), "unified-joint-v6+pi")
+    def test_the_published_experiment_runs_through_pi(self):
+        from redlines import experiments
+        airo = experiments.load("airo")
+        self.assertEqual({c["harness"] for c in airo["conditions"].values()}, {"pi"})   # since combined-v9
+        none = {k: airo["conditions"]["none"][k] for k in experiments.DEFAULTS}
+        self.assertNotEqual(experiments.condition_sha256(none),                         # another loop is
+                            experiments.condition_sha256(dict(none, harness="litellm")))  # another condition
 
-    def test_another_loop_only_as_an_experiment(self):
-        r = subprocess.run([sys.executable, str(REPO / "code" / "run_unified.py"), "--harness", "litellm"],
-                           capture_output=True, text=True, cwd=REPO)
+    def test_the_runner_refuses_what_cannot_run(self):
+        import tempfile
+        with tempfile.NamedTemporaryFile("w", suffix=".toml") as f:
+            f.write('scenarios = "data/combined_conditions.json"\ninstrument = "minimal"\n'
+                    'harness = "litellm"\n[conditions.a]\n')
+            f.flush()
+            r = subprocess.run([sys.executable, str(REPO / "code" / "run_unified.py"), "--experiment", f.name,
+                                "--dry-run"], capture_output=True, text=True, cwd=REPO)
         self.assertNotEqual(r.returncode, 0)
-        self.assertIn("this set is elicited through pi; another loop runs only as an --experiment", r.stderr)
+        self.assertIn("the minimal instrument runs through pi", r.stderr)
 
 
 if __name__ == "__main__":

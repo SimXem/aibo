@@ -348,17 +348,19 @@ on a Linux box (the host behind `airo.forecastingresearch.org`), cron-fired twic
 12:00 UTC, from 2026-09-16). It sources `~/.config/redlines/env` for API keys, then runs:
 
 ```bash
-"$PY" code/run_unified.py --repeats 1 --workers 2 \
-    --scenarios data/combined_conditions.json --out results/runs/<timestamp>.jsonl
+"$PY" code/run_unified.py --experiment airo --workers 10 --out results/runs/<timestamp>.jsonl
 ```
 
 `$PY` only has to be an interpreter with the acquisition extra installed
 (`pip install -e '.[acquire]'`, which is just litellm); `REDLINES_PY` overrides
 it (historically it pointed at the venv of the internal checkout the LLM layer
-was imported from before it was vendored). Each call is the single instrument:
-one call per model answers every question×horizon cell unconditionally *and*
-under each scenario of the combined set (the LEAP policies plus the model's own
-capability percentiles), once per model since 2026-09-02. Since 2026-09-15 the
+was imported from before it was vendored). `experiments/airo.toml` says what
+the run asks (`redlines/experiments.py`): six conditions, each a configured way
+of running the single instrument, one call per model each. Every call answers
+every question×horizon cell unconditionally *and* under each scenario of the
+combined set (the LEAP policies plus the model's own capability percentiles);
+five conditions are pooled into each model's published number and the sixth is
+drawn beside them. Since 2026-09-15 the
 call ends with a **debrief turn** (`redlines.llm.call_tools` `debrief`,
 `code/run_unified.py` `debrief_tool`): once the forecasts are accepted, the
 same conversation is asked, per question group, which sources mattered most
@@ -406,9 +408,10 @@ to `/` so old links still land.
 
 `code/publish_dashboard.sh` (box-side) first runs the launch validator
 (`code/validate_launch_run.py`: every panel model, every question, one call
-per cell, on one date for the combined instrument — otherwise publication is
-withheld and the last good site stays up; the axes instruments left the
-schedule on 2026-09-14 and are audited with `--sets` when re-elicited by hand), then rebuilds the run-log-driven
+per cell, on one date for the airo experiment's pooled conditions — otherwise
+publication is withheld and the last good site stays up; the axes experiments
+left the schedule on 2026-09-14 and are audited with `--experiments` when
+re-elicited by hand), then rebuilds the run-log-driven
 blobs and the download (`python3 -m redlines build --views
 g1,g2,databank,timeline,conditional,capability,axes,method,rationales,csv` — Graph 3,
 Graph 4 and the two bench panels are frozen artifacts and pass through

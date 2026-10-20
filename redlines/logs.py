@@ -12,9 +12,12 @@ conditional on `scenario` (None for the unconditional), the set it came from
 `scenario_set`, and its call's whole list `joint_scenarios`. Rows written
 before 2026-10-21 use the prompt's and LEAP's word for all three
 (`condition`, `condition_set`, `joint_conditions`), from before `condition`
-came to mean the configured way a call is run. read_row gives an old row the
-new names, so every reader sees one shape; the files on disk are records and
-are never rewritten.
+came to mean the configured way a call is run (redlines.experiments). read_row
+gives an old row the new names, so every reader sees one shape; the files on
+disk are records and are never rewritten. An old row's condition is its
+prompt variant ("none" before the variants): until 2026-10-21 a variant was
+all that set one call of a run apart from another, and the airo experiment's
+conditions are named after them.
 """
 import json
 from pathlib import Path
@@ -44,10 +47,11 @@ def log_exists(path):
 def read_row(line):
     """One JSON line -> a row in the current shape (LEGACY_FIELDS)."""
     row = json.loads(line)
-    if "scenario" not in row:
+    if "scenario" not in row and "condition" in row:
         for old, new in LEGACY_FIELDS.items():
             if old in row:
                 row[new] = row.pop(old)
+        row["condition"] = row.get("variant") or "none"
     return row
 
 

@@ -1,14 +1,13 @@
-"""combined-v10: the minimal instrument under five prompt variants, and the
-unpooled sixth.
+"""Experiments and their conditions (redlines/experiments.py).
 
-The set declares both (data/combined_conditions.json "instrument", "variants");
-run_unified asks one call per model per variant; the Timeline draws one line
-per variant beside the pooled median. Since 2026-10-19 evening the set also
-declares one UNPOOLED variant ("unpooled_variants": ai-banned, the baseline
-prompt with the AI-forecast ban and a per-call URL guard): asked beside the
-five, drawn on the Timeline, never in the published number."""
+experiments/airo.toml is the published series: the minimal instrument under
+five pooled conditions (combined-v10's prompt variants) and the unpooled
+sixth (the baseline prompt with the AI-forecast ban and a per-call URL
+guard). run_unified asks one call per model per condition; the Timeline draws
+one line per condition beside the pooled median."""
 import importlib.util
 import sys
+import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
@@ -27,20 +26,33 @@ def _runner():
 
 
 ru = _runner()
+from redlines import experiments  # noqa: E402
+
+AIRO = experiments.load("airo")
 
 
-class TestTheSet(unittest.TestCase):
-    def test_v10_declares_the_minimal_instrument_and_five_variants(self):
-        cb = ru.load_policies(ru.COMBINED)
-        self.assertEqual(ru.set_protocol(cb), "unified-joint-combined-v11")
-        self.assertEqual(ru.set_instrument(cb), "minimal")
-        self.assertEqual(ru.set_variants(cb), ["none", "independent", "recent", "critical", "two-step"])
-        self.assertEqual(set(ru.set_asked_variants(cb)), set(ru.VARIANTS))
+def _toml(text):
+    f = tempfile.NamedTemporaryFile("w", suffix=".toml", delete=False)
+    f.write(text)
+    f.close()
+    return f.name
 
-    def test_the_sixth_is_declared_unpooled_with_its_guard(self):
-        cb = ru.load_policies(ru.COMBINED)
-        self.assertEqual(list(ru.set_unpooled(cb)), ["ai-banned"])
-        guard = ru.set_unpooled(cb)["ai-banned"]["url_block_patterns"]
+
+class TestTheAiroExperiment(unittest.TestCase):
+    def test_six_conditions_five_pooled_on_the_combined_set(self):
+        self.assertEqual(list(AIRO["conditions"]), ["none", "independent", "recent", "critical", "two-step", "ai-banned"])
+        self.assertEqual(AIRO["pooled"], ["none", "independent", "recent", "critical", "two-step"])
+        for c in AIRO["conditions"].values():
+            self.assertEqual((c["scenarios"], c["instrument"], c["harness"], c["model_set"], c["repeats"], c["publish"]),
+                             ("data/combined_conditions.json", "minimal", "pi", "eci_topk", 1, True), c["id"])
+            self.assertEqual(c["variant"], c["id"])               # the conditions are named for their prompts
+        self.assertEqual(ru.set_protocol(ru.load_policies(ru.COMBINED)), "unified-joint-combined-v11")
+        self.assertEqual(set(AIRO["conditions"]), set(ru.VARIANTS))
+
+    def test_the_sixth_is_unpooled_with_its_guard(self):
+        sixth = AIRO["conditions"]["ai-banned"]
+        self.assertFalse(sixth["pooled"])
+        guard = sixth["url_block_patterns"]
         # The `both` arm of the anchor-guard experiment (2026-10-16), verbatim.
         self.assertEqual(guard, r"forecastingresearch\.org/pdf/airo,forecastingresearch\.org/research/airo,"
                                 r"airo\.forecastingresearch\.org")
@@ -51,8 +63,7 @@ class TestTheSet(unittest.TestCase):
         ru.check_patterns(guard)                                        # compiles
         with self.assertRaises(ru.re.error):
             ru.check_patterns("ok,(unclosed")
-        self.assertEqual(ru.set_asked_variants(cb), ru.set_variants(cb) + ["ai-banned"])
-        self.assertNotIn("ai-banned", ru.set_variants(cb))              # not a pooled variant
+        self.assertFalse(any(c["url_block_patterns"] for c in AIRO["conditions"].values() if c["pooled"]))
         # The guard blocks AIRO's pages and nothing else, case-insensitively.
         from redlines.tools import blocked_patterns, is_blocked
         with patch.dict("os.environ", {ru.BLOCK_ENV: guard}):
@@ -63,12 +74,73 @@ class TestTheSet(unittest.TestCase):
         for url in ("https://forecastingresearch.org/xpt", "https://www.lesswrong.com/posts/x/airo"):
             self.assertFalse(is_blocked(url, pats), url)
 
-    def test_a_set_without_them_is_one_standard_call(self):
-        leap = ru.load_policies(ru.POLICIES)
-        self.assertEqual(ru.set_variants(leap), ["none"])
-        self.assertEqual(ru.set_unpooled(leap), {})
-        self.assertEqual(ru.set_asked_variants(leap), ["none"])
-        self.assertEqual(ru.set_instrument(leap), "standard")
+    def test_the_set_says_what_is_asked_and_nothing_about_how(self):
+        cb = ru.load_policies(ru.COMBINED)
+        for key in ("harness", "instrument", "variants", "unpooled_variants"):
+            self.assertNotIn(key, cb)
+
+    def test_every_experiment_loads(self):
+        for name in experiments.names():
+            exp = experiments.load(name)
+            self.assertTrue(exp["conditions"], name)
+            for c in exp["conditions"].values():
+                self.assertTrue((REPO / c["scenarios"]).exists(), (name, c["id"]))
+        for name in ("axes", "paperaxes"):                       # the axes instruments: one standard call
+            (c,) = experiments.load(name)["conditions"].values()
+            self.assertEqual((c["variant"], c["instrument"], c["harness"], c["pooled"], c["publish"]),
+                             ("none", "standard", "litellm", True, True))
+
+
+class TestConditions(unittest.TestCase):
+    """What a condition is: the shared settings, its own over them, a hash of what it asks."""
+
+    def test_a_condition_takes_the_shared_settings_and_overrides_its_own(self):
+        exp = experiments.load(_toml("""
+scenarios = "data/combined_conditions.json"
+harness = "pi"
+instrument = "minimal"
+pooled = ["a"]
+publish = true
+
+[conditions.a]
+[conditions.b]
+variant = "recent"
+model_set = "frontier5"
+"""))
+        a, b = exp["conditions"]["a"], exp["conditions"]["b"]
+        self.assertEqual((a["variant"], a["model_set"], a["harness"], a["pooled"]), ("none", "eci_topk", "pi", True))
+        self.assertEqual((b["variant"], b["model_set"], b["harness"], b["pooled"]), ("recent", "frontier5", "pi", False))
+        self.assertTrue(b["publish"])                            # shared, not overridden
+
+    def test_the_hash_is_what_a_call_is_asked(self):
+        base = dict(experiments.DEFAULTS, scenarios="data/combined_conditions.json")
+        h = experiments.condition_sha256(base)
+        self.assertEqual(h, experiments.condition_sha256(dict(base, publish=True, repeats=3)))
+        for k, v in (("variant", "recent"), ("harness", "pi"), ("model_set", "frontier5"),
+                     ("url_block_patterns", "x"), ("scenarios", "data/axes_conditions.json")):
+            self.assertNotEqual(h, experiments.condition_sha256(dict(base, **{k: v})), k)
+        self.assertEqual(AIRO["conditions"]["none"]["sha256"],
+                         experiments.condition_sha256({k: AIRO["conditions"]["none"][k] for k in experiments.DEFAULTS}))
+
+    def test_what_cannot_run_as_written_is_refused(self):
+        head = 'scenarios = "data/combined_conditions.json"\n'
+        for body, why in (
+                ('[conditions.a]\nharnes = "pi"\n', "unknown setting"),
+                ('pooled = ["b"]\n[conditions.a]\n', "not conditions"),
+                ('pooled = ["a"]\n[conditions.a]\n', "pooled condition publishes"),
+                ('[conditions.a]\ninstrument = "minimal"\n', "minimal instrument runs through pi"),
+                ('[conditions.a]\nurl_block_patterns = "x"\n', "through pi only"),
+                ('harness = "pi"\n[conditions.a]\nurl_block_patterns = "(x"\n', "bad url_block_patterns"),
+                ('[conditions.a]\nvariant = "nope"\n', "unknown variant"),
+                ('[conditions.a]\nrepeats = 0\n', "repeats"),
+                ('', "no \\[conditions")):
+            with self.assertRaisesRegex(ValueError, why):
+                experiments.load(_toml(head + body))
+        with self.assertRaisesRegex(ValueError, "no scenario set"):
+            experiments.load(_toml("[conditions.a]\n"))
+
+    def test_the_baseline_adds_no_instruction(self):
+        self.assertEqual(experiments.baseline(AIRO)["id"], "none")
 
 
 class TestMinimalPrompt(unittest.TestCase):
@@ -113,7 +185,7 @@ class TestMinimalPrompt(unittest.TestCase):
 class TestRunOneJoint(unittest.TestCase):
     """One call per variant through a fake loop: what the loop is given, and the rows."""
 
-    def _call(self, variant, answer_cells=True, harness="pi"):
+    def _call(self, cid, answer_cells=True, **settings):
         today = date(2026, 10, 19)
         pol = ru.load_policies(ru.COMBINED)
         g, b, h, _, spec = ru.load_batch(ru.LADDER, ru.CROSS, ru.UNBATCHED)
@@ -134,8 +206,8 @@ class TestRunOneJoint(unittest.TestCase):
         ru.loop_for = lambda harness: fake
         try:
             rows = ru.run_one_joint("M", "anthropic/x", g, b, h, "2026-10-19T0000Z", 0, spec,
-                                    pol["conditions"], pol, today=today, harness=harness,
-                                    variant=variant, minimal=True)
+                                    pol["conditions"], pol, {**AIRO["conditions"][cid], **settings},
+                                    "airo", today=today)
         finally:
             ru.loop_for = orig
         return rows, seen
@@ -149,8 +221,10 @@ class TestRunOneJoint(unittest.TestCase):
         self.assertEqual(seen["max_iters"], ru.MINIMAL_MAX_TURNS)
         self.assertIn(ru.VARIANTS["independent"], seen["prompt"])
         self.assertEqual({r["variant"] for r in rows}, {"independent"})
+        self.assertEqual({(r["experiment"], r["condition"], r["condition_sha256"]) for r in rows},
+                         {("airo", "independent", AIRO["conditions"]["independent"]["sha256"])})
         self.assertTrue(rows[0]["call_id"].endswith(":independent"))
-        self.assertEqual(rows[0]["protocol"], "unified-joint-combined-v11")   # a declared variant: the set's tag
+        self.assertEqual(rows[0]["protocol"], "unified-joint-combined-v11")   # the set's tag
         self.assertEqual(rows[0]["system_prompt"], ru.MINIMAL_SYSTEM)
         self.assertTrue(all(r["forecasts"] for r in rows))
         # A pooled call: no guard reaches the loop, and the rows are as before.
@@ -158,8 +232,7 @@ class TestRunOneJoint(unittest.TestCase):
         self.assertFalse(any("url_block_patterns" in r or "pooled" in r for r in rows))
 
     def test_the_sixth_runs_guarded_and_its_rows_say_so(self):
-        cb = ru.load_policies(ru.COMBINED)
-        guard = ru.set_unpooled(cb)["ai-banned"]["url_block_patterns"]
+        guard = AIRO["conditions"]["ai-banned"]["url_block_patterns"]
         rows, seen = self._call("ai-banned")
         # The sentence where a variant's text goes; the guard to THIS call only.
         self.assertIn(ru.VARIANTS["ai-banned"], seen["prompt"])
@@ -167,7 +240,7 @@ class TestRunOneJoint(unittest.TestCase):
         self.assertEqual(seen["env"], {ru.BLOCK_ENV: guard})
         self.assertNotIn(ru.BLOCK_ENV, ru.os.environ)
         self.assertEqual(seen["system"], ru.MINIMAL_SYSTEM)
-        # The rows: the variant, the guard, unpooled; the protocol is the set's.
+        # The rows: the condition, the guard, unpooled; the protocol is the set's.
         self.assertEqual({r["variant"] for r in rows}, {"ai-banned"})
         self.assertEqual({r["url_block_patterns"] for r in rows}, {guard})
         self.assertEqual({r["pooled"] for r in rows}, {False})
@@ -175,11 +248,7 @@ class TestRunOneJoint(unittest.TestCase):
         self.assertTrue(rows[0]["call_id"].endswith(":ai-banned"))
         self.assertTrue(all(r["forecasts"] for r in rows))
 
-    def test_a_guarded_variant_needs_pi(self):
-        with self.assertRaisesRegex(RuntimeError, "URL guard"):
-            self._call("ai-banned", harness="litellm")
-
-    def test_a_process_environment_guard_is_stamped_as_an_experiment_would_be(self):
+    def test_a_process_environment_guard_is_stamped_on_every_row(self):
         # #5's stamping: a guard in os.environ reaches every call and every row says so.
         with patch.dict("os.environ", {ru.BLOCK_ENV: "example\\.org"}):
             rows, seen = self._call("none")
@@ -196,29 +265,36 @@ class TestRunOneJoint(unittest.TestCase):
             self._call("none", answer_cells=False)
 
 
-class TestTimelineVariants(unittest.TestCase):
-    def test_variant_text_matches_the_runner(self):
-        from redlines.views.timeline import VARIANT_TEXT
-        self.assertEqual(VARIANT_TEXT, ru.VARIANTS)
-
-    def test_variant_medians(self):
-        from redlines.views.timeline import variant_medians
-        mk = lambda label, v, p: {"run_date": "2026-10-19", "elicited_at": "2026-10-19T12:00:00+00:00",
-                                  "question_id": "catastrophe:ai", "label": label, "variant": v,
+class TestTimelineConditions(unittest.TestCase):
+    def test_condition_medians(self):
+        from redlines.views.timeline import condition_medians
+        mk = lambda label, c, p: {"run_date": "2026-10-19", "elicited_at": "2026-10-19T12:00:00+00:00",
+                                  "question_id": "catastrophe:ai", "label": label, "condition": c,
                                   "forecasts": [{"horizon": "2030", "probability": p}]}
         rows = [mk("A", "none", 0.01), mk("B", "none", 0.03), mk("A", "independent", 0.02), mk("B", "independent", 0.04)]
-        out = variant_medians(rows, ["2026-10-19"])
+        out = condition_medians(rows, ["2026-10-19"])
         self.assertEqual(out[("2026-10-19", "catastrophe:ai")]["none"]["2030"], 2.0)
         self.assertEqual(out[("2026-10-19", "catastrophe:ai")]["independent"]["2030"], 3.0)
-        self.assertEqual(variant_medians(rows[:2], ["2026-10-19"]), {})       # one prompt: no lines
+        self.assertEqual(condition_medians(rows[:2], ["2026-10-19"]), {})       # one condition: no lines
 
-    def test_variant_info_reads_the_stamp_off_the_rows(self):
-        from redlines.views.timeline import variant_info
-        rows = [{"elicited_at": "2026-10-19T12:00:00+00:00", "variant": "none"},
-                {"elicited_at": "2026-10-19T12:00:00+00:00", "variant": "ai-banned",
+    def test_condition_info_reads_the_stamp_off_the_rows(self):
+        from redlines.views.timeline import condition_info
+        rows = [{"elicited_at": "2026-10-19T12:00:00+00:00", "condition": "none", "variant": "none"},
+                {"elicited_at": "2026-10-19T12:00:00+00:00", "condition": "ai-banned", "variant": "ai-banned",
                  "pooled": False, "url_block_patterns": "x\\.org"}]
-        self.assertEqual(variant_info(rows), {"none": {"pooled": True, "guard": None},
-                                              "ai-banned": {"pooled": False, "guard": "x\\.org"}})
+        self.assertEqual(condition_info(rows), {
+            "none": {"pooled": True, "guard": None, "variant": "none"},
+            "ai-banned": {"pooled": False, "guard": "x\\.org", "variant": "ai-banned"}})
+
+    def test_the_legend_is_the_published_experiment_in_its_order(self):
+        from redlines.views.timeline import condition_legend
+        legend = condition_legend({"none": {"pooled": True, "guard": None, "variant": "none"}})
+        self.assertEqual([e["id"] for e in legend], list(AIRO["conditions"]))
+        sixth = next(e for e in legend if e["id"] == "ai-banned")         # no rows yet: the config says
+        self.assertEqual((sixth["text"], sixth["pooled"], sixth["guard"]),
+                         (ru.VARIANTS["ai-banned"], False, AIRO["conditions"]["ai-banned"]["url_block_patterns"]))
+        old = condition_legend({"retired": {"pooled": False, "guard": None, "variant": "recent"}})
+        self.assertEqual((old[-1]["id"], old[-1]["text"]), ("retired", ru.VARIANTS["recent"]))
 
 
 class TestPooledRows(unittest.TestCase):

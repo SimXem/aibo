@@ -275,9 +275,9 @@ def pooled_rows(rows):
     Since 2026-10-19 evening the combined set asks a sixth call per model
     beside its five prompts -- the baseline prompt with the AI-forecast ban
     and agent-box's URL guard against AIRO's own pages
-    (data/combined_conditions.json `unpooled_variants`; code/run_unified.py
-    set_unpooled). Its rows are stamped `pooled: false`: the Timeline draws
-    them as their own line (redlines.views.timeline.variant_medians), and
+    (experiments/airo.toml: a condition outside `pooled`). Its rows are
+    stamped `pooled: false`: the Timeline draws them as their own line
+    (redlines.views.timeline.condition_medians), and
     nothing else reads them -- not pool(), not latest_pooled(), not the
     Policy-levers summary (redlines.conditional.load_conditional). A row
     without the stamp is pooled, so every row before that date is unchanged.

@@ -103,7 +103,8 @@ beyond their inputs; do not consult them -- AND agent-box's URL guard
 (FORECASTER_BLOCK_URL_PATTERNS, passed to that call alone) keeping AIRO's own
 published forecasts out of its search. It is the `both` arm of the anchor-guard
 experiment of 2026-10-16 (elsehow/airo#5), asked every run. It is declared
-under `unpooled_variants`: asked with no new flag, drawn as its own line on the
+as a condition outside the pooled five (experiments/airo.toml since 2026-10-21;
+until then the set's `unpooled_variants`): drawn as its own line on the
 Timeline, and NEVER part of a model's published number -- the mean, the CI,
 Graph 1, the data bank and the Policy-levers tab stay the mean of the five
 (redlines.runlog.pooled_rows). Its rows carry `variant`, `url_block_patterns`
@@ -142,26 +143,9 @@ OUT = os.path.join(ROOT, "data", "combined_conditions.json")
 
 SLUG = "combined"
 PROTOCOL = "unified-joint-combined-v11"
-# The loop the protocol is elicited through (code/run_unified.py set_harness):
-# agent-box's pi since v9 (redlines/conditional.py PROTOCOL_LINEAGE).
-HARNESS = "pi"
-# Since v10 (2026-10-19): the MINIMAL instrument (no system prompt, no research
-# advice, no research floor or coverage rule, no debrief; code/run_unified.py
-# minimal_joint_prompt), asked under each of five prompt VARIANTS -- one call
-# per model per variant, the published number per model the mean of its five.
-# The evidence: the prompt-variant experiments of 2026-10-14..19 (Jason's five
-# prompts), which found the instrument's guidance moved no headline forecast.
-INSTRUMENT = "minimal"
-VARIANTS = ["none", "independent", "recent", "critical", "two-step"]
-# The sixth call (2026-10-19 evening): the baseline prompt with the AI-forecast
-# ban (code/run_unified.py VARIANTS["ai-banned"], the sentence) and agent-box's
-# URL guard against AIRO's own pages, per call. Asked beside the five, never
-# pooled into the published number (see the docstring).
-UNPOOLED_VARIANTS = [
-    {"variant": "ai-banned",
-     "url_block_patterns": r"forecastingresearch\.org/pdf/airo,forecastingresearch\.org/research/airo,"
-                           r"airo\.forecastingresearch\.org"},
-]
+# How the set is asked -- the loop, the minimal instrument, the five prompts
+# and the sixth call -- lives in experiments/airo.toml since 2026-10-21
+# (redlines/experiments.py); this file builds what is asked.
 PLACEHOLDER = "{target_date}"
 
 # ── The authored sentences ──────────────────────────────────────────────────
@@ -217,10 +201,6 @@ def build():
         "slug": SLUG,
         "kind": "policy or capability",
         "protocol": PROTOCOL,
-        "harness": HARNESS,
-        "instrument": INSTRUMENT,
-        "variants": VARIANTS,
-        "unpooled_variants": UNPOOLED_VARIANTS,
         "source": {
             "panel": "LEAP, for the policy conditions only; no human panel answers the "
                      "capability conditions",

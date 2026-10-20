@@ -26,7 +26,7 @@ One page, `index.html`, assembled from the chunks under `web/demo/`. Its panels:
   carries one light line per prompt variant (five, whose mean is each model's
   published number) and, since 2026-10-19, a dashed sixth for the call with
   AI forecasts banned and AIRO's own pages kept out of its search, which is
-  drawn but never pooled (`data/combined_conditions.json` `unpooled_variants`).
+  drawn but never pooled (`experiments/airo.toml`: the conditions outside `pooled`).
 - **Graph 1** — the current forecasts by horizon: the cross-cutting questions
   (general catastrophe, AI catastrophe, human disempowerment) and one
   expected-loss row per AI-related incident cause, with prior human panels
@@ -97,19 +97,29 @@ pytest
 ```bash
 pip install -e '.[acquire]' -e ./packages/fri-forecaster   # litellm, and the harness (the pi loop)
 (cd packages/fri-forecaster && npm ci)                       # pi 0.99.2, pinned there
-python code/run_unified.py --dry-run     # print the prompt, call nothing
-python code/run_unified.py --repeats 1 --workers 2 \
-    --scenarios data/combined_conditions.json --out results/runs/<stamp>.jsonl
+python code/run_unified.py --dry-run     # print each condition's prompt, call nothing
+python code/run_unified.py --experiment airo --workers 2   # what the cron runs
+python code/run_unified.py --experiment airo --condition ai-banned --smoke
 ```
+
+What a run asks is an **experiment** (`experiments/<name>.toml`,
+`redlines/experiments.py`): a set of **conditions**, each one configured way of
+running the instrument (the scenario set, the prompt variant, the minimal or
+standard instrument, the loop, the models, a URL guard, whether its rows
+publish), with settings shared at the top of the file and overridden per
+condition. `experiments/airo.toml` is the published series; `pooled` names the
+conditions whose mean is each model's published number. Rows carry the
+experiment, the condition and `condition_sha256`, a hash of its settings.
+`--condition` runs some of an experiment's conditions; `--smoke` one model,
+into `results/experiments/`.
 
 Since combined-v9 the calls go through pi (redlines/pi_loop.py) by way of the
 FRI Forecaster harness in `packages/fri-forecaster/` (its README, "Requirements"):
 node 22 and pi 0.99.2, whose `cli.js` `FORECASTER_PI` names. The harness hands
 pi the prompt on stdin since 2026-10-19; an earlier one passed it as one
 argument, which Linux caps at 128 KiB, and the runner refuses a prompt past
-that rather than let pi fail.
-`--harness litellm --experiment <name>` runs the same instrument through
-redlines.llm's own loop, which is the cron's shadow.
+that rather than let pi fail. A condition with `harness = "litellm"` runs
+through redlines.llm's own loop instead (the axes experiments do).
 
 Keys go in `~/.config/redlines/env` (mode 600), one `KEY=value` per line:
 `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`,
@@ -139,7 +149,7 @@ plus five cross-cutting questions: the two 10%-of-population catastrophe
 questions, human disempowerment, and since 2026-09-15 the two extinction
 questions in XPT's wording, `docs/extinction-questions-2026-09-15.md`) over six
 horizons, two of them rolling. Since
-2026-09-02 each model is asked once per run (`--repeats 1`); the same-day
+2026-09-02 each model is asked once per run (`repeats = 1`); the same-day
 repeats that preceded it bought a re-asking spread, and their budget went to
 the agentic search harness instead, so the views draw no interval on a
 single-draw day. The model panel is the top four runnable models by ECI in the
@@ -147,9 +157,9 @@ newest Epoch snapshot, one seat per model family (`redlines.registry.panel()`,
 `docs/model-set.md`). The unconditional slice lands in
 `results/runs/<stamp>.jsonl`, the series every panel reads; the whole
 instrument is appended to `results/conditional_runs*.jsonl`.
-`--scenarios <file>` picks the scenario set: `data/combined_conditions.json`
-(the LEAP policies plus the model's own capability percentiles, what the weekly
-run uses), `data/eci_conditions.json` (fixed ECI levels),
+A condition's `scenarios` names its scenario set: `data/combined_conditions.json`
+(the LEAP policies plus the model's own capability percentiles, what the
+published series asks), `data/eci_conditions.json` (fixed ECI levels),
 `data/axes_conditions.json` (risk against an x-axis quantity). See
 `docs/conditional-forecasts.md`. A cron on the serving box runs
 `code/cron_run.sh` (Wednesdays and Fridays 12:00 UTC), which runs the combined
@@ -159,7 +169,7 @@ sources that mattered most, the most compelling arguments, the most likely
 pathway to catastrophe and the base rate, in the model's own words, exported
 as `results/debriefs.csv`. The
 axes instruments left the schedule on 2026-09-14; run them by hand with
-`--scenarios data/axes_conditions.json` when a fresh axes date is wanted.
+`--experiment axes` (or `paperaxes`) when a fresh axes date is wanted.
 
 ### The question set
 
@@ -218,6 +228,8 @@ redlines/                   the pipeline package (stdlib only; litellm only insi
                             shared with the ForecastBench rounds) bound to data/ and the pinned vintages
   questions.py              schema-checked loaders for the Auto-ARC question set
   instrument.py             question-version boundaries and dated incident onset windows
+  experiments.py            experiments and their conditions (experiments/*.toml); the prompt variants
+  logs.py                   row files, one per run, and read_row (old rows' field names)
   runlog.py                 run-log loading, the series start, replicate pooling
   coherence.py              every coherence constraint the question set implies
   conditional.py            per-model deltas under a scenario vs the same-call baseline
@@ -231,8 +243,9 @@ redlines/                   the pipeline package (stdlib only; litellm only insi
                             databank, timeline, conditional, capability, axes, method
   paper/                    the paper's figures (graph1, graph3, graph4, incident_ladders,
                             conditional, capability, causal) and numbers.tex; style.py
+experiments/                what runs ask: airo.toml (the published series), axes.toml, paperaxes.toml
 code/                       acquisition scripts, generators and thin shims (see each docstring)
-  run_unified.py            THE forecast runner; --repeats, --scenarios, --dry-run
+  run_unified.py            THE forecast runner; --experiment, --condition, --dry-run
   cron_run.sh, publish_dashboard.sh   the weekly run and the box-side publish
   make_autoarc_questions.py the question generator: data/auto-arc/* -> data/autoarc_*.json
   make_*_conditions.py      the scenario sets (LEAP policies, ECI levels, self-elicited, axes, combined)
@@ -242,7 +255,7 @@ code/                       acquisition scripts, generators and thin shims (see 
   graph3_comparability.py   the Graph 3 methodology decomposition (needs FB_DATASETS_ROOT)
   observational/            Graph 5: the observational bench, vendored (spec.md, runners, scoring)
   causal/                   Graph 6: the Starsim causal bench's generating code, frozen at causal-v4-locked
-  compare_harness.py        a --harness shadow run (the other loop) against the cron's, cell by cell
+  compare_harness.py        a run through the other loop against the cron's, cell by cell
 data/
   auto-arc/                 the Auto-ARC question workbook (.xlsx) and definitions (.md) by date
   autoarc_ladder.json, autoarc_crosscutting.json   the generated question sets (never hand-edited)
@@ -253,7 +266,7 @@ data/
   live_metr_eci_frontier.json   the METR frontier the capability prompt quoted 2026-09-10 .. 09-18 (record only)
   leap_policies.json, leap_reference.json   the LEAP-derived scenario set and panel aggregates (the
                             survey documents and raw pull under data/leap/ are internal, gitignored)
-  *_conditions.json         the scenario sets the runner takes (--scenarios)
+  *_conditions.json         the scenario sets experiments ask (`scenarios`)
   human_baselines.json      prior human-panel forecasts of comparable questions (XPT, LEAP)
   historical_events.json, recent_incidents_2026-09.json   severity-axis markers; recent-incident context
   lowprob_classes.json, lowprob_selected_classes.json   the FreeCiv question classes (564) and the 35 tail classes

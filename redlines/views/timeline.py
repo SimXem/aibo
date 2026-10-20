@@ -64,23 +64,11 @@ from ..runlog import (answered_horizons, grounding, load_runlog, pool,
 from ..runlog import instrument_info, complete_panel_rows, current_panel, elicitation_date, SERIES_START
 from ..conditional import LOSS_LEG, apply_or, ladder_rungs, level_or
 from ..config import REPO_ROOT
+from ..experiments import PUBLISHED, VARIANTS, load as load_experiment
 from ..questions import SEVERITY_AXIS
 from ..instrument import CURRENT_INSTRUMENT, instrument_rows
 from .graph1 import _loss_question, _loss_series
 
-# code/run_unified.py VARIANTS, verbatim (the runner is not importable from
-# the stdlib-only build); tests/test_variants_v10.py keeps the two equal.
-# "ai-banned" (2026-10-19 evening) is the sixth, UNPOOLED call: its rows say
-# `pooled: false` and carry the URL guard (`url_block_patterns`) the call ran
-# under; the line is drawn, the number is not in the mean.
-VARIANT_TEXT = {
-    "none": None,
-    "independent": "Try to make your own forecasts. Do not take into account external surveys assessing extinction or catastrophic risk, or other probabilities given by prominent figures. The goal is to reach your own independent conclusion.",
-    "recent": "If you search external information, focus on information that arrived within the past year, and weight more heavily sources that are more up to date about recent developments.",
-    "critical": "Evaluate existing information critically. If you take into account forecasts by specific people or surveyed groups, consider their recent and historical forecasting accuracy, as well as the information available to the forecasters when they made their forecasts.",
-    "two-step": "Proceed in two steps. First, make the best predictions you can about model capability progress over the relevant time frame, via human generated improvement or recursive self-improvement. Consider the distribution, not only the modal outcome. Then, given possible model capabilities, evaluate the risk posed and put these pieces together.",
-    "ai-banned": "Forecasts produced by AI systems, including any automated forecasting dashboard or model ensemble, carry no information beyond their inputs. Do not consult them or use them as evidence.",
-}
 import json
 
 MONTH = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -146,15 +134,17 @@ def noise_floor(by_day, days):
     return None
 
 
-def variant_medians(rows, days):
-    """{(date, question_id): {variant: {horizon: panel median, in %}}} for dates
-    asked under more than one prompt variant (combined-v10: five, and the
-    unpooled sixth), else {}. The pooled point per model is the mean of its
-    pooled variants (runlog.pool); these are the per-variant panel medians
-    the Timeline draws beside it, the unpooled ones included."""
+def condition_medians(rows, days):
+    """{(date, question_id): {condition: {horizon: panel median, in %}}} for
+    dates asked under more than one condition (redlines.experiments; airo:
+    the five prompts and the unpooled sixth), else {}. The pooled point per
+    model is the mean of its pooled conditions (runlog.pool); these are the
+    per-condition panel medians the Timeline draws beside it, the unpooled
+    ones included. An old row's condition is its prompt variant
+    (redlines.logs.read_row)."""
     by = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
     for r in rows:
-        v = r.get("variant") or "none"
+        v = r.get("condition") or "none"
         for f in r["forecasts"]:
             by[(elicitation_date(r), r["question_id"])][v][f["horizon"]].append(100 * f["probability"])
     out = {}
@@ -164,16 +154,32 @@ def variant_medians(rows, days):
     return out
 
 
-def variant_info(rows):
-    """{variant: {"pooled": bool, "guard": patterns or None}} as the rows
-    say: an unpooled variant's rows carry `pooled: false` and the URL guard
-    its call ran under (the newest row's, should it ever change)."""
+def condition_info(rows):
+    """{condition: {"pooled": bool, "guard": patterns or None, "variant"}} as
+    the rows say: an unpooled condition's rows carry `pooled: false` and the
+    URL guard its calls ran under (the newest row's, should it ever change)."""
     info = {}
     for r in sorted(rows, key=lambda r: r["elicited_at"]):
-        v = r.get("variant") or "none"
-        info[v] = {"pooled": bool(r.get("pooled", True)),
-                   "guard": r.get("url_block_patterns") or None}
+        info[r.get("condition") or "none"] = {"pooled": bool(r.get("pooled", True)),
+                                              "guard": r.get("url_block_patterns") or None,
+                                              "variant": r.get("variant") or "none"}
     return info
+
+
+def condition_legend(info):
+    """The lines' labels and hover text, one entry per condition: the
+    published experiment's conditions in its order, then any other the rows
+    carry. `text` is the instruction its variant adds; `pooled` and `guard`
+    are what its rows say, else what the experiment says."""
+    config = load_experiment(PUBLISHED)["conditions"]
+    out = []
+    for c in list(config) + [c for c in info if c not in config]:
+        said, cfg = info.get(c), config.get(c)
+        variant = (said or cfg)["variant"]
+        out.append({"id": c, "text": VARIANTS.get(variant),
+                    "pooled": said["pooled"] if said else cfg["pooled"],
+                    "guard": said["guard"] if said else cfg["url_block_patterns"]})
+    return out
 
 
 def _prob_row(q, rail, by_day, days, horizons, var_meds=None):
@@ -237,9 +243,9 @@ def _prob_row(q, rail, by_day, days, horizons, var_meds=None):
             else:
                 cis.append(None)
         median[h], rerun[h], ci[h] = med, band, cis
-    # Prompt variants (combined-v10): one panel-median line per variant, None
-    # on dates asked under one prompt. On those dates the draws are the
-    # variants, not re-asks, so the re-run band is dropped.
+    # Conditions (redlines.experiments): one panel-median line per condition,
+    # None on dates asked under one. On those dates the draws are the
+    # conditions, not re-asks, so the re-run band is dropped.
     variants = {}
     for i, d in enumerate(days):
         per = (var_meds or {}).get((d, q["id"]))
@@ -408,12 +414,12 @@ def build():
             "panel": sorted({(r.get("panel") or {}).get("set") or "frontier5" for r in drows}),
         })
 
-    # The variant lines: the pooled rows' prompts and, on the same days, the
+    # The condition lines: the pooled rows' and, on the same days, the
     # unpooled sixth's. A day the five did not complete draws no line at all.
     drawn = {elicitation_date(r) for r in rows}
     aside_rows = [r for r in aside_rows if elicitation_date(r) in drawn]
-    var_meds = variant_medians(rows + aside_rows, days)
-    var_info = variant_info(rows + aside_rows)
+    var_meds = condition_medians(rows + aside_rows, days)
+    var_info = condition_info(rows + aside_rows)
     # Cross-cutting questions as themselves; each incident cause as ONE
     # expected-loss row (since 2026-08-27, matching Graph 1 and the
     # Policy-levers tab), emitted at its first rung and never again.
@@ -477,12 +483,9 @@ def build():
                   for r in spec["rungs"]],
         "severityAxis": SEVERITY_AXIS,
         "marks": _reference_marks(),
-        # The prompt variants a date may carry (combined-v10), for the lines'
-        # labels and their hover text: the instruction, whether the variant is
-        # in the published number, and the URL guard its calls ran under.
-        **({"variants": [{"id": v, "text": t,
-                          "pooled": var_info.get(v, {}).get("pooled", True),
-                          "guard": var_info.get(v, {}).get("guard")}
-                         for v, t in VARIANT_TEXT.items()]}
-           if var_meds else {}),
+        # The conditions a date may carry (the page calls them variants), for
+        # the lines' labels and their hover text: the instruction, whether the
+        # condition is in the published number, and the URL guard its calls
+        # ran under.
+        **({"variants": condition_legend(var_info)} if var_meds else {}),
     }

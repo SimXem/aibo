@@ -528,7 +528,7 @@ def prompt_macros(run_date: str) -> dict[str, str]:
     spec.loader.exec_module(ru)
     today = date.fromisoformat(run_date)
     policies = ru.load_policies(ru.COMBINED)
-    scenarios = ru.expand_scenarios(["all"], policies)
+    scenarios = list(policies["conditions"])
     groups, by_group, horizons, _, qspec = ru.load_batch(ru.LADDER, ru.CROSS, ru.UNBATCHED)
     horizons = ru.set_horizons(policies, horizons)
     prompt, n, cells = ru.build_prompt_joint(groups, by_group, horizons, qspec, scenarios, policies, today)

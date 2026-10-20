@@ -29,8 +29,10 @@ class TestLogs(unittest.TestCase):
         self.assertEqual(r["scenario"], stamp)
         self.assertEqual(r["scenario_set"], "combined")
         self.assertEqual(r["joint_scenarios"], ["unconditional", "p5"])
-        self.assertNotIn("condition", r)
+        self.assertEqual(r["condition"], "none")               # before the variants
         self.assertIsNone(logs.read_row(json.dumps({"condition": None}))["scenario"])   # the unconditional
-        new = {"question_id": "q", "scenario": stamp, "scenario_set": "combined"}
+        self.assertEqual(logs.read_row(json.dumps({**old, "variant": "recent"}))["condition"], "recent")
+        new = {"question_id": "q", "scenario": stamp, "scenario_set": "combined",
+               "experiment": "airo", "condition": "recent", "variant": "recent"}
         self.assertEqual(logs.read_row(json.dumps(new)), new)
         self.assertEqual(logs.read_row('{"a": 1}'), {"a": 1})                          # another runner's row
