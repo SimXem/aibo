@@ -17,7 +17,11 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
+import time
 from datetime import datetime, timezone
+
+from fri_forecaster.keys import KEY_FOR
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXT = os.path.join(HERE, "pi_tools.ts")
@@ -37,6 +41,18 @@ DEFAULT_PI = os.environ.get("FORECASTER_PI") or (REPO_PI if os.path.exists(REPO_
 # saved system.txt + prompt.txt are the whole prompt.
 ISOLATION = ["--no-builtin-tools", "--no-session", "--no-extensions", "--no-skills",
              "--no-prompt-templates", "--no-context-files"]
+# Billing: API keys only. pi takes a bearer or OAuth token from the environment
+# over ANTHROPIC_API_KEY, and a `pi /login` leaves OAuth credentials in its
+# agent directory (~/.pi/agent by default), which it also prefers -- a personal
+# Claude subscription paid for a run that way (2026-10-15). So pi runs without
+# these variables, in the agent directory the caller names (PI_CODING_AGENT_DIR)
+# or an empty one of ours, and never in one that holds a login.
+LOGIN_TOKENS = ("ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_OAUTH_TOKEN")
+AGENT_DIR = os.path.join(tempfile.gettempdir(), "fri-forecaster-agent")
+# A provider error ends pi's turn with exit 0 and no cells (Anthropic's
+# "out of extra usage" 400 on bursts, 2026-10-14). Retries wait this many
+# seconds times the attempt number.
+RETRY_BACKOFF = 20
 
 
 def key_of(cell, key_fields):
@@ -117,7 +133,8 @@ def parse_events(lines):
     pi (0.99) puts a tool's args on tool_execution_start and its result on
     tool_execution_end: they are joined by toolCallId."""
     args_by_id = {}
-    evidence, usage, turns = [], {"turns": 0, "input_tokens": 0, "output_tokens": 0, "cached_tokens": 0, "cost_usd": 0.0}, 0
+    evidence, turns = [], 0
+    usage = {"turns": 0, "input_tokens": 0, "output_tokens": 0, "cached_tokens": 0, "cost_usd": 0.0, "api_error": None}
     for line in lines:
         if not line.strip():
             continue
@@ -142,6 +159,8 @@ def parse_events(lines):
             usage["output_tokens"] += int(u.get("output") or 0)
             usage["cached_tokens"] += int(u.get("cacheRead") or 0)
             usage["cost_usd"] = round(usage["cost_usd"] + float(((u.get("cost") or {}).get("total")) or 0), 6)
+            if e["message"].get("stopReason") == "error":
+                usage["api_error"] = (e["message"].get("errorMessage") or "error")[:300]
     usage["turns"] = turns
     usage["research_ok"] = sum(1 for ev in evidence if not ev["error"])
     usage["research_failed"] = sum(1 for ev in evidence if ev["error"])
@@ -173,12 +192,53 @@ def collect(workdir, key_fields, allowed_keys):
     return received, answer, delivery
 
 
+def pi_env(model, env=None):
+    """pi's environment: the process's, the caller's `env` over it, then the
+    billing rules above: no login token, the model's provider key present
+    (keys.KEY_FOR), an agent directory without a login."""
+    full = dict(os.environ, **(env or {}))
+    for k in LOGIN_TOKENS:
+        full.pop(k, None)
+    key = KEY_FOR.get(model.partition("/")[0])
+    if key and not full.get(key):
+        raise RuntimeError(f"{model}: {key} is not set; pi is billed to API keys only (keys.load_keys reads the env file)")
+    agent = full.get("PI_CODING_AGENT_DIR") or AGENT_DIR
+    os.makedirs(agent, exist_ok=True)
+    auth = read_json(os.path.join(agent, "auth.json")) or {}
+    logins = sorted(p for p, v in auth.items() if isinstance(v, dict) and v.get("type") == "oauth")
+    if logins:
+        raise RuntimeError(f"{agent}/auth.json holds a login for {', '.join(logins)}; pi is billed to API keys only: "
+                           f"point PI_CODING_AGENT_DIR at a directory without one")
+    full["PI_CODING_AGENT_DIR"] = agent
+    return full
+
+
 def run(*, model, system, prompt, workdir, cell_schema, key_fields, allowed_keys, tool_descriptions,
         min_research=0, research_tools=RESEARCH_TOOLS, final_extra=None, cells_tool=True,
-        thinking="high", pi=DEFAULT_PI, cwd=None, env=None, timeout=None, tool_parameters=None, **loop):
+        thinking="high", pi=DEFAULT_PI, cwd=None, env=None, timeout=None, tool_parameters=None,
+        retries=0, **loop):
     """One pi call, in a fresh workdir/attempt-N (returned as "workdir").
     Writes spec.json, prompt.txt, system.txt, events.jsonl, stderr.txt there
-    (and pi_tools.ts writes pieces.jsonl, final.json, debrief.json)."""
+    (and pi_tools.ts writes pieces.jsonl, final.json, debrief.json). pi's
+    environment is pi_env's: billed to API keys only. A call that ends in a
+    provider error with no cells (usage["api_error"]) is made again, up to
+    `retries` times, each in its own attempt folder, RETRY_BACKOFF seconds
+    times the attempt number apart."""
+    full_env = pi_env(model, env)
+    for attempt in range(retries + 1):
+        res = _call(model=model, system=system, prompt=prompt, workdir=workdir, cell_schema=cell_schema,
+                    key_fields=key_fields, allowed_keys=allowed_keys, tool_descriptions=tool_descriptions,
+                    min_research=min_research, research_tools=research_tools, final_extra=final_extra,
+                    cells_tool=cells_tool, thinking=thinking, pi=pi, cwd=cwd, env=full_env, timeout=timeout,
+                    tool_parameters=tool_parameters, **loop)
+        if res["cells"] or not res["usage"]["api_error"] or attempt == retries:
+            return res
+        time.sleep(RETRY_BACKOFF * (attempt + 1))
+
+
+def _call(*, model, system, prompt, workdir, cell_schema, key_fields, allowed_keys, tool_descriptions,
+          min_research, research_tools, final_extra, cells_tool, thinking, pi, cwd, env, timeout,
+          tool_parameters, **loop):
     workdir = new_attempt_dir(workdir)
     write_spec(workdir, cell_schema=cell_schema, key_fields=key_fields, allowed_keys=allowed_keys,
                tool_descriptions=tool_descriptions, min_research=min_research,
@@ -187,7 +247,7 @@ def run(*, model, system, prompt, workdir, cell_schema, key_fields, allowed_keys
     open(os.path.join(workdir, "prompt.txt"), "w").write(prompt)
     open(os.path.join(workdir, "system.txt"), "w").write(system)
     cmd = pi_command(model, system, thinking=thinking, pi=pi)
-    full_env = dict(os.environ, **(env or {}), FORECASTER_OUT=workdir, FORECASTER_PY=sys.executable)
+    full_env = dict(env, FORECASTER_OUT=workdir, FORECASTER_PY=sys.executable)
     t0 = datetime.now(timezone.utc)
     events_path = os.path.join(workdir, "events.jsonl")
     with open(events_path, "w") as ev, open(os.path.join(workdir, "stderr.txt"), "w") as err:

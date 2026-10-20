@@ -16,6 +16,12 @@ FAKE_PI = textwrap.dedent("""\
     import json, os, sys
     out = os.environ["FORECASTER_OUT"]
     open(os.path.join(out, "stdin.txt"), "w").write(sys.stdin.read())   # the prompt, as pi would read it
+    json.dump({{k: os.environ.get(k) for k in ("PI_CODING_AGENT_DIR", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY")}},
+              open(os.path.join(out, "env.json"), "w"))
+    if os.environ.get("FAKE_API_ERROR"):   # a provider error: pi ends the turn, exit 0, no cells
+        print(json.dumps({{"type": "message_end", "message": {{"role": "assistant", "stopReason": "error",
+                                                             "errorMessage": os.environ["FAKE_API_ERROR"], "usage": {{"input": 3}}}}}}))
+        sys.exit(0)
     spec = json.load(open(os.path.join(out, "spec.json")))
     keys = spec["allowed_keys"]
     field = spec["key_fields"][0]
@@ -58,6 +64,8 @@ class HarnessTest(unittest.TestCase):
             self.assertEqual(open(os.path.join(res["workdir"], "stdin.txt")).read(), "P")   # the prompt, on stdin
             self.assertEqual(res["cells"]["a"]["probability"], 0.1)   # from a piece
             self.assertEqual(res["cells"]["c"]["probability"], 0.3)   # from the final
+            self.assertIsNone(res["usage"]["api_error"])
+            self.assertEqual(os.listdir(os.path.join(d, "w")), ["attempt-1"])   # one call, no retry
             self.assertNotIn("bogus", res["cells"])                   # pieces filtered to allowed keys
             self.assertEqual(res["delivery"], {"cells_calls": 1, "cells_in_pieces": 1, "cells_in_final": 2})
             self.assertEqual(len(res["evidence"]), 2)                 # submit tools are not evidence
@@ -109,6 +117,61 @@ class HarnessTest(unittest.TestCase):
         # No positional message: the prompt goes on stdin (harness.PROMPT_ON_STDIN).
         self.assertEqual(cmd[-2:], ["--system-prompt", "S"])
         self.assertTrue(harness.PROMPT_ON_STDIN)
+
+
+    def test_a_provider_error_is_surfaced_and_retried_in_fresh_attempts(self):
+        with tempfile.TemporaryDirectory() as d:
+            os.environ["FAKE_API_ERROR"] = "400 You're out of extra usage"
+            backoff, harness.RETRY_BACKOFF = harness.RETRY_BACKOFF, 0
+            try:
+                res = harness.run(model="m/x", system="S", prompt="P", workdir=os.path.join(d, "w"),
+                                  cell_schema=SCHEMA, key_fields=["k"], allowed_keys=["a"],
+                                  tool_descriptions=DESC, pi=fake_pi(d), retries=2)
+            finally:
+                os.environ.pop("FAKE_API_ERROR")
+                harness.RETRY_BACKOFF = backoff
+            self.assertEqual(res["cells"], {})
+            self.assertEqual(res["rc"], 0)                                         # pi exits 0 on a provider error
+            self.assertIn("out of extra usage", res["usage"]["api_error"])
+            self.assertEqual(sorted(os.listdir(os.path.join(d, "w"))), ["attempt-1", "attempt-2", "attempt-3"])
+            self.assertTrue(res["workdir"].endswith("attempt-3"))
+
+    def test_pi_is_billed_to_api_keys_only(self):
+        kw = dict(system="S", prompt="P", cell_schema=SCHEMA, key_fields=["k"], allowed_keys=["a"], tool_descriptions=DESC)
+        with tempfile.TemporaryDirectory() as d:
+            saved = {k: os.environ.pop(k, None) for k in ("PI_CODING_AGENT_DIR", "ANTHROPIC_API_KEY") + harness.LOGIN_TOKENS}
+            os.environ.update(ANTHROPIC_AUTH_TOKEN="bearer", ANTHROPIC_OAUTH_TOKEN="oauth", ANTHROPIC_API_KEY="sk-test")
+            try:
+                res = harness.run(model="anthropic/x", workdir=os.path.join(d, "w1"), pi=fake_pi(d), **kw)
+                seen = json.load(open(os.path.join(res["workdir"], "env.json")))
+                self.assertEqual(seen, {"PI_CODING_AGENT_DIR": harness.AGENT_DIR, "ANTHROPIC_AUTH_TOKEN": None,
+                                        "ANTHROPIC_OAUTH_TOKEN": None, "ANTHROPIC_API_KEY": "sk-test"})
+                self.assertFalse(os.path.exists(os.path.join(harness.AGENT_DIR, "auth.json")))
+                # the caller's agent directory is honoured ...
+                agent = os.path.join(d, "agent")
+                res = harness.run(model="anthropic/x", workdir=os.path.join(d, "w2"), pi=fake_pi(d),
+                                  env={"PI_CODING_AGENT_DIR": agent}, **kw)
+                self.assertEqual(json.load(open(os.path.join(res["workdir"], "env.json")))["PI_CODING_AGENT_DIR"], agent)
+                # ... unless it holds a login
+                json.dump({"anthropic": {"type": "oauth", "access": "a", "refresh": "r"}, "openai": {"type": "api_key", "key": "k"}},
+                          open(os.path.join(agent, "auth.json"), "w"))
+                with self.assertRaises(RuntimeError) as e:
+                    harness.run(model="anthropic/x", workdir=os.path.join(d, "w3"), pi=fake_pi(d),
+                                env={"PI_CODING_AGENT_DIR": agent}, **kw)
+                self.assertIn("login for anthropic", str(e.exception))
+                # and the provider's key must be there, before anything is written
+                with self.assertRaises(RuntimeError) as e:
+                    harness.run(model="anthropic/x", workdir=os.path.join(d, "w4"), pi=fake_pi(d),
+                                env={"ANTHROPIC_API_KEY": ""}, **kw)
+                self.assertIn("ANTHROPIC_API_KEY is not set", str(e.exception))
+                self.assertFalse(os.path.exists(os.path.join(d, "w3")))
+                self.assertFalse(os.path.exists(os.path.join(d, "w4")))
+                harness.run(model="unknown-provider/x", workdir=os.path.join(d, "w5"), pi=fake_pi(d), **kw)   # no rule, no check
+            finally:
+                for k, v in saved.items():
+                    os.environ.pop(k, None)
+                    if v is not None:
+                        os.environ[k] = v
 
 
 QSET = {"forecast_due_date": "2026-10-11", "question_set": "2026-10-11-llm.json", "questions": [

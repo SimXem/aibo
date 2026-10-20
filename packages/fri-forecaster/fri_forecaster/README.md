@@ -122,8 +122,9 @@ API cost per member.
 
 Copy `examples/round.env.example` to `~/.config/fri-forecaster/round.env` and set
 `FB_ORG` (the team name ForecastBench assigned) and `FORECASTER_NAMES` (the registry). API
-keys go in `~/.config/fri-forecaster/env`. pi gets its own agent folder and never a
-stored login, so every call is billed to API keys.
+keys go in `~/.config/fri-forecaster/env`. Every call is billed to API keys: the harness
+refuses an agent folder that holds a `pi /login`, drops bearer and OAuth tokens from pi's
+environment, and requires the model's provider key.
 
 ```sh
 SAMPLE=8 scripts/fb_round.sh 2026-10-11 rehearsal   # a cheap end-to-end check on a past set

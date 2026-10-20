@@ -7,8 +7,10 @@ overridden. Returns the names of the keys configured afterwards."""
 import os
 from pathlib import Path
 
-KEYS = ("TAVILY_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "XAI_API_KEY",
-        "OPENROUTER_API_KEY", "DEEPINFRA_API_KEY")
+# pi provider id -> the API key it bills to (harness.run requires the model's).
+KEY_FOR = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY", "google": "GEMINI_API_KEY",
+           "xai": "XAI_API_KEY", "openrouter": "OPENROUTER_API_KEY", "deepinfra": "DEEPINFRA_API_KEY"}
+KEYS = ("TAVILY_API_KEY",) + tuple(KEY_FOR.values())
 
 
 def env_paths():
