@@ -143,6 +143,75 @@ model_set = "frontier5"
         self.assertEqual(experiments.baseline(AIRO)["id"], "none")
 
 
+class TestCadence(unittest.TestCase):
+    """When the cron runs a condition, and what is due on a day."""
+
+    def test_airo_runs_wednesdays_and_fridays_and_the_axes_by_hand(self):
+        self.assertEqual({tuple(c["cadence"]) for c in AIRO["conditions"].values()}, {("wed", "fri")})
+        for name in ("axes", "paperaxes"):
+            self.assertEqual({c["cadence"] for c in experiments.load(name)["conditions"].values()}, {"manual"})
+
+    def test_is_due(self):
+        c = lambda cadence: {"cadence": cadence}
+        wed, thu = date(2026, 10, 21), date(2026, 10, 22)
+        self.assertTrue(experiments.is_due(c(["wed", "fri"]), wed))
+        self.assertFalse(experiments.is_due(c(["wed", "fri"]), thu))
+        self.assertFalse(experiments.is_due(c("manual"), wed))
+        self.assertTrue(experiments.is_due(c(["1st wed"]), date(2026, 10, 7)))      # Oct 1 is a Thursday
+        self.assertFalse(experiments.is_due(c(["1st wed"]), date(2026, 10, 14)))
+        self.assertTrue(experiments.is_due(c(["3rd wed"]), wed))
+
+    def test_the_hash_ignores_when(self):
+        base = dict(experiments.DEFAULTS, scenarios="data/combined_conditions.json")
+        self.assertEqual(experiments.condition_sha256(base),
+                         experiments.condition_sha256(dict(base, cadence=["mon"])))
+
+    def test_what_is_due_groups_by_set_and_destination(self):
+        with tempfile.TemporaryDirectory() as d:
+            Path(d, "pub.toml").write_text("""
+scenarios = "data/combined_conditions.json"
+publish = true
+cadence = ["wed", "fri"]
+pooled = ["a"]
+[conditions.a]
+[conditions.b]
+cadence = ["fri"]
+[conditions.aside]
+publish = false
+cadence = ["mon", "wed"]
+""")
+            Path(d, "hand.toml").write_text('scenarios = "data/axes_conditions.json"\n[conditions.x]\n')
+            with patch.object(experiments, "EXPERIMENTS_DIR", Path(d)):
+                self.assertEqual(experiments.due(date(2026, 10, 21)),                  # a Wednesday
+                                 [("pub", True, ["a"]), ("pub", False, ["aside"])])
+                self.assertEqual(experiments.due(date(2026, 10, 23)), [("pub", True, ["a", "b"])])
+                self.assertEqual(experiments.due(date(2026, 10, 20)), [])
+                self.assertEqual(experiments.due(date(2026, 10, 20), ["hand", "pub"]),  # by hand: all of them
+                                 [("hand", False, ["x"]), ("pub", True, ["a", "b"]), ("pub", False, ["aside"])])
+
+    def test_the_cli_prints_one_group_a_line(self):
+        import subprocess
+        r = subprocess.run([sys.executable, "-m", "redlines.experiments", "due", "--date", "2026-10-21"],
+                           capture_output=True, text=True, cwd=REPO)
+        self.assertEqual(r.stdout, "airo publish none independent recent critical two-step ai-banned\n")
+
+    def test_cadences_that_cannot_be_kept_are_refused(self):
+        head = 'scenarios = "data/combined_conditions.json"\npublish = true\ncadence = ["wed"]\npooled = ["a"]\n'
+        for body, why in (
+                ('[conditions.a]\ncadence = "weekly"\n', "is not"),
+                ('[conditions.a]\ncadence = ["wednesday"]\n', "is not"),
+                ('[conditions.a]\ncadence = ["6th wed"]\n', "is not"),
+                ('[conditions.a]\ncadence = []\n', "is not"),
+                ('pooled = ["a", "b"]\n[conditions.a]\n[conditions.b]\ncadence = ["fri"]\n', "different cadences"),
+                ('[conditions.a]\n[conditions.b]\ncadence = ["wed", "fri"]\n', "the Timeline draws")):
+            text = head.replace('pooled = ["a"]\n', "") + body if body.startswith("pooled") else head + body
+            with self.assertRaisesRegex(ValueError, why):
+                experiments.load(_toml(text))
+        ok = head + '[conditions.a]\n[conditions.b]\ncadence = ["2nd wed"]\n[conditions.c]\ncadence = "manual"\n' \
+            '[conditions.d]\npublish = false\ncadence = ["sun"]\n'
+        self.assertEqual(list(experiments.load(_toml(ok))["conditions"]), ["a", "b", "c", "d"])
+
+
 class TestMinimalPrompt(unittest.TestCase):
     def _prompt(self):
         today = date(2026, 10, 19)

@@ -5,6 +5,7 @@
 
 scenarios = "data/paper_axes_conditions.json"
 publish = true
+cadence = "manual"
 pooled = ["none"]
 
 [conditions.none]

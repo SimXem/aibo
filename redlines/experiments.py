@@ -15,19 +15,29 @@ They run together: the mean is taken over one day's calls
 its own line and enters no number; an unpublished one writes to
 results/experiments/ and nothing on the page reads it.
 
+A condition's CADENCE says when the cron runs it (2026-10-21): a list of
+weekdays, UTC ("wed"), any of which may be an ordinal one ("1st wed", the
+first Wednesday of the month), or "manual" for only when named by hand.
+code/cron_run.sh asks `python -m redlines.experiments due` what is due
+today and runs each group. The pooled conditions share one cadence, and a
+published condition outside them runs only on days they run, because the
+Timeline draws its line beside theirs.
+
 code/run_unified.py --experiment NAME runs an experiment's conditions (all
-of them, or those named with --condition). Every row a call writes carries
-the experiment's name, the condition's id, and condition_sha256, a hash of
+of them, or those named with --condition), whatever their cadence. Every row
+a call writes carries the experiment's name, the condition's id, and condition_sha256, a hash of
 the condition's settings, so two rows asked under different settings never
 pass for the same condition.
 
 Stdlib only (tomllib), like the rest of the build stage: the views read
 experiments/airo.toml for what the published series asks.
 """
+import argparse
 import hashlib
 import json
 import re
 import tomllib
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from .config import REPO_ROOT
@@ -89,10 +99,13 @@ DEFAULTS = {
     "repeats": 1,                     # calls per model per run
     "url_block_patterns": None,       # agent-box's URL guard for these calls alone (pi only)
     "publish": False,                 # rows go to the scenario set's own logs, which the page reads
+    "cadence": "manual",              # when the cron runs it: weekdays (UTC), or "manual"
 }
-# Settings that say where a condition's rows go or how many calls it makes,
-# not what a call is asked: outside the hash.
-UNHASHED = ("publish", "repeats")
+# Settings that say where a condition's rows go, how many calls it makes or
+# when, not what a call is asked: outside the hash.
+UNHASHED = ("publish", "repeats", "cadence")
+WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+ORDINALS = ("1st", "2nd", "3rd", "4th", "5th")
 
 
 def path_of(name):
@@ -129,6 +142,7 @@ def load(name):
         s = {**DEFAULTS, **shared, **_settings(own, where)}
         _check(s, cid in pooled, where)
         conditions[cid] = {"id": cid, **s, "pooled": cid in pooled, "sha256": condition_sha256(s)}
+    _check_cadences(conditions, path.name)
     return {"name": path.stem, "path": path, "pooled": list(pooled), "conditions": conditions}
 
 
@@ -142,6 +156,33 @@ def baseline(experiment):
     """The condition that adds no instruction (variant `none`): the prompt the
     page shows as the one the series is asked."""
     return next(c for c in experiment["conditions"].values() if c["variant"] == DEFAULT_VARIANT)
+
+
+def is_due(condition, day):
+    """Does the cron run this condition on `day` (a date, UTC)?"""
+    if condition["cadence"] == "manual":
+        return False
+    weekday = WEEKDAYS[day.weekday()]
+    return any(e == weekday or e == f"{ORDINALS[(day.day - 1) // 7]} {weekday}"
+               for e in condition["cadence"])
+
+
+def due(day=None, named=None):
+    """What to run: [(experiment, publish, [condition ids])], one entry per
+    group run_unified runs together (one scenario set, one destination).
+    With `named`, every condition of those experiments, whatever their
+    cadence (a run by hand); else every condition due on `day` (default
+    today, UTC), across experiments."""
+    day = day or datetime.now(timezone.utc).date()
+    out = []
+    for name in named or names():
+        exp = load(name)
+        groups = {}
+        for c in exp["conditions"].values():
+            if named or is_due(c, day):
+                groups.setdefault((c["scenarios"], c["publish"]), []).append(c["id"])
+        out += [(exp["name"], publish, ids) for (_, publish), ids in groups.items()]
+    return out
 
 
 def check_patterns(raw):
@@ -181,3 +222,50 @@ def _check(s, pooled, where):
         raise ValueError(f"{where}: repeats must be a whole number >= 1")
     if pooled and not s["publish"]:
         raise ValueError(f"{where}: a pooled condition publishes (publish = true)")
+    c = s["cadence"]
+    if c != "manual" and not (isinstance(c, list) and c and all(_entry(e) for e in c)):
+        raise ValueError(f"{where}: cadence {c!r} is not \"manual\" or a list of weekdays "
+                         f"({', '.join(WEEKDAYS)}), each may be ordinal (\"1st wed\")")
+
+
+def _entry(e):
+    parts = e.split() if isinstance(e, str) else []
+    return (len(parts) == 1 and parts[0] in WEEKDAYS) or \
+        (len(parts) == 2 and parts[0] in ORDINALS and parts[1] in WEEKDAYS)
+
+
+def _check_cadences(conditions, where):
+    """The pooled conditions share one cadence (a day's mean is over all of
+    them), and a published condition outside them runs on no day they do not
+    (the Timeline draws its line beside theirs). Run by hand, anything goes."""
+    pooled = [c for c in conditions.values() if c["pooled"]]
+    if not pooled:
+        return
+    cadences = {json.dumps(c["cadence"]) for c in pooled}
+    if len(cadences) > 1:
+        raise ValueError(f"{where}: the pooled conditions run on different cadences {sorted(cadences)}")
+    # A year holds every (ordinal, weekday) a cadence can name.
+    year = [date(2026, 1, 1) + timedelta(days=i) for i in range(365)]
+    for c in conditions.values():
+        if c["pooled"] or not c["publish"]:
+            continue
+        if any(is_due(c, d) and not is_due(pooled[0], d) for d in year):
+            raise ValueError(f"{where} [conditions.{c['id']}]: cadence {c['cadence']} runs on days "
+                             f"the pooled conditions ({pooled[0]['cadence']}) do not, and the "
+                             "Timeline draws a published condition only beside them")
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(prog="python -m redlines.experiments")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    d = sub.add_parser("due", help="what to run: one line per group, "
+                                   "'<experiment> <publish|aside> <condition>...'")
+    d.add_argument("names", nargs="*", help="these experiments, every condition (default: what is due)")
+    d.add_argument("--date", type=date.fromisoformat, help="as of this UTC date (default: today)")
+    args = ap.parse_args(argv)
+    for name, publish, ids in due(args.date, args.names):
+        print(name, "publish" if publish else "aside", *ids)
+
+
+if __name__ == "__main__":
+    main()

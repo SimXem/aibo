@@ -119,6 +119,10 @@ def main():
                'duplicates': sum(v-1 for v in pooled_keys.values())})
         unpooled_calls = 0
         for v in unpooled:
+            # A condition its cadence did not run that day, and nobody ran by
+            # hand, is simply absent (redlines/experiments.py is_due).
+            if not experiments.is_due(unpooled[v], args.date) and not any(k[1] == v for k in keys):
+                continue
             for label in labels:
                 grid = {k: n for k, n in keys.items() if k[0] == label and k[1] == v}
                 want = {(label, v, q, c) for q in qs for c in scenario_ids}
