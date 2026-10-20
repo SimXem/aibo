@@ -108,14 +108,15 @@ class HarnessTest(unittest.TestCase):
             self.assertEqual(spec["research_tools"], [])
 
     def test_command_loads_extension_without_builtins(self):
-        cmd = harness.pi_command("m/x", "S", thinking="max", pi="pi")
+        cmd = harness.pi_command("m/x", "/w/system.txt", thinking="max", pi="pi")
         for flag in ("--no-builtin-tools", "--no-extensions", "--no-skills", "--no-prompt-templates", "--no-context-files"):
             self.assertIn(flag, cmd)
         self.assertEqual(harness.pi_command("m/x", "S", pi="/x/cli.js")[:2], ["node", "/x/cli.js"])
         self.assertEqual(cmd[cmd.index("-e") + 1], harness.EXT)
         self.assertTrue(os.path.exists(harness.EXT))
-        # No positional message: the prompt goes on stdin (harness.PROMPT_ON_STDIN).
-        self.assertEqual(cmd[-2:], ["--system-prompt", "S"])
+        # No prompt text in argv: the prompt goes on stdin and the system
+        # prompt in a file (harness.PROMPT_ON_STDIN).
+        self.assertEqual(cmd[-2:], ["--system-prompt", "/w/system.txt"])
         self.assertTrue(harness.PROMPT_ON_STDIN)
 
 
