@@ -344,11 +344,13 @@ tarball — is the remaining gap in "reproduce it from this repo alone."
 ## Deploy notes
 
 The one thing that runs on a schedule, outside this machine: `code/cron_run.sh`
-on a Linux box (the host behind `airo.forecastingresearch.org`), cron-fired twice weekly (Wednesdays and Fridays
-12:00 UTC, from 2026-09-16). It sources `~/.config/redlines/env` for API keys, then runs:
+on a Linux box (the host behind `airo.forecastingresearch.org`), cron-fired at 12:00 UTC. It asks
+`python -m redlines.experiments due` what each condition's cadence makes due that day (the published
+series: Wednesdays and Fridays, from 2026-09-16), sources `~/.config/redlines/env` for API keys, and
+runs each due group:
 
 ```bash
-"$PY" code/run_unified.py --experiment airo --workers 10 --out results/runs/<timestamp>.jsonl
+"$PY" code/run_unified.py --experiment airo --condition none ... --condition ai-banned --workers 10
 ```
 
 `$PY` only has to be an interpreter with the acquisition extra installed

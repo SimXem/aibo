@@ -151,6 +151,16 @@ class TestSixthCallLaunch(unittest.TestCase):
         self.assertEqual(rc, 1)
         self.assertEqual([e["check"] for e in report["errors"]][:1], ["complete_unique_grid"])
 
+    def test_a_sixth_not_due_and_not_run_is_no_warning(self):
+        # 2026-10-19 is a Monday, a day airo's cadence (wed, fri) runs nothing:
+        # the five were run by hand, the sixth was not, and nothing is owed.
+        results = Path(self.tmp.name) / "sixth-not-due"
+        write_run(results, self.rows, drop=[(label, "ai-banned") for label in self.labels])
+        rc, report, log = validate(results)
+        self.assertEqual(rc, 0, log)
+        self.assertEqual(report["condition_warnings"], [])
+        self.assertEqual(report["experiments"]["airo"]["unpooled_calls"], 0)
+
     def test_a_defective_sixth_call_is_a_warning_and_a_defective_pooled_call_an_error(self):
         """What a call returned -- no rationale, an ECI elicit that never
         came back ordered, a probability out of bounds, a short grid -- is

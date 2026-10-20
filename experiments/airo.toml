@@ -21,6 +21,9 @@ instrument = "minimal"
 # Agent-box's pi since combined-v9 (redlines/conditional.py PROTOCOL_LINEAGE).
 harness = "pi"
 publish = true
+# Twice weekly since 2026-09-16 (code/cron_run.sh asks what is due each day
+# at 12:00 UTC).
+cadence = ["wed", "fri"]
 
 # Jason's five prompts (2026-10-14). They run together: a model's published
 # number is the mean of its five calls on one day (redlines.runlog.pool).

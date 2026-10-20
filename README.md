@@ -111,7 +111,9 @@ condition. `experiments/airo.toml` is the published series; `pooled` names the
 conditions whose mean is each model's published number. Rows carry the
 experiment, the condition and `condition_sha256`, a hash of its settings.
 `--condition` runs some of an experiment's conditions; `--smoke` one model,
-into `results/experiments/`.
+into `results/experiments/`. A condition's `cadence` says when the cron runs it
+(weekdays, UTC, "1st wed" for monthly, or "manual"):
+`python -m redlines.experiments due` prints what is due today, one group a line.
 
 Since combined-v9 the calls go through pi (redlines/pi_loop.py) by way of the
 FRI Forecaster harness in `packages/fri-forecaster/` (its README, "Requirements"):
@@ -162,8 +164,9 @@ A condition's `scenarios` names its scenario set: `data/combined_conditions.json
 published series asks), `data/eci_conditions.json` (fixed ECI levels),
 `data/axes_conditions.json` (risk against an x-axis quantity). See
 `docs/conditional-forecasts.md`. A cron on the serving box runs
-`code/cron_run.sh` (Wednesdays and Fridays 12:00 UTC), which runs the combined
-instrument and publishes the rebuilt page with `code/publish_dashboard.sh`.
+`code/cron_run.sh` at 12:00 UTC, which runs whatever is due (the published
+series on Wednesdays and Fridays) and publishes the rebuilt page with
+`code/publish_dashboard.sh`.
 Each call ends with a debrief turn (since 2026-09-15): per question group, the
 sources that mattered most, the most compelling arguments, the most likely
 pathway to catastrophe and the base rate, in the model's own words, exported
