@@ -349,7 +349,7 @@ on a Linux box (the host behind `airo.forecastingresearch.org`), cron-fired twic
 
 ```bash
 "$PY" code/run_unified.py --joint --repeats 1 --workers 2 \
-    --conditions data/combined_conditions.json --out results/runs/<timestamp>.jsonl
+    --scenarios data/combined_conditions.json --out results/runs/<timestamp>.jsonl
 ```
 
 `$PY` only has to be an interpreter with the acquisition extra installed
@@ -357,7 +357,7 @@ on a Linux box (the host behind `airo.forecastingresearch.org`), cron-fired twic
 it (historically it pointed at the venv of the internal checkout the LLM layer
 was imported from before it was vendored). `--joint` is the single instrument:
 one call per model answers every question×horizon cell unconditionally *and*
-under each condition of the combined set (the LEAP policies plus the model's own
+under each scenario of the combined set (the LEAP policies plus the model's own
 capability percentiles), once per model since 2026-09-02. Since 2026-09-15 the
 call ends with a **debrief turn** (`redlines.llm.call_tools` `debrief`,
 `code/run_unified.py` `debrief_tool`): once the forecasts are accepted, the
@@ -371,10 +371,10 @@ validator warning, never a reason to withhold publication. The unconditional
 slice lands in the dated output file; the whole instrument is appended to
 `results/conditional_runs_combined.jsonl`. Before the run, `code/cron_run.sh`
 fetches Epoch's published ECI scores (`python3 -m redlines.eci --fetch`, a dated
-`data/epoch_capabilities_index_*.csv`) and rebuilds the capability conditions
+`data/epoch_capabilities_index_*.csv`) and rebuilds the capability scenarios
 from it (`code/check_eci_snapshot.py --rebuild`), so the panel and the frontier
 history the prompt quotes follow the index with no hand step (since 2026-10-01).
-The runner's preflight refuses a snapshot older than 21 days or condition sets
+The runner's preflight refuses a snapshot older than 21 days or scenario sets
 not built from the newest one; a failed fetch keeps the previous snapshot and
 pages the operator (ntfy, `NTFY_TOPIC` in the env file). The dashboard draws the
 panel the newest run was chosen as (`registry.published_panel`), not the one the

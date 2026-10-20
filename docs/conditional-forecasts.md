@@ -62,7 +62,7 @@ conditional forecast rises for the wrong reason.
 ## Design decisions
 
 **Elicitation is unchanged; the condition is prepended.** `code/run_unified.py
---condition <id>` renders one block at the top of the same batch prompt: the
+--scenario <id>` renders one block at the top of the same batch prompt: the
 LEAP instruction above, the condition ("Condition: …" — the policy summary
 and, for P2/P3, which part is assumed), the full policy description a LEAP
 panelist sees on the survey's Policies tab (background, historical baseline,
@@ -189,7 +189,7 @@ status quo is therefore the model's implied policy dividend.
 **Conditional rows never enter the published log.** They go to
 `results/conditional_runs.jsonl`, tagged with the condition id, LEAP id, and a
 SHA-256 of the exact block the model saw. `load_runlog`, the timeline and
-`tests/test_coherence.py` never see them; the runner refuses `--condition`
+`tests/test_coherence.py` never see them; the runner refuses `--scenario`
 against `results/forecast_runs_unified.jsonl`.
 
 **Lead with AI catastrophe.** General catastrophe at 2030 is 1–2% for four of
@@ -210,7 +210,7 @@ diamonds.
 
 ```sh
 # the pilot, on the cron box (keys in ~/.config/redlines/env):
-python -u code/run_unified.py --condition all --unconditional 3 \
+python -u code/run_unified.py --scenario all --unconditional 3 \
     --experiment leap-wave12-pilot --out results/conditional_runs.jsonl
 # 5 models x (3 unconditional + 8 conditions) = 55 calls, ~40 minutes
 
@@ -219,7 +219,7 @@ python -u code/run_unified.py --joint --repeats 5 \
     --experiment leap-wave12-joint --out results/conditional_runs.jsonl
 # 5 models x 3 = 15 calls; --smoke for one model, --dry-run to read the prompt
 
-python3 code/run_unified.py --dry-run --condition p2b --out /dev/null   # see the prompt
+python3 code/run_unified.py --dry-run --scenario p2b --out /dev/null   # see the prompt
 python3 code/analyze_conditional.py                                   # tables, 2030 + 2050
 python3 code/analyze_conditional.py --question loss:ai --measure ratio  # the ladder folded to expected loss
 python3 -m redlines build --views conditional                          # -> index.html, Conditional-on tab
@@ -409,7 +409,7 @@ unconditional and conditional on ECI). The levels are the p10 / p50 / p90 of the
 projection above, rounded to the point: **174, 186, 210**. Reported at 2030
 to start.
 
-**The runner takes a condition set.** `run_unified.py --joint --conditions
+**The runner takes a condition set.** `run_unified.py --joint --scenarios
 data/eci_conditions.json` swaps the CONDITIONS section; everything else in
 the call is the policy instrument's. A set is a JSON file in
 `data/leap_policies.json`'s shape (`conditioning`, `conditions`, `source`)
@@ -471,12 +471,12 @@ odd, and not the pilot's reading.
 
 ```sh
 python3 code/make_eci_conditions.py --check                              # data/eci_conditions.json is current
-python3 code/run_unified.py --joint --conditions data/eci_conditions.json --dry-run | less
+python3 code/run_unified.py --joint --scenarios data/eci_conditions.json --dry-run | less
 # on the box:
-python -u code/run_unified.py --joint --repeats 3 --conditions data/eci_conditions.json --experiment eci-pilot
+python -u code/run_unified.py --joint --repeats 3 --scenarios data/eci_conditions.json --experiment eci-pilot
 #   -> results/eci_runs/<stamp>.jsonl (unconditional slice), results/conditional_runs_eci.jsonl (instrument)
-python3 code/analyze_conditional.py --conditions data/eci_conditions.json --question catastrophe:ai --horizon 2030 --measure ratio
-python3 code/analyze_conditional.py --conditions data/eci_conditions.json --question loss:ai --horizon 2030
+python3 code/analyze_conditional.py --scenarios data/eci_conditions.json --question catastrophe:ai --horizon 2030 --measure ratio
+python3 code/analyze_conditional.py --scenarios data/eci_conditions.json --question loss:ai --horizon 2030
 ```
 
 Not yet done: a chart. The Conditional-on tab reads the policy set only;
@@ -486,7 +486,7 @@ the projection's density under it).
 
 ### Results — pilot, 2026-08-28 (run `2026-08-28T1559Z`, 3 repeats, 15 calls, 0 failures, one attempt each)
 
-`python3 code/analyze_conditional.py --conditions data/eci_conditions.json
+`python3 code/analyze_conditional.py --scenarios data/eci_conditions.json
 --question catastrophe:ai --horizon 2030 --measure ratio`; the full summary
 is `results/conditional_summary_eci.json`.
 
@@ -576,9 +576,9 @@ the model gave (`condition.value`) and every row of the call with
 
 ```sh
 python3 code/make_eci_self_conditions.py --check
-python3 code/run_unified.py --joint --conditions data/eci_self_conditions.json --dry-run | less
+python3 code/run_unified.py --joint --scenarios data/eci_self_conditions.json --dry-run | less
 # on the box, one model to start (2026-08-28):
-python -u code/run_unified.py --joint --repeats 3 --models "Fable 5" --conditions data/eci_self_conditions.json --experiment eciself-pilot
+python -u code/run_unified.py --joint --repeats 3 --models "Fable 5" --scenarios data/eci_self_conditions.json --experiment eciself-pilot
 python3 code/analyze_eci_self.py            # forecasts vs trend; conditionals; unconditionals across the three instruments
 ```
 
@@ -654,7 +654,7 @@ should. Protocol `unified-joint-eciself6mo-v1`, files
 `results/conditional_runs_eciself6mo.jsonl` + `results/eciself6mo_runs/`.
 The trend to compare against is computed at analysis time for the stamped
 date — `code/eci_projection_metrgraph.py` is now importable
-(`fit`, `project`) and `code/analyze_eci_self.py --conditions
+(`fit`, `project`) and `code/analyze_eci_self.py --scenarios
 data/eci_self6mo_conditions.json` calls it; at 2027-02-28 the trend is
 p25 169.7 / p50 173.2 / p75 178.1. The projection JSON is byte-identical
 after the refactor; the LEAP text is still pinned
@@ -662,10 +662,10 @@ after the refactor; the LEAP text is still pinned
 
 ```sh
 python3 code/make_eci_self_conditions.py --months 6 --out data/eci_self6mo_conditions.json --check
-python3 code/run_unified.py --joint --conditions data/eci_self6mo_conditions.json --dry-run | grep -A3 "Step 1"
+python3 code/run_unified.py --joint --scenarios data/eci_self6mo_conditions.json --dry-run | grep -A3 "Step 1"
 # on the box:
-python -u code/run_unified.py --joint --repeats 3 --models "Fable 5" --conditions data/eci_self6mo_conditions.json --experiment eciself6mo-pilot
-python3 code/analyze_eci_self.py --conditions data/eci_self6mo_conditions.json --policy-runs <same-day policy run>
+python -u code/run_unified.py --joint --repeats 3 --models "Fable 5" --scenarios data/eci_self6mo_conditions.json --experiment eciself6mo-pilot
+python3 code/analyze_eci_self.py --scenarios data/eci_self6mo_conditions.json --policy-runs <same-day policy run>
 ```
 
 The first launch (18:48Z) was refused by the Anthropic workspace usage
@@ -675,7 +675,7 @@ revoked (401); the limit was raised and the run went at 19:02Z.
 
 ### Results — Fable 5 only, 2026-08-28 (run `2026-08-28T1902Z`, target 2027-02-28, 3 repeats, 0 failures)
 
-`python3 code/analyze_eci_self.py --conditions data/eci_self6mo_conditions.json
+`python3 code/analyze_eci_self.py --scenarios data/eci_self6mo_conditions.json
 --policy-runs 2026-08-28T1200Z`; summary in
 `results/conditional_summary_eciself6mo.json`.
 
@@ -725,7 +725,7 @@ against ×6.25 in the end-of-2030 run three hours earlier).
 
 ### Results — all five models, 2026-08-28 (run `2026-08-28T1950Z`: the other four × 3, target 2027-02-28, 12/12 calls, 0 failures)
 
-`python -u code/run_unified.py --joint --repeats 3 --models "GPT-5.5,Opus 4.8,Gemini 3.1 Pro,Grok 4.20" --conditions data/eci_self6mo_conditions.json --experiment eciself6mo-rest`
+`python -u code/run_unified.py --joint --repeats 3 --models "GPT-5.5,Opus 4.8,Gemini 3.1 Pro,Grok 4.20" --scenarios data/eci_self6mo_conditions.json --experiment eciself6mo-rest`
 on the box, 19:50–20:05 UTC, with the prompt byte-identical to the pilot's
 (`--dry-run` sha `fe60c97e…` on both machines). Pooled with the pilot:
 2,100 rows, 5 models × 3 repeats; `results/conditional_summary_eciself6mo.json`
@@ -880,11 +880,11 @@ so its unconditional slice is its own series: the runner writes it to
 
 ```sh
 python3 code/make_combined_conditions.py --check                                   # JSON is current
-python3 code/run_unified.py --joint --conditions data/combined_conditions.json --dry-run   # read the prompt
+python3 code/run_unified.py --joint --scenarios data/combined_conditions.json --dry-run   # read the prompt
 # on the box: the pilot, the panel x 3, ~2,520 probabilities per call
 python -u code/run_unified.py --joint --repeats 3 --workers 2 \
-    --conditions data/combined_conditions.json --experiment combined-pilot
-python3 code/analyze_conditional.py --conditions data/combined_conditions.json      # all eleven, per model + ensemble
+    --scenarios data/combined_conditions.json --experiment combined-pilot
+python3 code/analyze_conditional.py --scenarios data/combined_conditions.json      # all eleven, per model + ensemble
 ```
 
 ### Results — pilot, 2026-08-28 (runs `2026-08-28T2158Z` + fill `2026-08-28T2314Z`; the ECI panel × 3, 13 calls)
@@ -950,7 +950,7 @@ policy instrument — will take the policy tab back the next time it runs,
 while the capability tab stays on the combined pilot until a newer capability
 elicitation exists. Left: the project lead's confirmation of the capability-side reading
 (above), whether the 2030 general/disempowerment dip repeats, and whether the
-cron moves to `--conditions data/combined_conditions.json` — which also
+cron moves to `--scenarios data/combined_conditions.json` — which also
 means deciding that its unconditional slice is the published series, since
 the runner keeps a non-published set out of `results/runs/`.
 

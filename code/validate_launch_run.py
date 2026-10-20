@@ -86,11 +86,11 @@ def main():
                 and not is_superseded(r)]
         policies = ru.load_policies(ROOT / 'data' / filename)
         policies = ru.resolve_set(policies, args.date)
-        conds = ru.expand_conditions(['all'], policies)
+        scenarios = ru.expand_scenarios(['all'], policies)
         groups, by_group, horizons, _, spec = ru.load_batch(ru.LADDER, ru.CROSS, ru.UNBATCHED)
         horizons = ru.set_horizons(policies, horizons)
         qs = {q['id']: q for g in groups for q in by_group[g['key']]}
-        prompt, n, cells = ru.build_prompt_joint(groups, by_group, horizons, spec, conds, policies, args.date)
+        prompt, n, cells = ru.build_prompt_joint(groups, by_group, horizons, spec, scenarios, policies, args.date)
         prompt_sha = hashlib.sha256(prompt.encode()).hexdigest()
         # combined-v10: the minimal instrument under each of the set's prompt
         # variants -- one call per model per variant, each with its own prompt.
@@ -102,8 +102,8 @@ def main():
         minimal = ru.set_instrument(policies) == 'minimal'
         prompts = {v: (ru.minimal_joint_prompt(prompt, v) if minimal else ru.apply_variant(prompt, v)) for v in asked}
         shas = {v: hashlib.sha256(p.encode()).hexdigest() for v, p in prompts.items()}
-        conditions = {None} | {c['id'] for c in conds}
-        expected = {(label, v, q, c) for label in labels for v in variants for q in qs for c in conditions}
+        scenario_ids = {None} | {c['id'] for c in scenarios}
+        expected = {(label, v, q, c) for label in labels for v in variants for q in qs for c in scenario_ids}
         keys = Counter((r['label'], r.get('variant') or 'none', r['question_id'], (r.get('condition') or {}).get('id'))
                        for r in rows)
         pooled_keys = Counter({k: n for k, n in keys.items() if k[1] not in unpooled})
@@ -115,7 +115,7 @@ def main():
         for v in unpooled:
             for label in labels:
                 grid = {k: n for k, n in keys.items() if k[0] == label and k[1] == v}
-                want = {(label, v, q, c) for q in qs for c in conditions}
+                want = {(label, v, q, c) for q in qs for c in scenario_ids}
                 if not grid:
                     report['variant_warnings'].append({'set': slug, 'variant': v, 'label': label,
                                                        'problem': 'no call'})
@@ -195,7 +195,7 @@ def main():
                     'left': left, 'right': right, 'values': [a, b], 'excess_pp': (a-b)*100})
 
         for label, v in ((l, v) for l in labels for v in asked):
-            for c in conditions:
+            for c in scenario_ids:
                 for q in qs:
                     hs = sorted([h for h in horizons if h in qs[q]['horizons']],
                                 key=lambda h: ru.resolves_on(h, args.date, spec))
@@ -219,7 +219,7 @@ def main():
         # count where they answered, and are listed as missing where not.
         report['instruments'][slug] = {'file_sha256': hashlib.sha256(raw).hexdigest(),
             'prompt_sha256': prompt_sha, 'rows': len(rows), 'probabilities': len(probabilities),
-            'expected_probabilities': cells * len(conditions) * (len(labels) * len(variants) + unpooled_calls),
+            'expected_probabilities': cells * len(scenario_ids) * (len(labels) * len(variants) + unpooled_calls),
             'expected_calls': len(labels) * len(asked), 'pooled_calls': len(labels) * len(variants),
             'unpooled_calls': unpooled_calls, 'calls': call_report}
     report['passed_integrity_checks'] = not report['errors']

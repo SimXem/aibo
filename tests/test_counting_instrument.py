@@ -105,14 +105,14 @@ class TestCountingInstrument(unittest.TestCase):
         module_spec.loader.exec_module(runner)
         groups, by_group, horizons, _, spec = runner.load_batch(runner.LADDER, runner.CROSS, runner.UNBATCHED)
         policies = runner.load_policies(runner.COMBINED)
-        conds = runner.expand_conditions(['all'], policies)
-        keys = [runner.UNCONDITIONAL_KEY] + [c['id'] for c in conds]
+        scenarios = runner.expand_scenarios(['all'], policies)
+        keys = [runner.UNCONDITIONAL_KEY] + [c['id'] for c in scenarios]
         answer = {'rationale': 'fixture', 'eci_forecast': {'p10': 170, 'p25': 172, 'p50': 175, 'p75': 180, 'p90': 190},
                   'forecasts': [{'question_id': q['id'], 'horizon': h, 'probabilities': {k: .1 for k in keys}}
                                 for qs in by_group.values() for q in qs for h in horizons if h in q['horizons']]}
         with patch.object(runner, 'call_tools', return_value=(answer, [])) as call:
             rows = runner.run_one_joint('fixture', 'fixture', groups, by_group, horizons,
-                                       'after-midnight', 0, spec, conds, policies,
+                                       'after-midnight', 0, spec, scenarios, policies,
                                        today=date(2026, 9, 10))
         prompt = call.call_args.args[1]
         self.assertIn('2030: 2026-09-10 through 2030-12-31', prompt)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the AXES condition sets: catastrophic risk conditional on fixed
+"""Generate the AXES scenario sets: catastrophic risk conditional on fixed
 levels of a quantity the reader can put on an x-axis.
 
     data/axes_conditions.json        the dashboard's three axes (slug `axes`)
@@ -309,7 +309,7 @@ def ecs_add_months(d, n):
     return date(y, m, min(d.day, last))
 
 
-def cond_id(axis, v):
+def scenario_id(axis, v):
     s = f"{v:g}" if isinstance(v, float) else str(v)
     return f"{axis}{s.replace('-', 'm').replace('.', 'p')}"
 
@@ -377,11 +377,11 @@ def group_for(axis, leap, eci_ref=None):
         "source": source,
         "authored": ["instruction", "assumption", "horizon"],
     }
-    conds = []
+    scenarios = []
     for v, note in levels:
         shown = ax["fmt"](v)
-        conds.append({
-            "id": cond_id(axis, v), "leap_id": None,
+        scenarios.append({
+            "id": scenario_id(axis, v), "leap_id": None,
             # .replace, not .format: the ECI texts carry the runner's
             # {target_date} placeholder.
             "label": ax["label"].replace("{v}", shown), "policy": None, "part": None,
@@ -391,17 +391,17 @@ def group_for(axis, leap, eci_ref=None):
             # For the chart, never the prompt: where the level came from.
             "chart": {"from": note},
         })
-    return group, conds, elicit, ref
+    return group, scenarios, elicit, ref
 
 
 def build(name):
     leap = json.load(open(LEAP, encoding="utf-8"))
     spec = SETS[name]
-    groups, conds, elicits, refs = [], [], [], {}
+    groups, scenarios, elicits, refs = [], [], [], {}
     for axis in spec["axes"]:
         g, cs, e, ref = group_for(axis, leap)
         groups.append(g)
-        conds += cs
+        scenarios += cs
         elicits.append(e)
         refs[axis] = ref
     waves = sorted({g["source"]["wave"] for g in groups if g["source"]["panel"]})
@@ -437,7 +437,7 @@ def build(name):
         "groups": groups,
         "history": ecs.build(months=ECI_MONTHS)["history"] if "eci" in spec["axes"] else None,
         "trend": None,
-        "conditions": conds,
+        "conditions": scenarios,
         "reference": refs,
         "notes": {
             "design": "Ezra + Nick, 2026-09-02: risk conditional on fixed levels of an x-axis "
@@ -452,8 +452,8 @@ def build(name):
                        f"run_unified.resolve_set; its levels were computed for "
                        f"{REFERENCE_RUN_DATE.isoformat()} and are held until the reference moves.")
                       if "eci" in spec["axes"] else "every date is fixed by the LEAP question.",
-            "cost": f"35 questions x {len(HORIZONS)} horizons = 105 cells x {len(conds) + 1} keys "
-                    f"= {105 * (len(conds) + 1)} probabilities per call.",
+            "cost": f"35 questions x {len(HORIZONS)} horizons = 105 cells x {len(scenarios) + 1} keys "
+                    f"= {105 * (len(scenarios) + 1)} probabilities per call.",
         },
     }
 
@@ -483,7 +483,7 @@ def main():
         # published, so the set cannot be regenerated or checked here; the
         # tracked file stands as is. Tests skip on this exit code.
         sys.exit(f"{os.path.relpath(LEAP, ROOT)} is not present (internal LEAP source); "
-                 "the tracked condition set stands as is")
+                 "the tracked scenario set stands as is")
     args = ap.parse_args()
     for name, spec in SETS.items():
         doc = build(name)
@@ -506,7 +506,7 @@ def main():
                 continue
             sys.exit(f"{os.path.relpath(out, ROOT)} is stale -- rerun {os.path.relpath(__file__, ROOT)}")
         open(out, "w", encoding="utf-8").write(text)
-        print(f"{name}: {len(doc['conditions'])} conditions, {len(doc['elicits'])} elicits, "
+        print(f"{name}: {len(doc['conditions'])} scenarios, {len(doc['elicits'])} elicits, "
               f"horizons {doc['horizons']}")
         for g in doc["groups"]:
             print(f"  {g['key']:8} {g['heading']}")

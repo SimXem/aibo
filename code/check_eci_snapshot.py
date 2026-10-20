@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Preflight for the combined instrument: the capability conditions must quote
-a recent Epoch ECI snapshot, and the condition sets must be generated from it.
+"""Preflight for the combined instrument: the capability scenarios must quote
+a recent Epoch ECI snapshot, and the scenario sets must be generated from it.
 
 code/cron_run.sh fetches Epoch's published scores (python3 -m redlines.eci
 --fetch) and regenerates the sets before every run, so on a normal day the
@@ -38,7 +38,7 @@ def main(argv=None):
     ap.add_argument("--max-age-days", type=int, default=21,
                     help="fail when the newest Epoch snapshot is older than this (default 21)")
     ap.add_argument("--rebuild", action="store_true",
-                    help="regenerate the condition sets from the newest snapshot before checking")
+                    help="regenerate the scenario sets from the newest snapshot before checking")
     args = ap.parse_args(argv)
     if args.rebuild:
         for cmd in GENERATORS:

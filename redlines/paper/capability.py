@@ -2,8 +2,8 @@
 (the Capability tab), from results/capability_data.json.
 
 The same chart as conditional.py -- one panel per horizon, one row per
-condition, ensemble ratio as a bar and per-model dots -- on the
-default variant's rows. Conditions are the model's OWN percentiles of the
+scenario, ensemble ratio as a bar and per-model dots -- on the
+default variant's rows. Scenarios are the model's OWN percentiles of the
 frontier ECI at the target date (Step 1 of the prompt asks for them), so a
 row label names the percentile and the ensemble's level for it.
 """
@@ -20,7 +20,7 @@ def variant(blob: dict) -> dict:
 
 
 def labels(v: dict, question_id: str, horizon: str) -> dict:
-    """condition id -> 'Own 25th percentile (ECI ~166)'."""
+    """scenario id -> 'Own 25th percentile (ECI ~166)'."""
     q = next(q for q in v["questions"] if q["id"] == question_id)
     out = {}
     for b in q["byHorizon"][horizon]["bars"]:

@@ -1,7 +1,7 @@
 """Paper Figure: what each LEAP Wave 12 policy does to a forecast (the
 Conditional-on tab), from results/conditional_data.json.
 
-One panel per horizon the tab offers (2030, 2050). Rows are the conditions
+One panel per horizon the tab offers (2030, 2050). Rows are the scenarios
 in the blob's order. Per row: the ensemble median ratio (conditional /
 unconditional) as a bar from 1x and each model's own ratio as a coloured
 dot. No intervals: since 2026-09-02 the instrument is elicited once per
@@ -29,7 +29,7 @@ SHORT = {
 
 def render(blob: dict, question_id: str = "catastrophe:ai", short: dict | None = None,
            horizons: tuple[str, ...] = ("2030", "2050")):
-    """`short` maps condition id -> row label (default: the LEAP policies')."""
+    """`short` maps scenario id -> row label (default: the LEAP policies')."""
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
     from matplotlib.ticker import FixedLocator, FuncFormatter, NullLocator

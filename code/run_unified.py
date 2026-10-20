@@ -104,12 +104,12 @@ from redlines.questions import (horizon_label, horizon_sort_key,  # noqa: E402
 LADDER = os.path.join(ROOT, "data", "autoarc_ladder.json")
 CROSS = os.path.join(ROOT, "data", "autoarc_crosscutting.json")
 RUNLOG = os.path.join(ROOT, "results", "forecast_runs_unified.jsonl")
-# LEAP Wave 12 policy conditions (code/make_leap_policies.py), and where a
+# LEAP Wave 12 policy scenarios (code/make_leap_policies.py), and where a
 # conditional run writes. Conditional rows never enter RUNLOG: the panels, the
 # timeline and tests/test_coherence.py all read it as THE unconditional series.
 POLICIES = os.path.join(ROOT, "data", "leap_policies.json")
 CONDITIONAL_LOG = os.path.join(ROOT, "results", "conditional_runs.jsonl")
-# The combined instrument -- the policies AND the capability conditions in one
+# The combined instrument -- the policies AND the capability scenarios in one
 # call (code/make_combined_conditions.py). THE PUBLISHED SET since 2026-08-28
 # evening (Nick: the dashboard shows the panel on the single instrument): its
 # unconditional slice is the series every panel reads, results/runs/, and the
@@ -172,7 +172,7 @@ questions — beware both dismissing tail risk as zero and inflating it for
 vividness. When done, call submit_forecast."""
 
 PROMPT = """Today is {today}.
-{condition}
+{scenario}
 Below are {n} forecasting questions, grouped by cause of catastrophe. Forecast
 all of them together, in one pass.
 {constraints}
@@ -190,9 +190,9 @@ rationale for its numbers naming the mechanism at that severity and the anchor
 you used, the sources that mattered most to it, and the assumption you are least
 sure of -- research with those questions in mind."""
 
-# The CONDITIONAL ARM (--condition). Everything else in the call is identical
+# The CONDITIONAL ARM (--scenario). Everything else in the call is identical
 # to the unconditional run -- same models, tools, questions, criteria, horizons,
-# token budget -- and the {condition} slot above renders empty when no condition
+# token budget -- and the {scenario} slot above renders empty when no scenario
 # is given, so the unconditional prompt is byte-for-byte what it was (checked
 # by tests/test_conditional.py). The instruction sentence is LEAP Wave 12's own
 # conditioning text, verbatim from data/leap_policies.json; the policy
@@ -200,7 +200,7 @@ sure of -- research with those questions in mind."""
 # only the framing lines, and they say nothing about how the questions relate
 # to each other or to the policy -- the direction of the effect is the
 # measurement.
-CONDITION_BLOCK = """
+SCENARIO_BLOCK = """
 ===== CONDITION: {label} =====
 
 Forecast every question below CONDITIONAL on the policy scenario in this block.
@@ -221,28 +221,28 @@ unconditional one.
 
 # THE SINGLE INSTRUMENT (--joint) -- the published protocol from 2026-08-27.
 # One call per model that IS the survey: every question x horizon cell,
-# answered unconditionally and under each policy condition, in a single
+# answered unconditionally and under each policy scenario, in a single
 # submission -- the way a LEAP panelist sees one table with Unconditional and
-# every condition side by side. Repeats of the whole instrument (--repeats,
+# every scenario side by side. Repeats of the whole instrument (--repeats,
 # default 3) give the noise, on the conditionals as well as the unconditional.
 #
 # Two outputs per run. The UNCONDITIONAL slice goes to --out (the dated file
 # under results/runs/ that every panel reads through redlines.runlog) and is
 # the published series; the WHOLE instrument -- unconditional and every
-# condition, same call ids -- goes to results/conditional_runs.jsonl, which
+# scenario, same call ids -- goes to results/conditional_runs.jsonl, which
 # the Conditional-on panel reads. The unconditional rows are written twice on
 # purpose: the series file must stand alone, and the conditional panel pairs
-# each condition with its own call's unconditional by call id.
+# each scenario with its own call's unconditional by call id.
 #
 # Rows carry their own protocol tag. An unconditional answered beside eight
-# policy conditions is a different elicitation from the plain batch that ran
+# policy scenarios is a different elicitation from the plain batch that ran
 # weekly until 2026-08-27 (same day, an hour apart, it came out ~2x lower on
 # the headline cell), so the series marks the switch rather than hiding it.
 # The plain batch (no --joint) is kept for ablations and prints a deprecation
 # note; it is no longer what the cron runs.
 # v1 -> v2 on 2026-08-28, when the three cross-cutting questions moved onto the
 # ladder's six-horizon grid (201 -> 210 cells). ADDITIVE, and checked: the 32
-# ladder question blocks and the whole LEAP conditions block are byte-identical
+# ladder question blocks and the whole LEAP scenarios block are byte-identical
 # across the bump. What is not additive is the two catastrophe questions'
 # criteria, which gained a sentence scoping "the resolution year" to a rolling
 # horizon -- so their 2030/2050/2100 numbers are the same question asked under
@@ -268,7 +268,7 @@ under each of the {k} conditions listed in the CONDITIONS section that follows
 the questions: once unconditionally, and once under each {kind} condition.
 
 {blocks}
-{conditions}
+{scenarios}
 Horizons: {horizons}. Each question names the ones it is asked over -- answer
 those and no others.
 
@@ -289,8 +289,8 @@ sure of -- research with those questions in mind."""
 
 # The framing lines are ours; the instruction, the unconditional wording, the
 # definitions and every policy description are LEAP's, verbatim. Nothing here
-# says how the conditions relate to each other or to any question.
-CONDITIONS_BLOCK = """
+# says how the scenarios relate to each other or to any question.
+SCENARIOS_BLOCK = """
 ===== CONDITIONS =====
 
 Each question x horizon cell takes {k} probabilities, keyed by the condition ids
@@ -307,7 +307,7 @@ Unconditional: {unconditional}
 =====
 """
 
-CONDITION_ITEM = """
+SCENARIO_ITEM = """
 --- {id} ---
 {label}{tag}.
 Condition: {assume}
@@ -315,10 +315,10 @@ Condition: {assume}
 {description}
 """
 
-# A condition with nothing to say beyond its clause (the self-elicited set)
-# renders without the empty description's blank lines. Every LEAP condition
+# A scenario with nothing to say beyond its clause (the self-elicited set)
+# renders without the empty description's blank lines. Every LEAP scenario
 # has a description, so the LEAP text is untouched.
-CONDITION_ITEM_BARE = """
+SCENARIO_ITEM_BARE = """
 --- {id} ---
 {label}{tag}.
 Condition: {assume}
@@ -326,11 +326,11 @@ Condition: {assume}
 
 # A SELF-ELICITED set (data/eci_self_conditions.json): the model first
 # forecasts a quantity -- the frontier ECI at a date, five percentiles --
-# and the conditions refer to its own answers. Same section name, so the
+# and the scenarios refer to its own answers. Same section name, so the
 # head of PROMPT_JOINT still points at it; the definitions carry the history
 # the model forecasts from; the two steps are numbered so the tool's
 # eci_forecast field is not a surprise.
-CONDITIONS_BLOCK_ELICIT = """
+SCENARIOS_BLOCK_ELICIT = """
 ===== CONDITIONS =====
 
 {definitions}
@@ -355,8 +355,8 @@ Unconditional: {unconditional}
 # with its own instruction, definitions and horizon -- LEAP's text for the
 # policies, the self-elicited set's for capability, both verbatim -- plus one
 # `assumption` sentence of ours saying what that group holds the OTHER
-# group's quantity at: policy conditions sit on the model's own median
-# capability trajectory (its eci_p50), capability conditions under whatever
+# group's quantity at: policy scenarios sit on the model's own median
+# capability trajectory (its eci_p50), capability scenarios under whatever
 # policy it expects unconditionally. The `conditions` list stays flat and
 # tags each item with its group, so the tool, the cleaner, the stamps and
 # summarize() see one list of ids exactly as they do for any other set.
@@ -373,7 +373,7 @@ its {ngroups} groups ({kinds}). Every condition is taken on its own; no
 condition from one group is combined with a condition from another.
 
 {blocks}
-{conditions}
+{scenarios}
 Horizons: {horizons}. Each question names the ones it is asked over -- answer
 those and no others.
 
@@ -482,7 +482,7 @@ def apply_variant(prompt, variant):
 
 
 # THE MINIMAL INSTRUMENT (combined-v10): the joint prompt -- every question,
-# the LEAP policy and capability conditions, the ECI step, the delivery
+# the LEAP policy and capability scenarios, the ECI step, the delivery
 # mechanics -- with the guidance cut: no system prompt (one space: pi puts its
 # own coding-assistant prompt in place of an empty one), no "forecasting
 # questions, grouped by cause", no research paragraph, no rationale length,
@@ -508,7 +508,7 @@ MINIMAL_TOOLS = {
 
 
 def minimal_joint_prompt(prompt, variant=DEFAULT_VARIANT):
-    """The joint prompt cut to the questions, conditions and delivery mechanics."""
+    """The joint prompt cut to the questions, scenarios and delivery mechanics."""
     assert prompt.count(MINIMAL_JOINT_HEAD) == 1, "the joint prompt's head changed; update MINIMAL_JOINT_HEAD"
     out = prompt.replace(MINIMAL_JOINT_HEAD, "questions. Answer\nall of them -- and answer every")
     out, n = MINIMAL_JOINT_RESEARCH.subn("", out)
@@ -549,7 +549,7 @@ def load_policies(path=POLICIES):
     return json.load(open(path))
 
 
-# A CONDITION SET is a JSON file in data/leap_policies.json's shape: a
+# A SCENARIO SET is a JSON file in data/leap_policies.json's shape: a
 # `conditioning` block (instruction, unconditional_forecast, horizon, and
 # either LEAP's frontier_model or a ready `definitions` paragraph), the
 # `conditions` (id, label, assume, description, optional leap_id), a `source`,
@@ -624,7 +624,7 @@ def set_horizons(policies, horizons):
         return list(horizons)
     missing = [h for h in want if h not in horizons]
     if missing:
-        sys.exit(f"condition set {set_slug(policies)!r} asks horizons {missing} "
+        sys.exit(f"scenario set {set_slug(policies)!r} asks horizons {missing} "
                  f"the batch does not have ({list(horizons)})")
     return [h for h in horizons if h in want]
 
@@ -668,7 +668,7 @@ def resolve_set(policies, today):
         return policies
     months = {e["target_months"] for e in rolling}
     if len(months) != 1:
-        sys.exit(f"condition set {set_slug(policies)!r}: one rolling date per set, "
+        sys.exit(f"scenario set {set_slug(policies)!r}: one rolling date per set, "
                  f"got {sorted(months)} months")
     import copy
     target = add_months(today, months.pop())
@@ -692,35 +692,35 @@ def resolve_set(policies, today):
     return out
 
 
-def expand_conditions(wanted, policies):
-    """--condition ids (or 'all') -> condition dicts, in the file's order."""
+def expand_scenarios(wanted, policies):
+    """--scenario ids (or 'all') -> scenario dicts, in the file's order."""
     by_id = {c["id"]: c for c in policies["conditions"]}
     if "all" in wanted:
         return list(policies["conditions"])
     unknown = [w for w in wanted if w not in by_id]
     if unknown:
-        sys.exit(f"unknown --condition {unknown}; choose from "
+        sys.exit(f"unknown --scenario {unknown}; choose from "
                  f"{', '.join(by_id)} or 'all'")
     return [by_id[w] for w in wanted]
 
 
-def condition_block(cond, policies):
+def scenario_block(scenario, policies):
     c = policies["conditioning"]
-    return CONDITION_BLOCK.format(label=cond["label"], instruction=c["instruction"],
-                                  assume=cond["assume"], description=cond["description"],
+    return SCENARIO_BLOCK.format(label=scenario["label"], instruction=c["instruction"],
+                                  assume=scenario["assume"], description=scenario["description"],
                                   definitions=_definitions(policies), horizon=c["horizon"])
 
-def _condition_items(conds):
-    """The per-condition items, one rendering for every set."""
-    return "".join((CONDITION_ITEM if x.get("description") else CONDITION_ITEM_BARE)
+def _scenario_items(scenarios):
+    """The per-scenario items, one rendering for every set."""
+    return "".join((SCENARIO_ITEM if x.get("description") else SCENARIO_ITEM_BARE)
                    .format(id=x["id"], label=x["label"],
                            tag=f" ({x['leap_id']})" if x.get("leap_id") else "",
                            assume=x["assume"], description=x.get("description", ""))
-                   for x in conds)
+                   for x in scenarios)
 
 
-def conditions_block_grouped(conds, policies):
-    """The CONDITIONS section of a grouped set: the shared definitions and
+def scenarios_block_grouped(scenarios, policies):
+    """The CONDITIONS section (the scenarios) of a grouped set: the shared definitions and
     Step 1 (if the set elicits), the key list, the unconditional line, then
     one block per group in the set's order -- each group's own instruction,
     our assumption sentence, its definitions and horizon, and its items."""
@@ -732,10 +732,10 @@ def conditions_block_grouped(conds, policies):
     shared = [e for e in es if not e.get("group")]
     per_group = {e["group"]: e for e in es if e.get("group")}
     by_group = {}
-    for x in conds:
+    for x in scenarios:
         by_group.setdefault(x["group"], []).append(x)
     groups = [g for g in set_groups(policies) if g["key"] in by_group]
-    k = len(conds) + 1
+    k = len(scenarios) + 1
     counts = ", then ".join(f"the {len(by_group[g['key']])} {g['kind']} conditions "
                             f"({g['heading']})" for g in groups)
     keyed = (f"each question x horizon cell takes {k} probabilities, keyed by the "
@@ -756,24 +756,24 @@ def conditions_block_grouped(conds, policies):
                                       definitions=f"{g['definitions']}\n" if g.get("definitions") else "",
                                       elicit=(f"Your forecast -- {per_group[g['key']]['text']}\n\n"
                                               if g["key"] in per_group else ""),
-                                      horizon=g["horizon"], items=_condition_items(by_group[g["key"]]))
+                                      horizon=g["horizon"], items=_scenario_items(by_group[g["key"]]))
                    for g in groups)
     return f"{head}{body}\n=====\n"
 
 
-def conditions_block(conds, policies):
+def scenarios_block(scenarios, policies):
     if set_groups(policies):
-        return conditions_block_grouped(conds, policies)
+        return scenarios_block_grouped(scenarios, policies)
     c = policies["conditioning"]
-    items = _condition_items(conds)
+    items = _scenario_items(scenarios)
     e = set_elicit(policies)
     if e:
-        return CONDITIONS_BLOCK_ELICIT.format(k=len(conds) + 1, instruction=c["instruction"],
+        return SCENARIOS_BLOCK_ELICIT.format(k=len(scenarios) + 1, instruction=c["instruction"],
                                               definitions=_definitions(policies), horizon=c["horizon"],
                                               elicit=e["text"], uncond_key=UNCONDITIONAL_KEY,
                                               unconditional=c["unconditional_forecast"],
                                               policy_blocks=items)
-    return CONDITIONS_BLOCK.format(k=len(conds) + 1, instruction=c["instruction"],
+    return SCENARIOS_BLOCK.format(k=len(scenarios) + 1, instruction=c["instruction"],
                                    definitions=_definitions(policies), horizon=c["horizon"],
                                    uncond_key=UNCONDITIONAL_KEY,
                                    unconditional=c["unconditional_forecast"],
@@ -883,7 +883,7 @@ def submit_tool(qids, horizons):
 
 
 def build_prompt(groups, by_group, horizons, spec, today=None,
-                 state_constraints=False, condition=None, policies=None):
+                 state_constraints=False, scenario=None, policies=None):
     """The whole set in one prompt, with each question's own resolution criteria.
 
     The criteria are new here. Bridget's definitions carry the measurement
@@ -955,9 +955,9 @@ def build_prompt(groups, by_group, horizons, spec, today=None,
     hz = ", ".join(f"{h} ({horizon_label(h, spec, today)})" for h in horizons)
     constraints = (constraint_block(spec, groups, by_group)
                    if state_constraints else "")
-    cond = condition_block(condition, policies) if condition else ""
+    block = scenario_block(scenario, policies) if scenario else ""
     return PROMPT.format(today=today.isoformat(), n=n, blocks=blocks,
-                         horizons=hz, cells=cells, condition=cond,
+                         horizons=hz, cells=cells, scenario=block,
                          constraints=constraints), n, cells
 
 
@@ -1000,8 +1000,8 @@ def _num_schema(lo, hi):
     return out
 
 
-def _cells_schema(qids, horizons, cond_ids):
-    keys = [UNCONDITIONAL_KEY] + list(cond_ids)
+def _cells_schema(qids, horizons, scenario_ids):
+    keys = [UNCONDITIONAL_KEY] + list(scenario_ids)
     return {
         "type": "array",
         "items": {
@@ -1021,7 +1021,7 @@ def _cells_schema(qids, horizons, cond_ids):
     }
 
 
-def submit_cells_tool(qids, horizons, cond_ids):
+def submit_cells_tool(qids, horizons, scenario_ids):
     """The PARTIAL tool (redlines.llm.call_tools partial_tool, 2026-09-02
     evening): the model delivers the grid in as many calls as it likes, any
     subset of cells per call; the runner keeps them (run_one_joint) and
@@ -1035,13 +1035,13 @@ def submit_cells_tool(qids, horizons, cond_ids):
                        "cells have been received and which are still missing.",
         "parameters": {
             "type": "object",
-            "properties": {"forecasts": _cells_schema(qids, horizons, cond_ids)},
+            "properties": {"forecasts": _cells_schema(qids, horizons, scenario_ids)},
             "required": ["forecasts"],
         },
     }
 
 
-def submit_tool_joint(qids, horizons, cond_ids, elicit=None):
+def submit_tool_joint(qids, horizons, scenario_ids, elicit=None):
     """The FINAL tool: rationale, sources, the elicited quantities, and any
     cells not delivered with submit_cells (`forecasts` is optional here since
     2026-09-02 evening; a call may still carry the whole grid). With `elicit`
@@ -1054,7 +1054,7 @@ def submit_tool_joint(qids, horizons, cond_ids, elicit=None):
         "parameters": {
             "type": "object",
             "properties": {
-                "forecasts": _cells_schema(qids, horizons, cond_ids),
+                "forecasts": _cells_schema(qids, horizons, scenario_ids),
                 "rationale": {"type": "string"},
                 "key_sources": {"type": "array", "items": {"type": "string"}},
             },
@@ -1268,39 +1268,39 @@ def clean_elicit(raw, elicit):
     return out
 
 
-def build_prompt_joint(groups, by_group, horizons, spec, conds, policies, today=None):
-    """The whole set, and the whole condition set, in one prompt.
+def build_prompt_joint(groups, by_group, horizons, spec, scenarios, policies, today=None):
+    """The whole set, and the whole scenario set, in one prompt.
 
     The question blocks are exactly build_prompt's (same criteria, same shared
-    blocks, same horizon line); the CONDITIONS section follows them.
+    blocks, same horizon line); the CONDITIONS section (the scenarios) follows them.
     -> (prompt, n_questions, n_cells) where n_cells counts question x horizon,
-    not x condition.
+    not x scenario.
     """
     today = today or date.today()
     policies = resolve_set(policies, today)
-    # The conditions come from the resolved set too (a rolling set's texts
+    # The scenarios come from the resolved set too (a rolling set's texts
     # carry the date); the caller's list only says which ones, in what order.
     by_id = {c["id"]: c for c in policies["conditions"]}
-    conds = [by_id[c["id"]] for c in conds]
+    scenarios = [by_id[c["id"]] for c in scenarios]
     base, n, cells = build_prompt(groups, by_group, horizons, spec, today)
     head = f"Today is {today.isoformat()}.\n\nBelow are {n} forecasting questions, grouped by cause of catastrophe. Forecast\nall of them together, in one pass.\n\n"
     tail_at = base.index("\nHorizons: ")
     assert base.startswith(head), "build_prompt's head changed; update build_prompt_joint"
     blocks = base[len(head):tail_at]
     hz = ", ".join(f"{h} ({horizon_label(h, spec, today)})" for h in horizons)
-    k = len(conds) + 1
+    k = len(scenarios) + 1
     groups = set_groups(policies)
     if groups:
-        present = [g for g in groups if any(c.get("group") == g["key"] for c in conds)]
+        present = [g for g in groups if any(c.get("group") == g["key"] for c in scenarios)]
         kinds = " and ".join(f"{g['kind']} conditions" for g in present)
         return PROMPT_JOINT_GROUPED.format(
             today=today.isoformat(), n=n, k=k, blocks=blocks, ngroups=len(present),
             kinds=kinds, extra=submit_extra(policies),
-            conditions=conditions_block(conds, policies),
+            scenarios=scenarios_block(scenarios, policies),
             horizons=hz, cells=cells, total=cells * k), n, cells
     return PROMPT_JOINT.format(today=today.isoformat(), n=n, k=k, blocks=blocks,
                                kind=set_kind(policies), extra=submit_extra(policies),
-                               conditions=conditions_block(conds, policies),
+                               scenarios=scenarios_block(scenarios, policies),
                                horizons=hz, cells=cells, total=cells * k), n, cells
 
 
@@ -1315,12 +1315,12 @@ def _as_list(raw):
     return raw if isinstance(raw, list) else []
 
 
-def clean_forecasts_joint(raw, allowed, horizons, cond_ids):
-    """-> {condition_key: {question_id: [{horizon, probability}, ...]}}, or None.
+def clean_forecasts_joint(raw, allowed, horizons, scenario_ids):
+    """-> {scenario key: {question_id: [{horizon, probability}, ...]}}, or None.
 
     Same defences as clean_forecasts; a cell whose probabilities object lacks
-    a condition keeps the conditions it has. Keys are UNCONDITIONAL_KEY and
-    the condition ids.
+    a scenario keeps the scenarios it has. Keys are UNCONDITIONAL_KEY and
+    the scenario ids.
     """
     if isinstance(raw, str):
         try:
@@ -1329,7 +1329,7 @@ def clean_forecasts_joint(raw, allowed, horizons, cond_ids):
             return None
     if not isinstance(raw, list):
         return None
-    keys = [UNCONDITIONAL_KEY] + list(cond_ids)
+    keys = [UNCONDITIONAL_KEY] + list(scenario_ids)
     out = {k: {} for k in keys}
     for f in raw:
         if not isinstance(f, dict):
@@ -1389,14 +1389,14 @@ def coverage_line(rows):
 
 
 def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, spec,
-                  conds, policies, experiment=None, arm=None, panel=None, today=None,
+                  scenarios, policies, experiment=None, arm=None, panel=None, today=None,
                   harness="litellm", variant=DEFAULT_VARIANT, minimal=False):
-    """One call: the full instrument. -> rows, one per (question, condition)."""
+    """One call: the full instrument. -> rows, one per (question, scenario)."""
     today = today or datetime.now(timezone.utc).date()
     policies = resolve_set(policies, today)
-    conds = [c for c in policies["conditions"] if c["id"] in {x["id"] for x in conds}]
+    scenarios = [c for c in policies["conditions"] if c["id"] in {x["id"] for x in scenarios}]
     prompt, n, want_cells = build_prompt_joint(groups, by_group, horizons, spec,
-                                               conds, policies, today)
+                                               scenarios, policies, today)
     prompt = minimal_joint_prompt(prompt, variant) if minimal else apply_variant(prompt, variant)
     # An unpooled variant's URL guard goes to THIS call's tool processes
     # through the loop's `env` (redlines/pi_loop.py -> agent-box harness.run),
@@ -1412,14 +1412,14 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
     extra = {**({"url_block_patterns": guard} if guard else {}),
              # Not in the published number: redlines.runlog.pooled_rows.
              **({"pooled": False} if aside else {})}
-    block = conditions_block(conds, policies)
+    block = scenarios_block(scenarios, policies)
     sha = hashlib.sha256(block.encode()).hexdigest()
-    cond_ids = [c["id"] for c in conds]
+    scenario_ids = [c["id"] for c in scenarios]
     stamps = {UNCONDITIONAL_KEY: None}
-    # A grouped set stamps each condition with its group and the group's own
+    # A grouped set stamps each scenario with its group and the group's own
     # source (LEAP's wave for a policy, the ECI set's for a capability level).
     cgroups = {g["key"]: g for g in set_groups(policies)}
-    for c in conds:
+    for c in scenarios:
         g = cgroups.get(c.get("group")) if cgroups else None
         stamps[c["id"]] = {"id": c["id"], "leap_id": c.get("leap_id"), "label": c["label"],
                            "source": ((g or {}).get("source") or {}).get("wave") or policies["source"]["wave"],
@@ -1428,7 +1428,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
     qids = [q["id"] for g in groups for q in by_group[g["key"]]]
     allowed = {q["id"]: {h for h in horizons if h in q["horizons"]}
                for g in groups for q in by_group[g["key"]]}
-    want = want_cells * (len(conds) + 1)
+    want = want_cells * (len(scenarios) + 1)
     elicits = set_elicits(policies)
     grids, answer, evidence, attempts, elicited = None, {}, [], 0, None
     usage = {}   # the whole call's tokens and price, retries included
@@ -1452,7 +1452,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
         return {"accepted": n, "received": len(received), "of": want_cells,
                 "missing": len(missing), "missing_first": missing[:20]}
 
-    partial = {**submit_cells_tool(qids, horizons, cond_ids), "fn": take_cells}
+    partial = {**submit_cells_tool(qids, horizons, scenario_ids), "fn": take_cells}
     while attempts <= retries:
         attempts += 1
         received.clear()
@@ -1463,7 +1463,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
             if minimal:
                 research, coverage = minimal_tools(research), None
             answer, evidence = loop_for(harness)(
-                model_id, prompt, research, submit_tool_joint(qids, horizons, cond_ids, elicits),
+                model_id, prompt, research, submit_tool_joint(qids, horizons, scenario_ids, elicits),
                 system=MINIMAL_SYSTEM if minimal else SYSTEM,
                 max_iters=MINIMAL_MAX_TURNS if minimal else MAX_ROUNDS, max_tokens=64000,
                 min_evidence=0 if minimal else MIN_RESEARCH, usage=usage, partial_tool=partial,
@@ -1486,24 +1486,24 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
                 merged[(f["question_id"], f["horizon"])] = f
                 delivery["cells_in_final"] += 1
         answer["forecasts"] = list(merged.values())
-        grids = clean_forecasts_joint(answer.get("forecasts"), allowed, horizons, cond_ids)
+        grids = clean_forecasts_joint(answer.get("forecasts"), allowed, horizons, scenario_ids)
         got = sum(len(v) for g in (grids or {}).values() for v in g.values())
         elicited = ({e["key"]: clean_elicit(answer.get(e["key"]), e) for e in elicits}
                     if elicits else None)
         if grids and got >= 0.9 * want and (not elicits or all(elicited.values())):
             break
-        print(f"  retry {label:16} attempt {attempts}: {got}/{want} cells x conditions"
+        print(f"  retry {label:16} attempt {attempts}: {got}/{want} cells x (unconditional + scenarios)"
               + "".join(f", {k} {'ok' if v else 'missing/unordered'}"
                         for k, v in (elicited or {}).items()))
     # No forecasts after every attempt is a failed call, not rows of nulls
     # (2026-10-14: a 0/574 call was logged as done).
     if not grids:
         raise RuntimeError(f"no forecasts after {attempts} attempt(s)")
-    # Stamp each condition with the level it names in this call: a fixed
-    # level carries its own `value` (the axes sets); a condition on the
+    # Stamp each scenario with the level it names in this call: a fixed
+    # level carries its own `value` (the axes sets); a scenario on the
     # model's own number (`field`) takes what it gave for that field of its
-    # elicit -- the set's one, or the one the condition's `elicit` names.
-    for c in conds:
+    # elicit -- the set's one, or the one the scenario's `elicit` names.
+    for c in scenarios:
         if c.get("value") is not None:
             stamps[c["id"]]["value"] = c["value"]
         elif c.get("field"):
@@ -1519,7 +1519,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
     stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
     call_id = f"{run_id}:{set_slug(policies)}:{arm}:{label}" + (f":{variant}" if variant != DEFAULT_VARIANT else "")
     rows, first = [], True
-    for key in [UNCONDITIONAL_KEY] + cond_ids:
+    for key in [UNCONDITIONAL_KEY] + scenario_ids:
         grid = (grids or {}).get(key) or {}
         for g in groups:
             for q in by_group[g["key"]]:
@@ -1573,9 +1573,9 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
                     "experiment": experiment, "arm": arm,
                     # Which prompt variant asked (VARIANTS); "none" adds nothing.
                     "variant": variant,
-                    # Which conditions this call was asked, so a partial
+                    # Which scenarios this call was asked, so a partial
                     # submission is visibly partial.
-                    "joint_conditions": [UNCONDITIONAL_KEY] + cond_ids,
+                    "joint_conditions": [UNCONDITIONAL_KEY] + scenario_ids,
                     # Which model set this call belongs to -- for the ECI
                     # panel, which snapshot chose it (redlines.registry).
                     "panel": panel,
@@ -1586,19 +1586,19 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
 
 
 def run_one(label, model_id, groups, by_group, horizons, run_id, retries, spec,
-            state_constraints=False, condition=None, policies=None,
+            state_constraints=False, scenario=None, policies=None,
             experiment=None, arm=None, panel=None, today=None):
     today = today or datetime.now(timezone.utc).date()
     prompt, n, want_cells = build_prompt(groups, by_group, horizons, spec, today,
-                                         state_constraints, condition, policies)
-    # Provenance for a conditional row: which condition, and a hash of the exact
+                                         state_constraints, scenario, policies)
+    # Provenance for a conditional row: which scenario, and a hash of the exact
     # block the model saw, so a later edit to the policy text cannot be pooled
     # with this run unnoticed.
-    cond_stamp = None
-    if condition:
-        block = condition_block(condition, policies)
-        cond_stamp = {"id": condition["id"], "leap_id": condition["leap_id"],
-                      "label": condition["label"],
+    scenario_stamp = None
+    if scenario:
+        block = scenario_block(scenario, policies)
+        scenario_stamp = {"id": scenario["id"], "leap_id": scenario["leap_id"],
+                      "label": scenario["label"],
                       "source": policies["source"]["wave"],
                       "sha256": hashlib.sha256(block.encode()).hexdigest()}
     qids = [q["id"] for g in groups for q in by_group[g["key"]]]
@@ -1682,7 +1682,7 @@ def run_one(label, model_id, groups, by_group, horizons, run_id, retries, spec,
                 "asked_horizons": q.get("horizons"),
                 "raw_forecasts": None if grid else answer.get("forecasts"),
                 # Conditional-arm provenance. All None on the published series.
-                "condition": cond_stamp,
+                "condition": scenario_stamp,
                 "experiment": experiment,
                 "arm": arm,
                 "panel": panel,
@@ -1764,28 +1764,28 @@ def main():
                          "prompt and tag the rows unified-batch-v1. Never for "
                          "the published series -- it contaminates the "
                          "measurement. Write these to results/experiments/.")
-    ap.add_argument("--conditions", default=COMBINED,
-                    help="the CONDITION SET: a JSON file in data/leap_policies.json's "
+    ap.add_argument("--scenarios", default=COMBINED,
+                    help="the SCENARIO SET: a JSON file in data/leap_policies.json's "
                          "shape. Default: data/combined_conditions.json, THE PUBLISHED "
                          "SET since 2026-08-28 -- the LEAP policies AND the six-month "
-                         "capability conditions in one instrument. "
+                         "capability scenarios in one instrument. "
                          "data/leap_policies.json (policies only) is published too; "
                          "data/eci_conditions.json is the fixed capability set; a set "
                          "not in PUBLISHED_SETS never writes into results/runs/.")
-    ap.add_argument("--condition", action="append", default=[],
+    ap.add_argument("--scenario", action="append", default=[],
                     help="CONDITIONAL ARM: prepend one LEAP Wave 12 policy "
-                         "condition from data/leap_policies.json (an id, or "
-                         "'all'; repeatable). One call per model per condition. "
+                         "scenario from data/leap_policies.json (an id, or "
+                         "'all'; repeatable). One call per model per scenario. "
                          "Never for the published series: needs --out.")
     ap.add_argument("--unconditional", type=int, default=None,
                     help="how many unconditional arms to run in the same "
-                         "session (default 1 without --condition, 0 with it). "
+                         "session (default 1 without --scenario, 0 with it). "
                          "Repeats give the re-elicitation noise floor that the "
                          "conditional deltas are read against.")
     ap.add_argument("--joint", action="store_true",
                     help="THE PUBLISHED PROTOCOL (since 2026-08-27): one call per "
                          "model answering every cell unconditionally AND under "
-                         "every condition (--condition, default all) in a single "
+                         "every scenario (--scenario, default all) in a single "
                          "submission. Unconditional slice -> --out (default "
                          "results/runs/<stamp>.jsonl); whole instrument -> "
                          "--conditional-out.")
@@ -1797,7 +1797,7 @@ def main():
                          "one-call-per-cell check)")
     ap.add_argument("--conditional-out", default=None,
                     help="with --joint: where the whole instrument (every "
-                         "condition) is appended (default results/conditional_runs.jsonl "
+                         "scenario) is appended (default results/conditional_runs.jsonl "
                          "for the published set, results/conditional_runs_<slug>.jsonl "
                          "for another)")
     ap.add_argument("--experiment",
@@ -1812,7 +1812,7 @@ def main():
     ap.add_argument("--dry-run", action="store_true",
                     help="print each arm's prompt and exit; no model is called")
     ap.add_argument("--harness", choices=HARNESSES,
-                    help="the loop: the condition set's own (its `harness`; litellm when it names "
+                    help="the loop: the scenario set's own (its `harness`; litellm when it names "
                          "none) unless given. Another loop runs only as a --joint --experiment, "
                          "its rows tagged <protocol>+<harness>")
     args = ap.parse_args()
@@ -1833,19 +1833,19 @@ def main():
     if args.harness:
         if not args.joint:
             sys.exit("--harness is for --joint runs")
-        own = set_harness(load_policies(args.conditions))
+        own = set_harness(load_policies(args.scenarios))
         if args.harness != own and not args.experiment:
             sys.exit(f"--harness {args.harness}: this set is elicited through {own}; another loop "
                      "runs only as an --experiment, so its rows never join the series")
 
     # The combined instrument asks models to forecast and condition on frontier
-    # ECI. Refuse to run it against a stale frontier history or a condition
+    # ECI. Refuse to run it against a stale frontier history or a scenario
     # set not generated from the newest Epoch snapshot
     # (code/check_eci_snapshot.py; code/cron_run.sh fetches and regenerates
     # before every run). A dry run calls no model and prints the prompt as it
     # stands, so it is not gated.
     if args.joint and not args.dry_run and \
-            os.path.abspath(args.conditions) == os.path.abspath(COMBINED):
+            os.path.abspath(args.scenarios) == os.path.abspath(COMBINED):
         subprocess.run([sys.executable, os.path.join(ROOT, "code", "check_eci_snapshot.py")],
                        check=True)
 
@@ -1856,29 +1856,29 @@ def main():
     print("NOTE: the plain unconditional batch is DEPRECATED as the published "
           "protocol (2026-08-27); the cron runs --joint. This path is kept for "
           "ablations and experiments.", file=sys.stderr)
-    policies = load_policies(args.conditions) if args.condition else None
-    conds = expand_conditions(args.condition, policies) if args.condition else []
-    n_uncond = args.unconditional if args.unconditional is not None else (0 if conds else 1)
-    if n_uncond < 0 or (n_uncond == 0 and not conds):
-        sys.exit("nothing to run: --unconditional 0 and no --condition")
+    policies = load_policies(args.scenarios) if args.scenario else None
+    scenarios = expand_scenarios(args.scenario, policies) if args.scenario else []
+    n_uncond = args.unconditional if args.unconditional is not None else (0 if scenarios else 1)
+    if n_uncond < 0 or (n_uncond == 0 and not scenarios):
+        sys.exit("nothing to run: --unconditional 0 and no --scenario")
     # Arms. The plain weekly run is one unnamed unconditional arm, so its rows
     # carry arm=None exactly as before; anything else is named.
-    if conds or args.unconditional is not None:
+    if scenarios or args.unconditional is not None:
         arms = [(f"unconditional#{i + 1}", None) for i in range(n_uncond)]
-        arms += [(c["id"], c) for c in conds]
+        arms += [(c["id"], c) for c in scenarios]
     else:
         arms = [(None, None)]
-    if (conds or args.experiment) and os.path.abspath(args.out) == os.path.abspath(RUNLOG):
+    if (scenarios or args.experiment) and os.path.abspath(args.out) == os.path.abspath(RUNLOG):
         sys.exit("refusing: a conditional or experiment run would write into the "
                  "published run log. Use --out results/conditional_runs.jsonl "
                  "(or results/experiments/<name>.jsonl)")
 
     if args.dry_run:
         groups, by_group, horizons, skipped, spec = load_batch(LADDER, CROSS, UNBATCHED)
-        for arm, cond in arms:
+        for arm, scenario in arms:
             prompt, n, cells = build_prompt(groups, by_group, horizons, spec,
                                             date.today(), args.state_constraints,
-                                            cond, policies)
+                                            scenario, policies)
             print(f"##### ARM {arm or 'unconditional'}: {n} questions, {cells} cells, "
                   f"{len(prompt)} chars #####")
             print(prompt)
@@ -1938,8 +1938,8 @@ def main():
         # pool holds one call per vendor at a time, the same load as the weekly run.
         futs = {ex.submit(run_one, l, m, groups, by_group, horizons, run_id,
                           args.retries, spec, args.state_constraints,
-                          cond, policies, args.experiment, arm, panel): (arm, l)
-                for arm, cond in arms for l, m in models}
+                          scenario, policies, args.experiment, arm, panel): (arm, l)
+                for arm, scenario in arms for l, m in models}
         for fut in cf.as_completed(futs):
             arm, label = futs[fut]
             tag = f"{label:16}" if not arm else f"{arm + ':' + label:32}"
@@ -1970,9 +1970,9 @@ def main_joint(args):
     Unconditional slice -> args.out; every row -> args.conditional_out.
     """
     today = datetime.now(timezone.utc).date()
-    policies = load_policies(args.conditions)
-    conds = expand_conditions(args.condition or ["all"], policies)
-    published_set = os.path.abspath(args.conditions) in {os.path.abspath(p) for p in PUBLISHED_SETS}
+    policies = load_policies(args.scenarios)
+    scenarios = expand_scenarios(args.scenario or ["all"], policies)
+    published_set = os.path.abspath(args.scenarios) in {os.path.abspath(p) for p in PUBLISHED_SETS}
     harness = args.harness or set_harness(policies)
     slug, proto = set_slug(policies), row_protocol(policies, harness)
     variants = args.variant or set_asked_variants(policies)
@@ -2023,10 +2023,10 @@ def main_joint(args):
         # The LEAP set's instrument log is the original one; every other
         # published set keeps a log named by its slug (the tabs know both).
         cond_out = args.conditional_out or (
-            CONDITIONAL_LOG if os.path.abspath(args.conditions) == os.path.abspath(POLICIES)
+            CONDITIONAL_LOG if os.path.abspath(args.scenarios) == os.path.abspath(POLICIES)
             else os.path.join(ROOT, "results", f"conditional_runs_{slug}.jsonl"))
     else:
-        # Another condition set is another instrument: its unconditional slice
+        # Another scenario set is another instrument: its unconditional slice
         # is not the published series and its rows are not the policy panel's.
         # Both land beside the policy files, named by the set, unless told
         # otherwise -- and never in the series' places.
@@ -2036,13 +2036,13 @@ def main_joint(args):
         for path in (out, cond_out):
             ap_ = os.path.abspath(path)
             if ap_ == os.path.abspath(CONDITIONAL_LOG) or ap_.startswith(os.path.abspath(RUNS_DIR) + os.sep):
-                sys.exit(f"refusing: condition set {slug!r} ({proto}) must not write to "
+                sys.exit(f"refusing: scenario set {slug!r} ({proto}) must not write to "
                          f"{path}; that is the published series/panel log")
     if os.path.abspath(cond_out) == os.path.abspath(out):
         sys.exit("--conditional-out must differ from --out")
     groups, by_group, horizons, skipped, spec = load_batch(LADDER, CROSS, UNBATCHED)
     horizons = set_horizons(policies, horizons)
-    prompt, n, cells = build_prompt_joint(groups, by_group, horizons, spec, conds,
+    prompt, n, cells = build_prompt_joint(groups, by_group, horizons, spec, scenarios,
                                           policies, today)
     for el in set_elicits(resolve_set(policies, today)):
         print(f"    elicits {el['key']} {el['fields']} for {el.get('target_date')}"
@@ -2052,8 +2052,8 @@ def main_joint(args):
             p = minimal_joint_prompt(prompt, v) if minimal else apply_variant(prompt, v)
             print(f"##### JOINT [{slug}: {proto}{'' if v == DEFAULT_VARIANT else ' / ' + v}"
                   f"{' / minimal' if minimal else ''}{' / unpooled' if v in unpooled else ''}]: "
-                  f"{n} questions, {cells} cells x {len(conds) + 1} "
-                  f"conditions = {cells * (len(conds) + 1)} probabilities, {len(p)} chars #####")
+                  f"{n} questions, {cells} cells x (unconditional + {len(scenarios)} "
+                  f"scenarios) = {cells * (len(scenarios) + 1)} probabilities, {len(p)} chars #####")
             print(p)
             print(f"##### URL GUARD ({BLOCK_ENV}): "
                   f"{guards.get(v) or os.environ.get(BLOCK_ENV) or 'off'} #####")
@@ -2064,8 +2064,8 @@ def main_joint(args):
     models, panel = select_models(args)
     print(f"run {run_id} protocol {proto} [set {slug}]: {len(models) * len(arms) * len(variants)} calls "
           f"({len(models)} models x {len(arms)} repeat(s) x {len(variants)} variant(s)), {n} questions x "
-          f"{len(horizons)} horizons = {cells} cells x {len(conds) + 1} conditions "
-          f"= {cells * (len(conds) + 1)} probabilities each")
+          f"{len(horizons)} horizons = {cells} cells x (unconditional + {len(scenarios)} scenarios) "
+          f"= {cells * (len(scenarios) + 1)} probabilities each")
     if len(variants) > 1 or variants != [DEFAULT_VARIANT]:
         print(f"    variants: {', '.join(variants)}"
               + (f"; unpooled (not in the published number): "
@@ -2074,10 +2074,10 @@ def main_joint(args):
     print(f"    harness: {harness} loop, research floor {MIN_RESEARCH} calls, coverage "
           f"{', '.join(g['key'] for g in groups)}, guard {MAX_ROUNDS} rounds; reasoning "
           + ", ".join(f"{l}={reasoning_for(m) or 'default'}" for l, m in models))
-    print(f"    conditions: {UNCONDITIONAL_KEY}, {', '.join(c['id'] for c in conds)}"
+    print(f"    {UNCONDITIONAL_KEY} + scenarios: {', '.join(c['id'] for c in scenarios)}"
           + (f"  [experiment: {args.experiment}]" if args.experiment else ""))
     for g in set_groups(policies):
-        print(f"      {g['key']:11} {sum(c.get('group') == g['key'] for c in conds)} conditions -- {g['heading']}")
+        print(f"      {g['key']:11} {sum(c.get('group') == g['key'] for c in scenarios)} scenarios -- {g['heading']}")
     print(f"    unconditional slice -> {out}\n    whole instrument     -> {cond_out}")
     for qid, why in skipped:
         print(f"    SKIP {qid}: {why}")
@@ -2093,7 +2093,7 @@ def main_joint(args):
     with open(out, "a") as f, open(cond_out, "a") as fc, \
             cf.ThreadPoolExecutor(max_workers=args.workers) as ex:
         futs = {ex.submit(run_one_joint, l, m, groups, by_group, horizons, run_id,
-                          args.retries, spec, conds, policies, args.experiment, arm, panel,
+                          args.retries, spec, scenarios, policies, args.experiment, arm, panel,
                           today, harness, v, minimal): (arm, l, v)
                 for v in variants for arm in arms for l, m in models}
         for fut in cf.as_completed(futs):
@@ -2121,7 +2121,7 @@ def main_joint(args):
             got = sum(1 for r in rows if r["forecasts"])
             ev = sum(len(r["evidence"]) for r in rows)
             spent = tally_spend(spent, rows)
-            print(f"  done  {tag} {got}/{len(rows)} question x condition rows answered, {usage_line(rows)}, "
+            print(f"  done  {tag} {got}/{len(rows)} question x scenario rows answered, {usage_line(rows)}, "
                   f"{ev} evidence, {coverage_line(rows)}, {rows[0]['attempts']} attempt(s), "
                   f"{debrief_note(rows)}")
     print(f"{done} ok, {failed} failed, ${spent:.2f} priced spend -> {out} (unconditional) + {cond_out} (instrument)"

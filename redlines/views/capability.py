@@ -158,8 +158,8 @@ def _forecasts(rows, spec, colors):
     return models, ens
 
 
-def _condition_values(rows):
-    """{condition id: median over calls of the level the condition named}."""
+def _scenario_values(rows):
+    """{scenario id: median over calls of the level the scenario named}."""
     by = {}
     for r in rows:
         c = r.get("condition")
@@ -220,8 +220,8 @@ def build(horizons=DEFAULT_HORIZONS, variants=VARIANTS):
         target = sorted({(r.get("elicited") or {}).get("target_date") for r in rows} - {None})
         target_date = target[-1] if target else spec["elicit"].get("target_date")
         v = _variant(rows, spec, horizons, ladder, qs, colors)
-        levels = _condition_values(rows)
-        # The row's sub-line: the level the condition named (median over
+        levels = _scenario_values(rows)
+        # The row's sub-line: the level the scenario named (median over
         # calls), where the policy tab shows LEAP's id.
         for q in v["questions"]:
             for cell in q["byHorizon"].values():
@@ -239,17 +239,17 @@ def build(horizons=DEFAULT_HORIZONS, variants=VARIANTS):
                 for b in cell["bars"]:
                     f = next((c["field"] for c in spec["conditions"] if c["id"] == b["id"]), None)
                     b["label"] = short.get(f, b["label"])
-        conds = [{"id": c["id"], "label": short.get(c["field"], c["label"]), "promptLabel": c["label"],
+        scenarios = [{"id": c["id"], "label": short.get(c["field"], c["label"]), "promptLabel": c["label"],
                   "leapId": (f"ECI ≈ {levels[c['id']]:.0f}" if c["id"] in levels else None),
                   "field": c["field"], "assume": c["assume"], "policy": None, "part": None,
                   "level": _r(levels.get(c["id"])),
-                  # What the model was shown before the conditions: Step 1.
+                  # What the model was shown before the scenarios: Step 1.
                   "description": spec["elicit"]["text"]}
                  # The rows the day answered, in the set's order: a set that
                  # grew (v4 added the model's own p10 and p90, 2026-09-03)
-                 # lists five conditions, but a day run under the old tag
+                 # lists five scenarios, but a day run under the old tag
                  # answered three, and the page must not name rows it does
-                 # not draw. Every condition when no run has landed yet.
+                 # not draw. Every scenario when no run has landed yet.
                  for c in spec["conditions"] if not rows or c["id"] in levels]
         out_variants.append({
             "key": slug, "label": label,
@@ -265,7 +265,7 @@ def build(horizons=DEFAULT_HORIZONS, variants=VARIANTS):
             "source": spec["source"],
             "conditioning": spec["conditioning"],
             "elicit": {k: spec["elicit"][k] for k in ("key", "fields", "percentiles", "text")},
-            "conditions": conds,
+            "conditions": scenarios,
             "horizons": list(horizons),
             "defaultHorizon": "2030",
             # The tag the rows shown carry (the set's own, when it has none).

@@ -126,10 +126,10 @@ class TestNumbersGolden(unittest.TestCase):
 
 class TestConditionalNumbers(unittest.TestCase):
     def test_absolute_medians_are_not_products_of_medians(self):
-        # Model baselines [1, 10, 100], conditions [2, 50, 100]:
+        # Model baselines [1, 10, 100], scenarios [2, 50, 100]:
         # median level = 50, but median baseline * median ratio = 20.
         out = {}
-        numbers._condition_family(out, "cap", [{
+        numbers._scenario_family(out, "cap", [{
             "id": "test", "valueKind": "probability",
             "byHorizon": {"2030": {"baselineMedian": 10, "bars": [
                 {"id": "high", "ratio": 2, "pMedian": 50},

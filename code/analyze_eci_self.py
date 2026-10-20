@@ -152,7 +152,7 @@ def uncond_table(horizon, runs_filter):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--log", help="default: results/conditional_runs_<slug>.jsonl for the set")
-    ap.add_argument("--conditions", default=SET)
+    ap.add_argument("--scenarios", default=SET)
     ap.add_argument("--horizon", default="2030")
     ap.add_argument("--question", action="append")
     ap.add_argument("--measure", default="ratio", choices=["ratio", "p", "delta_pp", "dlogit"])
@@ -160,7 +160,7 @@ def main():
                                           "compare against (default: all)")
     ap.add_argument("--json", help="write the summarize() output here")
     args = ap.parse_args()
-    spec = json.load(open(args.conditions))
+    spec = json.load(open(args.scenarios))
     if not args.log:
         args.log = os.path.join(ROOT, "results", f"conditional_runs_{spec['slug']}.jsonl")
     rows = load_conditional(args.log, protocol=spec["protocol"])

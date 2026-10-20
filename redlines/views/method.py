@@ -5,8 +5,8 @@ the ensemble?" answers render live instead of by hand:
 
   * the whole prompt -- the system prompt and the single-instrument user
     prompt (code/run_unified.py build_prompt_joint, the published COMBINED
-    condition set, every question x horizon cell) -- rebuilt from the same
-    question and condition files the cron reads, so the page shows what the
+    scenario set, every question x horizon cell) -- rebuilt from the same
+    question and scenario files the cron reads, so the page shows what the
     models are actually sent. The prompt is dated: "Today is ..." and the
     rolling horizons' resolves-on dates come from the day. Here that day is
     the LATEST RUN's run_date in the runlog, not the wall clock, so the blob
@@ -59,7 +59,7 @@ def build(today=None):
                    key=lambda r: r["elicited_at"], default=None) if today is None else None
     today = today or (date.fromisoformat(recorded["run_date"]) if recorded else latest_run_date())
     policies = ru.load_policies(ru.COMBINED)
-    conds = ru.expand_conditions(["all"], policies)
+    scenarios = ru.expand_scenarios(["all"], policies)
     groups, by_group, horizons, _skipped, spec = ru.load_batch(ru.LADDER, ru.CROSS, ru.UNBATCHED)
     # The set AS OF that day (redlines.questions.questions_asked_on): a question
     # added since the latest run (the extinction pair, 2026-09-15) is not in
@@ -68,7 +68,7 @@ def build(today=None):
     asked = questions_asked_on(today)
     by_group = {k: [q for q in qs if q["id"] in asked] for k, qs in by_group.items()}
     horizons = ru.set_horizons(policies, horizons)
-    prompt, n, cells = ru.build_prompt_joint(groups, by_group, horizons, spec, conds, policies, today)
+    prompt, n, cells = ru.build_prompt_joint(groups, by_group, horizons, spec, scenarios, policies, today)
     minimal = ru.set_instrument(policies) == "minimal"
     if minimal:
         prompt = ru.minimal_joint_prompt(prompt)
@@ -88,7 +88,7 @@ def build(today=None):
         "conditionSet": ru.set_slug(policies),
         "nQuestions": n,
         "cells": cells,
-        "k": len(conds) + 1,
+        "k": len(scenarios) + 1,
         "chars": len(prompt),
         "panel": {k: v for k, v in prov.items() if k != "age_days"},
     }

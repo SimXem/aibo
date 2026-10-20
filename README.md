@@ -99,7 +99,7 @@ pip install -e '.[acquire]' -e ./packages/fri-forecaster   # litellm, and the ha
 (cd packages/fri-forecaster && npm ci)                       # pi 0.99.2, pinned there
 python code/run_unified.py --joint --dry-run     # print the prompt, call nothing
 python code/run_unified.py --joint --repeats 1 --workers 2 \
-    --conditions data/combined_conditions.json --out results/runs/<stamp>.jsonl
+    --scenarios data/combined_conditions.json --out results/runs/<stamp>.jsonl
 ```
 
 Since combined-v9 the calls go through pi (redlines/pi_loop.py) by way of the
@@ -126,8 +126,10 @@ identical from the outside, so the runner refuses instead;
 **The published protocol** (since 2026-08-27; rows are tagged with a protocol
 id, currently `unified-joint-combined-v11`, see `redlines/conditional.py`) is the
 single instrument: `--joint` is one call per model that answers every question ×
-horizon cell unconditionally *and* under each condition in one submission, with
+horizon cell unconditionally *and* under each scenario in one submission, with
 no coherence relation stated in the prompt (coherence is measured afterwards).
+The prompt calls the scenarios "conditions", LEAP's word, and so do the stored
+rows (`condition`), the set files and the download; the code says scenario.
 The prompt is 73 questions (four AI incident types × 9 severity rungs on the
 deaths ladder and × 8 on the damages ladder — since 2026-10-19 each rung is a
 deaths question and a damages question, `docs/severity-legs-2026-10-19.md` —
@@ -143,7 +145,7 @@ newest Epoch snapshot, one seat per model family (`redlines.registry.panel()`,
 `docs/model-set.md`). The unconditional slice lands in
 `results/runs/<stamp>.jsonl`, the series every panel reads; the whole
 instrument is appended to `results/conditional_runs*.jsonl`.
-`--conditions <file>` picks the condition set: `data/combined_conditions.json`
+`--scenarios <file>` picks the scenario set: `data/combined_conditions.json`
 (the LEAP policies plus the model's own capability percentiles, what the weekly
 run uses), `data/eci_conditions.json` (fixed ECI levels),
 `data/axes_conditions.json` (risk against an x-axis quantity). See
@@ -155,7 +157,7 @@ sources that mattered most, the most compelling arguments, the most likely
 pathway to catastrophe and the base rate, in the model's own words, exported
 as `results/debriefs.csv`. The
 axes instruments left the schedule on 2026-09-14; run them by hand with
-`--conditions data/axes_conditions.json` when a fresh axes date is wanted.
+`--scenarios data/axes_conditions.json` when a fresh axes date is wanted.
 
 ### The question set
 
@@ -216,7 +218,7 @@ redlines/                   the pipeline package (stdlib only; litellm only insi
   instrument.py             question-version boundaries and dated incident onset windows
   runlog.py                 run-log loading, the series start, replicate pooling
   coherence.py              every coherence constraint the question set implies
-  conditional.py            per-model deltas under a condition vs the same-call baseline
+  conditional.py            per-model deltas under a scenario vs the same-call baseline
   historical.py, rail.py, roster.py   historical severity markers; the shared question rail; the bench roster
   stats.py                  deciles / brier / bss / spearman / wilson — one implementation each
   hydrate.py, pages.py      window.__NAME__ blob injection; manifest-driven page assembly
@@ -228,10 +230,10 @@ redlines/                   the pipeline package (stdlib only; litellm only insi
   paper/                    the paper's figures (graph1, graph3, graph4, incident_ladders,
                             conditional, capability, causal) and numbers.tex; style.py
 code/                       acquisition scripts, generators and thin shims (see each docstring)
-  run_unified.py            THE forecast runner; --joint, --repeats, --conditions, --dry-run
+  run_unified.py            THE forecast runner; --joint, --repeats, --scenarios, --dry-run
   cron_run.sh, publish_dashboard.sh   the weekly run and the box-side publish
   make_autoarc_questions.py the question generator: data/auto-arc/* -> data/autoarc_*.json
-  make_*_conditions.py      the condition sets (LEAP policies, ECI levels, self-elicited, axes, combined)
+  make_*_conditions.py      the scenario sets (LEAP policies, ECI levels, self-elicited, axes, combined)
   make_eci_trend*.py, eci_projection_metrgraph.py   the ECI trend / projection inputs
   validate_launch_run.py, audit_cyber.py, check_counting_comprehension.py   launch-run audits
   run_eval.py, mine_lowprob_corpus.py, pandemic_*.py   the Graph 4 corpus and eval (need forecastbench-sim)
@@ -247,9 +249,9 @@ data/
                             fetched before every scheduled run since 2026-10-01)
   eci_projection_*.json, eci_trend_*.json   the ECI trend inputs
   live_metr_eci_frontier.json   the METR frontier the capability prompt quoted 2026-09-10 .. 09-18 (record only)
-  leap_policies.json, leap_reference.json   the LEAP-derived condition set and panel aggregates (the
+  leap_policies.json, leap_reference.json   the LEAP-derived scenario set and panel aggregates (the
                             survey documents and raw pull under data/leap/ are internal, gitignored)
-  *_conditions.json         the condition sets the runner takes (--conditions)
+  *_conditions.json         the scenario sets the runner takes (--scenarios)
   human_baselines.json      prior human-panel forecasts of comparable questions (XPT, LEAP)
   historical_events.json, recent_incidents_2026-09.json   severity-axis markers; recent-incident context
   lowprob_classes.json, lowprob_selected_classes.json   the FreeCiv question classes (564) and the 35 tail classes
@@ -258,7 +260,7 @@ data/
 results/
   runs/                     the unconditional series, one dated .jsonl per run
   forecast_runs_unified.jsonl   the historical run log before per-run files
-  conditional_runs*.jsonl   the whole instrument per condition set; *_runs/ the per-run copies
+  conditional_runs*.jsonl   the whole instrument per scenario set; *_runs/ the per-run copies
   *_data.json, graph4_combined.json   the tracked view blobs (mirrors of what the page embeds)
   eval_panel2/, pandemic/, observational/   Graph 4 and Graph 5 eval outputs and logs
   experiments/, validation/ held arms (e.g. the ECI top-4 arm) and the launch-run audits
@@ -287,14 +289,14 @@ archive/jason-demo.html     the original mock dashboard the live page grew from 
   instance corpus are regenerated deterministically there, not committed here;
   the small class files under `data/` and the eval outputs under `results/`
   are.
-- **LEAP** survey conditions. The LEAP survey documents and the raw pull of
+- **LEAP** survey scenarios. The LEAP survey documents and the raw pull of
   panel answers are internal to FRI and are not in this repository
   (`data/leap/` is gitignored). What is tracked is derived from them:
-  `data/leap_policies.json` (the Wave 12 policy conditions the models are
+  `data/leap_policies.json` (the Wave 12 policy scenarios the models are
   prompted with, verbatim in the prompt shown on the FAQ),
   `data/leap_reference.json` (each panel's n and median per asked percentile
   for the questions the page draws as reference lines, extracted by
-  `code/make_leap_reference.py`), and the axes condition sets. The generators
+  `code/make_leap_reference.py`), and the axes scenario sets. The generators
   that read the internal files exit with a message when they are absent, and
   their tests skip.
 - **Internal sources, not published.** The 31-model ECI table was first
@@ -306,9 +308,9 @@ archive/jason-demo.html     the original mock dashboard the live page grew from 
 - **The download.** The page's "Download forecasts" button serves
   `results/forecasts.csv`, `results/rationales.csv` and the bundle
   `results/redlines-data.zip` (both CSVs, the raw logs, the questions and
-  conditions, a README), all built by `python3 -m redlines build --views csv`
+  scenarios, a README), all built by `python3 -m redlines build --views csv`
   (`redlines/export.py`) and not tracked. One line per (call, question,
-  horizon, condition) for every model in every run; the `protocol` column
+  horizon, scenario) for every model in every run; the `protocol` column
   separates the elicitations (the combined instrument's `unified-joint-combined-v*`
   tags, the earlier joint and batch pilots) — do not pool across them.
 

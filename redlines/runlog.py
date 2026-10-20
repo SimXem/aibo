@@ -102,7 +102,7 @@ def latest_instrument_rows(rows):
 def complete_panel_rows(rows, labels=None):
     """Publish only one complete four-model reading on a common batch date.
 
-    Filter the configured roster before checking every question/condition/
+    Filter the configured roster before checking every question/scenario/
     horizon cell. A partially completed run cannot redefine the ensemble or
     borrow missing answers from another date. Raw downloads remain unfiltered.
     """
@@ -124,7 +124,7 @@ def complete_panel_rows(rows, labels=None):
     expected = set()
     deadlines = {}
     for r in rows:
-        condition = (r.get("condition") or {}).get("id")
+        scenario = (r.get("condition") or {}).get("id")
         # asked_horizons can retain all six general question horizons while
         # an axes instrument elicits only three. resolves_on records the
         # actual instrument deadlines and is required for current rows.
@@ -143,19 +143,19 @@ def complete_panel_rows(rows, labels=None):
             key = (r["question_id"], h)
             if deadlines.setdefault(key, resolves[h]) != resolves[h]:
                 return []
-            expected.add((r["question_id"], condition, h))
+            expected.add((r["question_id"], scenario, h))
         for f in r.get("forecasts", []):
             p = f.get("probability")
             if isinstance(p, (int, float)) and not isinstance(p, bool) and 0 <= p <= 1:
-                cells[(r["question_id"], condition, f["horizon"])].add(r["label"])
-    # A whole question missing from one condition must fail too, even if all
-    # four models omitted that cell. Conditions are the selected view group.
-    conditions = {(r.get("condition") or {}).get("id") for r in rows}
+                cells[(r["question_id"], scenario, f["horizon"])].add(r["label"])
+    # A whole question missing from one scenario must fail too, even if all
+    # four models omitted that cell. Scenarios are the selected view group.
+    scenarios = {(r.get("condition") or {}).get("id") for r in rows}
     horizons = defaultdict(set)
     for q, _, h in expected:
         horizons[q].add(h)
-    expected = {(q, condition, h) for q, hs in horizons.items()
-                for condition in conditions for h in hs}
+    expected = {(q, scenario, h) for q, hs in horizons.items()
+                for scenario in scenarios for h in hs}
     if not expected or any(cells[key] != labels for key in expected):
         return []
     # Capability quantiles feed a separate ensemble chart. They must also

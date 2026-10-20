@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Generate data/combined_conditions.json: ONE survey instrument that carries
-both the LEAP Wave 12 policy conditions and the self-elicited six-month
-capability conditions -- side by side, never crossed.
+both the LEAP Wave 12 policy scenarios and the self-elicited six-month
+capability scenarios -- side by side, never crossed.
 
 Project lead, 2026-08-28: one survey instrument should cover both the
-capability and the policy conditions -- not policy x capability, but the two
+capability and the policy scenarios -- not policy x capability, but the two
 kept separate: policy questions assuming the median ECI trajectory,
 capability questions assuming "whatever the unconditional policy is". This
 file is that instrument. One call per model answers every
@@ -29,7 +29,7 @@ WHAT IS COMPOSED AND WHAT IS AUTHORED
              byte-identical to its text in the policy instrument
              (tests/test_conditional.py::TestCombinedSet).
   authored   four sentences, and only these: the one-line rule that every
-             condition stands alone (conditioning.instruction), the merged
+             scenario stands alone (conditioning.instruction), the merged
              unconditional line (conditioning.unconditional_forecast), and
              each group's `assumption` -- what that group holds the OTHER
              group's quantity at. Same discipline as every other set:
@@ -38,17 +38,17 @@ WHAT IS COMPOSED AND WHAT IS AUTHORED
 
 THE TWO ASSUMPTIONS, which are the whole design:
 
-  policy       every policy condition sits on the model's own MEDIAN
+  policy       every policy scenario sits on the model's own MEDIAN
                capability trajectory -- the frontier ECI on the target date
                is its 50th percentile from eci_forecast, the same level as
-               condition eci_p50. LEAP's clause already says "hold other
+               scenario eci_p50. LEAP's clause already says "hold other
                factors constant"; this says what constant means for
                capability. The like-for-like baseline for a policy delta is
                therefore eci_p50 rather than the unconditional; on 2026-08-28
                every model's own-median world reproduced its unconditional to
                0.98-1.00x, so the two baselines agree to within noise, and
                the tabs keep reading deltas against the unconditional.
-  capability   no policy condition applies: the model assumes whatever AI
+  capability   no policy scenario applies: the model assumes whatever AI
                policies it expects to be implemented, as in its unconditional
                forecast. The capability instruction is still the fact-learned
                one (update everything that would accompany that level,
@@ -67,14 +67,14 @@ text here, the group assumptions included.
 Protocol tag `unified-joint-combined-v1`: a different instrument from the
 policy one (`unified-joint-v*`) and the capability one
 (`unified-joint-eciself6mo-v1`), so its unconditional slice is its own
-series -- an unconditional answered beside thirteen conditions and an ECI
+series -- an unconditional answered beside thirteen scenarios and an ECI
 forecast is not the one answered beside eight policies. Piloted 2026-08-28
 into results/combined_runs/; THE PUBLISHED SET since that evening (project
 lead: the dashboard shows the panel on the single instrument): the runner
 writes its unconditional slice to results/runs/ and the instrument to
 results/conditional_runs_combined.jsonl, and the cron runs it.
 
-v1 -> v2 on 2026-09-02: THE AGENTIC HARNESS. The questions and conditions in
+v1 -> v2 on 2026-09-02: THE AGENTIC HARNESS. The questions and scenarios in
 this file did not change; what changed is how the models are asked -- the
 Metaculus lookup left the toolset, a page reader joined it, the prompt asks
 for iterative multi-step search instead of one pass and the loop enforces a
@@ -86,8 +86,8 @@ one gathered the old way, and the tag is how a reader tells them apart; the
 tabs show the newest tag present and fall back to v1 until a v2 run lands
 (redlines.conditional.PROTOCOL_LINEAGE).
 
-v3 -> v4 on 2026-09-03: FIVE CAPABILITY CONDITIONS. The model's own 10th and
-90th percentiles join the 25th/50th/75th as conditions (project lead: condition
+v3 -> v4 on 2026-09-03: FIVE CAPABILITY SCENARIOS. The model's own 10th and
+90th percentiles join the 25th/50th/75th as scenarios (project lead: scenario
 on the 10th and 90th percentiles too, now that they are elicited).
 The elicitation was already five percentiles; the instrument now asks a
 question in each of those five worlds -- 210 x 14 = 2,940 probabilities a
@@ -118,7 +118,7 @@ question (redlines.instrument.CURRENT_INSTRUMENT airo-incidents-prospective-v2,
 code/make_autoarc_questions.py LEGS; docs/severity-legs-2026-10-19.md): 41 -> 73
 questions, 246 -> 438 cells, 6,132 probabilities a call. Asked by Ezra Karger
 (2026-10-19) so the severity chart can be split. Nothing in this file changed;
-the tag moves because the grid a model answers beside these conditions did.
+the tag moves because the grid a model answers beside these scenarios did.
 First scheduled run under v11: the first cron run after the box carries this code.
 
 v5 -> v6 on 2026-09-15: THE EXTINCTION PAIR. Two cross-cutting questions in
@@ -126,7 +126,7 @@ XPT's wording (human extinction, AI extinction: data/auto-arc/
 addendum-extinction-2026-09-15.json, docs/extinction-questions-2026-09-15.md)
 join the grid, 35 -> 37 questions and 210 -> 222 cells, 3,108 probabilities
 a call. Nothing in this file changed; the tag moves because the grid a
-model answers beside these conditions did. First scheduled run under v6:
+model answers beside these scenarios did. First scheduled run under v6:
 the first cron run after the box carries this code.
 """
 import argparse
@@ -205,11 +205,11 @@ def build():
     cap = json.load(open(CAP, encoding="utf-8"))
     if not cap.get("elicit") or not cap["elicit"].get("target_months"):
         raise SystemExit(f"{CAP} is not the rolling self-elicited set; this instrument is built on it")
-    conds = ([{**c, "group": "policy"} for c in leap["conditions"]]
+    scenarios = ([{**c, "group": "policy"} for c in leap["conditions"]]
              + [{**c, "group": "capability"} for c in cap["conditions"]])
-    ids = [c["id"] for c in conds]
+    ids = [c["id"] for c in scenarios]
     if len(set(ids)) != len(ids):
-        raise SystemExit(f"condition ids collide across the component sets: {ids}")
+        raise SystemExit(f"scenario ids collide across the component sets: {ids}")
     return {
         "title": "Policy and capability conditions in one instrument -- LEAP Wave 12 "
                  "policies beside the self-elicited frontier ECI six months from the run "
@@ -270,7 +270,7 @@ def build():
         ],
         "history": cap["history"],
         "trend": None,
-        "conditions": conds,
+        "conditions": scenarios,
         "notes": {
             "design": "Nick, 2026-08-28: one instrument covering the policy levers and the "
                       "capability conditionals, never their product. Policy conditions are "
@@ -314,7 +314,7 @@ def main():
     open(args.out, "w", encoding="utf-8").write(text)
     for g in doc["groups"]:
         n = sum(c["group"] == g["key"] for c in doc["conditions"])
-        print(f"  {g['key']:11} {n} conditions  {g['heading']}")
+        print(f"  {g['key']:11} {n} scenarios  {g['heading']}")
     for c in doc["conditions"]:
         h = hashlib.sha256(c["assume"].encode()).hexdigest()[:8]
         print(f"  {c['group']:11} {c['id']:8} {h}  {c['label']}")

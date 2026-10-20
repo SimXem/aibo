@@ -1,7 +1,7 @@
 """Conditional panel: what each LEAP policy does to a question, against baseline.
 
 Feeds the Conditional-on tab of index.html: one question
-at a time, one bar per policy condition, a zero line at the same-session
+at a time, one bar per policy scenario, a zero line at the same-session
 unconditional forecast, per-model dots over each bar, and the re-elicitation
 noise floor drawn as a band so a bar inside it reads as "no evidence of an
 effect" rather than as an effect.
@@ -59,17 +59,17 @@ PILOT_ORDER = ["catastrophe:ai", "catastrophe:general", "disempowerment",
 LOSS_GROUP = GROUP_DOMAIN
 
 # The policy instrument's protocols, newest first. The log also holds the
-# 2026-08-27 separate-call pilot (unified-batch-v2, one condition per call);
+# 2026-08-27 separate-call pilot (unified-batch-v2, one scenario per call);
 # it is history, not a view. Two joint tags because the v1 -> v2 bump
 # (2026-08-28, the cross-cutting questions onto the six-horizon grid) was
 # additive; selection only -- build() narrows a day to ONE protocol.
 PROTOCOLS = ("unified-joint-v6", "unified-joint-v5", "unified-joint-v4", "unified-joint-v3", "unified-joint-v2", "unified-joint-v1")
 PROTOCOL = PROTOCOLS[0]
 
-# Where the tab's rows come from: (log, condition set, group, protocols
+# Where the tab's rows come from: (log, scenario set, group, protocols
 # newest-first), in order of preference when two share the newest day. Since
 # 2026-08-28 the combined instrument -- the policies AND the capability
-# conditions in one call (data/combined_conditions.json) -- is a source; its
+# scenarios in one call (data/combined_conditions.json) -- is a source; its
 # policy group renders here exactly as the LEAP set does, since the LEAP items
 # are byte-identical inside it (redlines.conditional.group_view). NEWEST DAY
 # WINS across sources: the tab always shows the freshest instrument, so the
@@ -312,7 +312,7 @@ def build(log_path=None, experiment=None, horizons=DEFAULT_HORIZONS,
     if not log_path and not policies_path and experiment is None:
         rows = current_forecast_rows(rows)
     v = _variant(rows, policies, horizons, spec, qs, colors)
-    conds = [{"id": c["id"], "label": c["label"], "leapId": c["leap_id"],
+    scenarios = [{"id": c["id"], "label": c["label"], "leapId": c["leap_id"],
               "assume": c["assume"], "policy": c["policy"], "part": c["part"],
               # The policy text as the model saw it (LEAP's, verbatim).
               "description": c.get("description")}
@@ -325,7 +325,7 @@ def build(log_path=None, experiment=None, horizons=DEFAULT_HORIZONS,
         "generatedAt": max((r.get("elicited_at") or "" for r in rows), default=None),
         "source": policies["source"],
         "conditioning": policies["conditioning"],
-        "conditions": conds,
+        "conditions": scenarios,
         "horizons": list(horizons),
         "defaultHorizon": "2030",
         # The instrument actually summarised -- which log, set and group, and

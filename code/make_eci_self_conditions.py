@@ -38,10 +38,10 @@ WHAT IS DERIVED AND WHAT IS AUTHORED
              other sets: nothing about how capability relates to any
              question, nothing about direction, no pace verdict.
 
-The conditions are keyed by percentile, not by level: `eci_p25` is "the
+The scenarios are keyed by percentile, not by level: `eci_p25` is "the
 frontier ECI on 2030-12-31 is approximately the 25th-percentile value YOU
 gave". The level therefore differs per call, and the runner stamps each
-condition row with the value the model gave (condition.value).
+scenario row with the value the model gave (condition.value).
 """
 import argparse
 import csv
@@ -73,13 +73,13 @@ PLACEHOLDER = "{target_date}"
 HISTORY_FROM = "2023-03-01"   # GPT-4 is the first point; the Feb-2023 LLaMAs are not a frontier anyone dates from
 US = "United States of America"
 # The forecast asks five percentiles since 2026-09-02 (A4 on the worklist:
-# p10/p90 give the Capability box plot its whiskers). The CONDITIONS were the
+# p10/p90 give the Capability box plot its whiskers). The SCENARIOS were the
 # middle three until 2026-09-03; project lead: condition on the 10th and 90th
 # percentiles too, now that they are elicited -- so a
-# condition per elicited percentile, five rows, tails included. Protocol v2 of
+# scenario per elicited percentile, five rows, tails included. Protocol v2 of
 # both self-elicited sets and v4 of the combined instrument.
 FIELDS = [("p10", 10), ("p25", 25), ("p50", 50), ("p75", 75), ("p90", 90)]
-CONDITION_FIELDS = list(FIELDS)
+SCENARIO_FIELDS = list(FIELDS)
 ORDINAL = {"p10": "10th", "p25": "25th", "p50": "50th", "p75": "75th", "p90": "90th"}
 
 DEFINITIONS = (
@@ -149,9 +149,9 @@ def build(months=None):
     top_date, top_score, top_name = hist[-1]
     history = "\n".join(f"  {d}  {s:6.1f}  {dn}" for d, s, dn in hist)
     date_text = PLACEHOLDER if months else TARGET_DATE_TEXT
-    conds = []
-    for key, pct in CONDITION_FIELDS:
-        conds.append({
+    scenarios = []
+    for key, pct in SCENARIO_FIELDS:
+        scenarios.append({
             "id": f"eci_{key}",
             "leap_id": None,
             "label": (LABEL_ROLLING.format(months=months, ord=ORDINAL[key]) if months
@@ -202,7 +202,7 @@ def build(months=None):
         },
         "history": [{"date": d, "score": s, "model": dn} for d, s, dn in hist],
         "trend": None,
-        "conditions": conds,
+        "conditions": scenarios,
         "notes": {
             "levels": "per call: the model's own eci_forecast values; the runner stamps "
                       "condition.value with the number the condition refers to.",
@@ -243,7 +243,7 @@ def main():
         h = hashlib.sha256(c["assume"].encode()).hexdigest()[:8]
         print(f"  {c['id']:8} {h}  {c['label']}")
     if doc["trend"]:
-        print(f"  trend 2030EOY: " + ", ".join(f"{k} {doc['trend'][k]}" for k, _ in CONDITION_FIELDS))
+        print(f"  trend 2030EOY: " + ", ".join(f"{k} {doc['trend'][k]}" for k, _ in SCENARIO_FIELDS))
     else:
         print(f"  rolling: run date + {doc['elicit']['target_months']} months; trend computed at analysis time")
     print(f"-> {args.out}")

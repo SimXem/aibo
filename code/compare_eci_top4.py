@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare the dashboard's published arm (frontier five) with the ECI top-4 arm.
 
-Both arms answered the same instrument (unified-joint-v1, LEAP condition set) on
+Both arms answered the same instrument (unified-joint-v1, LEAP scenario set) on
 the same day, so this is a like-for-like swap of the panel, not a protocol change.
 
   frontier5 : Fable 5, GPT-5.5, Opus 4.8, Gemini 3.1 Pro, Grok 4.20
@@ -28,7 +28,7 @@ ECI_TOP4 = ["Fable 5", "GPT-5.5 Pro", "Opus 5", "GPT-5.6 Sol"]
 
 
 def load(paths, date, protocol="unified-joint-v1"):
-    """(condition, question_id, horizon) -> {label: [p per repeat]}"""
+    """(scenario, question_id, horizon) -> {label: [p per repeat]}"""
     out = defaultdict(lambda: defaultdict(list))
     for p in paths:
         if not log_exists(p):
@@ -39,9 +39,9 @@ def load(paths, date, protocol="unified-joint-v1"):
                 if d.get("protocol") != protocol or (date and d.get("run_date") != date):
                     continue
                 c = d.get("condition")
-                cond = (c.get("id") if isinstance(c, dict) else c) or "unconditional"
+                scenario = (c.get("id") if isinstance(c, dict) else c) or "unconditional"
                 for fc in d.get("forecasts") or []:
-                    out[(cond, d["question_id"], fc["horizon"])][d["label"]].append(
+                    out[(scenario, d["question_id"], fc["horizon"])][d["label"]].append(
                         fc["probability"])
     return out
 
@@ -93,11 +93,11 @@ def main():
         return
 
     unc = [r for r in rows if r[0][0] == "unconditional"]
-    print(f"\n{len(rows)} question x horizon x condition cells compared "
+    print(f"\n{len(rows)} question x horizon x scenario cells compared "
           f"({len(unc)} unconditional)")
 
     for name, sel in (("UNCONDITIONAL (Graph 1 / Timeline bottom lines)", unc),
-                      ("ALL CONDITIONS (Conditional-on panel)", rows)):
+                      ("ALL SCENARIOS (Conditional-on panel)", rows)):
         d = [r[3] for r in sel]
         ad = [abs(x) for x in d]
         print(f"\n--- {name} ---")

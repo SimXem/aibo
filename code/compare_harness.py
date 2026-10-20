@@ -8,7 +8,7 @@ run against a `--harness` shadow run of the same day through the other loop
         --other results/experiments/litellm-shadow-2026-10-21T1405Z-instrument.jsonl \\
         --prev results/conditional_runs_combined/2026-10-16T1200Z.jsonl
 
-A cell is (model, question, condition, horizon). Per model: how many cells
+A cell is (model, question, scenario, horizon). Per model: how many cells
 both runs answered, the mean and median |difference| in probability, the
 share that moved more than 0.1, and the mean signed difference (other minus
 published); then each call's research, turns, cost and debrief. One draw per
@@ -29,13 +29,13 @@ def load(path):
 
 
 def cells(rows):
-    """{(label, question, condition, horizon): probability}"""
+    """{(label, question, scenario, horizon): probability}"""
     out = {}
     for r in rows:
-        cond = (r.get("condition") or {}).get("id") or "unconditional"
+        scenario = (r.get("condition") or {}).get("id") or "unconditional"
         for f in r.get("forecasts") or []:
             if isinstance(f, dict) and isinstance(f.get("probability"), (int, float)):
-                out[(r["label"], r["question_id"], cond, f.get("horizon"))] = float(f["probability"])
+                out[(r["label"], r["question_id"], scenario, f.get("horizon"))] = float(f["probability"])
     return out
 
 
