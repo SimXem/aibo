@@ -298,6 +298,8 @@ class SyncTest(unittest.TestCase):
                              self.reg["names"]["ensemble-oak"]["members"][i]["one_shot_baseline"])
             self.assertIsNotNone(e["members"][i]["one_shot_baseline"])
         self.assertEqual(self.reg["names"]["unaided-elm"]["members"][3]["options"]["tools"], ["submit_forecast"])
+        self.assertEqual([m["one_shot_baseline"] for m in self.reg["names"]["unaided-elm"]["members"]],   # a no-research
+                         [m["one_shot_baseline"] for m in self.reg["names"]["unaided-oak"]["members"][:3]] + [None])  # entry's own
         self.assertEqual(e["reason"], "sync 2026-10-19: members " + ", ".join(self.have) + " -> " +
                          ", ".join(self.have[:3] + ["Claude Fable 5.1"]))
         self.assertEqual(self.reg["names"]["ensemble-oak"]["members"][3]["eci_name"], self.have[3])  # never edited

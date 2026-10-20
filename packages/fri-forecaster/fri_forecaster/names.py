@@ -124,11 +124,14 @@ def parse_panel(lines):
     return panel
 
 
-def known_members(reg):
-    """pi model id -> the member record an earlier name gave that model, preferring one
-    that names its one-shot baseline (the no-research conditions leave it unset)."""
+def known_members(reg, research):
+    """pi model id -> the member record an earlier name with the same research
+    setting gave that model (a one-shot baseline is a baseline for one setting),
+    preferring a record that names its baseline."""
     known = {}
     for e in reg["names"].values():
+        if e["research"] != research:
+            continue
         for m in e["members"]:
             if m["pi_model"] not in known or (m.get("one_shot_baseline") and not known[m["pi_model"]].get("one_shot_baseline")):
                 known[m["pi_model"]] = m
@@ -164,7 +167,7 @@ def sync(reg, condition, panel, today=None):
     if set(have) != set(want):
         if len(top) == n and all(m["pi_model"] for m in top):
             changes.append(f"members {', '.join(have)} -> {', '.join(want)}")
-            members = [member_for(m, entry["members"][0], known_members(reg)) for m in top]
+            members = [member_for(m, entry["members"][0], known_members(reg, entry["research"])) for m in top]
         else:
             warning = (f"WARNING: the top {n} is {', '.join(want) or 'unknown'} but the panel gives no pi ids "
                        f"to register; {name} keeps {', '.join(have)}")
