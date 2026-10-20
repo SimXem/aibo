@@ -348,14 +348,14 @@ on a Linux box (the host behind `airo.forecastingresearch.org`), cron-fired twic
 12:00 UTC, from 2026-09-16). It sources `~/.config/redlines/env` for API keys, then runs:
 
 ```bash
-"$PY" code/run_unified.py --joint --repeats 1 --workers 2 \
+"$PY" code/run_unified.py --repeats 1 --workers 2 \
     --scenarios data/combined_conditions.json --out results/runs/<timestamp>.jsonl
 ```
 
 `$PY` only has to be an interpreter with the acquisition extra installed
 (`pip install -e '.[acquire]'`, which is just litellm); `REDLINES_PY` overrides
 it (historically it pointed at the venv of the internal checkout the LLM layer
-was imported from before it was vendored). `--joint` is the single instrument:
+was imported from before it was vendored). Each call is the single instrument:
 one call per model answers every question×horizon cell unconditionally *and*
 under each scenario of the combined set (the LEAP policies plus the model's own
 capability percentiles), once per model since 2026-09-02. Since 2026-09-15 the

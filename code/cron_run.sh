@@ -14,8 +14,8 @@
 #   from one snapshot and every run from here is load-bearing.
 #
 # WHAT IT RUNS
-#   The WHOLE question set, in one call per model (code/run_unified.py
-#   --joint), with NO relation between the questions stated in the prompt --
+#   The WHOLE question set, in one call per model (code/run_unified.py),
+#   with NO relation between the questions stated in the prompt --
 #   coherence is measured afterwards, never bought. The set is 37 questions in
 #   5 groups (four AI incident types x 8 severity rungs, plus five
 #   cross-cutting questions -- the extinction pair since 2026-09-15) over six horizons -- two of them ROLLING, so each
@@ -159,11 +159,11 @@ fi
 # that question and holds nothing out — config.UNBATCHED is empty — so the
 # command is gone, along with code/run_forecasts.py, which imported a
 # STABLE_SUBSET that no longer exists and would now fail on import.
-# THE SINGLE INSTRUMENT (2026-08-27, --joint): each call answers every cell
+# THE SINGLE INSTRUMENT (2026-08-27): each call answers every cell
 # unconditionally AND under each scenario of the set. The unconditional
 # slice lands in $OUT (this series); the whole instrument is appended to
 # results/conditional_runs_<slug>.jsonl for the conditional panels. The plain
-# batch (--unconditional N) is deprecated.
+# batch it replaced was retired on 2026-10-21.
 # THE COMBINED INSTRUMENT (2026-08-28 evening): the LEAP policies AND the
 # six-month capability scenarios in one call, on THE PANEL (the four highest-
 # ECI models; --model-set defaults to it). 2,520 probabilities a call, so two
@@ -199,7 +199,7 @@ export REDLINES_LLM_TIMEOUT="${REDLINES_LLM_TIMEOUT:-1800}"
 # (FORECASTER_BLOCK_URL_PATTERNS in its tools); an older agent-box ignores
 # the variable and the sixth call searches unguarded while its rows say
 # otherwise, so update agent-box before the first run under this set.
-if ! "$PY" code/run_unified.py --joint --repeats 1 --workers 10 \
+if ! "$PY" code/run_unified.py --repeats 1 --workers 10 \
         --scenarios data/combined_conditions.json --out "$OUT"; then
     echo "FATAL: the combined instrument did not complete for every panel model; see above. Skipping the axes instruments and publication."
     exit 1
@@ -222,7 +222,7 @@ echo "=== done: $(wc -l < "$OUT") rows -> $OUT ==="
 # $100 a run. LEFT THE SCHEDULE on 2026-09-14 (project decision): they are
 # not re-elicited on every run, and the axes panel keeps drawing the newest
 # complete axes date. To re-elicit one by hand on this box:
-#     "$PY" code/run_unified.py --joint --repeats 1 --workers 2 \
+#     "$PY" code/run_unified.py --repeats 1 --workers 2 \
 #         --scenarios data/axes_conditions.json
 # (rows go to results/conditional_runs_<slug>.jsonl and results/<slug>_runs/,
 # never into results/runs/), then audit that date with
@@ -255,7 +255,7 @@ shadow() {
     base="$(ls "$runs"/*.jsonl | sort | tail -1)"
     prev="$(ls "$runs"/*.jsonl | sort | tail -2 | head -1)"
     echo "=== $h shadow: the instrument through $h; the published run is $base ==="
-    "$PY" code/run_unified.py --joint --repeats 1 --workers 2 --harness "$h" \
+    "$PY" code/run_unified.py --repeats 1 --workers 2 --harness "$h" \
         --experiment "$h-shadow" --scenarios data/combined_conditions.json || return 1
     other="$(ls "$REPO"/results/experiments/"$h"-shadow-*-instrument.jsonl | sort | tail -1)"
     "$PY" code/compare_harness.py --base "$base" --other "$other" --prev "$prev" | tee "${other%.jsonl}.compare.txt"

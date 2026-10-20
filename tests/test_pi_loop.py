@@ -130,7 +130,7 @@ class HarnessFlagTest(unittest.TestCase):
         self.assertEqual(self.ru.row_protocol(legacy, "pi"), "unified-joint-v6+pi")
 
     def test_another_loop_only_as_an_experiment(self):
-        r = subprocess.run([sys.executable, str(REPO / "code" / "run_unified.py"), "--joint", "--harness", "litellm"],
+        r = subprocess.run([sys.executable, str(REPO / "code" / "run_unified.py"), "--harness", "litellm"],
                            capture_output=True, text=True, cwd=REPO)
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("this set is elicited through pi; another loop runs only as an --experiment", r.stderr)

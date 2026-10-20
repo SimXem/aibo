@@ -97,8 +97,8 @@ pytest
 ```bash
 pip install -e '.[acquire]' -e ./packages/fri-forecaster   # litellm, and the harness (the pi loop)
 (cd packages/fri-forecaster && npm ci)                       # pi 0.99.2, pinned there
-python code/run_unified.py --joint --dry-run     # print the prompt, call nothing
-python code/run_unified.py --joint --repeats 1 --workers 2 \
+python code/run_unified.py --dry-run     # print the prompt, call nothing
+python code/run_unified.py --repeats 1 --workers 2 \
     --scenarios data/combined_conditions.json --out results/runs/<stamp>.jsonl
 ```
 
@@ -125,7 +125,7 @@ identical from the outside, so the runner refuses instead;
 
 **The published protocol** (since 2026-08-27; rows are tagged with a protocol
 id, currently `unified-joint-combined-v11`, see `redlines/conditional.py`) is the
-single instrument: `--joint` is one call per model that answers every question ×
+single instrument: one call per model that answers every question ×
 horizon cell unconditionally *and* under each scenario in one submission, with
 no coherence relation stated in the prompt (coherence is measured afterwards).
 The prompt calls the scenarios "conditions", LEAP's word, and so do the stored
@@ -230,7 +230,7 @@ redlines/                   the pipeline package (stdlib only; litellm only insi
   paper/                    the paper's figures (graph1, graph3, graph4, incident_ladders,
                             conditional, capability, causal) and numbers.tex; style.py
 code/                       acquisition scripts, generators and thin shims (see each docstring)
-  run_unified.py            THE forecast runner; --joint, --repeats, --scenarios, --dry-run
+  run_unified.py            THE forecast runner; --repeats, --scenarios, --dry-run
   cron_run.sh, publish_dashboard.sh   the weekly run and the box-side publish
   make_autoarc_questions.py the question generator: data/auto-arc/* -> data/autoarc_*.json
   make_*_conditions.py      the scenario sets (LEAP policies, ECI levels, self-elicited, axes, combined)
