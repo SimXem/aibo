@@ -30,7 +30,8 @@ file name `<due>.<org>.<N>.json`.
 
 One pi call per question per member: market questions want one forecast,
 dataset questions one per resolution date. Each attempt gets a fresh
-folder (harness.new_attempt_dir), so a retry never reads an older answer.
+folder (harness.new_attempt_dir), so a retry never reads an older answer;
+a call that ended in a provider error is retried three times by harness.run.
 """
 import argparse
 import hashlib
@@ -192,7 +193,7 @@ def forecast_one(q, due, mdir, args):
                       cells_tool=False, tool_descriptions=TOOL_DESCRIPTIONS,
                       research_tools=harness.RESEARCH_TOOLS if research else (),
                       min_research=args.min_research if research else 0,
-                      thinking=args.thinking, pi=args.pi, timeout=args.timeout)
+                      thinking=args.thinking, pi=args.pi, timeout=args.timeout, retries=3)
     probs = {}
     for d in dates:
         c = res["cells"].get(d)
