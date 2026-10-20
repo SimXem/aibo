@@ -195,7 +195,7 @@ def _build_conditional():
     blob = conditional.build(log_path=logs) if logs else conditional.build()
     path = inject("CONDITIONAL", blob, json_out="results/conditional_data.json")
     print(f"conditional: {len(blob['questions'])} questions, "
-          f"{len(blob['conditions'])} conditions, {blob['rows']} rows -> {path.name}")
+          f"{len(blob['conditions'])} scenarios, {blob['rows']} rows -> {path.name}")
 
 
 def _build_axes():
@@ -226,14 +226,14 @@ def _build_csv():
 
     n = forecasts_csv()
     print(f"csv: {n} forecasts -> {OUT}")
-    # The rationales beside them: one line per (call, question, condition),
-    # joined on call_id + question_id + condition.
+    # The rationales beside them: one line per (call, question, scenario),
+    # joined on call_id, question_id and the `condition` column.
     m = rationales_csv()
     print(f"csv: {m} rationales -> {RATIONALES_OUT}")
     # And the debriefs (2026-09-15): one line per (call, question group).
     d = debriefs_csv()
     print(f"csv: {d} debriefs -> {DEBRIEFS_OUT}")
-    # And the bundle: both CSVs, the raw logs, questions, conditions, README.
+    # And the bundle: both CSVs, the raw logs, questions, scenarios, README.
     k = bundle_zip()
     print(f"csv: {k} files -> {BUNDLE_OUT} ({BUNDLE_OUT.stat().st_size / 1e6:.1f} MB)")
 
@@ -244,7 +244,7 @@ def _build_method():
     blob = method.build()
     path = inject("METHOD", blob, json_out="results/method_data.json")
     print(f"method: prompt as of {blob['today']} ({blob['nQuestions']} questions, {blob['cells']} cells x "
-          f"{blob['k']} conditions, {blob['chars']} chars), panel of {len(blob['panel'].get('members', []))} -> {path.name}")
+          f"(unconditional + {blob['k'] - 1} scenarios), {blob['chars']} chars), panel of {len(blob['panel'].get('members', []))} -> {path.name}")
 
 
 def _build_rationales():

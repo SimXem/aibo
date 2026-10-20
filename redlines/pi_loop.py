@@ -1,5 +1,5 @@
 """The same call as redlines.llm.call_tools, with pi as the loop: the
-published loop since combined-v9 (2026-10-16), whose condition set names it
+published loop since combined-v9 (2026-10-16), whose scenario set names it
 (`"harness": "pi"`; code/run_unified.py set_harness).
 
 Under pi, run_unified swaps this in for call_tools and changes nothing else: the prompt, the tools and their schemas, the research floor, the

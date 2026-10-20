@@ -228,7 +228,7 @@ class TestTheQuestionsNameNoSource(unittest.TestCase):
                 with self.subTest(q["id"], detail=k):
                     self.assertIsNone(self.NAMES.search(v or ""))
 
-    def test_the_published_prompt_names_no_source_above_the_conditions(self):
+    def test_the_published_prompt_names_no_source_above_the_scenarios(self):
         import importlib.util
         from datetime import date
         spec = importlib.util.spec_from_file_location("run_unified", ROOT / "code" / "run_unified.py")

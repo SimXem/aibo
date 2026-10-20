@@ -32,7 +32,7 @@
 #   frontier five the series ran on until then are `--model-set frontier5`.
 #   SINCE 2026-10-01 THE SNAPSHOT IS FETCHED HERE, before every run, from
 #   Epoch's published scores (python3 -m redlines.eci --fetch), and the
-#   capability conditions are regenerated from it -- no hand step between a
+#   capability scenarios are regenerated from it -- no hand step between a
 #   model shipping and the panel and prompt knowing it. A new model the index
 #   ranks into the panel that the registry has no row for is ADDED ON ITS OWN
 #   since 2026-10-07 (redlines.autoreg: matched to its provider's API id,
@@ -120,7 +120,7 @@ set -a; . "$ENVFILE"; set +a
 cd "$REPO"
 
 # THE ECI SNAPSHOT (2026-10-01): fetch Epoch's index, then rebuild the
-# capability conditions from it -- the frontier history the prompt quotes.
+# capability scenarios from it -- the frontier history the prompt quotes.
 # A failed fetch keeps the previous snapshot and pages; the runner's
 # preflight (code/check_eci_snapshot.py) still refuses one older than 21 days.
 panel_labels() {
@@ -160,12 +160,12 @@ fi
 # command is gone, along with code/run_forecasts.py, which imported a
 # STABLE_SUBSET that no longer exists and would now fail on import.
 # THE SINGLE INSTRUMENT (2026-08-27, --joint): each call answers every cell
-# unconditionally AND under each condition of the set. The unconditional
+# unconditionally AND under each scenario of the set. The unconditional
 # slice lands in $OUT (this series); the whole instrument is appended to
 # results/conditional_runs_<slug>.jsonl for the conditional panels. The plain
 # batch (--unconditional N) is deprecated.
 # THE COMBINED INSTRUMENT (2026-08-28 evening): the LEAP policies AND the
-# six-month capability conditions in one call, on THE PANEL (the four highest-
+# six-month capability scenarios in one call, on THE PANEL (the four highest-
 # ECI models; --model-set defaults to it). 2,520 probabilities a call, so two
 # workers (three rate-limit the Anthropic endpoints when anything else runs on
 # this box) and a 30-minute request timeout (GPT-5.5 Pro overran litellm's
@@ -185,7 +185,7 @@ export REDLINES_LLM_TIMEOUT="${REDLINES_LLM_TIMEOUT:-1800}"
 # The runner exits non-zero when any panel model fails (the date cannot
 # publish without all of them), which under `set -e` stops this script before
 # the axes instruments spend on a date that will not publish. Its preflight
-# also refuses an Epoch snapshot older than 21 days or condition sets not
+# also refuses an Epoch snapshot older than 21 days or scenario sets not
 # built from the newest one (code/check_eci_snapshot.py).
 # COMBINED-V10 (2026-10-19): the minimal instrument under five prompt variants
 # (the set declares both), so 4 models x 5 = 20 calls, ten at a time; about
@@ -200,7 +200,7 @@ export REDLINES_LLM_TIMEOUT="${REDLINES_LLM_TIMEOUT:-1800}"
 # the variable and the sixth call searches unguarded while its rows say
 # otherwise, so update agent-box before the first run under this set.
 if ! "$PY" code/run_unified.py --joint --repeats 1 --workers 10 \
-        --conditions data/combined_conditions.json --out "$OUT"; then
+        --scenarios data/combined_conditions.json --out "$OUT"; then
     echo "FATAL: the combined instrument did not complete for every panel model; see above. Skipping the axes instruments and publication."
     exit 1
 fi
@@ -223,7 +223,7 @@ echo "=== done: $(wc -l < "$OUT") rows -> $OUT ==="
 # not re-elicited on every run, and the axes panel keeps drawing the newest
 # complete axes date. To re-elicit one by hand on this box:
 #     "$PY" code/run_unified.py --joint --repeats 1 --workers 2 \
-#         --conditions data/axes_conditions.json
+#         --scenarios data/axes_conditions.json
 # (rows go to results/conditional_runs_<slug>.jsonl and results/<slug>_runs/,
 # never into results/runs/), then audit that date with
 # code/validate_launch_run.py --sets axes and run code/publish_dashboard.sh.
@@ -256,7 +256,7 @@ shadow() {
     prev="$(ls "$runs"/*.jsonl | sort | tail -2 | head -1)"
     echo "=== $h shadow: the instrument through $h; the published run is $base ==="
     "$PY" code/run_unified.py --joint --repeats 1 --workers 2 --harness "$h" \
-        --experiment "$h-shadow" --conditions data/combined_conditions.json || return 1
+        --experiment "$h-shadow" --scenarios data/combined_conditions.json || return 1
     other="$(ls "$REPO"/results/experiments/"$h"-shadow-*-instrument.jsonl | sort | tail -1)"
     "$PY" code/compare_harness.py --base "$base" --other "$other" --prev "$prev" | tee "${other%.jsonl}.compare.txt"
 }

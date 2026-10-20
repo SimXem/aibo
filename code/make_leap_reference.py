@@ -22,7 +22,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SOURCE = os.path.join(ROOT, "data", "leap", "axes-2026-09-02.json")
 OUT = os.path.join(ROOT, "data", "leap_reference.json")
 
-# The questions the page or the condition generators refer to, and nothing
+# The questions the page or the scenario generators refer to, and nothing
 # else: the dashboard's revenue and AGI-year axes (with the AGI-before-2100
 # probability that accompanies the year), LEAP's forecast of the US frontier
 # ECI (the capability panel's reference), and the paper set's three axes.

@@ -10,12 +10,12 @@ from redlines import conditional, export, runlog, superseded
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def _row(run_id, label, qid="ladder:ai:1k", cond=None):
+def _row(run_id, label, qid="ladder:ai:1k", scenario=None):
     r = {"run_id": run_id, "label": label, "model": f"m/{label}", "question_id": qid,
          "elicited_at": f"{run_id[:10]}T12:00:00", "run_date": run_id[:10],
          "forecasts": [{"horizon": "2030", "probability": 0.1}], "protocol": "unified-joint-combined-v7"}
-    if cond:
-        r["condition"] = {"id": cond}
+    if scenario:
+        r["condition"] = {"id": scenario}
     return r
 
 
@@ -46,10 +46,10 @@ class TestSupersededRows(unittest.TestCase):
         import tempfile
         p = Path(tempfile.mkdtemp()) / "log.jsonl"
         p.write_text("\n".join(json.dumps(r) for r in (
-            _row("2026-09-16T1200Z", "GPT-6 Astra", cond="p1"),
-            _row("2026-09-16T1645Z", "Opus 5", cond="p1"),
-            _row("2026-09-16T1645Z", "GPT-5.5 Pro", cond="p1"),
-            _row("2026-09-16T1830Z", "Opus 5", cond="p1"))) + "\n")
+            _row("2026-09-16T1200Z", "GPT-6 Astra", scenario="p1"),
+            _row("2026-09-16T1645Z", "Opus 5", scenario="p1"),
+            _row("2026-09-16T1645Z", "GPT-5.5 Pro", scenario="p1"),
+            _row("2026-09-16T1830Z", "Opus 5", scenario="p1"))) + "\n")
         with patch.dict(superseded.SUPERSEDED, self.REG, clear=True):
             rows = conditional.load_conditional(p)
         self.assertEqual([(r["run_id"], r["label"]) for r in rows],

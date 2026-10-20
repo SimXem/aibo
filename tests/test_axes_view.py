@@ -17,10 +17,10 @@ MODELS = [("Fable 5", "anthropic/claude-fable-5"), ("GPT-5.5 Pro", "openai/gpt-5
 
 
 def _rows(day="2026-09-04", experiment=None):
-    """Two models, every condition of the set, catastrophe:ai at the three
+    """Two models, every scenario of the set, catastrophe:ai at the three
     horizons: the conditional probability rises with the level index."""
     rows = []
-    conds = [None] + SPEC["conditions"]
+    scenarios = [None] + SPEC["conditions"]
     for label, model in MODELS:
         base = 0.02 if label == "Fable 5" else 0.05
         elicited = {"revenue_forecast": {"p10": 120, "p50": 250, "p90": 600},
@@ -28,7 +28,7 @@ def _rows(day="2026-09-04", experiment=None):
                     "eci_forecast": {"p10": 166, "p25": 168, "p50": 171, "p75": 174, "p90": 178},
                     "target_date": "2027-03-04",
                     "targets": {"revenue_forecast": "2030-12-31", "agi_forecast": None, "eci_forecast": "2027-03-04"}}
-        for c in conds:
+        for c in scenarios:
             i = 0 if c is None else [x["id"] for x in SPEC["conditions"] if x["group"] == c["group"]].index(c["id"]) + 1
             p = min(0.9, base * (1 + 0.3 * i))
             rows.append({
@@ -107,7 +107,7 @@ class TestAxesView(unittest.TestCase):
         # Probabilities come out in PERCENT, the conditional summary's unit.
         self.assertAlmostEqual(next(m for m in first["models"] if m["label"] == "Fable 5")["p"], 2.6, places=3)
         self.assertEqual({b_["label"]: b_["p"] for b_ in cell["baselines"]}, {"Fable 5": 2.0, "GPT-5.5 Pro": 5.0})
-        # An axis carries only its own conditions.
+        # An axis carries only its own scenarios.
         rev = next(a for a in b["axes"] if a["key"] == "revenue")
         self.assertEqual(len(rev["questions"][0]["byHorizon"]["2030"]["levels"]), 5)
 

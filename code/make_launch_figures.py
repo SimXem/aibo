@@ -43,9 +43,9 @@ def axis_data(slug, keys):
             latest[(r['label'], r['condition']['id'])] = r
     axes = []
     for key in keys:
-        conditions = [c for c in spec['conditions'] if c['group'] == key]
+        scenarios = [c for c in spec['conditions'] if c['group'] == key]
         points = []
-        for c in conditions:
+        for c in scenarios:
             by_horizon = {}
             for h in HORIZONS:
                 ps = {}

@@ -1,13 +1,13 @@
 """The dataset behind the dashboard, as one CSV: every forecast from every
 model in every run, unconditional and conditional alike.
 
-One line per (call, question, horizon, condition). Unconditional rows come
+One line per (call, question, horizon, scenario). Unconditional rows come
 from the published run log (redlines.runlog.load_runlog: results/runs/ plus
 the legacy file), so the CSV's unconditional series is exactly the one the
 panels draw; conditional rows come from the published instrument logs --
 results/conditional_runs_combined.jsonl (the combined instrument, the
 published set since 2026-08-28) and results/conditional_runs.jsonl (the
-policy instrument before it) -- taking only the rows that carry a condition
+policy instrument before it) -- taking only the rows that carry a scenario
 (their unconditional siblings are already in the run log -- see
 code/run_unified.py --joint, which writes each joint call to both), and only
 the canonical panel's (redlines.runlog.panel_rows: the same rule the run log
@@ -28,7 +28,7 @@ published beside index.html by code/publish_dashboard.sh.
 
 A SECOND FILE, results/rationales.csv (2026-09-08; project lead: all
 forecasts and rationales, including those from legacy models, must be
-available): one line per (call, question, condition) -- the model's written
+available): one line per (call, question, scenario) -- the model's written
 rationale for that question in that call, and the sources it cited -- from
 the same rows as the forecasts file, joined on `call_id` + `question_id` +
 `condition`. Separate because a rationale is per question per call while
@@ -43,7 +43,7 @@ rows only) is one filter away, and `protocol`/`experiment` to tell the
 elicitations apart. And results/redlines-data.zip (bundle_zip) wraps the
 two CSVs with the raw JSONL logs verbatim (every search and page read the
 models made), the retired per-question archive, the question set, the
-condition sets, the ECI snapshots, and a README naming each. The Download
+scenario sets, the ECI snapshots, and a README naming each. The Download
 button serves the zip; the CSVs sit beside it for a quick look.
 """
 import csv
@@ -140,7 +140,7 @@ def _question_text(row, questions):
 
 def _lines(rows, qs):
     for r in rows:
-        cond = r.get("condition") or {}
+        scenario = r.get("condition") or {}
         q = qs.get(r["question_id"], {})
         for f in r.get("forecasts") or []:
             window = (r.get("counting_window") or {}).get(f["horizon"], {})
@@ -163,9 +163,9 @@ def _lines(rows, qs):
                 "prompt_sha256": r.get("prompt_sha256", ""),
                 "horizon": f["horizon"],
                 "resolves_on": _resolves_on(r, f["horizon"]),
-                "condition": cond.get("id", ""),
-                "condition_label": cond.get("label", ""),
-                "condition_source": cond.get("source", ""),
+                "condition": scenario.get("id", ""),
+                "condition_label": scenario.get("label", ""),
+                "condition_source": scenario.get("source", ""),
                 "probability": f["probability"],
                 "arm": r.get("arm") or "",
                 "call_id": r.get("call_id") or "",
@@ -185,7 +185,7 @@ RATIONALE_COLUMNS = ["elicited_at", "run_id", "protocol", "experiment", "model",
 
 def _rationale_lines(rows, qs):
     for r in rows:
-        cond = r.get("condition") or {}
+        scenario = r.get("condition") or {}
         q = qs.get(r["question_id"], {})
         yield {
             "elicited_at": r.get("elicited_at", ""),
@@ -201,8 +201,8 @@ def _rationale_lines(rows, qs):
             "run_date": r.get("run_date", ""),
             "counting_window": json.dumps(r["counting_window"], sort_keys=True) if r.get("counting_window") else "",
             "prompt_sha256": r.get("prompt_sha256", ""),
-            "condition": cond.get("id", ""),
-            "condition_label": cond.get("label", ""),
+            "condition": scenario.get("id", ""),
+            "condition_label": scenario.get("label", ""),
             "arm": r.get("arm") or "",
             "call_id": r.get("call_id") or "",
             "grounded": "" if r.get("grounded") is None else int(bool(r.get("grounded"))),
@@ -471,7 +471,7 @@ def _bundle_members():
 
 def bundle_zip(out=BUNDLE_OUT, forecasts=OUT, rationales=RATIONALES_OUT, debriefs=DEBRIEFS_OUT):
     """Write the zip: the CSVs (already written), the raw logs, the
-    questions and conditions, and the README. Returns the member count."""
+    questions and scenarios, and the README. Returns the member count."""
     import zipfile
     from datetime import datetime, timezone
     out = Path(out)

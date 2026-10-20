@@ -81,7 +81,7 @@ printf '%s\n' '<!DOCTYPE html><meta charset="utf-8"><meta http-equiv="refresh" c
 # button's target: every forecast from every model in every run.
 publish results/forecasts.csv "$DOCROOT/forecasts.csv"
 # ... and the rationales beside them (one line per call x question x
-# condition; join on call_id + question_id + condition).
+# scenario; join on call_id, question_id and the condition column).
 publish results/rationales.csv "$DOCROOT/rationales.csv"
 # ... and the debriefs (2026-09-15; one line per call x question group).
 if [ -f results/debriefs.csv ]; then publish results/debriefs.csv "$DOCROOT/debriefs.csv"; fi

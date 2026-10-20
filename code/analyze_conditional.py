@@ -9,7 +9,7 @@ fronts redlines/coherence.py. Reads results/conditional_runs.jsonl.
     python3 code/analyze_conditional.py --experiment leap-wave12-pilot --json results/conditional_summary.json
     python3 code/analyze_conditional.py --protocol unified-batch-v2   # the separate-call rows only
     python3 code/analyze_conditional.py --compare                     # joint vs separate, side by side
-    python3 code/analyze_conditional.py --conditions data/eci_conditions.json   # the capability set (its own log + protocol)
+    python3 code/analyze_conditional.py --scenarios data/eci_conditions.json   # the capability set (its own log + protocol)
 
 The log holds two protocols (separate calls, unified-batch-v2; the single
 instrument, unified-joint-v1) whose unconditional arms are different
@@ -42,7 +42,7 @@ def _fmt(kind, v):
 
 def compare(log, experiment, qid, h, measure="ratio"):
     """Both protocols on one question x horizon: per model, unconditional and
-    the per-condition ratio, joint beside separate; ensemble last."""
+    the per-scenario ratio, joint beside separate; ensemble last."""
     have = protocols_in(log)
     sums = {}
     for proto in PREFER:
@@ -94,11 +94,11 @@ def compare(log, experiment, qid, h, measure="ratio"):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--log", help="default: the condition set's own log "
+    ap.add_argument("--log", help="default: the scenario set's own log "
                                   "(results/conditional_runs.jsonl for the policies, "
                                   "results/conditional_runs_<slug>.jsonl otherwise)")
-    ap.add_argument("--conditions", default=str(POLICIES),
-                    help="the condition set (default the LEAP policies)")
+    ap.add_argument("--scenarios", default=str(POLICIES),
+                    help="the scenario set (default the LEAP policies)")
     ap.add_argument("--experiment")
     ap.add_argument("--question", action="append")
     ap.add_argument("--horizon", action="append")
@@ -111,7 +111,7 @@ def main():
     ap.add_argument("--compare", action="store_true",
                     help="print both protocols side by side for each question x horizon")
     args = ap.parse_args()
-    policies = json.load(open(args.conditions))
+    policies = json.load(open(args.scenarios))
     slug = policies.get("slug", "leap")
     if not args.log:
         args.log = str(CONDITIONAL_LOG) if slug == "leap" else \

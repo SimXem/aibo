@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Generate data/eci_conditions.json: the capability conditions for the
+"""Generate data/eci_conditions.json: the capability scenarios for the
 single instrument -- three end-of-2027 frontier-ECI levels.
 
-The policy conditions (data/leap_policies.json) ask what a named policy does
+The policy scenarios (data/leap_policies.json) ask what a named policy does
 to the forecast. These ask what a named LEVEL OF AI CAPABILITY does: each
 question, given that the US frontier's Epoch Capabilities Index reaches a
 stated score by December 31, 2027. The three scores are the 10th, 50th and
 90th percentiles of the metr_graph ECI-tab projection recorded in
 data/eci_projection_2026-08-21.json (see docs/conditional-forecasts.md,
 "ECI projection for the capability-conditional"): a slow, a trend and a fast
-world. The runner reads this file through --conditions and treats it exactly
+world. The runner reads this file through --scenarios and treats it exactly
 as it treats the policy file -- same instrument, same tool, same analysis --
-so the two condition sets are one protocol with different condition text.
+so the two scenario sets are one protocol with different scenario text.
 
     python3 code/make_eci_conditions.py           # writes data/eci_conditions.json
     python3 code/make_eci_conditions.py --check    # verify the file is current
@@ -34,7 +34,7 @@ WHAT IS DERIVED AND WHAT IS AUTHORED
 TWO CHOICES TO KNOW ABOUT
 
   "Approximately X", not "at least X". Conditioning on "at least the 10th
-  percentile" is nearly the unconditional; a point condition partitions the
+  percentile" is nearly the unconditional; a point scenario partitions the
   projection into three worlds, and three point conditionals are what a
   later mixture over the projection would need.
 
@@ -156,10 +156,10 @@ def build():
     ladder_text = "; ".join(f"{name} ({_month(d)}) {s}" for name, s, d in ref)
     top = proj["fit"]["anchor"]
     top_name, top_score = SHORT.get(top["model"], top["model"]), round(top["score"])
-    conds = []
+    scenarios = []
     for key, pct in LEVELS:
         level = round(row[key])
-        conds.append({
+        scenarios.append({
             "id": f"eci{level}",
             "leap_id": None,
             "label": f"Frontier ECI {level} at end of 2027",
@@ -195,7 +195,7 @@ def build():
             "horizon": f"every condition is a level reached by {TARGET_DATE_TEXT}.",
         },
         "reference": [{"model": n, "score": s, "release_date": d} for n, s, d in ref],
-        "conditions": conds,
+        "conditions": scenarios,
         "notes": {
             "levels": "p10 / p50 / p90 of the projection's 2027EOY row, rounded to the "
                       "point; the condition is a point ('approximately X'), not a bound.",

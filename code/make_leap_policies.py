@@ -5,9 +5,9 @@ LEAP Wave 12 ("Safety Policies", FRI, internal draft dated 2026-08-26) asks
 its panel to forecast AI-caused catastrophe by 2050 CONDITIONAL on each of
 several policies being in force. We ask our models the same conditionals, on
 our own question set, with LEAP's wording. This script is the only place that
-wording enters the repo: every condition the runner can be asked, the text it
+wording enters the repo: every scenario the runner can be asked, the text it
 prepends to the prompt, and the sentence that tells the model HOW to
-condition, all come out of the two vendored documents under data/leap/.
+scenario, all come out of the two vendored documents under data/leap/.
 
     python3 code/make_leap_policies.py           # writes data/leap_policies.json
     python3 code/make_leap_policies.py --check    # verify the file is current
@@ -19,12 +19,12 @@ WHAT IS PARSED AND WHAT IS AUTHORED
              the conditioning instruction, horizon line and frontier-model
              definition (wave12-survey-*.md). Verbatim, less Google-Docs
              export escapes and bold/italic markers.
-  authored   CONDITIONS below: which (policy, part) pairs become a condition
+  authored   SCENARIOS below: which (policy, part) pairs become a scenario
              we run, their ids and short labels. Eight of them — the status
              quo, P1, both parts of P2 and P3, P4, and the P5 bundle. O1 and
              O2 are LEAP's OUTCOMES, not policies; they are parsed for the
              record (they are the questions our catastrophe:ai and
-             ladder:ai:1M rows line up with) but are never a condition.
+             ladder:ai:1M rows line up with) but are never a scenario.
 
 NOTHING IS RECONCILED. LEAP's conditioning clause says the policy "remains in
 effect through December 31, 2050" and LEAP elicits the outcome at 2050 only.
@@ -55,9 +55,9 @@ SOURCE = {
     "policy_probability_horizons": ["2030", "2050"],
 }
 
-# The eight conditions we run. (id, LEAP section, part, short label).
+# The eight scenarios we run. (id, LEAP section, part, short label).
 # A part is one of a policy's mutually exclusive variants — LEAP's (a)/(b).
-CONDITIONS = [
+SCENARIOS = [
     ("sq", "Status Quo", None, "Status quo (no new substantial AI policy)"),
     ("p1", "P1", None, "Federal preemption of state AI laws"),
     ("p2a", "P2", "a", "Compute cap on frontier R&D: US alone"),
@@ -245,8 +245,8 @@ def build():
 
     one_liners = "\n".join(f"- {policies[k]['leap_id']}: {policies[k]['summary']}"
                            for k in ("P1", "P2", "P3", "P4", "P5"))
-    conds = []
-    for cid, key, part, label in CONDITIONS:
+    scenarios = []
+    for cid, key, part, label in SCENARIOS:
         p = policies[key]
         c = {"id": cid, "leap_id": key + (f" ({part})" if part else ""),
              "label": label, "policy": key, "part": part}
@@ -262,14 +262,14 @@ def build():
             c["assume"] = p["summary"] if not part else (
                 f"{p['summary']} Part ({part}): {p['parts'][part]}")
             c["description"] = describe(p, part)
-        conds.append(c)
+        scenarios.append(c)
 
     return {
         "title": "LEAP Wave 12 policy conditions, as the runner prepends them",
         "source": SOURCE,
         "generated_by": os.path.relpath(__file__, ROOT),
         "conditioning": survey,
-        "conditions": conds,
+        "conditions": scenarios,
         "policies": policies,
         "notes": {
             "horizon": ("LEAP's clause keeps the policy in force through 2050 "
@@ -294,7 +294,7 @@ def main():
         # published, so the set cannot be regenerated or checked here; the
         # tracked file stands as is. Tests skip on this exit code.
         sys.exit(f"{os.path.relpath(POLICIES_MD, ROOT)} is not present (internal LEAP source); "
-                 "the tracked condition set stands as is")
+                 "the tracked scenario set stands as is")
     ap.add_argument("--out", default=OUT)
     args = ap.parse_args()
     doc = build()

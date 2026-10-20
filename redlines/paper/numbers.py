@@ -249,7 +249,7 @@ def collect(results: Path | None = None) -> dict[str, str]:
     out["cond:runs"] = ", ".join(r[:10] for r in c["runs"])
     out["cond:protocol"] = c["protocol"]
     out["cond:conditions:n"] = str(len(c["conditions"]))
-    _condition_family(out, "cond", c["questions"])
+    _scenario_family(out, "cond", c["questions"])
     # --- Conditional on capability (the default variant) ----------------------
     cap = load("capability_data.json")
     v = next(v for v in cap["variants"] if v["key"] == cap["defaultVariant"])
@@ -284,7 +284,7 @@ def collect(results: Path | None = None) -> dict[str, str]:
             for k_, val in pc.items():
                 if k_ != "n":
                     out[f"cap:eci:leap:{g_}:{d_[:4]}:{k_}"] = f"{val:.0f}"
-    _condition_family(out, "cap", v["questions"])
+    _scenario_family(out, "cap", v["questions"])
     # Steepness: the ratio across the model's own interquartile range of
     # capability (p75 / p25) and across its tails (p90 / p10), the ECI points
     # each spans, and the compound percent change per ECI point (from the IQR).
@@ -397,8 +397,8 @@ def _wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     return c - h, c + h
 
 
-def _condition_family(out: dict, prefix: str, questions: list) -> None:
-    """<prefix>:<qid>:<h>:baseline and per condition {ratio,cut,level,priced,median,median:priced,
+def _scenario_family(out: dict, prefix: str, questions: list) -> None:
+    """<prefix>:<qid>:<h>:baseline and per scenario {ratio,cut,level,priced,median,median:priced,
     lo,hi,lo:label,hi:label,lowered,raised} -- shared by the policy and
     capability tabs, whose blobs carry the same cell shape. lo/hi are the
     across-model range, never an interval: the instrument is elicited once
@@ -516,10 +516,10 @@ def prompt_macros(run_date: str) -> dict[str, str]:
     no model called) with `today` = the latest run date, so the rolling
     horizons and the ECI target date are the ones that run saw and the file
     does not change with the calendar. The whole prompt is ~105k characters
-    (35 questions with their criteria, 14 conditions), so the macros carry its
+    (35 questions with their criteria, 14 scenarios), so the macros carry its
     skeleton -- system prompt, head, tail -- plus representative blocks: the
     three cross-cutting questions, one ladder rung, the shared criteria, the
-    conditions preamble, the status-quo policy item, and one capability item.
+    scenarios preamble, the status-quo policy item, and one capability item.
     """
     import importlib.util
     from datetime import date
@@ -528,10 +528,10 @@ def prompt_macros(run_date: str) -> dict[str, str]:
     spec.loader.exec_module(ru)
     today = date.fromisoformat(run_date)
     policies = ru.load_policies(ru.COMBINED)
-    conds = ru.expand_conditions(["all"], policies)
+    scenarios = ru.expand_scenarios(["all"], policies)
     groups, by_group, horizons, _, qspec = ru.load_batch(ru.LADDER, ru.CROSS, ru.UNBATCHED)
     horizons = ru.set_horizons(policies, horizons)
-    prompt, n, cells = ru.build_prompt_joint(groups, by_group, horizons, qspec, conds, policies, today)
+    prompt, n, cells = ru.build_prompt_joint(groups, by_group, horizons, qspec, scenarios, policies, today)
     groups_ = ru.set_groups(policies)
     out = {
         "prompt:protocol": ru.set_protocol(policies),
@@ -540,10 +540,10 @@ def prompt_macros(run_date: str) -> dict[str, str]:
         "prompt:cells:n": str(cells),
         "prompt:horizons:n": str(len(horizons)),
         "prompt:horizons:list": ", ".join(horizons),
-        "prompt:conditions:n": str(len(conds) + 1),
-        "prompt:conditions:policy:n": str(sum(1 for c in conds if c.get("group") == groups_[0]["key"])),
-        "prompt:conditions:capability:n": str(sum(1 for c in conds if c.get("group") == groups_[1]["key"])),
-        "prompt:probabilities:n": f"{cells * (len(conds) + 1):,}",
+        "prompt:conditions:n": str(len(scenarios) + 1),
+        "prompt:conditions:policy:n": str(sum(1 for c in scenarios if c.get("group") == groups_[0]["key"])),
+        "prompt:conditions:capability:n": str(sum(1 for c in scenarios if c.get("group") == groups_[1]["key"])),
+        "prompt:probabilities:n": f"{cells * (len(scenarios) + 1):,}",
         "prompt:chars": f"{len(prompt):,}",
         "prompt:research:min": str(ru.MIN_RESEARCH),
         "prompt:rounds:max": str(ru.MAX_ROUNDS),

@@ -87,7 +87,7 @@ class TestMinimalPrompt(unittest.TestCase):
             self.assertIn(gone, p)
             self.assertNotIn(gone, m)
         blocks = p[p.index("===== AI-RELATED INCIDENT"):p.index("\nHorizons: ")]
-        self.assertIn(blocks, m)                       # questions and conditions byte for byte
+        self.assertIn(blocks, m)                       # questions and scenarios byte for byte
         self.assertIn("Deliver the probabilities with submit_cells", m)
         self.assertLess(len(m.encode()), 131072)       # pi takes the prompt as one argv string
 

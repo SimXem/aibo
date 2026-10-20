@@ -22,7 +22,7 @@ system's ECI at end-2026, the one human forecast of the ECI there is
 The cells come from the same summary the Policy and Capability tabs use
 (redlines.views.conditional._variant on the group's view of the set), so a
 level's per-model value here is the value those tabs would show for the
-same condition. The blob keeps the day's newest instrument under the set's
+same scenario. The blob keeps the day's newest instrument under the set's
 protocol line, as the other conditional views do.
 """
 import json

@@ -1,15 +1,15 @@
-"""The conditional arm must change nothing but the condition.
+"""The conditional arm must change nothing but the scenario.
 
 Three guarantees, each of which the conditional panel's numbers depend on:
 
-  1. With no condition, the runner's prompt is exactly the weekly run's
-     prompt. The {condition} slot renders empty, so the same-session
+  1. With no scenario, the runner's prompt is exactly the weekly run's
+     prompt. The {scenario} slot renders empty, so the same-session
      unconditional arms ARE the published protocol and can stand as the
      zero line.
-  2. Every condition renders, carries LEAP's exogeneity instruction
+  2. Every scenario renders, carries LEAP's exogeneity instruction
      verbatim, and states no relation between the questions -- the same
      ban tests/test_coherence.py enforces on the unconditional prompt,
-     extended to the rendered condition text, which comes from data.
+     extended to the rendered scenario text, which comes from data.
   3. data/leap_policies.json is what code/make_leap_policies.py produces
      from the vendored survey documents. The policy text a model sees is
      traceable to the document, never hand-edited in the JSON.
@@ -78,29 +78,29 @@ def _load_runner():
     return mod
 
 
-class TestConditionBlock(unittest.TestCase):
+class TestScenarioBlock(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.ru = _load_runner()
         cls.policies = cls.ru.load_policies()
         cls.batch = cls.ru.load_batch(cls.ru.LADDER, cls.ru.CROSS, cls.ru.UNBATCHED)
 
-    def _prompt(self, cond):
+    def _prompt(self, scenario):
         groups, by_group, horizons, _, spec = self.batch
         p, n, cells = self.ru.build_prompt(groups, by_group, horizons, spec,
-                                           date(2026, 8, 27), False, cond, self.policies)
+                                           date(2026, 8, 27), False, scenario, self.policies)
         return p, n, cells
 
-    def test_unconditional_prompt_has_no_condition_slot_residue(self):
+    def test_unconditional_prompt_has_no_scenario_slot_residue(self):
         p, n, cells = self._prompt(None)
         self.assertNotIn("CONDITION", p)
-        self.assertNotIn("{condition}", p)
+        self.assertNotIn("{scenario}", p)
         # The slot sits between the date line and the question header, and
         # renders to exactly the blank line that was always there.
         self.assertIn("Today is 2026-08-27.\n\nBelow are 73 forecasting", p)
         self.assertEqual((n, cells), (QUESTIONS, CELLS))
 
-    def test_every_condition_renders_with_leap_instruction(self):
+    def test_every_scenario_renders_with_leap_instruction(self):
         instr = self.policies["conditioning"]["instruction"]
         self.assertIn("treat the policy implementation as exogenous", instr)
         for c in self.policies["conditions"]:
@@ -114,16 +114,16 @@ class TestConditionBlock(unittest.TestCase):
             self.assertIn("Below are 73 forecasting questions", p)
             self.assertTrue(p.index("=====\n\nBelow are") < p.index("===== AI-RELATED INCIDENT"))
 
-    def test_condition_text_states_no_relation_or_direction(self):
-        lit = self.ru.CONDITION_BLOCK.lower()
+    def test_scenario_text_states_no_relation_or_direction(self):
+        lit = self.ru.SCENARIO_BLOCK.lower()
         found = [b for b in BANNED_RELATION + BANNED_DIRECTION if b in lit]
-        self.assertEqual(found, [], f"CONDITION_BLOCK literal: {found}")
+        self.assertEqual(found, [], f"SCENARIO_BLOCK literal: {found}")
         for c in self.policies["conditions"]:
-            blob = self.ru.condition_block(c, self.policies).lower()
+            blob = self.ru.scenario_block(c, self.policies).lower()
             found = [b for b in BANNED_DIRECTION if b in blob]
             self.assertEqual(found, [], f"{c['id']}: {found}")
 
-    def test_conditions_are_the_eight_policies_not_the_outcomes(self):
+    def test_scenarios_are_the_eight_policies_not_the_outcomes(self):
         ids = [c["id"] for c in self.policies["conditions"]]
         self.assertEqual(ids, ["sq", "p1", "p2a", "p2b", "p3a", "p3b", "p4", "p5"])
         self.assertTrue(all(not c["policy"].startswith("O") for c in self.policies["conditions"]))
@@ -145,11 +145,11 @@ class TestConditionBlock(unittest.TestCase):
 class TestSummarize(unittest.TestCase):
     """The delta arithmetic, on a hand-built log."""
 
-    def _row(self, qid, label, p2030, cond=None, run="r1"):
+    def _row(self, qid, label, p2030, scenario=None, run="r1"):
         return {"run_id": run, "question_id": qid, "label": label,
                 "forecasts": [{"horizon": "2030", "probability": p2030},
                               {"horizon": "2050", "probability": min(1, 3 * p2030)}],
-                "condition": ({"id": cond, "leap_id": cond.upper(), "label": cond} if cond else None),
+                "condition": ({"id": scenario, "leap_id": scenario.upper(), "label": scenario} if scenario else None),
                 "experiment": "t"}
 
     def test_per_model_then_ensemble(self):
@@ -186,7 +186,7 @@ class TestSummarize(unittest.TestCase):
 
 
 class TestJointInstrument(unittest.TestCase):
-    """--joint: one call per model carrying every cell under every condition."""
+    """--joint: one call per model carrying every cell under every scenario."""
 
     @classmethod
     def setUpClass(cls):
@@ -195,12 +195,12 @@ class TestJointInstrument(unittest.TestCase):
         cls.batch = cls.ru.load_batch(cls.ru.LADDER, cls.ru.CROSS, cls.ru.UNBATCHED)
         cls.conds = cls.policies["conditions"]
 
-    def test_joint_prompt_carries_the_questions_and_every_condition(self):
+    def test_joint_prompt_carries_the_questions_and_every_scenario(self):
         groups, by_group, horizons, _, spec = self.batch
         p, n, cells = self.ru.build_prompt_joint(groups, by_group, horizons, spec,
                                                  self.conds, self.policies, date(2026, 8, 27))
         self.assertEqual((n, cells), (QUESTIONS, CELLS))
-        # cells x (unconditional + one pass per condition).
+        # cells x (unconditional + one pass per scenario).
         self.assertIn(f"{CELLS * (1 + len(self.conds))} probabilities", p)
         # The question blocks are build_prompt's, unchanged, and come first.
         base, _, _ = self.ru.build_prompt(groups, by_group, horizons, spec, date(2026, 8, 27))
@@ -215,20 +215,20 @@ class TestJointInstrument(unittest.TestCase):
         self.assertIn(self.policies["conditioning"]["instruction"], p)
 
     def test_joint_framing_states_no_relation_or_direction(self):
-        lit = (self.ru.PROMPT_JOINT + self.ru.CONDITIONS_BLOCK + self.ru.CONDITION_ITEM).lower()
+        lit = (self.ru.PROMPT_JOINT + self.ru.SCENARIOS_BLOCK + self.ru.SCENARIO_ITEM).lower()
         found = [b for b in BANNED_RELATION + BANNED_DIRECTION if b in lit]
         self.assertEqual(found, [], f"joint literals: {found}")
-        # And nothing about which condition should be higher or lower.
+        # And nothing about which scenario should be higher or lower.
         for w in ("lower than", "higher than", "at most", "at least as", "bundle should"):
             self.assertNotIn(w, lit)
 
-    def test_joint_tool_requires_every_condition_per_cell(self):
+    def test_joint_tool_requires_every_scenario_per_cell(self):
         t = self.ru.submit_tool_joint(["q"], ["2030"], [c["id"] for c in self.conds])
         ps = t["parameters"]["properties"]["forecasts"]["items"]["properties"]["probabilities"]
         self.assertEqual(ps["required"], ["unconditional"] + [c["id"] for c in self.conds])
         self.assertEqual(len(ps["properties"]), 9)
 
-    def test_joint_cleaner_splits_by_condition(self):
+    def test_joint_cleaner_splits_by_scenario(self):
         raw = [{"question_id": "q", "horizon": "2030",
                 "probabilities": {"unconditional": 0.1, "sq": 0.12, "p5": 0.02, "bogus": 0.5}},
                {"question_id": "q", "horizon": "6mo", "probabilities": {"unconditional": 0.01}},
@@ -296,10 +296,10 @@ class TestOutsideNoise(unittest.TestCase):
         self.assertIsNone(outside_noise([0.01], [0.02]))      # one unconditional value is not a range
 
     def test_paired_ci_decides(self):
-        def row(label, p, cond=None, call="u"):
+        def row(label, p, scenario=None, call="u"):
             return {"run_id": "r", "question_id": "q", "label": label, "call_id": f"r:{call}:{label}",
                     "forecasts": [{"horizon": "2030", "probability": p}],
-                    "condition": ({"id": cond, "leap_id": "P5", "label": cond} if cond else None)}
+                    "condition": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
         policies = {"conditions": [{"id": "p5", "label": "b", "leap_id": "P5"}], "source": {"wave": "t"}}
         # Three models, three repeats each, the SAME call answering both sides:
         # the ratio is paired within the call, so between-call wander cancels.
@@ -331,10 +331,10 @@ class TestOutsideNoise(unittest.TestCase):
 
     def test_unpaired_fallback_for_separate_calls(self):
         # Different calls on each side (the 2026-08-27 pilot): Welch interval.
-        def row(label, p, cond=None, call="u"):
+        def row(label, p, scenario=None, call="u"):
             return {"run_id": "r", "question_id": "q", "label": label, "call_id": f"r:{call}:{label}",
                     "forecasts": [{"horizon": "2030", "probability": p}],
-                    "condition": ({"id": cond, "leap_id": "P5", "label": cond} if cond else None)}
+                    "condition": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
         policies = {"conditions": [{"id": "p5", "label": "b", "leap_id": "P5"}], "source": {"wave": "t"}}
         rows = [row("A", 0.10, call="u1"), row("A", 0.12, call="u2"), row("A", 0.11, call="u3"),
                 row("A", 0.02, "p5", call="p5")]
@@ -377,16 +377,16 @@ class TestExpectedLoss(unittest.TestCase):
         self.assertIsNone(expected_loss(s, RUNGS))
 
     def test_summarize_folds_ladder_into_loss_row(self):
-        def row(rung, label, p, cond=None, call="u0"):
+        def row(rung, label, p, scenario=None, call="u0"):
             return {"run_id": "r", "question_id": f"ladder:ai:{rung}:deaths", "label": label,
                     "call_id": f"r:{call}:{label}", "grounded": True,
                     "forecasts": [{"horizon": "2030", "probability": p}],
-                    "condition": ({"id": cond, "leap_id": "P5", "label": cond} if cond else None)}
+                    "condition": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
         rows = []
         for i, (r, _) in enumerate(RUNGS):
             rows.append(row(r, "A", 0.5 ** i))                       # arm 0
             rows.append(row(r, "A", 0.5 ** i, call="u1"))            # arm 1, identical
-            rows.append(row(r, "A", 0.5 ** i / 2, cond="p5"))        # every rung halved
+            rows.append(row(r, "A", 0.5 ** i / 2, scenario="p5"))        # every rung halved
         policies = {"conditions": [{"id": "p5", "label": "bundle", "leap_id": "P5"}],
                     "source": {"wave": "t"}}
         s = summarize(rows, policies, rungs=RUNGS)
@@ -407,11 +407,11 @@ if __name__ == "__main__":
     unittest.main()
 
 
-class TestConditionSets(unittest.TestCase):
-    """--conditions: the capability set renders through the same instrument
+class TestScenarioSets(unittest.TestCase):
+    """--scenarios: the capability set renders through the same instrument
     and the published (LEAP) text is pinned byte-for-byte."""
 
-    # The LEAP conditions block as stamped (condition.sha256) on every joint row
+    # The LEAP scenarios block as stamped (condition.sha256) on every joint row
     # in results/conditional_runs.jsonl since 2026-08-27, and the whole joint
     # prompt at a fixed date. If either changes, the weekly instrument has
     # changed: bump the protocol tag, do not edit here.
@@ -425,7 +425,7 @@ class TestConditionSets(unittest.TestCase):
     # prompt (2026-08-27); 2026-08-28 = the cross-cutting three on the six-
     # horizon grid (210 cells); 2026-09-02 = the agentic harness's research
     # paragraph, then Bridget's 2026-08-31 question revisions. LEAP_BLOCK_SHA
-    # -- the conditions' wording, LEAP's own text -- never moved, which is the
+    # -- the scenarios' wording, LEAP's own text -- never moved, which is the
     # pin that matters. A changed prompt must arrive WITH a changed tag: rows
     # in the log were elicited under the prompt of their tag.
     LEAP_PROMPT_SHA_V1 = "b8cb19508626977838c1d452a060be87b6e7716672e3c45fe5cace80b6771d1b"
@@ -433,7 +433,7 @@ class TestConditionSets(unittest.TestCase):
     # 2026-09-02 evening: the grid delivered in pieces (submit_cells) -- the closing paragraph changed.
     LEAP_PROMPT_SHA_2026_09_02 = "49bf81839161af1449da291549d001c71a671d2e24906e34d5eacfd912fea876"
     # September 10: approved prospective incident windows/campaign boundaries;
-    # the unchanged LEAP condition block is still pinned separately above.
+    # the unchanged LEAP scenario block is still pinned separately above.
     LEAP_PROMPT_SHA_2026_09_10 = "581693c3278bb7515ed335d7f738b529c31ad8f507b259155856d47b2f47a28e"
     # 2026-09-15: the debrief turn (redlines.llm.call_tools `debrief`) -- the
     # closing paragraph now tells the model it will be asked, per question
@@ -474,7 +474,7 @@ class TestConditionSets(unittest.TestCase):
     def test_leap_text_is_pinned(self):
         import hashlib
         groups, by_group, horizons, _, spec = self.batch
-        block = self.ru.conditions_block(self.leap["conditions"], self.leap)
+        block = self.ru.scenarios_block(self.leap["conditions"], self.leap)
         self.assertEqual(hashlib.sha256(block.encode()).hexdigest(), self.LEAP_BLOCK_SHA)
         p, _, _ = self.ru.build_prompt_joint(groups, by_group, horizons, spec,
                                              self.leap["conditions"], self.leap, date(2026, 8, 28))
@@ -535,10 +535,10 @@ class TestConditionSets(unittest.TestCase):
         qblock = base[base.index("===== AI-RELATED INCIDENT"):base.index("\nHorizons: ")]
         self.assertIn(qblock, p)
         # No percentile, no pace verdict, no policy text.
-        cond = p[p.index("===== CONDITIONS ====="):]
+        section = p[p.index("===== CONDITIONS ====="):]
         for w in ("percentile", "p10", "p50", "p90", "median", "slow", "fast",
                   "Status Quo", "preemption", "liability"):
-            self.assertNotIn(w, cond, w)
+            self.assertNotIn(w, section, w)
         lit = (self.eci["conditioning"]["instruction"] + self.eci["conditioning"]["definitions"]
                + "".join(c["assume"] + c["description"] for c in self.eci["conditions"])).lower()
         found = [b for b in BANNED_RELATION + BANNED_DIRECTION if b in lit]
@@ -546,11 +546,11 @@ class TestConditionSets(unittest.TestCase):
 
     def test_summarize_takes_the_eci_set(self):
         from redlines.conditional import summarize
-        def row(label, p, cond=None, call="u"):
+        def row(label, p, scenario=None, call="u"):
             return {"run_id": "r", "question_id": "catastrophe:ai", "label": label, "grounded": True,
                     "protocol": "unified-joint-eci-v1", "call_id": call,
                     "forecasts": [{"horizon": "2030", "probability": p}, {"horizon": "2100", "probability": p}],
-                    "condition": ({"id": cond} if cond else None)}
+                    "condition": ({"id": scenario} if scenario else None)}
         rows = [row("m", 0.01, call="c1"), row("m", 0.02, "eci210", "c1"),
                 row("m", 0.012, call="c2"), row("m", 0.024, "eci210", "c2")]
         s = summarize(rows, policies=self.eci, horizons=("2030",), rungs=[])
@@ -593,7 +593,7 @@ class TestSelfElicitedSet(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertEqual([c["id"] for c in self.es["conditions"]],
                          ["eci_p10", "eci_p25", "eci_p50", "eci_p75", "eci_p90"])
-        # Five percentiles asked since 2026-09-02; a condition on each of them
+        # Five percentiles asked since 2026-09-02; a scenario on each of them
         # since 2026-09-03 (the tails were whiskers only until then).
         self.assertEqual(self.es["elicit"]["fields"], ["p10", "p25", "p50", "p75", "p90"])
         self.assertEqual([c["field"] for c in self.es["conditions"]], ["p10", "p25", "p50", "p75", "p90"])
@@ -613,31 +613,31 @@ class TestSelfElicitedSet(unittest.TestCase):
         self.assertEqual(self.ru.submit_extra(self.leap), "")
         t = self.ru.submit_tool_joint(["q"], ["2030"], ["sq"])
         self.assertNotIn("eci_forecast", t["parameters"]["properties"])
-        block = self.ru.conditions_block(self.leap["conditions"], self.leap)
-        self.assertEqual(hashlib.sha256(block.encode()).hexdigest(), TestConditionSets.LEAP_BLOCK_SHA)
+        block = self.ru.scenarios_block(self.leap["conditions"], self.leap)
+        self.assertEqual(hashlib.sha256(block.encode()).hexdigest(), TestScenarioSets.LEAP_BLOCK_SHA)
 
     def test_prompt_has_the_history_two_steps_and_no_trend(self):
         groups, by_group, horizons, _, spec = self.batch
         p, n, cells = self.ru.build_prompt_joint(groups, by_group, horizons, spec,
                                                  self.es["conditions"], self.es, date(2026, 8, 28))
         self.assertEqual((n, cells), (QUESTIONS, CELLS))
-        cond = p[p.index("===== CONDITIONS ====="):]
-        self.assertIn("Step 1 -- Forecast the frontier ECI on December 31, 2030", cond)
-        self.assertIn("Step 2 --", cond)
-        self.assertLess(cond.index("Step 1"), cond.index("Step 2"))
+        section = p[p.index("===== CONDITIONS ====="):]
+        self.assertIn("Step 1 -- Forecast the frontier ECI on December 31, 2030", section)
+        self.assertIn("Step 2 --", section)
+        self.assertLess(section.index("Step 1"), section.index("Step 2"))
         live = self.live_frontier()
-        self.assertIn(self.history_line(live[0]), cond)
-        self.assertIn(self.history_line(next(e for e in live if "Fable 5" in e["model"])), cond)
-        self.assertNotIn("LLaMA", cond)
+        self.assertIn(self.history_line(live[0]), section)
+        self.assertIn(self.history_line(next(e for e in live if "Fable 5" in e["model"])), section)
+        self.assertNotIn("LLaMA", section)
         self.assertIn("with your eci_forecast (5 numbers) and a 3-6 sentence rationale", p)
         for c in self.es["conditions"]:
             self.assertIn(f"--- {c['id']} ---", p)
             self.assertIn(c["assume"], p)
-        self.assertNotIn("\n\n\n\n", cond)      # bare conditions, no blank-line residue
+        self.assertNotIn("\n\n\n\n", section)      # bare scenarios, no blank-line residue
         # The trend projection is what the answers are compared to; never shown.
-        # (The conditions proper: the delivery paragraph after them counts the
+        # (The scenarios proper: the delivery paragraph after them counts the
         # grid -- 438 cells x 6 = 2628 probabilities -- and is not a projection.)
-        body = cond[:cond.index("\nHorizons: ")]
+        body = section[:section.index("\nHorizons: ")]
         for w in ("231", "210.4", "262", "metr", "trend", "percentile of the projection",
                   "Status Quo", "liability"):
             self.assertNotIn(w, body, w)
@@ -716,27 +716,27 @@ class TestRollingSelfElicitedSet(unittest.TestCase):
         p, n, cells = self.ru.build_prompt_joint(groups, by_group, horizons, spec,
                                                  self.es["conditions"], self.es, date(2026, 8, 28))
         self.assertEqual((n, cells), (QUESTIONS, CELLS))
-        cond = p[p.index("===== CONDITIONS ====="):]
-        self.assertIn("Step 1 -- Forecast the frontier ECI on February 28, 2027", cond)
+        section = p[p.index("===== CONDITIONS ====="):]
+        self.assertIn("Step 1 -- Forecast the frontier ECI on February 28, 2027", section)
         self.assertIn("within 6 months (by 2027-02-28)", p)    # the 6mo horizon lands on the same day
         self.assertNotIn("{target_date}", p)
-        self.assertNotIn("2030", cond[:cond.index("\nHorizons:")])    # the horizons line names 2030 itself
+        self.assertNotIn("2030", section[:section.index("\nHorizons:")])    # the horizons line names 2030 itself
         # A different run date, a different target.
         p2, _, _ = self.ru.build_prompt_joint(groups, by_group, horizons, spec,
                                               self.es["conditions"], self.es, date(2026, 10, 31))
         self.assertIn("Forecast the frontier ECI on April 30, 2027", p2)
-        block = self.ru.conditions_block(self.leap["conditions"], self.leap)
-        self.assertEqual(hashlib.sha256(block.encode()).hexdigest(), TestConditionSets.LEAP_BLOCK_SHA)
+        block = self.ru.scenarios_block(self.leap["conditions"], self.leap)
+        self.assertEqual(hashlib.sha256(block.encode()).hexdigest(), TestScenarioSets.LEAP_BLOCK_SHA)
         pl, _, _ = self.ru.build_prompt_joint(groups, by_group, horizons, spec,
                                               self.leap["conditions"], self.leap, date(2026, 8, 28))
-        self.assertEqual(hashlib.sha256(pl.encode()).hexdigest(), TestConditionSets.LEAP_PROMPT_SHA_CURRENT)
+        self.assertEqual(hashlib.sha256(pl.encode()).hexdigest(), TestScenarioSets.LEAP_PROMPT_SHA_CURRENT)
 
 
 class TestCombinedSet(unittest.TestCase):
     """data/combined_conditions.json: the LEAP policies and the six-month
-    capability conditions in ONE instrument -- side by side, never crossed.
-    Policy conditions sit on the model's own median capability trajectory;
-    capability conditions assume whatever policy it expects unconditionally.
+    capability scenarios in ONE instrument -- side by side, never crossed.
+    Policy scenarios sit on the model's own median capability trajectory;
+    capability scenarios assume whatever policy it expects unconditionally.
     (Nick, 2026-08-28.)"""
 
     @classmethod
@@ -801,7 +801,7 @@ class TestCombinedSet(unittest.TestCase):
         # The question blocks are the policy instrument's, unchanged.
         qblock = base[base.index("===== AI-RELATED INCIDENT"):base.index("\nHorizons: ")]
         self.assertIn(qblock, p)
-        cond = p[p.index("===== CONDITIONS ====="):]
+        section = p[p.index("===== CONDITIONS ====="):]
         # Step 1 and the ECI definitions before anything else; then the key
         # list; then the unconditional; then the two sections in order.
         order = ["===== CONDITIONS =====", "Frontier ECI history", "Step 1 -- Forecast the frontier ECI on February 28, 2027",
@@ -809,27 +809,27 @@ class TestCombinedSet(unittest.TestCase):
                  "unconditional, then the 8 policy conditions (POLICY CONDITIONS), then the 5 capability conditions (CAPABILITY CONDITIONS)",
                  "--- unconditional ---", "===== POLICY CONDITIONS =====", "--- sq ---", "--- p5 ---",
                  "===== CAPABILITY CONDITIONS =====", "--- eci_p10 ---", "--- eci_p25 ---", "--- eci_p75 ---", "--- eci_p90 ---"]
-        idx = [cond.index(s) for s in order]
+        idx = [section.index(s) for s in order]
         self.assertEqual(idx, sorted(idx), order)
         # LEAP's items render byte-for-byte as in the policy instrument.
-        leap_block = self.ru.conditions_block(self.leap["conditions"], self.leap)
+        leap_block = self.ru.scenarios_block(self.leap["conditions"], self.leap)
         for c in self.leap["conditions"]:
-            item = self.ru._condition_items([c])
+            item = self.ru._scenario_items([c])
             self.assertIn(item, leap_block)
-            self.assertIn(item, cond)
-        self.assertIn(self.leap["conditioning"]["instruction"], cond)
-        self.assertIn(self.ru._definitions(self.leap), cond)
-        self.assertIn(self.es["conditioning"]["instruction"].replace("{target_date}", "February 28, 2027"), cond)
+            self.assertIn(item, section)
+        self.assertIn(self.leap["conditioning"]["instruction"], section)
+        self.assertIn(self.ru._definitions(self.leap), section)
+        self.assertIn(self.es["conditioning"]["instruction"].replace("{target_date}", "February 28, 2027"), section)
         for c in self.es["conditions"]:
-            self.assertIn(c["assume"].replace("{target_date}", "February 28, 2027"), cond)
+            self.assertIn(c["assume"].replace("{target_date}", "February 28, 2027"), section)
         # The authored lines, dated.
-        self.assertIn("frontier ECI on February 28, 2027 is approximately your 50th-percentile value", cond)
-        self.assertIn("No policy condition applies here.", cond)
-        self.assertIn("whatever level of AI capability you expect to be reached by February 28, 2027", cond)
+        self.assertIn("frontier ECI on February 28, 2027 is approximately your 50th-percentile value", section)
+        self.assertIn("No policy condition applies here.", section)
+        self.assertIn("whatever level of AI capability you expect to be reached by February 28, 2027", section)
         self.assertNotIn("{target_date}", p)
         # The policy section precedes the capability one and each carries its own horizon line.
-        pol = cond[cond.index("===== POLICY CONDITIONS"):cond.index("===== CAPABILITY CONDITIONS")]
-        cap = cond[cond.index("===== CAPABILITY CONDITIONS"):]
+        pol = section[section.index("===== POLICY CONDITIONS"):section.index("===== CAPABILITY CONDITIONS")]
+        cap = section[section.index("===== CAPABILITY CONDITIONS"):]
         self.assertIn("Horizon: every condition is implemented immediately", pol)
         self.assertIn("Horizon: every condition is a level of the frontier ECI on February 28, 2027", cap)
         self.assertNotIn("eci_p", pol.split("In every policy condition")[0])   # no capability id before the assumption
@@ -857,11 +857,11 @@ class TestCombinedSet(unittest.TestCase):
         # policy instrument's bytes must not have moved by a single character.
         import hashlib
         groups, by_group, horizons, _, spec = self.batch
-        block = self.ru.conditions_block(self.leap["conditions"], self.leap)
-        self.assertEqual(hashlib.sha256(block.encode()).hexdigest(), TestConditionSets.LEAP_BLOCK_SHA)
+        block = self.ru.scenarios_block(self.leap["conditions"], self.leap)
+        self.assertEqual(hashlib.sha256(block.encode()).hexdigest(), TestScenarioSets.LEAP_BLOCK_SHA)
         pl, _, _ = self.ru.build_prompt_joint(groups, by_group, horizons, spec,
                                               self.leap["conditions"], self.leap, date(2026, 8, 28))
-        self.assertEqual(hashlib.sha256(pl.encode()).hexdigest(), TestConditionSets.LEAP_PROMPT_SHA_CURRENT)
+        self.assertEqual(hashlib.sha256(pl.encode()).hexdigest(), TestScenarioSets.LEAP_PROMPT_SHA_CURRENT)
         self.assertEqual(self.ru.set_groups(self.leap), [])
         self.assertEqual(self.ru.set_groups(self.es), [])
 
@@ -1061,33 +1061,33 @@ class TestAxesSets(unittest.TestCase):
         self.assertEqual((n, cells), (QUESTIONS, 3 * QUESTIONS))
         self.assertIn("Horizons: 2030 (by 2030), 2050 (by 2050), 2100 (by 2100).", p)
         self.assertNotIn("6mo", p)
-        cond = p[p.index("===== CONDITIONS ====="):]
+        section = p[p.index("===== CONDITIONS ====="):]
         for h in ("REVENUE CONDITIONS", "AGI-TIMING CONDITIONS", "CAPABILITY CONDITIONS"):
-            self.assertIn(f"===== {h} =====", cond)
-        self.assertLess(cond.index("REVENUE CONDITIONS"), cond.index("AGI-TIMING CONDITIONS"))
+            self.assertIn(f"===== {h} =====", section)
+        self.assertLess(section.index("REVENUE CONDITIONS"), section.index("AGI-TIMING CONDITIONS"))
         # Each section: LEAP's words, then the model's own forecast, then the levels.
-        self.assertIn("in billions of 2026 USD) at the end of the following calendar years?", cond)
-        self.assertIn("Your forecast -- Forecast the combined annualized revenue run-rate", cond)
-        self.assertIn("What is the probability that, before 2100, more than 50% of LEAP panelists", cond)
-        self.assertIn("no more than 5x as costly as equivalent human labor", cond)
+        self.assertIn("in billions of 2026 USD) at the end of the following calendar years?", section)
+        self.assertIn("Your forecast -- Forecast the combined annualized revenue run-rate", section)
+        self.assertIn("What is the probability that, before 2100, more than 50% of LEAP panelists", section)
+        self.assertIn("no more than 5x as costly as equivalent human labor", section)
         # The capability section renders the tracked set's own ECI definitions
         # and frontier history (as elicited), whichever snapshot they came from.
         eci_group = next(g for g in self.dash["groups"] if g["key"] == "eci")
-        self.assertIn(eci_group["definitions"], cond)
-        self.assertRegex(cond, r"2026-06-09 +16\d\.\d  Claude Fable 5 \(")
-        self.assertIn("Frontier ECI on March 4, 2027 ≈ 173.", cond)
-        self.assertIn("Assume that on March 4, 2027 the frontier ECI is approximately 196", cond)
+        self.assertIn(eci_group["definitions"], section)
+        self.assertRegex(section, r"2026-06-09 +16\d\.\d  Claude Fable 5 \(")
+        self.assertIn("Frontier ECI on March 4, 2027 ≈ 173.", section)
+        self.assertIn("Assume that on March 4, 2027 the frontier ECI is approximately 196", section)
         resolved = self.ru.resolve_set(self.dash, date(2026, 9, 4))
         for c in resolved["conditions"]:
-            self.assertIn(f"--- {c['id']} ---", cond)
-            self.assertIn(c["assume"], cond)
+            self.assertIn(f"--- {c['id']} ---", section)
+            self.assertIn(c["assume"], section)
         self.assertIn("with your revenue_forecast (3 numbers), agi_forecast (6 numbers) and "
                       "eci_forecast (5 numbers) and a 3-6 sentence rationale", p)
         self.assertIn("Deliver the probabilities with submit_cells", p)
         self.assertIn("only pages you read", p)
         # No export residue, nothing about where a level came from.
         for w in ("**", "_would not _", "superforecaster", "one step", "pace", "metr_graph", "LEAP median"):
-            self.assertNotIn(w, cond, w)
+            self.assertNotIn(w, section, w)
         lit = " ".join([self.dash["conditioning"]["instruction"], self.dash["conditioning"]["unconditional_forecast"]]
                        + [g["instruction"] + g["assumption"] + g["horizon"] for g in self.dash["groups"]]
                        + [e["text"] for e in self.dash["elicits"]]
@@ -1101,14 +1101,14 @@ class TestAxesSets(unittest.TestCase):
         p, n, cells = self.ru.build_prompt_joint(groups, by_group, hz, spec, self.paper["conditions"],
                                                  self.paper, date(2026, 9, 4))
         self.assertEqual((n, cells), (QUESTIONS, 3 * QUESTIONS))
-        cond = p[p.index("===== CONDITIONS ====="):]
+        section = p[p.index("===== CONDITIONS ====="):]
         for h in ("GROWTH CONDITIONS", "LABOR-FORCE CONDITIONS", "TASK-HORIZON CONDITIONS"):
-            self.assertIn(f"===== {h} =====", cond)
-        self.assertIn("(real GDP in 2030 / real GDP in 2025)", cond)
-        self.assertIn("BLS series LNS11300000", cond)
-        self.assertIn("longest 80% time horizon", cond)
-        self.assertIn("approximately -0.5% (within about 0.2 percentage points of it)", cond)
-        self.assertIn("approximately 8.6 hours", cond)
+            self.assertIn(f"===== {h} =====", section)
+        self.assertIn("(real GDP in 2030 / real GDP in 2025)", section)
+        self.assertIn("BLS series LNS11300000", section)
+        self.assertIn("longest 80% time horizon", section)
+        self.assertIn("approximately -0.5% (within about 0.2 percentage points of it)", section)
+        self.assertIn("approximately 8.6 hours", section)
         self.assertIn("with your gdp_forecast (3 numbers), lfpr_forecast (3 numbers) and "
                       "metr_forecast (3 numbers) and a 3-6 sentence rationale", p)
 
@@ -1141,7 +1141,7 @@ class TestAxesSets(unittest.TestCase):
         for spec_path in ("axes_conditions.json", "paper_axes_conditions.json"):
             self.assertNotIn(str(REPO / "data" / spec_path),
                              [os.path.abspath(p) for p in self.ru.PUBLISHED_SETS])
-        # The combined set is untouched by them: still thirteen conditions and
+        # The combined set is untouched by them: still thirteen scenarios and
         # one set-level elicit, its LEAP items byte-identical (TestCombinedSet).
         comb = self.ru.load_policies(REPO / "data" / "combined_conditions.json")
         self.assertEqual(len(comb["conditions"]), 13)

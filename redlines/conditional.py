@@ -1,7 +1,7 @@
 """Conditional forecasts: what a LEAP policy does to each question, per model.
 
 Reads results/conditional_runs.jsonl -- the output of
-`code/run_unified.py --condition ... --unconditional N` -- and turns it into
+`code/run_unified.py --scenario ... --unconditional N` -- and turns it into
 the one number the conditional panel plots: how far each model's forecast
 moves under a policy, measured against ITS OWN same-session unconditional
 forecast.
@@ -92,7 +92,7 @@ PROTOCOL_LINEAGE = {
     # (redlines.instrument.CURRENT_INSTRUMENT airo-incidents-prospective-v2;
     # docs/severity-legs-2026-10-19.md): 41 -> 73 questions, 246 -> 438 cells.
     # Asked by Ezra Karger (2026-10-19) so the severity chart can be split.
-    # The prompt variants, the sixth call, the conditions and the loop are v10's.
+    # The prompt variants, the sixth call, the scenarios and the loop are v10's.
     "unified-joint-combined-v11": ("unified-joint-combined-v10", "unified-joint-combined-v9",
                                    "unified-joint-combined-v8", "unified-joint-combined-v7",
                                    "unified-joint-combined-v6", "unified-joint-combined-v5",
@@ -100,7 +100,7 @@ PROTOCOL_LINEAGE = {
                                    "unified-joint-combined-v2", "unified-joint-combined-v1"),
     # 2026-10-19, v10: the INSTRUMENT changes. The minimal prompt -- no system
     # prompt, no research advice, no research floor or coverage rule, no
-    # debrief; the questions, conditions and delivery mechanics are v9's --
+    # debrief; the questions, scenarios and delivery mechanics are v9's --
     # asked under five prompt variants (Jason's), one call per model per
     # variant, the published number per model the mean of its five
     # (redlines.runlog.pool). The evidence: the prompt-variant experiments of
@@ -116,7 +116,7 @@ PROTOCOL_LINEAGE = {
                                    "unified-joint-combined-v3", "unified-joint-combined-v2",
                                    "unified-joint-combined-v1"),
     # 2026-10-16, v9: the LOOP changes, nothing else. The instrument -- prompt,
-    # questions, conditions, tools and their schemas, the research floor, the
+    # questions, scenarios, tools and their schemas, the research floor, the
     # coverage rule, the turn limit, the debrief -- is v8's; the calls go
     # through FRI's agent-box (pi, redlines/pi_loop.py) instead of
     # redlines.llm's litellm loop, as FRI's ForecastBench runs do. The full
@@ -168,7 +168,7 @@ PROTOCOL_LINEAGE = {
     # cited-but-unread flag. The axes sets (code/make_axis_conditions.py)
     # were built the same day and bumped with it.
     # 2026-09-03, v4: the model's own p10 and p90 join the capability
-    # conditions (five rows, not three); the self-elicited sets bumped with it.
+    # scenarios (five rows, not three); the self-elicited sets bumped with it.
     "unified-joint-combined-v4": ("unified-joint-combined-v3", "unified-joint-combined-v2",
                                   "unified-joint-combined-v1"),
     "unified-joint-combined-v3": ("unified-joint-combined-v2", "unified-joint-combined-v1"),
@@ -214,8 +214,8 @@ def newest_protocol(rows, line):
 
 def load_conditional(path=CONDITIONAL_LOG, experiment=None, protocol=None, pooled_only=True):
     """Rows of one experiment and/or one protocol. Two protocols write here --
-    separate calls (unified-batch-v2, one condition per call) and the joint
-    instrument (unified-joint-v1, every condition in one call) -- and their
+    separate calls (unified-batch-v2, one scenario per call) and the joint
+    instrument (unified-joint-v1, every scenario in one call) -- and their
     unconditional arms are different elicitations, so a summary is always of
     one protocol; pass protocol=None only to list what the log holds.
     `pooled_only` drops the rows that are not in the published number (the
@@ -247,7 +247,7 @@ def load_conditional(path=CONDITIONAL_LOG, experiment=None, protocol=None, poole
 def group_view(policies, group):
     """A grouped set (data/combined_conditions.json) seen as ONE of its groups.
 
-    A plain set dict carrying that group's conditions, instruction,
+    A plain set dict carrying that group's scenarios, instruction,
     definitions, horizon and source, so summarize() and the two tabs read it
     exactly as they read the single-purpose set it was composed from -- the
     policy group IS the LEAP set's text, byte for byte. `conditioning` keeps
@@ -272,7 +272,7 @@ def group_view(policies, group):
 
 def group_rows(rows, group):
     """The rows one group's view reads: every unconditional row (the same
-    call's baseline) and the rows of that group's conditions."""
+    call's baseline) and the rows of that group's scenarios."""
     return [r for r in rows if r.get("condition") is None
             or (r["condition"] or {}).get("group") == group]
 
@@ -323,10 +323,10 @@ def _cells(rows):
                                    "grounded": {cid: bool}}}
 
     Values are kept PER CALL on both sides. Under the single instrument the
-    same call answers the unconditional and every condition, so a condition's
+    same call answers the unconditional and every scenario, so a scenario's
     ratio is paired within the call (the between-call wander cancels); the
     separate-call pilot has no shared calls and falls back to an unpaired
-    comparison. `grounded` is carried per condition because a call that ran
+    comparison. `grounded` is carried per scenario because a call that ran
     with no search evidence answers from memory; the page marks them.
     """
     cells = defaultdict(lambda: {"uncond": {}, "cond": defaultdict(dict), "grounded": {}})
@@ -501,7 +501,7 @@ def _spread(values):
 
 
 def outside_noise(cond_values, uncond_values):
-    """Does a condition's answer clear the model's own re-elicitation noise?
+    """Does a scenario's answer clear the model's own re-elicitation noise?
 
     The test is range separation: every conditional value lies beyond every
     unconditional one, on one side. With one conditional call against three
@@ -510,7 +510,7 @@ def outside_noise(cond_values, uncond_values):
     floor on evidence, not significance; with three against three the chance
     that two draws from the same distribution separate is 2/C(6,3) = 10%.
     -> True / False, or None when there is no unconditional RANGE to be
-    outside of (fewer than two repeats) or nothing under the condition.
+    outside of (fewer than two repeats) or nothing under the scenario.
     """
     if not cond_values or len(uncond_values) < 2:
         return None
@@ -644,7 +644,7 @@ def _loss_models(cells, rungs):
 
 
 def _effect_entry(uncond_by_call, cond_by_call, base, p, grounded):
-    """One model under one condition: level, ratio, CI, verdict."""
+    """One model under one scenario: level, ratio, CI, verdict."""
     shared = [k for k in cond_by_call if k in uncond_by_call]
     if shared:
         eff = effect_paired([(uncond_by_call[k], cond_by_call[k]) for k in shared])
@@ -671,7 +671,7 @@ def summarize(rows, policies=None, horizons=DEFAULT_HORIZONS, questions=None,
     """-> {"questions": {qid: {horizon: {...}}}, "conditions": [...], "meta": {...}}
 
     Per (question, horizon): each model's baseline (mean of its unconditional
-    arms), its per-condition forecast and deltas, and the ensemble medians of
+    arms), its per-scenario forecast and deltas, and the ensemble medians of
     the per-model deltas. Models with no baseline in the session are skipped
     for that cell, not silently given someone else's.
 
@@ -874,7 +874,7 @@ def fmt_loss(v):
 
 
 def table(summary, qid, horizon, measure="delta_pp"):
-    """A text table: conditions down, models across, ensemble last."""
+    """A text table: scenarios down, models across, ensemble last."""
     entry = summary["questions"].get(qid, {}).get(horizon)
     if not entry:
         return f"(no rows for {qid} @ {horizon})"
