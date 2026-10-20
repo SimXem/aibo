@@ -27,6 +27,7 @@ from datetime import date
 from pathlib import Path
 
 from ..config import REPO_ROOT
+from ..experiments import PUBLISHED, baseline, load as load_experiment
 from ..registry import panel_provenance
 from ..runlog import current_rows, load_runlog
 from ..instrument import instrument_rows
@@ -59,7 +60,7 @@ def build(today=None):
                    key=lambda r: r["elicited_at"], default=None) if today is None else None
     today = today or (date.fromisoformat(recorded["run_date"]) if recorded else latest_run_date())
     policies = ru.load_policies(ru.COMBINED)
-    scenarios = ru.expand_scenarios(["all"], policies)
+    scenarios = list(policies["conditions"])
     groups, by_group, horizons, _skipped, spec = ru.load_batch(ru.LADDER, ru.CROSS, ru.UNBATCHED)
     # The set AS OF that day (redlines.questions.questions_asked_on): a question
     # added since the latest run (the extinction pair, 2026-09-15) is not in
@@ -69,9 +70,11 @@ def build(today=None):
     by_group = {k: [q for q in qs if q["id"] in asked] for k, qs in by_group.items()}
     horizons = ru.set_horizons(policies, horizons)
     prompt, n, cells = ru.build_prompt_joint(groups, by_group, horizons, spec, scenarios, policies, today)
-    minimal = ru.set_instrument(policies) == "minimal"
-    if minimal:
-        prompt = ru.minimal_joint_prompt(prompt)
+    # The prompt the series is asked with no added instruction: the published
+    # experiment's baseline condition (redlines.experiments).
+    base = baseline(load_experiment(PUBLISHED))
+    minimal = base["instrument"] == "minimal"
+    prompt = ru.condition_prompt(prompt, base)
     if recorded:
         prompt = recorded["prompt"]
     prov = panel_provenance()

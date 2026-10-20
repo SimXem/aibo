@@ -39,8 +39,8 @@ def axis_data(slug, keys):
         raise ValueError('The launch figures require the complete four-model canonical panel.')
     latest = {}
     for r in sorted(rows, key=lambda r: r['elicited_at']):
-        if r['label'] in labels and r.get('condition'):
-            latest[(r['label'], r['condition']['id'])] = r
+        if r['label'] in labels and r.get('scenario'):
+            latest[(r['label'], r['scenario']['id'])] = r
     axes = []
     for key in keys:
         scenarios = [c for c in spec['conditions'] if c['group'] == key]

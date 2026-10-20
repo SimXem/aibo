@@ -1,0 +1,12 @@
+# The dashboard's axes panels: the questions at 2030/2050/2100 only,
+# conditional on fixed levels of an x-axis quantity (data/axes_conditions.json,
+# code/make_axis_conditions.py; the FRI economist's spec of 2026-09-02).
+# Off the schedule since 2026-09-14: re-elicited by hand, the panel drawing the
+# newest complete axes date. Its rows go to results/conditional_runs_axes.jsonl
+# and results/axes_runs/, never into the headline series.
+
+scenarios = "data/axes_conditions.json"
+publish = true
+pooled = ["none"]
+
+[conditions.none]

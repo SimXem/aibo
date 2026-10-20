@@ -41,7 +41,7 @@ def _rows(day="2026-09-04", experiment=None):
                 "protocol": SPEC["protocol"], "condition_set": SPEC["slug"],
                 "call_id": f"{day}T1200Z:joint#1:{label}", "attempts": 1, "batch_size": 35,
                 "cause": None, "group": "crosscutting", "asked_horizons": ["2030", "2050", "2100"],
-                "condition": None if c is None else {"id": c["id"], "leap_id": None, "label": c["label"],
+                "scenario": None if c is None else {"id": c["id"], "leap_id": None, "label": c["label"],
                                                      "source": "x", "sha256": "0", "set": SPEC["slug"],
                                                      "group": c["group"], "value": c["value"]},
                 "elicited": elicited, "experiment": experiment, "arm": "joint#1",

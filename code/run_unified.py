@@ -86,7 +86,6 @@ import re
 import subprocess
 import sys
 import threading
-import traceback
 from datetime import date, datetime, timezone
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -94,8 +93,10 @@ sys.path.insert(0, ROOT)
 
 from redlines.llm import call_tools, load_keys, reasoning_for, research_coverage  # noqa: E402
 from redlines.logs import run_file  # noqa: E402
+from redlines import experiments  # noqa: E402
+from redlines.experiments import DEFAULT_VARIANT, VARIANTS, check_patterns  # noqa: E402
 from redlines.tools import FORECAST_TOOLS, BLOCK_ENV     # noqa: E402
-from redlines.registry import DEFAULT_MODEL_SET, MODEL_SETS, panel_provenance  # noqa: E402
+from redlines.registry import MODEL_SETS, panel_provenance  # noqa: E402
 from redlines.instrument import counting_windows  # noqa: E402
 from redlines.config import UNBATCHED                      # noqa: E402
 from redlines.questions import (horizon_label, horizon_sort_key,  # noqa: E402
@@ -115,15 +116,9 @@ CONDITIONAL_LOG = os.path.join(ROOT, "results", "conditional_runs.jsonl")
 # unconditional slice is the series every panel reads, results/runs/, and the
 # whole instrument goes to its own log, which both tabs read.
 COMBINED = os.path.join(ROOT, "data", "combined_conditions.json")
-# Sets whose unconditional slice IS the published series. Anything else is an
-# experiment and is kept out of results/runs/ by main_joint.
+# Sets whose unconditional slice IS the published series. Rows of any other
+# set are kept out of results/runs/ by run().
 PUBLISHED_SETS = (COMBINED, POLICIES)
-
-# Bumped v1 -> v2 on 2026-08-18, when the constraint block left PROMPT. The tag
-# is the only thing that separates a forecast the prompt told how to cohere from
-# one it did not, so the two must never share a name: every coherence rate we
-# publish depends on knowing which arm a row came from.
-PROTOCOL = "unified-batch-v2"
 
 # How many model turns a call may take before the loop forces submit_forecast
 # (redlines.llm.call_tools max_iters). A turn is one model reply; it may carry
@@ -172,10 +167,10 @@ questions — beware both dismissing tail risk as zero and inflating it for
 vividness. When done, call submit_forecast."""
 
 PROMPT = """Today is {today}.
-{scenario}
+
 Below are {n} forecasting questions, grouped by cause of catastrophe. Forecast
 all of them together, in one pass.
-{constraints}
+
 {blocks}
 Horizons: {horizons}. Each question names the ones it is asked over — answer
 those and no others.
@@ -190,36 +185,7 @@ rationale for its numbers naming the mechanism at that severity and the anchor
 you used, the sources that mattered most to it, and the assumption you are least
 sure of -- research with those questions in mind."""
 
-# The CONDITIONAL ARM (--scenario). Everything else in the call is identical
-# to the unconditional run -- same models, tools, questions, criteria, horizons,
-# token budget -- and the {scenario} slot above renders empty when no scenario
-# is given, so the unconditional prompt is byte-for-byte what it was (checked
-# by tests/test_conditional.py). The instruction sentence is LEAP Wave 12's own
-# conditioning text, verbatim from data/leap_policies.json; the policy
-# description is what a LEAP panelist sees on the survey's Policies tab. We add
-# only the framing lines, and they say nothing about how the questions relate
-# to each other or to the policy -- the direction of the effect is the
-# measurement.
-SCENARIO_BLOCK = """
-===== CONDITION: {label} =====
-
-Forecast every question below CONDITIONAL on the policy scenario in this block.
-
-{instruction}
-
-Condition: {assume}
-
-{description}
-
-{definitions}
-Horizon: {horizon}
-
-Every probability you submit is a forecast under this condition, not an
-unconditional one.
-=====
-"""
-
-# THE SINGLE INSTRUMENT (--joint) -- the published protocol from 2026-08-27.
+# THE SINGLE INSTRUMENT -- the published protocol from 2026-08-27.
 # One call per model that IS the survey: every question x horizon cell,
 # answered unconditionally and under each policy scenario, in a single
 # submission -- the way a LEAP panelist sees one table with Unconditional and
@@ -238,8 +204,9 @@ unconditional one.
 # policy scenarios is a different elicitation from the plain batch that ran
 # weekly until 2026-08-27 (same day, an hour apart, it came out ~2x lower on
 # the headline cell), so the series marks the switch rather than hiding it.
-# The plain batch (no --joint) is kept for ablations and prints a deprecation
-# note; it is no longer what the cron runs.
+# The plain batch, and its separate-call scenario arm, were retired on
+# 2026-10-21: nothing had run them since 2026-08-27. PROMPT and build_prompt
+# remain as the source of the question blocks every joint prompt quotes.
 # v1 -> v2 on 2026-08-28, when the three cross-cutting questions moved onto the
 # ladder's six-horizon grid (201 -> 210 cells). ADDITIVE, and checked: the 32
 # ladder question blocks and the whole LEAP scenarios block are byte-identical
@@ -392,84 +359,11 @@ rationale for its numbers naming the mechanism at that severity and the anchor
 you used, the sources that mattered most to it, and the assumption you are least
 sure of -- research with those questions in mind."""
 
-# PROMPT VARIANTS (Jason's five, 2026-10-14). Each is the same instrument with
-# one added instruction, verbatim. `none` adds nothing. A set may declare the
-# variants it is asked under ("variants"; combined-v10: all five): one call
-# per model per variant, rows tagged `variant`, pooled per model and date by
-# redlines.runlog. --variant asks others, as an experiment.
-VARIANTS = {
-    "none": None,
-    "independent": (
-        "Try to make your own forecasts. Do not take into account external surveys "
-        "assessing extinction or catastrophic risk, or other probabilities given by "
-        "prominent figures. The goal is to reach your own independent conclusion."),
-    "recent": (
-        "If you search external information, focus on information that arrived within "
-        "the past year, and weight more heavily sources that are more up to date about "
-        "recent developments."),
-    "critical": (
-        "Evaluate existing information critically. If you take into account forecasts by "
-        "specific people or surveyed groups, consider their recent and historical "
-        "forecasting accuracy, as well as the information available to the forecasters "
-        "when they made their forecasts."),
-    "two-step": (
-        "Proceed in two steps. First, make the best predictions you can about model "
-        "capability progress over the relevant time frame, via human generated "
-        "improvement or recursive self-improvement. Consider the distribution, not only "
-        "the modal outcome. Then, given possible model capabilities, evaluate the risk "
-        "posed and put these pieces together."),
-    # THE SIXTH (2026-10-19 evening): the AI-forecast ban, the `both` arm of the
-    # anchor-guard experiment of 2026-10-16 (results/experiments/anchor-guard-
-    # 2026-10-16, where it was a system-prompt addendum; the minimal instrument
-    # has no system prompt, so it goes where a variant's text goes). The set
-    # pairs it with agent-box's URL guard against AIRO's own pages
-    # (`unpooled_variants[].url_block_patterns`, set_unpooled), passed to that
-    # call alone. Asked every run beside the five, drawn on the Timeline, never
-    # in the published number (redlines.runlog.pooled_rows).
-    "ai-banned": (
-        "Forecasts produced by AI systems, including any automated forecasting "
-        "dashboard or model ensemble, carry no information beyond their inputs. Do not "
-        "consult them or use them as evidence."),
-}
-DEFAULT_VARIANT = "none"
 VARIANT_BLOCK = """===== APPROACH =====
 
 {text}
 
 """
-
-
-def set_variants(policies):
-    """The prompt variants a set is asked under (combined-v10: all five) --
-    the POOLED ones, whose mean is a model's published number."""
-    return list(policies.get("variants") or [DEFAULT_VARIANT])
-
-
-def set_unpooled(policies):
-    """{variant: spec} for the variants a set asks BESIDE its pooled ones
-    (`unpooled_variants`; combined-v10 since 2026-10-19 evening: "ai-banned").
-    A spec may name `url_block_patterns`, agent-box's URL guard for that
-    call alone (redlines.tools.BLOCK_ENV; pi only). Such a call's rows carry
-    the variant, the guard and `pooled: false`, and no view pools them."""
-    return {v["variant"]: v for v in policies.get("unpooled_variants") or []}
-
-
-def set_asked_variants(policies):
-    """Every variant a run of the set asks: the pooled ones, then the unpooled."""
-    return set_variants(policies) + [v for v in set_unpooled(policies) if v not in set_variants(policies)]
-
-
-def check_patterns(raw):
-    """A bad guard pattern fails before the first paid call, not inside it
-    (the split is redlines.tools.blocked_patterns's: newlines or commas)."""
-    for p in re.split(r"[\n,]", raw or ""):
-        if p.strip():
-            re.compile(p.strip(), re.I)
-
-
-def set_instrument(policies):
-    """"minimal" (combined-v10) or "standard": the guidance the prompt carries."""
-    return policies.get("instrument", "standard")
 
 
 def apply_variant(prompt, variant):
@@ -523,6 +417,13 @@ def minimal_joint_prompt(prompt, variant=DEFAULT_VARIANT):
     return out
 
 
+def condition_prompt(prompt, condition):
+    """The joint prompt as a condition asks it: its instrument, its variant."""
+    if condition["instrument"] == "minimal":
+        return minimal_joint_prompt(prompt, condition["variant"])
+    return apply_variant(prompt, condition["variant"])
+
+
 def minimal_tools(research):
     """Mechanical descriptions; web_search loses `cause`, which served only the coverage rule."""
     research = copy.deepcopy(research)
@@ -567,18 +468,6 @@ def set_slug(policies):
 
 def set_protocol(policies):
     return policies.get("protocol", PROTOCOL_JOINT)
-
-
-def set_harness(policies):
-    """The loop a set's protocol is elicited through (HARNESSES); part of the
-    protocol, so a set changes it only with a new tag."""
-    return policies.get("harness", "litellm")
-
-
-def row_protocol(policies, harness):
-    """The protocol a call's rows carry: the set's, or the set's +<harness>
-    for a run through a loop the set does not name (a shadow)."""
-    return set_protocol(policies) + ("" if harness == set_harness(policies) else f"+{harness}")
 
 
 def _definitions(policies):
@@ -692,24 +581,6 @@ def resolve_set(policies, today):
     return out
 
 
-def expand_scenarios(wanted, policies):
-    """--scenario ids (or 'all') -> scenario dicts, in the file's order."""
-    by_id = {c["id"]: c for c in policies["conditions"]}
-    if "all" in wanted:
-        return list(policies["conditions"])
-    unknown = [w for w in wanted if w not in by_id]
-    if unknown:
-        sys.exit(f"unknown --scenario {unknown}; choose from "
-                 f"{', '.join(by_id)} or 'all'")
-    return [by_id[w] for w in wanted]
-
-
-def scenario_block(scenario, policies):
-    c = policies["conditioning"]
-    return SCENARIO_BLOCK.format(label=scenario["label"], instruction=c["instruction"],
-                                  assume=scenario["assume"], description=scenario["description"],
-                                  definitions=_definitions(policies), horizon=c["horizon"])
-
 def _scenario_items(scenarios):
     """The per-scenario items, one rendering for every set."""
     return "".join((SCENARIO_ITEM if x.get("description") else SCENARIO_ITEM_BARE)
@@ -780,40 +651,6 @@ def scenarios_block(scenarios, policies):
                                    policy_blocks=items)
 
 
-def constraint_block(spec, groups, by_group):
-    """The unified-batch-v1 constraint text, DERIVED from the spec.
-
-    This is the ablation arm only (--state-constraints). v2, the default, says
-    nothing about how the questions relate, which is what makes the coherence
-    rate a measurement instead of a compliance check.
-
-    It is derived rather than restored. The literal v1 block named "All causes"
-    and questions about "one type of actor, one delivery route" -- none of which
-    exist in the Auto-ARC set. Pasting it back would test a prompt that
-    describes a different question set, and the comparison would measure that
-    confusion instead of the constraint. Every relation below is read from
-    spec["relations"], the same structure redlines.coherence audits, so the two
-    arms and the scorer can never drift apart.
-    """
-    rel = spec["relations"]
-    labels = {c["key"]: c["label"] for c in spec["causes"]}
-    container = labels[rel["cross"]["container"]]
-    contained = ", ".join(labels[k] for k in rel["cross"]["contained"])
-    lines = [
-        "Your numbers must respect the logical relations between these "
-        "questions:",
-        "  - Probabilities are non-decreasing across horizons.",
-        "  - Within a cause, a higher severity threshold is a strictly harder "
-        "event, so probability must not increase as the threshold rises.",
-        f'  - "{container}" contains {contained}, so at any threshold and '
-        "horizon none of those may exceed it.",
-    ]
-    for b in rel["subset"]:
-        lines.append(f"  - {b['why'].capitalize()}, so {b['narrower']} may not "
-                     f"exceed {b['broader']}.")
-    return "\n".join(lines) + "\n"
-
-
 def load_batch(ladder_path, cross_path, exclude):
     """-> (groups, {group_key: [question, ...]}, horizons, skipped)
 
@@ -854,36 +691,7 @@ def load_batch(ladder_path, cross_path, exclude):
     return groups, by_group, horizons, skipped, spec
 
 
-def submit_tool(qids, horizons):
-    return {
-        "name": "submit_forecast",
-        "description": "Submit your final calibrated forecast for every question.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "forecasts": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "question_id": {"type": "string", "enum": qids},
-                            "horizon": {"type": "string", "enum": horizons},
-                            "probability": {"type": "number", "minimum": 0,
-                                            "maximum": 1},
-                        },
-                        "required": ["question_id", "horizon", "probability"],
-                    },
-                },
-                "rationale": {"type": "string"},
-                "key_sources": {"type": "array", "items": {"type": "string"}},
-            },
-            "required": ["forecasts", "rationale"],
-        },
-    }
-
-
-def build_prompt(groups, by_group, horizons, spec, today=None,
-                 state_constraints=False, scenario=None, policies=None):
+def build_prompt(groups, by_group, horizons, spec, today=None):
     """The whole set in one prompt, with each question's own resolution criteria.
 
     The criteria are new here. Bridget's definitions carry the measurement
@@ -953,42 +761,8 @@ def build_prompt(groups, by_group, horizons, spec, today=None,
     # to guess the window, and two runs a month apart would be answering
     # different questions under the same label without either saying so.
     hz = ", ".join(f"{h} ({horizon_label(h, spec, today)})" for h in horizons)
-    constraints = (constraint_block(spec, groups, by_group)
-                   if state_constraints else "")
-    block = scenario_block(scenario, policies) if scenario else ""
     return PROMPT.format(today=today.isoformat(), n=n, blocks=blocks,
-                         horizons=hz, cells=cells, scenario=block,
-                         constraints=constraints), n, cells
-
-
-def clean_forecasts(raw, allowed, horizons):
-    """-> {question_id: [{horizon, probability}, ...]}, or None.
-
-    `allowed` is {question_id: {horizon, ...}} — PER QUESTION, not one global
-    set. A model that answers the cross-cutting questions over a rolling window
-    anyway has answered something we did not ask, and keeping it would put a
-    six-month catastrophe forecast on a panel that never requested one.
-
-    Same JSON-string defence as run_forecasts.py (Fable 5 has handed the array
-    back as a string). A partial grid is kept: every downstream audit tolerates
-    gaps, and a partial answer beats none.
-    """
-    if isinstance(raw, str):
-        try:
-            raw = json.loads(raw)
-        except json.JSONDecodeError:
-            return None
-    if not isinstance(raw, list):
-        return None
-    out = {}
-    for f in raw:
-        if not isinstance(f, dict):
-            continue
-        q, h, p = f.get("question_id"), f.get("horizon"), f.get("probability")
-        if q in allowed and h in allowed[q] and isinstance(p, (int, float)):
-            out.setdefault(q, {})[h] = p
-    return {q: [{"horizon": h, "probability": p} for h, p in sorted(v.items())]
-            for q, v in out.items()} or None
+                         horizons=hz, cells=cells), n, cells
 
 
 def _num_schema(lo, hi):
@@ -1318,8 +1092,9 @@ def _as_list(raw):
 def clean_forecasts_joint(raw, allowed, horizons, scenario_ids):
     """-> {scenario key: {question_id: [{horizon, probability}, ...]}}, or None.
 
-    Same defences as clean_forecasts; a cell whose probabilities object lacks
-    a scenario keeps the scenarios it has. Keys are UNCONDITIONAL_KEY and
+    A grid handed back as a JSON string is parsed (Fable 5 has done it); a
+    partial grid is kept, since every downstream audit tolerates gaps; a cell
+    whose probabilities object lacks a scenario keeps the scenarios it has. Keys are UNCONDITIONAL_KEY and
     the scenario ids.
     """
     if isinstance(raw, str):
@@ -1352,13 +1127,9 @@ def clean_forecasts_joint(raw, allowed, horizons, scenario_ids):
     return out or None
 
 
-# The loop a call runs through. Everything else in a call -- prompt, tools,
-# floor, coverage, turn limit, debrief, cleaning, rows -- is the same under
-# both; pi's rows carry protocol "<protocol>+pi" (redlines/pi_loop.py says why
-# and where the loops differ).
-HARNESSES = ("litellm", "pi")
-
-
+# The loop a call runs through (a condition's `harness`). Everything else in
+# a call -- prompt, tools, floor, coverage, turn limit, debrief, cleaning,
+# rows -- is the same under both (redlines/pi_loop.py says where they differ).
 def loop_for(harness):
     if harness == "pi":
         from redlines import pi_loop
@@ -1389,29 +1160,28 @@ def coverage_line(rows):
 
 
 def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, spec,
-                  scenarios, policies, experiment=None, arm=None, panel=None, today=None,
-                  harness="litellm", variant=DEFAULT_VARIANT, minimal=False):
-    """One call: the full instrument. -> rows, one per (question, scenario)."""
+                  scenarios, policies, condition, experiment, arm=None, panel=None, today=None):
+    """One call: the full instrument, as `condition` (redlines.experiments) asks
+    it. -> rows, one per (question, scenario)."""
     today = today or datetime.now(timezone.utc).date()
+    harness, variant = condition["harness"], condition["variant"]
+    minimal = condition["instrument"] == "minimal"
     policies = resolve_set(policies, today)
     scenarios = [c for c in policies["conditions"] if c["id"] in {x["id"] for x in scenarios}]
     prompt, n, want_cells = build_prompt_joint(groups, by_group, horizons, spec,
                                                scenarios, policies, today)
-    prompt = minimal_joint_prompt(prompt, variant) if minimal else apply_variant(prompt, variant)
-    # An unpooled variant's URL guard goes to THIS call's tool processes
-    # through the loop's `env` (redlines/pi_loop.py -> agent-box harness.run),
-    # never into os.environ, which every worker shares. A guard set in the
-    # process environment (an --experiment; main() gates it) reaches every
-    # call through agent-box and redlines.tools alike, and is stamped as #5
-    # stamped it. Either way a guarded row says so (`url_block_patterns`).
-    aside = set_unpooled(policies).get(variant)
-    guard = (aside or {}).get("url_block_patterns") or os.environ.get(BLOCK_ENV) or None
-    if aside and aside.get("url_block_patterns") and harness != "pi":
-        raise RuntimeError(f"variant {variant!r} carries a URL guard, which travels per call "
-                           "through pi only")
+    prompt = condition_prompt(prompt, condition)
+    # A condition's URL guard goes to THIS call's tool processes through the
+    # loop's `env` (redlines/pi_loop.py -> agent-box harness.run), never into
+    # os.environ, which every worker shares. A guard set in the process
+    # environment (an unpublished run; main() gates it) reaches every call
+    # through agent-box and redlines.tools alike. Either way a guarded row
+    # says so (`url_block_patterns`).
+    own_guard = condition["url_block_patterns"]
+    guard = own_guard or os.environ.get(BLOCK_ENV) or None
     extra = {**({"url_block_patterns": guard} if guard else {}),
              # Not in the published number: redlines.runlog.pooled_rows.
-             **({"pooled": False} if aside else {})}
+             **({"pooled": False} if not condition["pooled"] else {})}
     block = scenarios_block(scenarios, policies)
     sha = hashlib.sha256(block.encode()).hexdigest()
     scenario_ids = [c["id"] for c in scenarios]
@@ -1470,8 +1240,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
                 coverage=coverage, debrief=debrief,
                 **({"allowed_keys": [f"{q}|{h}" for q, hs in allowed.items() for h in sorted(hs)]}
                    if harness == "pi" else {}),
-                **({"env": {BLOCK_ENV: aside["url_block_patterns"]}}
-                   if aside and aside.get("url_block_patterns") else {}))
+                **({"env": {BLOCK_ENV: own_guard}} if own_guard else {}))
         except Exception as exc:
             # A provider error or a call that never submitted: worth the same
             # retry budget as a short grid, and just as visible in the log.
@@ -1517,7 +1286,8 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
     read = {(e.get("args") or {}).get("url") for e in evidence if e.get("tool") == "read_page"}
     unread = [u for u in (answer.get("key_sources") or []) if isinstance(u, str) and u not in read]
     stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    call_id = f"{run_id}:{set_slug(policies)}:{arm}:{label}" + (f":{variant}" if variant != DEFAULT_VARIANT else "")
+    call_id = (f"{run_id}:{set_slug(policies)}:{arm}:{label}"
+               + (f":{condition['id']}" if condition["id"] != DEFAULT_VARIANT else ""))
     rows, first = [], True
     for key in [UNCONDITIONAL_KEY] + scenario_ids:
         grid = (grids or {}).get(key) or {}
@@ -1548,17 +1318,14 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
                     "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
                     "prompt": prompt if first else None,
                     "system_prompt": (MINIMAL_SYSTEM if minimal else SYSTEM) if first else None,
-                    "protocol": row_protocol(policies, harness)
-                                + ("" if variant in set_asked_variants(policies) else f"+{variant}")
-                                + ("" if minimal == (set_instrument(policies) == "minimal") else
-                                   ("+minimal" if minimal else "+standard")),
-                    "condition_set": set_slug(policies),
+                    "protocol": set_protocol(policies),
+                    "scenario_set": set_slug(policies),
                     "call_id": call_id, "attempts": attempts,
                     "batch_size": len(qids),
                     "cause": q.get("cause"), "group": g["key"],
                     "asked_horizons": q.get("horizons"),
                     "raw_forecasts": (None if grids else answer.get("forecasts")) if first else None,
-                    "condition": stamps[key],
+                    "scenario": stamps[key],
                     # The elicited quantity (a self-conditioned set), on every
                     # row of the call; None for other sets.
                     "elicited": ({**elicited,
@@ -1570,123 +1337,23 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
                                                       elicits[0].get("target_date")),
                                   "targets": {e["key"]: e.get("target_date") for e in elicits}}
                                  if elicits else None),
-                    "experiment": experiment, "arm": arm,
+                    # The experiment and the condition this call ran under
+                    # (redlines.experiments), and a hash of the condition's
+                    # settings: two rows with the same id and different
+                    # settings are different conditions.
+                    "experiment": experiment, "condition": condition["id"],
+                    "condition_sha256": condition["sha256"], "arm": arm,
                     # Which prompt variant asked (VARIANTS); "none" adds nothing.
                     "variant": variant,
                     # Which scenarios this call was asked, so a partial
                     # submission is visibly partial.
-                    "joint_conditions": [UNCONDITIONAL_KEY] + scenario_ids,
+                    "joint_scenarios": [UNCONDITIONAL_KEY] + scenario_ids,
                     # Which model set this call belongs to -- for the ECI
                     # panel, which snapshot chose it (redlines.registry).
                     "panel": panel,
                     **extra,
                 })
                 first = False
-    return rows
-
-
-def run_one(label, model_id, groups, by_group, horizons, run_id, retries, spec,
-            state_constraints=False, scenario=None, policies=None,
-            experiment=None, arm=None, panel=None, today=None):
-    today = today or datetime.now(timezone.utc).date()
-    prompt, n, want_cells = build_prompt(groups, by_group, horizons, spec, today,
-                                         state_constraints, scenario, policies)
-    # Provenance for a conditional row: which scenario, and a hash of the exact
-    # block the model saw, so a later edit to the policy text cannot be pooled
-    # with this run unnoticed.
-    scenario_stamp = None
-    if scenario:
-        block = scenario_block(scenario, policies)
-        scenario_stamp = {"id": scenario["id"], "leap_id": scenario["leap_id"],
-                      "label": scenario["label"],
-                      "source": policies["source"]["wave"],
-                      "sha256": hashlib.sha256(block.encode()).hexdigest()}
-    qids = [q["id"] for g in groups for q in by_group[g["key"]]]
-    allowed = {q["id"]: {h for h in horizons if h in q["horizons"]}
-               for g in groups for q in by_group[g["key"]]}
-    grid, answer, evidence, attempts = None, {}, [], 0
-    # Batching concentrates failure: one empty submission costs every question,
-    # not one. Gemini 3.1 Pro did exactly that in the ladder experiment (searched
-    # seven times, submitted nothing). Retry on an empty or badly partial grid.
-    usage = {}   # the whole call's tokens and price, retries included
-    debrief = debrief_state(groups, by_group)
-    while attempts <= retries:
-        attempts += 1
-        research, coverage = research_tools(groups)
-        debrief = debrief_state(groups, by_group)
-        answer, evidence = call_tools(
-            model_id, prompt, research, submit_tool(qids, horizons),
-            system=SYSTEM, max_iters=MAX_ROUNDS, max_tokens=32000,
-            min_evidence=MIN_RESEARCH, usage=usage, coverage=coverage, debrief=debrief)
-        grid = clean_forecasts(answer.get("forecasts"), allowed, horizons)
-        # CELLS, not questions. The guard used to read len(grid) >= 0.9 *
-        # len(qids), which counts a question as complete the moment ONE of its
-        # horizons comes back. A model that answered all 35 questions at a
-        # single horizon -- 35 of 201 cells -- scored 100% and was never
-        # re-asked. Six horizons per incident question make that a 6x gap.
-        got = sum(len(v) for v in (grid or {}).values())
-        if grid and got >= 0.9 * want_cells:
-            break
-        print(f"  retry {label:16} attempt {attempts}: {got}/{want_cells} cells "
-              f"({len(grid or {})}/{len(qids)} questions)")
-    # A search that RAN is not a search that WORKED. bool(evidence) was true
-    # whenever the model called web_search at all, including when every call
-    # came back {"results": [], "error": "web search unavailable (no
-    # TAVILY_API_KEY set)"} -- which is exactly what an expired ADC token
-    # produces. The 2026-08-18 smoke wrote grounded=true on 35 rows whose four
-    # searches all failed, and the dashboard publishes that field as "shared
-    # web search (Tavily)". Count hits, not attempts.
-    hits = sum(len((e.get("result") or {}).get("results") or [])
-               for e in evidence if e.get("tool") == "web_search")
-    stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    call_id = f"{run_id}:{arm}:{label}" if arm else f"{run_id}:{label}"
-    rows = []
-    first = next(q for g in groups for q in by_group[g["key"]])
-    for g in groups:
-        for q in by_group[g["key"]]:
-            # A rolling horizon is only findable later if the run stamps the
-            # date it resolves on (Nick, 2026-08-18). Two runs a month apart
-            # both say "6mo" and mean different weeks; without this the series
-            # cannot be scored, which is the only reason these questions are
-            # worth asking.
-            rows.append({
-                "run_id": run_id,
-                "elicited_at": stamp,
-                "question_id": q["id"],
-                "model": model_id,
-                "label": label,
-                "forecasts": (grid or {}).get(q["id"]),
-                "rationale": answer.get("rationale"),
-                "key_sources": answer.get("key_sources"),
-                "grounded": hits > 0,
-                "search_hits": hits,
-                # Evidence and the raw payload belong to the CALL. Repeating them
-                # on all 40 rows would multiply the file by 40 and make any
-                # per-call count wrong.
-                "evidence": evidence if q is first else [],
-                "usage": usage if q is first else None,
-                **debrief_fields(debrief, q is first),
-                "resolves_on": {h: resolves_on(h, today, spec) for h in horizons},
-                "run_date": today.isoformat(),
-                "instrument_version": spec.get("instrument_version"),
-                "counting_window": counting_windows(q, horizons, today, spec),
-                "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
-                "prompt": prompt if q is first else None,
-                "system_prompt": SYSTEM if q is first else None,
-                "protocol": "unified-batch-v1" if state_constraints else PROTOCOL,
-                "call_id": call_id,
-                "attempts": attempts,
-                "batch_size": len(qids),
-                "cause": q.get("cause"),
-                "group": g["key"],
-                "asked_horizons": q.get("horizons"),
-                "raw_forecasts": None if grid else answer.get("forecasts"),
-                # Conditional-arm provenance. All None on the published series.
-                "condition": scenario_stamp,
-                "experiment": experiment,
-                "arm": arm,
-                "panel": panel,
-            })
     return rows
 
 
@@ -1710,7 +1377,7 @@ def tally_spend(spent, rows):
     return spent + (((rows[0].get("usage") if rows else None) or {}).get("cost_usd") or 0.0)
 
 
-def select_models(args):
+def select_models(model_set, args):
     """The models to call, and the provenance stamp their rows carry.
 
     The default set is THE PANEL (redlines.registry.panel): the k highest-ECI
@@ -1720,8 +1387,8 @@ def select_models(args):
     above the cut that the registry cannot run. Rows stamp {set, k, snapshot}
     so a panel change is legible in the series.
     """
-    models = MODEL_SETS[args.model_set]()
-    prov = panel_provenance(args.model_set)
+    models = MODEL_SETS[model_set]()
+    prov = panel_provenance(model_set)
     if prov.get("members"):
         print(f"    panel {prov['set']}: top {prov['k']} by ECI, snapshot {prov['snapshot']} "
               f"({prov['age_days']} days old): "
@@ -1742,288 +1409,102 @@ def select_models(args):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--smoke", action="store_true", help="one model only")
+    ap.add_argument("--experiment", default=experiments.PUBLISHED,
+                    help="the experiment to run: experiments/<name>.toml, or a path to one "
+                         "(default: airo, the published series; redlines/experiments.py)")
+    ap.add_argument("--condition", action="append", default=[],
+                    help="run only this condition of the experiment (repeatable; default: all)")
+    ap.add_argument("--smoke", action="store_true",
+                    help="one model only; rows go to results/experiments/")
     ap.add_argument("--models", help="comma-separated label filter")
-    ap.add_argument("--model-set", default=DEFAULT_MODEL_SET, choices=sorted(MODEL_SETS),
-                    help="which registry model set to run (default: eci_topk, THE PANEL "
-                         "since 2026-08-28 -- the four highest-ECI models the registry "
-                         "can run, re-ranked from the newest ECI snapshot under data/, "
-                         "which WARNs when older than a month; frontier5 = the "
-                         "hand-picked five the series ran on until then)")
     ap.add_argument("--retries", type=int, default=2,
                     help="re-ask when the grid comes back empty or <90%% complete")
     ap.add_argument("--out", default=None,
-                    help="plain batch: the log to append to (default the shared "
-                         "tracked log); --joint: the dated series file (default "
-                         "results/runs/<stamp>.jsonl)")
+                    help="the unconditional slice's file (default: results/runs/<stamp>.jsonl "
+                         "for the published series)")
+    ap.add_argument("--conditional-out", default=None,
+                    help="where the whole instrument (every scenario) is appended (default: "
+                         "the scenario set's own log, results/conditional_runs_<slug>.jsonl)")
     ap.add_argument("--workers", type=int, default=5)
     ap.add_argument("--allow-ungrounded", action="store_true",
                     help="run without Tavily (rows are marked grounded=false)")
-    ap.add_argument("--state-constraints", action="store_true",
-                    help="ABLATION ARM: put the coherence relations in the "
-                         "prompt and tag the rows unified-batch-v1. Never for "
-                         "the published series -- it contaminates the "
-                         "measurement. Write these to results/experiments/.")
-    ap.add_argument("--scenarios", default=COMBINED,
-                    help="the SCENARIO SET: a JSON file in data/leap_policies.json's "
-                         "shape. Default: data/combined_conditions.json, THE PUBLISHED "
-                         "SET since 2026-08-28 -- the LEAP policies AND the six-month "
-                         "capability scenarios in one instrument. "
-                         "data/leap_policies.json (policies only) is published too; "
-                         "data/eci_conditions.json is the fixed capability set; a set "
-                         "not in PUBLISHED_SETS never writes into results/runs/.")
-    ap.add_argument("--scenario", action="append", default=[],
-                    help="CONDITIONAL ARM: prepend one LEAP Wave 12 policy "
-                         "scenario from data/leap_policies.json (an id, or "
-                         "'all'; repeatable). One call per model per scenario. "
-                         "Never for the published series: needs --out.")
-    ap.add_argument("--unconditional", type=int, default=None,
-                    help="how many unconditional arms to run in the same "
-                         "session (default 1 without --scenario, 0 with it). "
-                         "Repeats give the re-elicitation noise floor that the "
-                         "conditional deltas are read against.")
-    ap.add_argument("--joint", action="store_true",
-                    help="THE PUBLISHED PROTOCOL (since 2026-08-27): one call per "
-                         "model answering every cell unconditionally AND under "
-                         "every scenario (--scenario, default all) in a single "
-                         "submission. Unconditional slice -> --out (default "
-                         "results/runs/<stamp>.jsonl); whole instrument -> "
-                         "--conditional-out.")
-    ap.add_argument("--repeats", type=int, default=1,
-                    help="with --joint: run the whole instrument this many "
-                         "times per model (default 1, the published protocol since "
-                         "2026-09-02; the cron passes 1; more than one repeat on a "
-                         "published set fails code/validate_launch_run.py's "
-                         "one-call-per-cell check)")
-    ap.add_argument("--conditional-out", default=None,
-                    help="with --joint: where the whole instrument (every "
-                         "scenario) is appended (default results/conditional_runs.jsonl "
-                         "for the published set, results/conditional_runs_<slug>.jsonl "
-                         "for another)")
-    ap.add_argument("--experiment",
-                    help="tag every row with this experiment name (needs --out)")
-    ap.add_argument("--variant", action="append", choices=sorted(VARIANTS),
-                    help="with --joint: ask under these prompt variants (repeatable) instead of the "
-                         "set's own (combined-v10: the five pooled ones and the unpooled "
-                         "ai-banned); others than the set's need --experiment")
-    ap.add_argument("--minimal", action=argparse.BooleanOptionalAction, default=None,
-                    help="with --joint: the minimal instrument (default: the set's; combined-v10 is "
-                         "minimal); a run against the set's choice needs --experiment")
     ap.add_argument("--dry-run", action="store_true",
-                    help="print each arm's prompt and exit; no model is called")
-    ap.add_argument("--harness", choices=HARNESSES,
-                    help="the loop: the scenario set's own (its `harness`; litellm when it names "
-                         "none) unless given. Another loop runs only as a --joint --experiment, "
-                         "its rows tagged <protocol>+<harness>")
+                    help="print each condition's prompt and exit; no model is called")
     args = ap.parse_args()
+    try:
+        exp = experiments.load(args.experiment)
+    except (OSError, ValueError) as e:
+        sys.exit(f"experiment {args.experiment!r}: {e}")
+    unknown = [c for c in args.condition if c not in exp["conditions"]]
+    if unknown:
+        sys.exit(f"unknown --condition {unknown}; {exp['name']} has {', '.join(exp['conditions'])}")
+    conditions = [exp["conditions"][c] for c in (args.condition or exp["conditions"])]
+    # One run writes one scenario set's rows to one place: conditions that ask
+    # different sets, or publish differently, run as separate invocations.
+    if len({c["scenarios"] for c in conditions}) > 1 or len({c["publish"] for c in conditions}) > 1:
+        sys.exit("refusing: these conditions ask different scenario sets or publish differently; "
+                 "run each group with its own --condition list")
+    publish = conditions[0]["publish"] and not args.smoke
     # A URL guard in the PROCESS environment reaches every call (agent-box
     # hands its environment to the tool processes; redlines.tools reads it
-    # in-process), so it is an experiment's, never the published run's: the
-    # published run's guard is per call, from the set (set_unpooled). A bad
+    # in-process), so it belongs to an unpublished run, never the series: a
+    # condition's own guard travels per call (url_block_patterns). A bad
     # pattern fails now rather than on the first paid tool call.
     if os.environ.get(BLOCK_ENV):
-        if not (args.joint and args.experiment) and not args.dry_run:
-            sys.exit(f"{BLOCK_ENV} is set: a URL-guarded run must be a --joint --experiment, "
-                     "so its rows never join the series and say so. The published set's own "
-                     "guard travels per call (unpooled_variants).")
+        if publish and not args.dry_run:
+            sys.exit(f"{BLOCK_ENV} is set: a URL-guarded run must not publish, so its rows never "
+                     "join the series and say so. A condition's own guard travels per call "
+                     "(url_block_patterns).")
         try:
             check_patterns(os.environ[BLOCK_ENV])
         except re.error as e:
             sys.exit(f"{BLOCK_ENV}: bad pattern: {e}")
-    if args.harness:
-        if not args.joint:
-            sys.exit("--harness is for --joint runs")
-        own = set_harness(load_policies(args.scenarios))
-        if args.harness != own and not args.experiment:
-            sys.exit(f"--harness {args.harness}: this set is elicited through {own}; another loop "
-                     "runs only as an --experiment, so its rows never join the series")
-
+    path = os.path.join(ROOT, conditions[0]["scenarios"])
     # The combined instrument asks models to forecast and condition on frontier
     # ECI. Refuse to run it against a stale frontier history or a scenario
     # set not generated from the newest Epoch snapshot
     # (code/check_eci_snapshot.py; code/cron_run.sh fetches and regenerates
     # before every run). A dry run calls no model and prints the prompt as it
     # stands, so it is not gated.
-    if args.joint and not args.dry_run and \
-            os.path.abspath(args.scenarios) == os.path.abspath(COMBINED):
+    if not args.dry_run and os.path.abspath(path) == os.path.abspath(COMBINED):
         subprocess.run([sys.executable, os.path.join(ROOT, "code", "check_eci_snapshot.py")],
                        check=True)
-
-    if args.joint:
-        return main_joint(args)
-    if args.out is None:
-        args.out = RUNLOG
-    print("NOTE: the plain unconditional batch is DEPRECATED as the published "
-          "protocol (2026-08-27); the cron runs --joint. This path is kept for "
-          "ablations and experiments.", file=sys.stderr)
-    policies = load_policies(args.scenarios) if args.scenario else None
-    scenarios = expand_scenarios(args.scenario, policies) if args.scenario else []
-    n_uncond = args.unconditional if args.unconditional is not None else (0 if scenarios else 1)
-    if n_uncond < 0 or (n_uncond == 0 and not scenarios):
-        sys.exit("nothing to run: --unconditional 0 and no --scenario")
-    # Arms. The plain weekly run is one unnamed unconditional arm, so its rows
-    # carry arm=None exactly as before; anything else is named.
-    if scenarios or args.unconditional is not None:
-        arms = [(f"unconditional#{i + 1}", None) for i in range(n_uncond)]
-        arms += [(c["id"], c) for c in scenarios]
-    else:
-        arms = [(None, None)]
-    if (scenarios or args.experiment) and os.path.abspath(args.out) == os.path.abspath(RUNLOG):
-        sys.exit("refusing: a conditional or experiment run would write into the "
-                 "published run log. Use --out results/conditional_runs.jsonl "
-                 "(or results/experiments/<name>.jsonl)")
-
-    if args.dry_run:
-        groups, by_group, horizons, skipped, spec = load_batch(LADDER, CROSS, UNBATCHED)
-        for arm, scenario in arms:
-            prompt, n, cells = build_prompt(groups, by_group, horizons, spec,
-                                            date.today(), args.state_constraints,
-                                            scenario, policies)
-            print(f"##### ARM {arm or 'unconditional'}: {n} questions, {cells} cells, "
-                  f"{len(prompt)} chars #####")
-            print(prompt)
-        return
-
-    load_keys()
-    # Refuse rather than degrade. Without Tavily every model still answers --
-    # from parametric memory, with no 2026 evidence -- and the run looks
-    # identical from the outside: exit 0, "done" on every model, a full grid.
-    # cron_run.sh would swallow it. These forecasts are published under a
-    # provenance line that names web search, so an ungrounded run has to be an
-    # explicit choice.
-    if not os.environ.get("TAVILY_API_KEY") and not args.allow_ungrounded:
-        sys.exit("refusing to run: TAVILY_API_KEY is unset, so every web_search "
-                 "returns an error and the forecasts would be ungrounded while "
-                 "the dashboard labels them grounded.\n"
-                 "  fix:      gcloud auth application-default login\n"
-                 "  override: --allow-ungrounded (marks the rows grounded=false)")
-    models, panel = select_models(args)
-
-    groups, by_group, horizons, skipped, spec = load_batch(LADDER, CROSS, UNBATCHED)
-    n = sum(len(v) for v in by_group.values())
-    # The true cell count, from the per-question horizon lists. The header used
-    # to print n * len(horizons), which assumes every question is asked over
-    # every horizon -- it is not. The three cross-cutting questions skip the
-    # rolling windows, so the naive product said 210 where the prompt asked 201.
-    _, _, cells = build_prompt(groups, by_group, horizons, spec, date.today(),
-                               args.state_constraints)
-    run_id = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%MZ")
-    proto = "unified-batch-v1" if args.state_constraints else PROTOCOL
-    if args.state_constraints:
-        print("ABLATION ARM: the prompt STATES the coherence relations. These "
-              "rows are tagged unified-batch-v1 and must not be pooled with the "
-              "published v2 series.")
-        if os.path.abspath(args.out) == os.path.abspath(RUNLOG):
-            sys.exit("refusing: --state-constraints would write contaminated "
-                     "rows into the published run log. Use --out "
-                     "results/experiments/<name>.jsonl")
-    print(f"run {run_id} protocol {proto}: {len(models) * len(arms)} calls "
-          f"({len(models)} models x {len(arms)} arm(s)), {n} questions over "
-          f"{len(horizons)} horizons = {cells} cells each")
-    if len(arms) > 1 or arms[0][0]:
-        print(f"    arms: {', '.join(a for a, _ in arms)}"
-              + (f"  [experiment: {args.experiment}]" if args.experiment else ""))
-    for g in groups:
-        print(f"    {g['key']:14} {len(by_group[g['key']]):2d} questions")
-    print(f"    horizons: {', '.join(horizon_label(h, spec, date.today()) for h in horizons)}")
-    for qid, why in skipped:
-        print(f"    SKIP {qid}: {why}")
-
-    os.makedirs(os.path.dirname(args.out), exist_ok=True)
-    lock = threading.Lock()
-    done = failed = 0
-    spent = 0.0
-    with open(args.out, "a") as f, cf.ThreadPoolExecutor(max_workers=args.workers) as ex:
-        # Arm-major submission order: with five workers and five models, the
-        # pool holds one call per vendor at a time, the same load as the weekly run.
-        futs = {ex.submit(run_one, l, m, groups, by_group, horizons, run_id,
-                          args.retries, spec, args.state_constraints,
-                          scenario, policies, args.experiment, arm, panel): (arm, l)
-                for arm, scenario in arms for l, m in models}
-        for fut in cf.as_completed(futs):
-            arm, label = futs[fut]
-            tag = f"{label:16}" if not arm else f"{arm + ':' + label:32}"
-            try:
-                rows = fut.result()
-            except Exception as e:
-                failed += 1
-                print(f"  FAIL  {tag}: {type(e).__name__}: {str(e)[:200]}")
-                traceback.print_exc()
-                continue
-            with lock:
-                for r in rows:
-                    f.write(json.dumps(r) + "\n")
-                f.flush()
-            done += 1
-            got = sum(1 for r in rows if r["forecasts"])
-            ev = sum(len(r["evidence"]) for r in rows)
-            spent = tally_spend(spent, rows)
-            print(f"  done  {tag} {got}/{len(rows)} questions answered, {usage_line(rows)}, "
-                  f"{ev} evidence, {coverage_line(rows)}, {rows[0]['attempts']} attempt(s), "
-                  f"{debrief_note(rows)}")
-    print(f"{done} ok, {failed} failed, ${spent:.2f} priced spend -> {args.out}")
+    return run(args, exp, conditions, path, publish)
 
 
-def main_joint(args):
-    """--joint: the whole instrument per call, --repeats calls per model.
-
-    Unconditional slice -> args.out; every row -> args.conditional_out.
-    """
+def run(args, exp, conditions, path, publish):
+    """Each condition's calls: the whole instrument per call, one call per
+    model per repeat. Unconditional slice -> out; every row -> cond_out."""
     today = datetime.now(timezone.utc).date()
-    policies = load_policies(args.scenarios)
-    scenarios = expand_scenarios(args.scenario or ["all"], policies)
-    published_set = os.path.abspath(args.scenarios) in {os.path.abspath(p) for p in PUBLISHED_SETS}
-    harness = args.harness or set_harness(policies)
-    slug, proto = set_slug(policies), row_protocol(policies, harness)
-    variants = args.variant or set_asked_variants(policies)
-    unpooled = set_unpooled(policies)
-    minimal = set_instrument(policies) == "minimal" if args.minimal is None else args.minimal
-    if (set(variants) - set(set_asked_variants(policies)) or minimal != (set_instrument(policies) == "minimal")) \
-            and not args.experiment and not args.dry_run:
-        sys.exit("refusing: variants or an instrument this set does not name are an experiment; "
-                 "tag the run with --experiment")
-    if minimal and harness != "pi":
-        sys.exit("the minimal instrument runs through pi")
-    guards = {v: unpooled[v]["url_block_patterns"] for v in variants
-              if unpooled.get(v, {}).get("url_block_patterns")}
-    if guards and harness != "pi":
-        sys.exit(f"variant(s) {sorted(guards)} carry a URL guard, which travels per call through pi only")
-    for v, g in guards.items():
-        try:
-            check_patterns(g)
-        except re.error as e:
-            sys.exit(f"variant {v!r}: bad url_block_patterns: {e}")
+    policies = load_policies(path)
+    scenarios = list(policies["conditions"])
+    published_set = os.path.abspath(path) in {os.path.abspath(p) for p in PUBLISHED_SETS}
+    slug, proto = set_slug(policies), set_protocol(policies)
     if args.out and os.path.abspath(args.out) == os.path.abspath(RUNLOG):
         sys.exit("refusing: never append to the shared tracked log; the series "
                  "is one dated file per run under results/runs/ (see cron_run.sh)")
-    if args.repeats < 1:
-        sys.exit("--repeats must be >= 1")
-    # A smoke or an experiment is not the published series. The plain path
-    # refuses to write those into the run log; this path routes them by
-    # default, so a hand smoke never appends to results/runs/ or the
-    # instrument logs the dashboard reads (and never trips the launch
-    # validator's one-call-per-cell check on the next real run's date).
-    if args.smoke or args.experiment:
-        tag = args.experiment or "smoke"
+    run_id = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%MZ")
+    if not publish:
+        # An unpublished condition, or a smoke, is not the series: its rows go
+        # to results/experiments/, so a hand run never appends to results/runs/
+        # or the instrument logs the dashboard reads (and never trips the launch
+        # validator's one-call-per-cell check on the next real run's date).
+        tag = f"smoke-{exp['name']}" if args.smoke else exp["name"]
         exp_dir = os.path.join(ROOT, "results", "experiments")
-        stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%MZ")
-        args.out = args.out or os.path.join(exp_dir, f"{tag}-{stamp}.jsonl")
-        args.conditional_out = args.conditional_out or os.path.join(
-            exp_dir, f"{tag}-{stamp}-instrument.jsonl")
-        for path in (args.out, args.conditional_out):
-            ap_ = os.path.abspath(path)
+        out = args.out or os.path.join(exp_dir, f"{tag}-{run_id}.jsonl")
+        cond_out = args.conditional_out or os.path.join(exp_dir, f"{tag}-{run_id}-instrument.jsonl")
+        for p in (out, cond_out):
+            ap_ = os.path.abspath(p)
             if ap_.startswith(os.path.abspath(RUNS_DIR) + os.sep) or \
                     os.path.basename(ap_).startswith("conditional_runs"):
-                sys.exit(f"refusing: a smoke/experiment run must not write to {path}; "
+                sys.exit(f"refusing: an unpublished run must not write to {p}; "
                          "that is a published log (default: results/experiments/)")
-    arms = [f"joint#{i + 1}" for i in range(args.repeats)]
-    run_id = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%MZ")
-    if published_set:
+    elif published_set:
         out = args.out or os.path.join(RUNS_DIR, f"{run_id}.jsonl")
         # The LEAP set's instrument log is the original one; every other
         # published set keeps a log named by its slug (the tabs know both).
         cond_out = args.conditional_out or (
-            CONDITIONAL_LOG if os.path.abspath(args.scenarios) == os.path.abspath(POLICIES)
+            CONDITIONAL_LOG if os.path.abspath(path) == os.path.abspath(POLICIES)
             else os.path.join(ROOT, "results", f"conditional_runs_{slug}.jsonl"))
     else:
         # Another scenario set is another instrument: its unconditional slice
@@ -2033,11 +1514,11 @@ def main_joint(args):
         out = args.out or os.path.join(ROOT, "results", f"{slug}_runs", f"{run_id}.jsonl")
         cond_out = args.conditional_out or os.path.join(ROOT, "results",
                                                         f"conditional_runs_{slug}.jsonl")
-        for path in (out, cond_out):
-            ap_ = os.path.abspath(path)
+        for p in (out, cond_out):
+            ap_ = os.path.abspath(p)
             if ap_ == os.path.abspath(CONDITIONAL_LOG) or ap_.startswith(os.path.abspath(RUNS_DIR) + os.sep):
                 sys.exit(f"refusing: scenario set {slug!r} ({proto}) must not write to "
-                         f"{path}; that is the published series/panel log")
+                         f"{p}; that is the published series/panel log")
     if os.path.abspath(cond_out) == os.path.abspath(out):
         sys.exit("--conditional-out must differ from --out")
     groups, by_group, horizons, skipped, spec = load_batch(LADDER, CROSS, UNBATCHED)
@@ -2048,34 +1529,38 @@ def main_joint(args):
         print(f"    elicits {el['key']} {el['fields']} for {el.get('target_date')}"
               + (f" (run date + {el['target_months']} months)" if el.get("target_months") else ""))
     if args.dry_run:
-        for v in variants:
-            p = minimal_joint_prompt(prompt, v) if minimal else apply_variant(prompt, v)
-            print(f"##### JOINT [{slug}: {proto}{'' if v == DEFAULT_VARIANT else ' / ' + v}"
-                  f"{' / minimal' if minimal else ''}{' / unpooled' if v in unpooled else ''}]: "
+        for c in conditions:
+            p = condition_prompt(prompt, c)
+            print(f"##### {exp['name']} / {c['id']} [{slug}: {proto}; {condition_line(c)}]: "
                   f"{n} questions, {cells} cells x (unconditional + {len(scenarios)} "
                   f"scenarios) = {cells * (len(scenarios) + 1)} probabilities, {len(p)} chars #####")
             print(p)
             print(f"##### URL GUARD ({BLOCK_ENV}): "
-                  f"{guards.get(v) or os.environ.get(BLOCK_ENV) or 'off'} #####")
+                  f"{c['url_block_patterns'] or os.environ.get(BLOCK_ENV) or 'off'} #####")
         return
     load_keys()
     if not os.environ.get("TAVILY_API_KEY") and not args.allow_ungrounded:
-        sys.exit("refusing to run: TAVILY_API_KEY is unset (see the unconditional path)")
-    models, panel = select_models(args)
-    print(f"run {run_id} protocol {proto} [set {slug}]: {len(models) * len(arms) * len(variants)} calls "
-          f"({len(models)} models x {len(arms)} repeat(s) x {len(variants)} variant(s)), {n} questions x "
-          f"{len(horizons)} horizons = {cells} cells x (unconditional + {len(scenarios)} scenarios) "
-          f"= {cells * (len(scenarios) + 1)} probabilities each")
-    if len(variants) > 1 or variants != [DEFAULT_VARIANT]:
-        print(f"    variants: {', '.join(variants)}"
-              + (f"; unpooled (not in the published number): "
-                 + ", ".join(f"{v}{' + URL guard' if v in guards else ''}" for v in variants if v in unpooled)
-                 if any(v in unpooled for v in variants) else ""))
-    print(f"    harness: {harness} loop, research floor {MIN_RESEARCH} calls, coverage "
-          f"{', '.join(g['key'] for g in groups)}, guard {MAX_ROUNDS} rounds; reasoning "
-          + ", ".join(f"{l}={reasoning_for(m) or 'default'}" for l, m in models))
-    print(f"    {UNCONDITIONAL_KEY} + scenarios: {', '.join(c['id'] for c in scenarios)}"
-          + (f"  [experiment: {args.experiment}]" if args.experiment else ""))
+        # Refuse rather than degrade. Without Tavily every model still answers
+        # -- from parametric memory, with no current evidence -- and the run
+        # looks identical from the outside. These forecasts are published under
+        # a provenance line that names web search, so an ungrounded run has to
+        # be an explicit choice.
+        sys.exit("refusing to run: TAVILY_API_KEY is unset, so every web_search "
+                 "returns an error and the forecasts would be ungrounded while "
+                 "the dashboard labels them grounded.\n"
+                 "  override: --allow-ungrounded (marks the rows grounded=false)")
+    panels = {ms: select_models(ms, args) for ms in dict.fromkeys(c["model_set"] for c in conditions)}
+    calls = [(c, f"joint#{i + 1}", label, model)
+             for c in conditions for i in range(c["repeats"])
+             for label, model in panels[c["model_set"]][0]]
+    print(f"run {run_id} experiment {exp['name']}, protocol {proto} [set {slug}]: {len(calls)} calls, "
+          f"{n} questions x {len(horizons)} horizons = {cells} cells x (unconditional + "
+          f"{len(scenarios)} scenarios) = {cells * (len(scenarios) + 1)} probabilities each")
+    for c in conditions:
+        print(f"    {c['id']:12} {condition_line(c)}")
+    models = {m for ms in panels.values() for m in ms[0]}
+    print("    reasoning " + ", ".join(f"{l}={reasoning_for(m) or 'default'}" for l, m in sorted(models)))
+    print(f"    {UNCONDITIONAL_KEY} + scenarios: {', '.join(c['id'] for c in scenarios)}")
     for g in set_groups(policies):
         print(f"      {g['key']:11} {sum(c.get('group') == g['key'] for c in scenarios)} scenarios -- {g['heading']}")
     print(f"    unconditional slice -> {out}\n    whole instrument     -> {cond_out}")
@@ -2088,33 +1573,33 @@ def main_joint(args):
         cond_out = str(run_file(cond_out, run_id))
     os.makedirs(os.path.dirname(os.path.abspath(cond_out)), exist_ok=True)
     lock = threading.Lock()
-    done = failed = failed_unpooled = 0
+    done = failed = failed_aside = 0
     spent = 0.0
     with open(out, "a") as f, open(cond_out, "a") as fc, \
             cf.ThreadPoolExecutor(max_workers=args.workers) as ex:
-        futs = {ex.submit(run_one_joint, l, m, groups, by_group, horizons, run_id,
-                          args.retries, spec, scenarios, policies, args.experiment, arm, panel,
-                          today, harness, v, minimal): (arm, l, v)
-                for v in variants for arm in arms for l, m in models}
+        futs = {ex.submit(run_one_joint, label, model, groups, by_group, horizons, run_id,
+                          args.retries, spec, scenarios, policies, c, exp["name"], arm,
+                          panels[c["model_set"]][1], today): (c, arm, label)
+                for c, arm, label, model in calls}
         for fut in cf.as_completed(futs):
-            arm, label, v = futs[fut]
-            tag = f"{arm + ':' + label + ('' if v == DEFAULT_VARIANT else ':' + v):32}"
+            c, arm, label = futs[fut]
+            tag = f"{arm + ':' + label + ('' if c['id'] == DEFAULT_VARIANT else ':' + c['id']):32}"
             try:
                 rows = fut.result()
             except Exception as e:
-                # An unpooled call (the sixth) is not in the published number,
-                # so its failure does not fail the day (2026-10-19).
-                if v in unpooled:
-                    failed_unpooled += 1
-                else:
+                # A call outside the pooled conditions (the sixth) is not in
+                # the published number, so its failure does not fail the day.
+                if c["pooled"]:
                     failed += 1
+                else:
+                    failed_aside += 1
                 print(f"  FAIL  {tag}: {type(e).__name__}: {str(e)[:120]}"
-                      + ("  (unpooled: the day publishes without it)" if v in unpooled else ""))
+                      + ("" if c["pooled"] else "  (not pooled: the day publishes without it)"))
                 continue
             with lock:
                 for r in rows:
                     fc.write(json.dumps(r) + "\n")
-                    if r["condition"] is None:
+                    if r["scenario"] is None:
                         f.write(json.dumps(r) + "\n")
                 f.flush(); fc.flush()
             done += 1
@@ -2125,13 +1610,20 @@ def main_joint(args):
                   f"{ev} evidence, {coverage_line(rows)}, {rows[0]['attempts']} attempt(s), "
                   f"{debrief_note(rows)}")
     print(f"{done} ok, {failed} failed, ${spent:.2f} priced spend -> {out} (unconditional) + {cond_out} (instrument)"
-          + (f"; {failed_unpooled} unpooled call(s) failed (not in the published number)" if failed_unpooled else ""))
+          + (f"; {failed_aside} call(s) outside the pooled conditions failed (not in the published number)"
+             if failed_aside else ""))
     if failed:
         # An incomplete panel cannot be published (code/validate_launch_run.py
         # needs every model on the date), so the run is a failure, not a
-        # partial success; cron_run.sh stops here rather than spending on the
-        # axes instruments for a date that will not publish.
+        # partial success, and cron_run.sh does not publish it.
         sys.exit(1)
+
+
+def condition_line(c):
+    """What a condition asks, in one line, for the run log."""
+    return (f"variant {c['variant']}, {c['instrument']} instrument, {c['harness']} loop, "
+            f"{c['model_set']}" + (f" x{c['repeats']}" if c["repeats"] > 1 else "")
+            + ("" if c["pooled"] else ", not pooled") + (", URL guard" if c["url_block_patterns"] else ""))
 
 
 if __name__ == "__main__":

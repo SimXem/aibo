@@ -23,7 +23,7 @@ cd "$REPO"
 # the headline log before rebuilding or touching nginx's last good files. The
 # axes instruments left the schedule on 2026-09-14: their views draw the newest
 # complete date they have, and a hand re-elicitation is audited separately
-# (validate_launch_run.py --sets axes,paperaxes).
+# (validate_launch_run.py --experiments axes,paperaxes).
 # The validator reports coherence warnings separately; only integrity errors
 # block publication. Its diagnostic contains no provider traces or prompts.
 LAUNCH_DATE="$(python3 - <<'PY_PREFLIGHT'

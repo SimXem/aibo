@@ -1,16 +1,12 @@
-"""The conditional arm must change nothing but the scenario.
+"""The scenario sets and the joint instrument that asks them.
 
-Three guarantees, each of which the conditional panel's numbers depend on:
+Guarantees the conditional panels' numbers depend on:
 
-  1. With no scenario, the runner's prompt is exactly the weekly run's
-     prompt. The {scenario} slot renders empty, so the same-session
-     unconditional arms ARE the published protocol and can stand as the
-     zero line.
-  2. Every scenario renders, carries LEAP's exogeneity instruction
-     verbatim, and states no relation between the questions -- the same
-     ban tests/test_coherence.py enforces on the unconditional prompt,
-     extended to the rendered scenario text, which comes from data.
-  3. data/leap_policies.json is what code/make_leap_policies.py produces
+  1. Every scenario renders, carries its set's instruction verbatim, and
+     states no relation between the questions -- the same ban
+     tests/test_coherence.py enforces on the unconditional prompt, extended
+     to the rendered scenario text, which comes from data.
+  2. data/leap_policies.json is what code/make_leap_policies.py produces
      from the vendored survey documents. The policy text a model sees is
      traceable to the document, never hand-edited in the JSON.
 
@@ -48,7 +44,7 @@ from redlines.conditional import expected_loss, summarize, table  # noqa: E402
 # 2026-09-15, when the extinction pair joined (2 questions x 6 horizons).
 QUESTIONS, CELLS = 73, 438
 
-# Our framing (the CONDITION_BLOCK literal) may state neither a relation
+# Our framing (the scenario literals) may state neither a relation
 # between the questions -- the same ban tests/test_coherence.py puts on the
 # unconditional prompt -- nor a direction for the policy's effect.
 BANNED_RELATION = ["must respect", "non-decreasing", "non-increasing",
@@ -85,43 +81,14 @@ class TestScenarioBlock(unittest.TestCase):
         cls.policies = cls.ru.load_policies()
         cls.batch = cls.ru.load_batch(cls.ru.LADDER, cls.ru.CROSS, cls.ru.UNBATCHED)
 
-    def _prompt(self, scenario):
+    def test_unconditional_prompt_has_no_slot_residue(self):
         groups, by_group, horizons, _, spec = self.batch
-        p, n, cells = self.ru.build_prompt(groups, by_group, horizons, spec,
-                                           date(2026, 8, 27), False, scenario, self.policies)
-        return p, n, cells
-
-    def test_unconditional_prompt_has_no_scenario_slot_residue(self):
-        p, n, cells = self._prompt(None)
+        p, n, cells = self.ru.build_prompt(groups, by_group, horizons, spec, date(2026, 8, 27))
         self.assertNotIn("CONDITION", p)
-        self.assertNotIn("{scenario}", p)
-        # The slot sits between the date line and the question header, and
-        # renders to exactly the blank line that was always there.
+        self.assertNotRegex(p, r"\{[a-z_]+\}")       # no unfilled slot
+        # The date line and the question header, one blank line between.
         self.assertIn("Today is 2026-08-27.\n\nBelow are 73 forecasting", p)
         self.assertEqual((n, cells), (QUESTIONS, CELLS))
-
-    def test_every_scenario_renders_with_leap_instruction(self):
-        instr = self.policies["conditioning"]["instruction"]
-        self.assertIn("treat the policy implementation as exogenous", instr)
-        for c in self.policies["conditions"]:
-            p, n, cells = self._prompt(c)
-            self.assertEqual((n, cells), (QUESTIONS, CELLS), c["id"])
-            self.assertIn(f"===== CONDITION: {c['label']} =====", p)
-            self.assertIn(instr, p)
-            self.assertIn(c["assume"], p)
-            self.assertIn(self.policies["conditioning"]["frontier_model"], p)
-            # The questions follow the block unchanged.
-            self.assertIn("Below are 73 forecasting questions", p)
-            self.assertTrue(p.index("=====\n\nBelow are") < p.index("===== AI-RELATED INCIDENT"))
-
-    def test_scenario_text_states_no_relation_or_direction(self):
-        lit = self.ru.SCENARIO_BLOCK.lower()
-        found = [b for b in BANNED_RELATION + BANNED_DIRECTION if b in lit]
-        self.assertEqual(found, [], f"SCENARIO_BLOCK literal: {found}")
-        for c in self.policies["conditions"]:
-            blob = self.ru.scenario_block(c, self.policies).lower()
-            found = [b for b in BANNED_DIRECTION if b in blob]
-            self.assertEqual(found, [], f"{c['id']}: {found}")
 
     def test_scenarios_are_the_eight_policies_not_the_outcomes(self):
         ids = [c["id"] for c in self.policies["conditions"]]
@@ -149,7 +116,7 @@ class TestSummarize(unittest.TestCase):
         return {"run_id": run, "question_id": qid, "label": label,
                 "forecasts": [{"horizon": "2030", "probability": p2030},
                               {"horizon": "2050", "probability": min(1, 3 * p2030)}],
-                "condition": ({"id": scenario, "leap_id": scenario.upper(), "label": scenario} if scenario else None),
+                "scenario": ({"id": scenario, "leap_id": scenario.upper(), "label": scenario} if scenario else None),
                 "experiment": "t"}
 
     def test_per_model_then_ensemble(self):
@@ -186,7 +153,7 @@ class TestSummarize(unittest.TestCase):
 
 
 class TestJointInstrument(unittest.TestCase):
-    """--joint: one call per model carrying every cell under every scenario."""
+    """One call per model carrying every cell under every scenario."""
 
     @classmethod
     def setUpClass(cls):
@@ -240,7 +207,8 @@ class TestJointInstrument(unittest.TestCase):
         self.assertIsNone(self.ru.clean_forecasts_joint("not json", {"q": {"2030"}}, ["2030"], ["sq"]))
 
     def test_joint_protocol_tag_is_its_own(self):
-        self.assertNotEqual(self.ru.PROTOCOL_JOINT, self.ru.PROTOCOL)
+        # Never one of the retired plain batch's tags (unified-batch-v1/v2).
+        self.assertFalse(self.ru.PROTOCOL_JOINT.startswith("unified-batch"))
         self.assertIn("joint", self.ru.PROTOCOL_JOINT)
 
 
@@ -258,7 +226,7 @@ class TestProtocolTransition(unittest.TestCase):
         return [{"question_id": "catastrophe:ai", "label": "m", "protocol": proto,
                  "elicited_at": f"{day}T12:00:00+00:00", "experiment": None,
                  "forecasts": [{"horizon": "2030", "probability": 0.01}],
-                 "condition": None}
+                 "scenario": None}
                 for proto, day in specs]
 
     def test_newest_protocol_on_the_latest_day_wins_and_the_other_is_dropped(self):
@@ -299,7 +267,7 @@ class TestOutsideNoise(unittest.TestCase):
         def row(label, p, scenario=None, call="u"):
             return {"run_id": "r", "question_id": "q", "label": label, "call_id": f"r:{call}:{label}",
                     "forecasts": [{"horizon": "2030", "probability": p}],
-                    "condition": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
+                    "scenario": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
         policies = {"conditions": [{"id": "p5", "label": "b", "leap_id": "P5"}], "source": {"wave": "t"}}
         # Three models, three repeats each, the SAME call answering both sides:
         # the ratio is paired within the call, so between-call wander cancels.
@@ -334,7 +302,7 @@ class TestOutsideNoise(unittest.TestCase):
         def row(label, p, scenario=None, call="u"):
             return {"run_id": "r", "question_id": "q", "label": label, "call_id": f"r:{call}:{label}",
                     "forecasts": [{"horizon": "2030", "probability": p}],
-                    "condition": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
+                    "scenario": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
         policies = {"conditions": [{"id": "p5", "label": "b", "leap_id": "P5"}], "source": {"wave": "t"}}
         rows = [row("A", 0.10, call="u1"), row("A", 0.12, call="u2"), row("A", 0.11, call="u3"),
                 row("A", 0.02, "p5", call="p5")]
@@ -381,7 +349,7 @@ class TestExpectedLoss(unittest.TestCase):
             return {"run_id": "r", "question_id": f"ladder:ai:{rung}:deaths", "label": label,
                     "call_id": f"r:{call}:{label}", "grounded": True,
                     "forecasts": [{"horizon": "2030", "probability": p}],
-                    "condition": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
+                    "scenario": ({"id": scenario, "leap_id": "P5", "label": scenario} if scenario else None)}
         rows = []
         for i, (r, _) in enumerate(RUNGS):
             rows.append(row(r, "A", 0.5 ** i))                       # arm 0
@@ -550,7 +518,7 @@ class TestScenarioSets(unittest.TestCase):
             return {"run_id": "r", "question_id": "catastrophe:ai", "label": label, "grounded": True,
                     "protocol": "unified-joint-eci-v1", "call_id": call,
                     "forecasts": [{"horizon": "2030", "probability": p}, {"horizon": "2100", "probability": p}],
-                    "condition": ({"id": scenario} if scenario else None)}
+                    "scenario": ({"id": scenario} if scenario else None)}
         rows = [row("m", 0.01, call="c1"), row("m", 0.02, "eci210", "c1"),
                 row("m", 0.012, call="c2"), row("m", 0.024, "eci210", "c2")]
         s = summarize(rows, policies=self.eci, horizons=("2030",), rungs=[])
@@ -896,9 +864,9 @@ class TestGroupedSetOnTheTabs(unittest.TestCase):
         self.assertEqual(cap["history"], self.es["history"])
         self.assertIn("No policy condition applies", cap["conditioning"]["assumption"])
         self.assertIs(group_view(self.leap, "policy"), self.leap)       # a plain set is untouched
-        rows = [{"condition": None, "x": 1}, {"condition": {"id": "p5", "group": "policy"}},
-                {"condition": {"id": "eci_p50", "group": "capability"}}]
-        self.assertEqual([r.get("condition", {}) and r["condition"]["id"] for r in group_rows(rows, "policy")], [None, "p5"])
+        rows = [{"scenario": None, "x": 1}, {"scenario": {"id": "p5", "group": "policy"}},
+                {"scenario": {"id": "eci_p50", "group": "capability"}}]
+        self.assertEqual([r.get("scenario", {}) and r["scenario"]["id"] for r in group_rows(rows, "policy")], [None, "p5"])
         self.assertEqual(len(group_rows(rows, "capability")), 2)
 
     def test_the_tabs_take_the_newest_instrument(self):
@@ -929,8 +897,8 @@ class TestGroupedSetOnTheTabs(unittest.TestCase):
         self.assertEqual(len(protocol), 1)
         protocol = protocol.pop()
         present = {r["label"] for r in newest_rows}
-        cap_ids = sorted({r["condition"]["id"] for r in newest_rows
-                          if r.get("condition") and r["condition"].get("group") == "capability"})
+        cap_ids = sorted({r["scenario"]["id"] for r in newest_rows
+                          if r.get("scenario") and r["scenario"].get("group") == "capability"})
         target = sorted({(r.get("elicited") or {}).get("target_date") for r in newest_rows} - {None})[-1]
 
         b = conditional.build()

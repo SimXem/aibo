@@ -31,7 +31,7 @@ forecasts and rationales, including those from legacy models, must be
 available): one line per (call, question, scenario) -- the model's written
 rationale for that question in that call, and the sources it cited -- from
 the same rows as the forecasts file, joined on `call_id` + `question_id` +
-`condition`. Separate because a rationale is per question per call while
+`scenario`. Separate because a rationale is per question per call while
 the forecasts file is per horizon: repeating a 2,000-character rationale
 on every horizon line would multiply the download several times over.
 
@@ -73,7 +73,7 @@ DEBRIEFS_OUT = REPO_ROOT / "results" / "debriefs.csv"
 # 2026-09-15 and 2026-09-16 12:00 UTC calls were per GROUP (key = group,
 # question_id empty) and keep their pathway/base_rate/compelling_arguments.
 DEBRIEF_COLUMNS = ["elicited_at", "run_id", "protocol", "experiment", "model", "model_id",
-                   "run_date", "condition_set", "call_id", "key", "group", "question_id",
+                   "run_date", "scenario_set", "call_id", "key", "group", "question_id",
                    "rationale", "key_sources", "weakest_link",
                    "compelling_arguments", "pathway", "base_rate", "complete", "problems",
                    "panel_set", "panel_snapshot"]
@@ -82,7 +82,7 @@ BUNDLE_OUT = REPO_ROOT / "results" / "redlines-data.zip"
 COLUMNS = ["elicited_at", "run_id", "protocol", "experiment", "model", "model_id",
            "question_id", "question", "horizon", "resolves_on",
            "instrument_version", "instrument_version_source", "run_date", "onset_start", "onset_end", "onset_timezone", "harm_years", "prompt_sha256",
-           "condition", "condition_label", "condition_source",
+           "scenario", "scenario_label", "scenario_source",
            "probability", "arm", "call_id", "grounded", "panel_set", "panel_snapshot"]
 
 
@@ -140,7 +140,7 @@ def _question_text(row, questions):
 
 def _lines(rows, qs):
     for r in rows:
-        scenario = r.get("condition") or {}
+        scenario = r.get("scenario") or {}
         q = qs.get(r["question_id"], {})
         for f in r.get("forecasts") or []:
             window = (r.get("counting_window") or {}).get(f["horizon"], {})
@@ -163,9 +163,9 @@ def _lines(rows, qs):
                 "prompt_sha256": r.get("prompt_sha256", ""),
                 "horizon": f["horizon"],
                 "resolves_on": _resolves_on(r, f["horizon"]),
-                "condition": scenario.get("id", ""),
-                "condition_label": scenario.get("label", ""),
-                "condition_source": scenario.get("source", ""),
+                "scenario": scenario.get("id", ""),
+                "scenario_label": scenario.get("label", ""),
+                "scenario_source": scenario.get("source", ""),
                 "probability": f["probability"],
                 "arm": r.get("arm") or "",
                 "call_id": r.get("call_id") or "",
@@ -178,14 +178,14 @@ COMBINED_LOG = CONDITIONAL_LOG.parent / "conditional_runs_combined.jsonl"
 
 RATIONALE_COLUMNS = ["elicited_at", "run_id", "protocol", "experiment", "model", "model_id",
                      "instrument_version", "instrument_version_source", "run_date", "counting_window", "prompt_sha256",
-                     "question_id", "question", "condition", "condition_label", "arm",
+                     "question_id", "question", "scenario", "scenario_label", "arm",
                      "call_id", "grounded", "search_hits", "rationale", "sources",
                      "panel_set", "panel_snapshot"]
 
 
 def _rationale_lines(rows, qs):
     for r in rows:
-        scenario = r.get("condition") or {}
+        scenario = r.get("scenario") or {}
         q = qs.get(r["question_id"], {})
         yield {
             "elicited_at": r.get("elicited_at", ""),
@@ -201,8 +201,8 @@ def _rationale_lines(rows, qs):
             "run_date": r.get("run_date", ""),
             "counting_window": json.dumps(r["counting_window"], sort_keys=True) if r.get("counting_window") else "",
             "prompt_sha256": r.get("prompt_sha256", ""),
-            "condition": scenario.get("id", ""),
-            "condition_label": scenario.get("label", ""),
+            "scenario": scenario.get("id", ""),
+            "scenario_label": scenario.get("label", ""),
             "arm": r.get("arm") or "",
             "call_id": r.get("call_id") or "",
             "grounded": "" if r.get("grounded") is None else int(bool(r.get("grounded"))),
@@ -243,7 +243,7 @@ def _debrief_lines(rows):
                 "elicited_at": r.get("elicited_at", ""), "run_id": r.get("run_id", ""),
                 "protocol": r.get("protocol", ""), "experiment": r.get("experiment") or "",
                 "model": r.get("label", ""), "model_id": r.get("model", ""),
-                "run_date": r.get("run_date", ""), "condition_set": r.get("condition_set") or "",
+                "run_date": r.get("run_date", ""), "scenario_set": r.get("scenario_set") or "",
                 "call_id": r.get("call_id") or "", "key": key, "group": _debrief_group(key),
                 "question_id": key if is_question else "",
                 "rationale": g.get("rationale") or "",
@@ -278,7 +278,7 @@ def _published_rows(conditional_log=CONDITIONAL_LOG, combined_log=COMBINED_LOG):
     logs += [p for p in conditional_logs() if p not in logs]
     for p in logs:
         for r in iter_rows(p):
-            if r.get("condition"):
+            if r.get("scenario"):
                 r["forecasts"] = r.get("forecasts") or []
                 rows.append(r)
     return rows
@@ -289,7 +289,7 @@ def rationales_csv(out=RATIONALES_OUT, conditional_log=CONDITIONAL_LOG, combined
     qs = all_questions()
     lines = sorted(_rationale_lines(_published_rows(conditional_log, combined_log), qs),
                    key=lambda d: (d["elicited_at"], d["model"], d["question_id"],
-                                  d["condition"], d["arm"], d["call_id"]))
+                                  d["scenario"], d["arm"], d["call_id"]))
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w", newline="") as fh:
@@ -317,7 +317,7 @@ def forecasts_csv(out=OUT, conditional_log=CONDITIONAL_LOG, combined_log=COMBINE
     qs = all_questions()
     lines = sorted(_lines(_published_rows(conditional_log, combined_log), qs),
                    key=lambda d: (d["elicited_at"], d["model"], d["question_id"],
-                                  d["horizon"], d["condition"], d["arm"], d["call_id"]))
+                                  d["horizon"], d["scenario"], d["arm"], d["call_id"]))
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w", newline="") as fh:
@@ -339,12 +339,12 @@ raw logs behind them. Built by `python3 -m redlines build --views csv`
 
 ## The two CSVs
 
-forecasts.csv -- one line per (call, question, horizon, condition):
+forecasts.csv -- one line per (call, question, horizon, scenario):
   {forecast_columns}
 
-rationales.csv -- one line per (call, question, condition): the model's written
+rationales.csv -- one line per (call, question, scenario): the model's written
 rationale for that question in that call, and the sources it named. Join to
-forecasts.csv on call_id + question_id + condition.
+forecasts.csv on call_id + question_id + scenario.
   {rationale_columns}
 
 debriefs.csv -- one line per (call, question), from 2026-09-16: what the model
@@ -390,7 +390,7 @@ Columns worth knowing:
   raw JSONL on the first unconditional row of each new-version call.
 - protocol: the elicitation. unified-joint-combined-v* is the single
   instrument (every question x horizon cell, unconditional and under every
-  condition, in one call per model); unified-batch-v* the earlier plain
+  scenario, in one call per model); unified-batch-v* the earlier plain
   batch; the pilots carry their own tags. Do not pool across protocols:
   the joint unconditional runs about 2x lower than the same-day separate
   call (docs/conditional-forecasts.md in the repo).
@@ -400,6 +400,12 @@ Columns worth knowing:
   (panel_set non-empty), narrowed to the current instrument version. The
   earlier series remains in this download and is not joined to the new one.
 - experiment: non-empty on pilots and smokes -- not the published series.
+- scenario / scenario_label / scenario_source: the scenario the probability
+  is conditional on -- a LEAP policy in force, a level of the frontier ECI --
+  empty for the unconditional. Files built before 2026-10-21 called these
+  columns condition / condition_label / condition_source, and the raw logs'
+  rows from before then still name the field `condition` (the prompt's
+  word, which the prompt keeps).
 - arm: which repeat of the call (joint#1, unconditional#2, ...).
 - grounded: 1 if the call had web search; every published run does.
 
@@ -411,17 +417,17 @@ raw/runs/*.jsonl              one file per scheduled run: the unconditional
                               and page read) under `evidence`
 raw/forecast_runs_unified.jsonl  the same series before 2026-08-21, one file
 raw/conditional_runs*/*.jsonl the whole instruments, one file per run: every (call, question,
-                              condition) row, same shape
-raw/*_runs/*.jsonl            the capability-condition pilots' own logs
+                              scenario) row, same shape
+raw/*_runs/*.jsonl            the capability-scenario pilots' own logs
 raw/experiments/              pilots and smokes -- NOT the published series
 raw/legacy-forecasts/         the retired per-question protocol
                               (before 2026-08-14); see its README
 
-## questions/ and conditions/
+## questions/ and scenarios/
 
 questions/autoarc_ladder.json and autoarc_crosscutting.json are the question
-set (Bridget Williams, FRI); conditions/*.json the condition sets each
-instrument asked under; conditions/epoch_capabilities_index_*.csv the ECI
+set (Bridget Williams, FRI); scenarios/*.json the scenario sets each
+instrument asked under; scenarios/epoch_capabilities_index_*.csv the ECI
 snapshots the panel was chosen from.
 
 questions/instruments/ retains archived generated questions and source
@@ -465,7 +471,7 @@ def _bundle_members():
             sorted((DATA_DIR / "auto-arc").glob("addendum-*.json")):
         out.append((f"questions/sources/{p.name}", p))
     for p in sorted(DATA_DIR.glob("*_conditions.json")) + sorted(DATA_DIR.glob("epoch_capabilities_index_*.csv")):
-        out.append((f"conditions/{p.name}", p))
+        out.append((f"scenarios/{p.name}", p))
     return out
 
 

@@ -32,6 +32,7 @@ from datetime import date
 from .conditional import AGENTIC_SINCE, COMBINED_PROTOCOL, protocol_line
 from .config import REPO_ROOT
 from .instrument import CURRENT_INSTRUMENT, instrument_rows
+from .logs import iter_rows
 from .superseded import is_superseded
 
 # The live log, written by code/run_unified.py under the unified-batch protocol:
@@ -124,7 +125,7 @@ def complete_panel_rows(rows, labels=None):
     expected = set()
     deadlines = {}
     for r in rows:
-        scenario = (r.get("condition") or {}).get("id")
+        scenario = (r.get("scenario") or {}).get("id")
         # asked_horizons can retain all six general question horizons while
         # an axes instrument elicits only three. resolves_on records the
         # actual instrument deadlines and is required for current rows.
@@ -150,7 +151,7 @@ def complete_panel_rows(rows, labels=None):
                 cells[(r["question_id"], scenario, f["horizon"])].add(r["label"])
     # A whole question missing from one scenario must fail too, even if all
     # four models omitted that cell. Scenarios are the selected view group.
-    scenarios = {(r.get("condition") or {}).get("id") for r in rows}
+    scenarios = {(r.get("scenario") or {}).get("id") for r in rows}
     horizons = defaultdict(set)
     for q, _, h in expected:
         horizons[q].add(h)
@@ -260,15 +261,11 @@ def load_runlog(runlog=RUNLOG, runs_dir=RUNS_DIR, panel_only=True):
     paths = ([runlog] if runlog.exists() else []) + sorted(runs_dir.glob("*.jsonl"))
     rows = []
     for p in paths:
-        with open(p) as f:
-            for line in f:
-                if not line.strip():
-                    continue
-                row = json.loads(line)
-                if is_superseded(row):     # redlines.superseded: replaced the same day
-                    continue
-                row["forecasts"] = _clean_forecasts(row.get("forecasts"))
-                rows.append(row)
+        for row in iter_rows(p):
+            if is_superseded(row):     # redlines.superseded: replaced the same day
+                continue
+            row["forecasts"] = _clean_forecasts(row.get("forecasts"))
+            rows.append(row)
     return pooled_rows(panel_rows(rows)) if panel_only else rows
 
 
@@ -278,9 +275,9 @@ def pooled_rows(rows):
     Since 2026-10-19 evening the combined set asks a sixth call per model
     beside its five prompts -- the baseline prompt with the AI-forecast ban
     and agent-box's URL guard against AIRO's own pages
-    (data/combined_conditions.json `unpooled_variants`; code/run_unified.py
-    set_unpooled). Its rows are stamped `pooled: false`: the Timeline draws
-    them as their own line (redlines.views.timeline.variant_medians), and
+    (experiments/airo.toml: a condition outside `pooled`). Its rows are
+    stamped `pooled: false`: the Timeline draws them as their own line
+    (redlines.views.timeline.condition_medians), and
     nothing else reads them -- not pool(), not latest_pooled(), not the
     Policy-levers summary (redlines.conditional.load_conditional). A row
     without the stamp is pooled, so every row before that date is unchanged.

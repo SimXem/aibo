@@ -60,7 +60,7 @@ def compare(log, experiment, qid, h, measure="ratio"):
     models = [m for m in ej["models"] if m in es["models"]]
     lines = [f"{qid} @ {h}  [{measure}]  joint | separate   (* outside noise, † no search evidence)"]
     w = 17
-    lines.append("  ".join(["condition".ljust(30)] + [m[:w].rjust(w) for m in models] + ["ensemble".rjust(w)]))
+    lines.append("  ".join(["scenario".ljust(30)] + [m[:w].rjust(w) for m in models] + ["ensemble".rjust(w)]))
     def cell(entry, m, cid):
         v = entry["models"][m]["conditions"].get(cid)
         if not v or v.get(measure) is None:

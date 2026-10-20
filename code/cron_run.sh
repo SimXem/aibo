@@ -14,8 +14,8 @@
 #   from one snapshot and every run from here is load-bearing.
 #
 # WHAT IT RUNS
-#   The WHOLE question set, in one call per model (code/run_unified.py
-#   --joint), with NO relation between the questions stated in the prompt --
+#   The WHOLE question set, in one call per model (code/run_unified.py),
+#   with NO relation between the questions stated in the prompt --
 #   coherence is measured afterwards, never bought. The set is 37 questions in
 #   5 groups (four AI incident types x 8 severity rungs, plus five
 #   cross-cutting questions -- the extinction pair since 2026-09-15) over six horizons -- two of them ROLLING, so each
@@ -159,11 +159,11 @@ fi
 # that question and holds nothing out — config.UNBATCHED is empty — so the
 # command is gone, along with code/run_forecasts.py, which imported a
 # STABLE_SUBSET that no longer exists and would now fail on import.
-# THE SINGLE INSTRUMENT (2026-08-27, --joint): each call answers every cell
+# THE SINGLE INSTRUMENT (2026-08-27): each call answers every cell
 # unconditionally AND under each scenario of the set. The unconditional
 # slice lands in $OUT (this series); the whole instrument is appended to
 # results/conditional_runs_<slug>.jsonl for the conditional panels. The plain
-# batch (--unconditional N) is deprecated.
+# batch it replaced was retired on 2026-10-21.
 # THE COMBINED INSTRUMENT (2026-08-28 evening): the LEAP policies AND the
 # six-month capability scenarios in one call, on THE PANEL (the four highest-
 # ECI models; --model-set defaults to it). 2,520 probabilities a call, so two
@@ -177,30 +177,30 @@ fi
 # call is longer and dearer than it was. 4 models x 1 = 4 calls. The views
 # draw no interval on a single-draw day; the dots and the median are the
 # reading.
-# THE LOOP is the set's own: agent-box's pi since combined-v9 (2026-10-16;
-# redlines/pi_loop.py, three hours a call, REDLINES_PI_TIMEOUT), so the env
-# file must give FORECASTER_PI and node on PATH (see THE SHADOW below). The
-# request timeout here is the litellm loop's, which the shadow now runs.
+# THE LOOP is each condition's own (experiments/airo.toml `harness`):
+# agent-box's pi since combined-v9 (2026-10-16; redlines/pi_loop.py, three
+# hours a call, REDLINES_PI_TIMEOUT), so the env file must give FORECASTER_PI
+# (pi 0.99.2's cli.js) and a PATH with node on it (cron's own PATH has none).
+# The request timeout here is the litellm loop's, which the axes experiments
+# run.
 export REDLINES_LLM_TIMEOUT="${REDLINES_LLM_TIMEOUT:-1800}"
 # The runner exits non-zero when any panel model fails (the date cannot
 # publish without all of them), which under `set -e` stops this script before
 # the axes instruments spend on a date that will not publish. Its preflight
 # also refuses an Epoch snapshot older than 21 days or scenario sets not
 # built from the newest one (code/check_eci_snapshot.py).
-# COMBINED-V10 (2026-10-19): the minimal instrument under five prompt variants
-# (the set declares both), so 4 models x 5 = 20 calls, ten at a time; about
-# 5x a v9 run's spend, the published number per model the mean of its five.
-# THE SIXTH CALL (2026-10-19 evening): the set also declares one unpooled
-# variant per model -- the baseline prompt with the AI-forecast ban, and
-# agent-box's URL guard against AIRO's own pages passed to that call alone
-# (`unpooled_variants`; run_unified set_unpooled) -- 24 calls in all. It is
-# a line on the Timeline, never in the published number, and a failed sixth
-# call does not fail the run. The guard needs agent-box's `url-guard` in PY
-# (FORECASTER_BLOCK_URL_PATTERNS in its tools); an older agent-box ignores
-# the variable and the sixth call searches unguarded while its rows say
-# otherwise, so update agent-box before the first run under this set.
-if ! "$PY" code/run_unified.py --joint --repeats 1 --workers 10 \
-        --scenarios data/combined_conditions.json --out "$OUT"; then
+# THE AIRO EXPERIMENT (experiments/airo.toml; redlines/experiments.py since
+# 2026-10-21): the combined instrument under six conditions, one call per
+# model each, ten at a time -- 24 calls. Five are pooled (Jason's five
+# prompts, combined-v10, 2026-10-19): the published number per model is the
+# mean of its five. The sixth (2026-10-19 evening) is the baseline prompt with
+# the AI-forecast ban and agent-box's URL guard against AIRO's own pages,
+# passed to that call alone: a line on the Timeline, never in the published
+# number, and a failed sixth call does not fail the run. The guard needs
+# agent-box's `url-guard` in PY (FORECASTER_BLOCK_URL_PATTERNS in its tools);
+# an older agent-box ignores the variable and the sixth call searches
+# unguarded while its rows say otherwise.
+if ! "$PY" code/run_unified.py --experiment airo --workers 10 --out "$OUT"; then
     echo "FATAL: the combined instrument did not complete for every panel model; see above. Skipping the axes instruments and publication."
     exit 1
 fi
@@ -222,11 +222,11 @@ echo "=== done: $(wc -l < "$OUT") rows -> $OUT ==="
 # $100 a run. LEFT THE SCHEDULE on 2026-09-14 (project decision): they are
 # not re-elicited on every run, and the axes panel keeps drawing the newest
 # complete axes date. To re-elicit one by hand on this box:
-#     "$PY" code/run_unified.py --joint --repeats 1 --workers 2 \
-#         --scenarios data/axes_conditions.json
-# (rows go to results/conditional_runs_<slug>.jsonl and results/<slug>_runs/,
-# never into results/runs/), then audit that date with
-# code/validate_launch_run.py --sets axes and run code/publish_dashboard.sh.
+#     "$PY" code/run_unified.py --experiment axes --workers 2
+# (experiments/axes.toml, or paperaxes; rows go to
+# results/conditional_runs_<slug>.jsonl and results/<slug>_runs/, never into
+# results/runs/), then audit that date with
+# code/validate_launch_run.py --experiments axes and run code/publish_dashboard.sh.
 
 # Republish the dashboard with the new data point. A publish failure must not
 # mask the successful run above — log it and carry on.
@@ -239,31 +239,10 @@ fi
 FINISHED=1
 notify "AIRO run $STAMP published" "$(grep -E 'ok, [0-9]+ failed' "$LOG" | tail -1 | sed 's/ -> .*//'). Panel: $PANEL" low white_check_mark
 
-# THE SHADOW (2026-10-14): the same instrument, same panel, same day, through
-# the OTHER loop (code/run_unified.py --harness; the set names its own: pi
-# since combined-v9, redlines.llm's litellm before). An experiment, never the
-# series: rows go to results/experiments/<harness>-shadow-*, protocol
-# "<protocol>+<harness>". Then code/compare_harness.py prints the two runs
-# cell by cell, beside the previous run as the published loop's own spread.
-# Off unless the env file sets REDLINES_SHADOW_HARNESS (litellm or pi). The
-# pi loop needs agent-box in PY (`pip install -e '.[pi]'`), and in the env
-# file FORECASTER_PI (pi 0.99.2's cli.js) and a PATH with node on it (cron's
-# own PATH has none) -- for the published run as much as for a shadow. It
-# runs after publication and can only notify: the published run is done.
-shadow() {
-    local h="$1" runs="$REPO/results/conditional_runs_combined" base prev other
-    base="$(ls "$runs"/*.jsonl | sort | tail -1)"
-    prev="$(ls "$runs"/*.jsonl | sort | tail -2 | head -1)"
-    echo "=== $h shadow: the instrument through $h; the published run is $base ==="
-    "$PY" code/run_unified.py --joint --repeats 1 --workers 2 --harness "$h" \
-        --experiment "$h-shadow" --scenarios data/combined_conditions.json || return 1
-    other="$(ls "$REPO"/results/experiments/"$h"-shadow-*-instrument.jsonl | sort | tail -1)"
-    "$PY" code/compare_harness.py --base "$base" --other "$other" --prev "$prev" | tee "${other%.jsonl}.compare.txt"
-}
-if [ -n "${REDLINES_SHADOW_HARNESS:-}" ]; then
-    if shadow "$REDLINES_SHADOW_HARNESS"; then
-        notify "AIRO $REDLINES_SHADOW_HARNESS shadow $STAMP done" "$(sed -n 2,6p "$(ls "$REPO"/results/experiments/"$REDLINES_SHADOW_HARNESS"-shadow-*.compare.txt | sort | tail -1)")" low
-    else
-        notify "AIRO $REDLINES_SHADOW_HARNESS shadow $STAMP FAILED" "The published run is unaffected. log: $LOG" default warning
-    fi
-fi
+# THE SHADOW (2026-10-14 to 2026-10-21) ran the published instrument a second
+# time through the other loop, after publication, when the env file set
+# REDLINES_SHADOW_HARNESS. It has had no run to make since combined-v10: the
+# minimal instrument runs only through pi, the published loop. A loop
+# comparison is now an experiment of its own (experiments/<name>.toml, a
+# condition with another `harness`, publish = false), compared with
+# code/compare_harness.py.

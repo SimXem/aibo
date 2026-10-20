@@ -29,7 +29,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 from redlines.conditional import summarize          # noqa: E402
 from redlines.views.capability import _trend        # noqa: E402
-from redlines.logs import log_exists, log_files  # noqa: E402
+from redlines.logs import iter_rows, log_exists  # noqa: E402
 
 R = os.path.join(ROOT, "results")
 SETS = {
@@ -60,14 +60,10 @@ def load(name, day):
     for p in paths:
         if not log_exists(p):
             continue
-        for f in (open(fp) for fp in log_files(p)):
-            for line in f:
-                if not line.strip():
-                    continue
-                r = json.loads(line)
-                if r.get("protocol") == proto and r["elicited_at"][:10] == day \
-                        and isinstance(r.get("forecasts"), list):
-                    rows.append(r)
+        for r in iter_rows(p):
+            if r.get("protocol") == proto and r["elicited_at"][:10] == day \
+                    and isinstance(r.get("forecasts"), list):
+                rows.append(r)
     if name == "eci_top4":
         rows = [r for r in rows if r["label"] in ECI_TOP4]
     return rows, json.load(open(set_path))
@@ -106,7 +102,7 @@ def main():
         S[name] = summarize(rows, policies=spec, horizons=hz)
         calls[name] = {}
         for r in rows:
-            if r.get("condition") is None:
+            if r.get("scenario") is None:
                 calls[name].setdefault(r["label"], set()).add(r["call_id"])
     for name, c in calls.items():
         print(f"{name:12} " + ", ".join(f"{l} x{len(v)}" for l, v in sorted(c.items())))
@@ -121,7 +117,7 @@ def main():
         out = {}
         for r in rows:
             e = (r.get("elicited") or {}).get("eci_forecast")
-            if e and r.get("condition") is None:
+            if e and r.get("scenario") is None:
                 out.setdefault(r["label"], {})[r["call_id"]] = e
         return {l: {k: st.median(v[k] for v in c.values()) for k in ("p25", "p50", "p75")} for l, c in out.items()}
     ef = {n: eci_forecasts(n) for n in ("combined", "eciself") if n in S}

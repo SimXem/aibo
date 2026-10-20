@@ -36,7 +36,7 @@ class TestDownloads(unittest.TestCase):
         self.assertEqual(len(f), n)
         self.assertEqual(len(r), m)
         self.assertEqual(list(r[0]), export.RATIONALE_COLUMNS)
-        key = lambda d: (d["call_id"], d["question_id"], d["condition"])  # noqa: E731
+        key = lambda d: (d["call_id"], d["question_id"], d["scenario"])  # noqa: E731
         rkeys = {key(d) for d in r}
         self.assertEqual(len(rkeys), len(r), "one rationale line per call x question x scenario")
         missing = {key(d) for d in f} - rkeys
@@ -67,11 +67,11 @@ class TestDownloads(unittest.TestCase):
         for must in ("README.md", "forecasts.csv", "rationales.csv",
                      "raw/forecast_runs_unified.jsonl",
                      "raw/legacy-forecasts/forecast_runs.jsonl", "questions/autoarc_ladder.json",
-                     "conditions/combined_conditions.json"):
+                     "scenarios/combined_conditions.json"):
             self.assertIn(must, names)
         self.assertTrue(any(n.startswith("raw/runs/") and n.endswith(".jsonl") for n in names))
         self.assertTrue(any(n.startswith("raw/conditional_runs_combined/") and n.endswith(".jsonl") for n in names))
-        self.assertTrue(any(n.startswith("conditions/epoch_capabilities_index_") for n in names))
+        self.assertTrue(any(n.startswith("scenarios/epoch_capabilities_index_") for n in names))
         for col in export.COLUMNS + export.RATIONALE_COLUMNS:
             self.assertIn(col, readme)
 

@@ -1,0 +1,10 @@
+# The paper's axes figure: the axes instrument on the paper's quantities
+# (data/paper_axes_conditions.json, code/make_axis_conditions.py). Re-elicited
+# by hand, like experiments/axes.toml; its rows go to
+# results/conditional_runs_paperaxes.jsonl and results/paperaxes_runs/.
+
+scenarios = "data/paper_axes_conditions.json"
+publish = true
+pooled = ["none"]
+
+[conditions.none]

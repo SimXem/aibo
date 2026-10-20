@@ -280,7 +280,7 @@ def _repeats(rows):
     """How many times each model answered unconditionally -- the noise's n."""
     calls = {}
     for r in rows:
-        if not r.get("condition"):
+        if not r.get("scenario"):
             calls.setdefault(r["label"], set()).add(r.get("call_id") or r.get("arm"))
     return {l: len(c) for l, c in calls.items()}
 

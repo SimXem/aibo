@@ -6,9 +6,24 @@ one <run_id>.jsonl per run. A single growing file passed GitHub's 100 MB
 limit with the 2026-09-18 run (every row carries its call's rationale and
 sources). Callers keep passing the .jsonl name; these helpers resolve it. A
 path that is an actual file (an experiment's own log) is read as it is.
+
+THE SCENARIO FIELDS. A row names the scenario its probabilities are
+conditional on `scenario` (None for the unconditional), the set it came from
+`scenario_set`, and its call's whole list `joint_scenarios`. Rows written
+before 2026-10-21 use the prompt's and LEAP's word for all three
+(`condition`, `condition_set`, `joint_conditions`), from before `condition`
+came to mean the configured way a call is run (redlines.experiments). read_row
+gives an old row the new names, so every reader sees one shape; the files on
+disk are records and are never rewritten. An old row's condition is its
+prompt variant ("none" before the variants): until 2026-10-21 a variant was
+all that set one call of a run apart from another, and the airo experiment's
+conditions are named after them.
 """
 import json
 from pathlib import Path
+
+LEGACY_FIELDS = {"condition": "scenario", "condition_set": "scenario_set",
+                 "joint_conditions": "joint_scenarios"}
 
 
 def shard_dir(path):
@@ -29,12 +44,23 @@ def log_exists(path):
     return bool(log_files(path))
 
 
+def read_row(line):
+    """One JSON line -> a row in the current shape (LEGACY_FIELDS)."""
+    row = json.loads(line)
+    if "scenario" not in row and "condition" in row:
+        for old, new in LEGACY_FIELDS.items():
+            if old in row:
+                row[new] = row.pop(old)
+        row["condition"] = row.get("variant") or "none"
+    return row
+
+
 def iter_rows(path):
     for f in log_files(path):
         with open(f) as fh:
             for line in fh:
                 if line.strip():
-                    yield json.loads(line)
+                    yield read_row(line)
 
 
 def run_file(path, run_id):
