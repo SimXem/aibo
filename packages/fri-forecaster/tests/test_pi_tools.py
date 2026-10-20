@@ -86,18 +86,20 @@ class ScriptedModel:
         """The tools declared in request n (1-based)."""
         return {t["function"]["name"] for t in self.requests[n - 1].get("tools") or []}
 
-    def last_user(self, n):
-        """The text of the last user message in request n (1-based)."""
-        msg = [m for m in self.requests[n - 1]["messages"] if m.get("role") == "user"][-1]
+    def text(self, n, *roles):
+        """The text of the last message with one of these roles in request n (1-based)."""
+        msg = [m for m in self.requests[n - 1]["messages"] if m.get("role") in roles][-1]
         content = msg["content"]
         return content if isinstance(content, str) else "".join(p.get("text", "") for p in content)
+
+    def last_user(self, n):
+        """The text of the last user message in request n (1-based)."""
+        return self.text(n, "user")
 
     def tool_result(self, n):
         """The tool result the model saw at the start of request n (1-based):
         the answer to the call it made in turn n-1."""
-        msg = [m for m in self.requests[n - 1]["messages"] if m.get("role") == "tool"][-1]
-        content = msg["content"]
-        return content if isinstance(content, str) else "".join(p.get("text", "") for p in content)
+        return self.text(n, "tool")
 
     def close(self):
         self.server.shutdown()
@@ -207,6 +209,21 @@ class PiToolsTest(PiCase):
         self.assertEqual(res["rc"], 0, open(os.path.join(res["workdir"], "stderr.txt")).read())
         self.assertEqual(model.last_user(1), prompt.strip())   # verbatim but for pi's trim
         self.assertEqual(open(os.path.join(res["workdir"], "prompt.txt")).read(), prompt)
+
+    def test_a_system_prompt_past_the_argv_limit_reaches_the_model(self):
+        """The system prompt goes in a file: a survey shared across calls, for
+        the provider to cache, is past 128 KiB (2026-10-20)."""
+        system = "The survey.\n" + "".join(f"=== G{i:04d} ===\nWhat will it be?\n" for i in range(6000))
+        self.assertGreater(len(system.encode()), 131072)
+        res, model = self.run_pi([
+            ("submit_forecast", {"forecasts": [{"k": "a", "probability": 0.4}, {"k": "b", "probability": 0.6}],
+                                 "rationale": "r"}),
+            "done",
+        ], system=system, research_tools=(), min_research=0, cells_tool=False,
+           tool_descriptions={"submit_forecast": "f"})
+        self.assertEqual(res["rc"], 0, open(os.path.join(res["workdir"], "stderr.txt")).read())
+        self.assertTrue(model.text(1, "system", "developer").startswith(system))   # pi appends its <cwd> section
+        self.assertEqual(model.last_user(1), "P")
 
 
 SEARCH_WITH_CAUSE = {"type": "object", "required": ["query", "cause"],

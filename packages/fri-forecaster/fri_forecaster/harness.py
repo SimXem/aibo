@@ -102,19 +102,22 @@ def pi_version(pi=DEFAULT_PI):
         return None
 
 
-# The prompt goes to pi on STDIN, never as an argument. Linux hands one
-# argument at most 128 KiB (MAX_ARG_STRLEN), and AIRO's joint prompt passed
-# that on 2026-10-19; pi reads piped stdin as its first prompt, verbatim but
-# for surrounding whitespace (it trims), so what the model reads and prompt.txt
-# differ by at most a trailing newline. Callers can check this flag before
-# sending a prompt that would not fit an argument. (The same cap is why a
-# debrief validator's value reaches tool_cli on stdin: pi_tools.ts.)
+# The prompt goes to pi on STDIN and the system prompt as a file, never as
+# arguments. Linux hands one argument at most 128 KiB (MAX_ARG_STRLEN): AIRO's
+# joint prompt passed that on 2026-10-19, and so can a long system prompt
+# shared across calls for the provider to cache. pi reads piped stdin as its
+# first prompt, verbatim but for surrounding whitespace (it trims), so what the
+# model reads and prompt.txt differ by at most a trailing newline; given a path
+# that exists, `--system-prompt` reads the file (system.txt) as is. Callers can
+# check this flag before sending a prompt that would not fit an argument. (The
+# same cap is why a debrief validator's value reaches tool_cli on stdin:
+# pi_tools.ts.)
 PROMPT_ON_STDIN = True
 
 
-def pi_command(model, system, *, thinking="high", pi=DEFAULT_PI):
+def pi_command(model, system_file, *, thinking="high", pi=DEFAULT_PI):
     return pi_argv(pi) + ["-p", "--mode", "json", *ISOLATION, "-e", EXT,
-                          "--model", model, "--thinking", thinking, "--system-prompt", system]
+                          "--model", model, "--thinking", thinking, "--system-prompt", system_file]
 
 
 def new_attempt_dir(workdir):
@@ -245,8 +248,9 @@ def _call(*, model, system, prompt, workdir, cell_schema, key_fields, allowed_ke
                research_tools=research_tools, final_extra=final_extra, cells_tool=cells_tool,
                tool_parameters=tool_parameters, **loop)
     open(os.path.join(workdir, "prompt.txt"), "w").write(prompt)
-    open(os.path.join(workdir, "system.txt"), "w").write(system)
-    cmd = pi_command(model, system, thinking=thinking, pi=pi)
+    system_file = os.path.abspath(os.path.join(workdir, "system.txt"))  # pi may run in another cwd
+    open(system_file, "w").write(system)
+    cmd = pi_command(model, system_file, thinking=thinking, pi=pi)
     full_env = dict(env, FORECASTER_OUT=workdir, FORECASTER_PY=sys.executable)
     t0 = datetime.now(timezone.utc)
     events_path = os.path.join(workdir, "events.jsonl")
