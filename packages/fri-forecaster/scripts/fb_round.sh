@@ -29,10 +29,7 @@ export PI_CODING_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.config/fri-forecaster/
 mkdir -p "$ROOT/logs" "$PI_CODING_AGENT_DIR"
 
 # The submissions, in set-number order, are the registry's conditions.
-# names.py refuses if the code no longer matches a name's registered
-# configuration.
 SETS=($("$PY" -m fri_forecaster.names conditions)) || exit 3
-for c in "${SETS[@]}"; do "$PY" -m fri_forecaster.names current "$c" >/dev/null || exit 3; done
 
 log() { echo "$(date -u +%FT%TZ) $*" | tee -a "$ROOT/logs/round.log"; }
 
@@ -45,23 +42,18 @@ until curl -fsI "$URL" >/dev/null 2>&1; do
 done
 log "question set is up"
 
-# Every condition runs the top N models by ECI, N its member count: warn
-# (never block) if the latest ranking says otherwise. The ranking comes from
-# eci_ranked, a function round.env may define (model names, best first); without
-# one, fri_forecaster.eci fetches Epoch's published index and ranks it.
-ECI_RANKED="$(declare -F eci_ranked >/dev/null && eci_ranked 2>/dev/null || "$PY" -m fri_forecaster.eci --fetch --names 2>/dev/null)"
-eci_check() {  # condition
-  local names n ours want
-  names="$("$PY" -m fri_forecaster.names eci "$1" | sort)"
-  n="$(echo "$names" | wc -l | tr -d ' ')"
-  ours="$(echo "$names" | paste -sd, -)"
-  want="$(echo "$ECI_RANKED" | head -n "$n" | sort | paste -sd, -)"
-  if [[ -z "$ECI_RANKED" ]]; then echo "ECI check: no ranking (eci_ranked undefined or failed)"
-  elif [[ "$want" == "$ours" ]]; then echo "ECI check: $1 is the current top $n ($ours)"
-  else echo "ECI WARNING: $1 runs [$ours] but the latest top $n is [$want]"; fi
-}
-ECI_NOTE="$(for c in "${SETS[@]}"; do eci_check "$c"; done)"
-while read -r line; do log "$line"; done <<< "$ECI_NOTE"
+# The panel: the models this machine can run, best by ECI first, as the hook
+# `panel_members` prints them (round.env; `<Epoch name> TAB <pi id> TAB <lab>`
+# per line; AIRO's `python -m redlines.registry` is one). names.py registers
+# the next place for a condition whose members are not the panel's top N or
+# whose code drifted, so a round never runs a stale ensemble and never waits
+# for a hand step. Without a hook the ranking is Epoch's published index,
+# names only: a moved top N is then logged, not registered.
+PANEL="$(declare -F panel_members >/dev/null && panel_members 2>>"$ROOT/logs/round.log" \
+         || "$PY" -m fri_forecaster.eci --fetch --names 2>/dev/null)"
+SYNC_NOTE="$("$PY" -m fri_forecaster.names sync <<< "$PANEL")" || { log "names sync failed: $SYNC_NOTE"; exit 3; }
+while read -r line; do log "$line"; done <<< "$SYNC_NOTE"
+for c in "${SETS[@]}"; do "$PY" -m fri_forecaster.names current "$c" >/dev/null || exit 3; done
 
 run_member() {  # a names.py member spec: MODEL@THINKING,research|noresearch
   local spec="$1" model thinking flag
@@ -101,7 +93,7 @@ for c in "${SETS[@]}"; do
 done
 
 { echo "ForecastBench round $DUE${TAG:+ ($TAG)} on $(hostname), $(date -u +%FT%TZ)"
-  echo "$ECI_NOTE"
+  echo "$SYNC_NOTE"
   grep -h "complete\|ready\|NOT READY\|forecasts from" "$ROOT/logs/build.log"
   echo; echo "API cost by member:"
   for f in "$ROOT"/members/*/results.jsonl; do
