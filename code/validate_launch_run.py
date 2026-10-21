@@ -228,9 +228,6 @@ def main():
                                 for rung in rungs:
                                     ordered((label,v,f'ladder:{cause}:{rung}:{leg}',c,h),
                                             (label,v,f'ladder:ai:{rung}:{leg}',c,h), 'subtype_within_ai')
-                        for rung in rungs:   # the damages question contains the deaths question
-                            ordered((label,v,f'ladder:{cause}:{rung}:deaths',c,h),
-                                    (label,v,f'ladder:{cause}:{rung}:damages',c,h), 'deaths_within_damages')
         # 4 x 6 = 24 calls under airo's six conditions; the unpooled ones
         # count where they answered, and are listed as missing where not.
         report['experiments'][name] = {'scenario_set': slug, 'file_sha256': hashlib.sha256(raw).hexdigest(),

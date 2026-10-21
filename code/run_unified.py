@@ -55,7 +55,7 @@ Composition (Auto-ARC set, 2026-08-18):
 
 Each question carries its own RESOLUTION CRITERIA into the prompt. Bridget's
 definitions hold the measurement window, the but-for standard, what counts as
-excess mortality, the QALY conversion and the value of a statistical life
+excess mortality, the QALY conversion and what counts as economic damages
 — none of it stated in the question text, all of it changing the answer. The
 retired set had no criteria to send, so this is new.
 
@@ -696,7 +696,7 @@ def build_prompt(groups, by_group, horizons, spec, today=None):
 
     The criteria are new here. Bridget's definitions carry the measurement
     window, the but-for standard, what counts as excess mortality, the QALY
-    conversion and the value of a statistical life — none of which the
+    conversion and what counts as economic damages — none of which the
     question text states, and all of which change the answer. Before the swap
     the runner sent bare question text because the retired set had no criteria
     to send.

@@ -384,7 +384,7 @@ function LiveGraph2Current({ onDefinitions }) {
         ))}
         <QuestionBox q={{ text: "What is the probability that one or more [incident: AI-related incident / AI-related human-caused epidemic / AI-related cyber incident / misaligned AI incident] cumulatively causes [severity: the death of more than X million people (or equivalent morbidity) — or, as a separate question, $Y in economic damages] by [date: each of the following resolution years]?" }} />
         <p style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-soft)", margin: "8px 0 0" }}>
-          Each curve shows forecasts from asking the ensemble model to predict the likelihood of one or more qualifying incidents of the given severity level and time horizon. Severity is asked on two separate ladders, each rung its own question: deaths (or equivalent morbidity), and economic damages. Because the resolution criteria count monetized mortality toward economic damages, an incident that reaches a death threshold also reaches the matching dollar threshold, so the damages curve should sit at or above the deaths curve at every rung; whether it does is measured, not imposed. Event types are not exclusive, so an event could fit multiple categories. That is why the sub-event types do not necessarily sum to the overall forecast.
+          Each curve shows forecasts from asking the ensemble model to predict the likelihood of one or more qualifying incidents of the given severity level and time horizon. Severity is asked on two separate ladders, each rung its own question: deaths (or equivalent morbidity), and economic damages. Event types are not exclusive, so an event could fit multiple categories. That is why the sub-event types do not necessarily sum to the overall forecast.
         </p>
         <details style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-soft)", marginTop: 6 }}>
           <summary style={{ cursor: "pointer" }}>Time windows and reference markers</summary>
@@ -417,7 +417,7 @@ function LiveCoherence({ embedded }) {
   const G2 = window.__GRAPH2__;
   const A = G2 && G2.audit && G2.audit.n ? G2.audit : null;
   if (!A) return null;
-  // Three rows, from the blob (audit.rows). CROSS, BRACKET and LEG are pooled
+  // Three rows, from the blob (audit.rows). CROSS and BRACKET are pooled
   // into SUBSET there — they are special-case orderings too — so the rows
   // still sum to the headline. Copy: project decision, 2026-08-27; the
   // earlier intro ("no resolution required", "measured, not imposed") is in

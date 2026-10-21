@@ -8,10 +8,10 @@ TWO LADDERS SINCE 2026-10-19 (Ezra Karger: separate deaths and damages). Every
 rung used to be one question resolving on deaths OR damages; it is now two,
 one resolving on deaths (or equivalent morbidity) and one on economic damages,
 so the panel is two charts -- a deaths ladder and a damages ladder -- each with
-its own axis, rung ticks and historical marks (`legs`). The Severity
-definitions count monetized mortality toward damages, so the damages question
-contains the deaths question at every rung; that ordering is one of the
-constraints audited below (LEG), never imposed.
+its own axis, rung ticks and historical marks (`legs`). Since 2026-10-21
+damages exclude monetized mortality, so the two ladders measure different
+harms and neither bounds the other (until then the damages question contained
+the deaths question, and the audit checked it as LEG).
 
 Cyber is on both ladders. It was held out by design while the axis was
 deaths-only (per the paper's lead author, 2026-08-03: cyber belongs on a
@@ -92,7 +92,7 @@ DISPLAY_ROWS = (
     ("LADDER", ("LADDER",),
      "The probability of reaching a higher severity threshold is never higher than "
      "the probability of reaching a lower one."),
-    ("SUBSET", ("SUBSET", "CROSS", "BRACKET", "LEG"),
+    ("SUBSET", ("SUBSET", "CROSS", "BRACKET"),
      "Some questions are special cases of another, and a special case can "
      "never be likelier than the general one."),
 )
@@ -269,12 +269,11 @@ def build(source_rows=None, include_history=True):
             # (question-set author, 2026-08-19: the old titles — "P non-decreasing
             # over time" — explained nothing to a reader who is not already us;
             # project lead, 2026-08-27: CROSS and BRACKET were not intuitive either).
-            # Those, and LEG, ARE special-case orderings — an epidemic is one
-            # kind of AI-related incident, a 10%-of-population catastrophe is
-            # one way to pass the 100M rung, a death toll is one way to reach
-            # a dollar figure — so their pairs fold into the SUBSET row rather
-            # than vanishing. The headline above stays the whole audit;
-            # byConstraint keeps the six-way split for the paper and for
+            # Those ARE special-case orderings — an epidemic is one kind of
+            # AI-related incident, a 10%-of-population catastrophe is one way
+            # to pass the 100M rung — so their pairs fold into the SUBSET row
+            # rather than vanishing. The headline above stays the whole audit;
+            # byConstraint keeps the five-way split for the paper and for
             # tests/test_coherence.py.
             "rows": _display_rows(res),
         },

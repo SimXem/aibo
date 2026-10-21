@@ -373,10 +373,11 @@ Columns worth knowing:
   archived question text. No other unstamped protocol receives that mapping.
   legacy-unversioned means no version was established; it does not
   imply that the row answered today's definitions. Current dashboard series
-  include only the current version (airo-incidents-prospective-v2 since
-  2026-10-19, when every severity rung became a deaths question and a damages
-  question) and start anew at each change; every earlier version's generated
-  questions are under questions/instruments/<version>/.
+  include only the current version (airo-incidents-prospective-v3 since
+  2026-10-21, when economic damages stopped counting monetized mortality; v2,
+  from 2026-10-19, split every severity rung into a deaths question and a
+  damages question) and start anew at each change; every earlier version's
+  generated questions are under questions/instruments/<version>/.
 - question: the recorded question text, or the version-matched current
   specification. Blank on legacy rows whose exact wording was not recorded;
   archived definitions are supplied separately and must not be assumed to

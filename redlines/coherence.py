@@ -15,10 +15,6 @@ Constraints:
   LADDER     Within a cause and a leg, P must not rise as the threshold rises.
   CROSS      No specific cause may exceed "any AI-related incident" at the
              same rung of the same leg.
-  LEG        At every rung the damages question contains the deaths question
-             (relations.legs): the Severity definitions count monetized
-             mortality at the stated VSL toward economic damages, so reaching
-             the death threshold reaches the dollar threshold.
   BRACKET    A cross-cutting question sits at a threshold on a ladder; its
              probability must sit on the correct side of that rung. The wording
              is not identical to the ladder's, so only the side the wording
@@ -59,7 +55,7 @@ LADDER_SPEC = REPO_ROOT / "data" / "autoarc_ladder.json"
 # prompt states no relation at all, so every rate below measures the models
 # rather than repeating our own instruction back to us.
 
-CONSTRAINTS = ("HORIZON", "LADDER", "CROSS", "LEG", "BRACKET", "SUBSET")
+CONSTRAINTS = ("HORIZON", "LADDER", "CROSS", "BRACKET", "SUBSET")
 
 EPS = 1e-9
 
@@ -161,33 +157,16 @@ def audit(P, spec=None, labels=None, horizons=None):
                                 continue
                             yield v <= t + EPS, f"{lab} {c} {r} {leg} {h}: {v:g} > {top} {t:g}"
 
-    def leg_cases():
-        """At every rung the damages question contains the deaths question
-        (relations.legs; the reason is in the spec, not here)."""
-        pair = rel.get("legs")
-        if not pair:
-            return
-        for c in causes:
-            for r in rungs:
-                for lab in labels:
-                    for h in horizons:
-                        a = lad(c, r, pair["contained"], lab, h)
-                        b = lad(c, r, pair["container"], lab, h)
-                        if a is None or b is None:
-                            continue
-                        yield a <= b + EPS, (f"{lab} {c} {r} {h}: {pair['contained']}={a:g} > "
-                                             f"{pair['container']}={b:g}")
-
     def bracket_cases():
         """A cross-cutting question against the ladder rung that contains it.
 
         One side only, and the data says which -- the rung AND the leg. The AI
         catastrophe question is 10% of population, about 820M deaths, which
-        sits BETWEEN the 100M and 1B rungs. The >=100M rung is a strictly
-        easier event on both legs (on damages because monetized mortality
-        counts toward them), so it bounds the question; the >=1B rung does not
-        on either leg. Checking the side the wording does not license would
-        manufacture violations out of our own carelessness.
+        sits BETWEEN the 100M and 1B rungs. The >=100M deaths rung is a
+        strictly easier event, so it bounds the question; the >=1B rung does
+        not. (The damages leg bounded it too until 2026-10-21, while damages
+        counted lost lives.) Checking the side the wording does not license
+        would manufacture violations out of our own carelessness.
         """
         for b in rel["bracket"]:
             for lab in labels:
@@ -214,7 +193,6 @@ def audit(P, spec=None, labels=None, horizons=None):
         "HORIZON": _tally(horizon_cases()),
         "LADDER": _tally(ladder_cases()),
         "CROSS": _tally(cross_cases()),
-        "LEG": _tally(leg_cases()),
         "BRACKET": _tally(bracket_cases()),
         "SUBSET": _tally(subset_cases()),
     }

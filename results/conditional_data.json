@@ -1,7 +1,7 @@
 {
   "title": "Forecasts conditional on LEAP Wave 12 policies",
   "instrumentInfo": {
-    "version": "airo-incidents-prospective-v2",
+    "version": "airo-incidents-prospective-v3",
     "available": false,
     "runDate": null,
     "countingWindows": {}
@@ -110,7 +110,7 @@
     "2050"
   ],
   "defaultHorizon": "2030",
-  "protocol": "unified-joint-combined-v11",
+  "protocol": "unified-joint-combined-v12",
   "instrument": {
     "log": "results/conditional_runs_combined.jsonl",
     "set": "data/combined_conditions.json",

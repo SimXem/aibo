@@ -212,13 +212,14 @@ class TestInstrumentViews(unittest.TestCase):
         paths = dict(export._bundle_members())
         self.assertIn('questions/instruments/legacy-2026-08-31/autoarc_ladder.json', paths)
         self.assertIn('questions/instruments/airo-incidents-prospective-v1/autoarc_ladder.json', paths)
+        self.assertIn('questions/instruments/airo-incidents-prospective-v2/autoarc_ladder.json', paths)
         self.assertIn('questions/sources/definitions-2026-09-10.md', paths)
 
     def test_prompt_is_explicitly_preview_or_recorded(self):
         with patch.object(method, 'load_runlog', return_value=self.old):
             preview = method.build()
         self.assertFalse(preview['promptRecorded'])
-        self.assertEqual(preview['today'], '2026-09-10')
+        self.assertEqual(preview['today'], '2026-10-21')   # the current definitions' date
         row = copy.deepcopy(self.new[0]);row['prompt'] = 'Exact recorded new prompt';row['prompt_sha256'] = 'example-hash'
         with patch.object(method, 'load_runlog', return_value=[row]):
             recorded = method.build()

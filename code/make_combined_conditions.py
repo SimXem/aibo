@@ -122,6 +122,15 @@ questions, 246 -> 438 cells, 6,132 probabilities a call. Asked by Ezra Karger
 the tag moves because the grid a model answers beside these scenarios did.
 First scheduled run under v11: the first cron run after the box carries this code.
 
+v11 -> v12 on 2026-10-21: DAMAGES WITHOUT MORTALITY. Economic damages no longer
+count monetized mortality (no value of a statistical life), so the damages
+question measures economic losses only and no longer contains the deaths
+question (redlines.instrument.CURRENT_INSTRUMENT airo-incidents-prospective-v3;
+docs/damages-without-mortality-2026-10-21.md). Thresholds and the grid are
+v11's. Nothing in this file changed; the tag moves because the criteria a model
+answers beside these scenarios did. First scheduled run under v12: the first
+cron run after the box carries this code.
+
 v5 -> v6 on 2026-09-15: THE EXTINCTION PAIR. Two cross-cutting questions in
 XPT's wording (human extinction, AI extinction: data/auto-arc/
 addendum-extinction-2026-09-15.json, docs/extinction-questions-2026-09-15.md)
@@ -142,7 +151,7 @@ CAP = os.path.join(ROOT, "data", "eci_self6mo_conditions.json")
 OUT = os.path.join(ROOT, "data", "combined_conditions.json")
 
 SLUG = "combined"
-PROTOCOL = "unified-joint-combined-v11"
+PROTOCOL = "unified-joint-combined-v12"
 # How the set is asked -- the loop, the minimal instrument, the five prompts
 # and the sixth call -- lives in experiments/airo.toml since 2026-10-21
 # (redlines/experiments.py); this file builds what is asked.

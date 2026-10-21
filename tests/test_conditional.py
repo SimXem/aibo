@@ -425,7 +425,10 @@ class TestScenarioSets(unittest.TestCase):
     LEAP_PROMPT_SHA_2026_10_19_V10 = "5f9f47b8c3c25dec3e6f35b255e9494bc9fdac4debe05c4b9225e28d9dc4fef0"
     # 2026-10-19 evening: every rung a deaths question and a damages question, each
     # group's criteria printed once (docs/severity-legs-2026-10-19.md).
-    LEAP_PROMPT_SHA_CURRENT = "19252244951477fad4c91df778f8027de7245b74ec68fa1fbec3dbdeb10aab28"
+    LEAP_PROMPT_SHA_2026_10_19_V11 = "19252244951477fad4c91df778f8027de7245b74ec68fa1fbec3dbdeb10aab28"
+    # 2026-10-21: economic damages no longer count monetized mortality
+    # (docs/damages-without-mortality-2026-10-21.md). Tag combined-v12.
+    LEAP_PROMPT_SHA_CURRENT = "3e063402091cac17568ff423ba090a0482e12419aa2451d120415d75b5032f08"
     # The archived 2026-08-31 definitions rendered by the CURRENT template
     # (test_archived_definitions_reproduce_the_old_prompt): stable while the
     # archive is untouched; moves whenever the template does, as on 2026-09-15
@@ -725,7 +728,7 @@ class TestCombinedSet(unittest.TestCase):
                          [c["id"] for c in self.leap["conditions"]] + [c["id"] for c in self.es["conditions"]])
         self.assertEqual([g["key"] for g in cb["groups"]], ["policy", "capability"])
         self.assertEqual([c["group"] for c in cb["conditions"]], ["policy"] * 8 + ["capability"] * 5)
-        self.assertEqual(self.ru.set_protocol(cb), "unified-joint-combined-v11")   # October 19 evening: the severity legs; October 16: the pi loop; October 1: the pair unnamed; September 15: the extinction pair (v5 = September 10 counting version)
+        self.assertEqual(self.ru.set_protocol(cb), "unified-joint-combined-v12")   # October 21: damages without mortality; October 19 evening: the severity legs; October 16: the pi loop; October 1: the pair unnamed; September 15: the extinction pair (v5 = September 10 counting version)
         self.assertEqual(self.ru.set_slug(cb), "combined")
         self.assertNotIn(self.ru.set_protocol(cb), (self.ru.PROTOCOL_JOINT, self.ru.set_protocol(self.es)))
         self.assertEqual(cb["elicit"], self.es["elicit"])
@@ -855,7 +858,7 @@ class TestGroupedSetOnTheTabs(unittest.TestCase):
         self.assertEqual(pol["source"]["panel"], "LEAP")
         self.assertIn("eci_p50", pol["conditioning"]["assumption"])
         self.assertEqual(pol["slug"], "combined")                       # the log is still the combined one
-        self.assertEqual(pol["protocol"], "unified-joint-combined-v11")
+        self.assertEqual(pol["protocol"], "unified-joint-combined-v12")
         cap = group_view(self.cb, "capability")
         self.assertEqual([c["field"] for c in cap["conditions"]], ["p10", "p25", "p50", "p75", "p90"])
         self.assertEqual(cap["conditioning"]["instruction"], self.es["conditioning"]["instruction"])
@@ -887,7 +890,7 @@ class TestGroupedSetOnTheTabs(unittest.TestCase):
                 self.assertEqual(view["questions"], [])
                 self.assertEqual(view["models"], [])
                 self.assertFalse(view["instrumentInfo"]["available"])
-                self.assertEqual(view["protocol"], "unified-joint-combined-v11")
+                self.assertEqual(view["protocol"], "unified-joint-combined-v12")
             return
         # Separate provider retries may have distinct run IDs but share the
         # single explicitly recorded elicitation date and incident windows.

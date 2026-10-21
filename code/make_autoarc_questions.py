@@ -61,7 +61,7 @@ from datetime import date
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SRC = os.path.join(ROOT, "data", "auto-arc")
 XLSX = os.path.join(SRC, "questions-2026-08-31.xlsx")
-DEFS = os.path.join(SRC, "definitions-2026-09-10.md")
+DEFS = os.path.join(SRC, "definitions-2026-10-21.md")
 # ADDENDA: questions added to the set AFTER her workbook, each in its own dated
 # file beside her two (data/auto-arc/addendum-<topic>-<date>.json). The first
 # is the extinction pair the project team asked for on 2026-09-15. An addendum is
@@ -266,25 +266,13 @@ def parse_year(raw):
 
 
 # Severity strings in the sheet look like
-#   "1,000 deaths (or equivalent morbidity) or $10 billion"
+#   "1,000 deaths (or equivalent morbidity) or $2.2 billion"
 # Both legs are parsed to numbers so nothing downstream ever reads a threshold
-# out of prose. The two legs sit at a constant ratio, which is exactly the
-# value of a statistical life the criteria state (stated_vsl), so the ladder
-# stays monotone whichever leg binds. $10M until the set's 2026-08-31 revision;
-# $2.2M since, which moved every dollar leg ("100 deaths or $220 million").
+# out of prose. The two legs sit at a constant 1:$2.2M ratio, so the two
+# ladders share rung positions. Until 2026-10-21 that ratio was the value of a
+# statistical life the damages criteria counted lost lives at; since then
+# damages exclude monetized mortality and the ratio is only a shared log scale.
 _MAG = {"million": 1e6, "billion": 1e9, "trillion": 1e12, "quadrillion": 1e15}
-
-
-def stated_vsl(defs):
-    """The value of a statistical life the Severity definitions state, in USD.
-    Parsed, never typed: it is the exchange rate between the two legs of every
-    rung, and the axis, the expected-loss unit and the historical-events layer
-    all read it from the ladder file this writes."""
-    block = defs.get("Severity options", {}).get("blocks", {}).get("Severity definitions", "")
-    m = re.search(r"value of a statistical life \(VSL\) of \$([\d.]+)\s*(million|billion)", block, re.I)
-    if not m:
-        raise SystemExit("the Severity definitions no longer state a VSL; the ladder's two legs have no exchange rate")
-    return float(m.group(1)) * _MAG[m.group(2).lower()]
 
 
 def parse_share(raw):
@@ -804,11 +792,8 @@ def build_ladder(rows, defs, addenda=()):
                 if rung["short"] == "1M" and leg["key"] == "deaths":
                     featured.append(qid)
 
-    vsl = stated_vsl(defs)
-    for r in rungs:
-        if r.get("damages_usd") is not None and abs(r["damages_usd"] - r["deaths"] * vsl) > 1.0:
-            raise SystemExit(f"rung {r['short']}: the workbook's dollar leg ({r['damages_usd']:g}) is not "
-                             f"deaths x the stated VSL ({r['deaths'] * vsl:g}); the two sources disagree")
+    # The legs' shared scale, read off the workbook's thresholds, never typed.
+    ratio = next(r["damages_usd"] / r["deaths"] for r in rungs if r.get("damages_usd") is not None)
     causes_out = [{**{k: v for k, v in c.items() if k != "def_key"},
                    "label": cause_label(defs, c)} for c in CAUSES]
     return {
@@ -832,23 +817,26 @@ def build_ladder(rows, defs, addenda=()):
                       "Karger the same day): every rung is asked as a deaths "
                       "question and a damages question; the earlier deaths-OR-"
                       "damages wording is archived under data/instruments/"
-                      "airo-incidents-prospective-v1/.",
+                      "airo-incidents-prospective-v1/. October 21 change accepted "
+                      "by Nick Merrill: economic damages no longer count monetized "
+                      "mortality, so the damages question no longer contains the "
+                      "deaths question; v2's wording is archived under "
+                      "data/instruments/airo-incidents-prospective-v2/.",
         },
         "notes": {
-            "vsl_usd": vsl,
             "severity_axis": "Each rung is asked as two questions, one resolving on "
                              "deaths (or equivalent morbidity) and one on economic "
                              "damages (since 2026-10-19; until then a rung resolved on "
-                             f"either). The two thresholds sit at a constant 1:{vsl:g} "
-                             f"ratio — the ${vsl / 1e6:g}M value of a statistical life the "
-                             "criteria state — so the two ladders share rung positions "
-                             "and each stays monotone and log-spaced.",
-            "legs": "The Severity definitions count monetized mortality, at the stated "
-                    "VSL, toward economic damages, so an incident reaching a rung's "
-                    "death threshold has by definition reached its dollar threshold: "
-                    "the damages question contains the deaths question at every rung "
-                    "(relations.legs), and the deaths-OR-damages question the set asked "
-                    "until 2026-10-19 was the damages question.",
+                             f"either). The two thresholds sit at a constant 1:{ratio:g} "
+                             "ratio, a shared log scale, so the two ladders share rung "
+                             "positions and each stays monotone and log-spaced.",
+            "legs": "Since 2026-10-21 the Severity definitions exclude monetized "
+                    "mortality from economic damages, so the two questions measure "
+                    "different harms and neither contains the other. Until then "
+                    "damages counted lost lives at a $2.2M value of a statistical "
+                    "life, which made the damages question contain the deaths "
+                    "question at every rung (data/instruments/"
+                    "airo-incidents-prospective-v2/).",
             "cyber": "Cyber's damages ladder is the one its 2026-08-03 note asked for "
                      "(cyber belongs on a DAMAGES ladder, not a deaths ladder); its "
                      "deaths ladder is asked alongside, as for every cause.",
@@ -921,14 +909,11 @@ def build_relations(rungs):
     CROSS   every specific incident type is contained in "any AI-related
             incident", per the set's definition of that class.
     BRACKET the AI catastrophe question (10% of population, ~820M deaths) is
-            contained in the >=100M rung of the AI ladder, on BOTH legs: on
-            deaths outright, and on damages because the Severity definitions
-            count monetized mortality at the stated VSL toward economic
-            damages (820M x $2.2M is above the rung's $220T). ONE SIDE ONLY:
-            the >=1B rung does not bound it on either leg.
-    LEGS    at every rung the damages question contains the deaths question,
-            for the same reason: reaching the death threshold monetizes to at
-            least the dollar threshold.
+            contained in the >=100M rung of the AI deaths ladder. ONE SIDE
+            ONLY: the >=1B rung does not bound it. Until 2026-10-21 it held on
+            the damages ladder too, and every rung's damages question
+            contained its deaths question (LEGS), because damages counted lost
+            lives at a $2.2M value of a statistical life; they no longer do.
     SUBSET  a global catastrophe caused by AI is a global catastrophe.
     """
     below = [r for r in rungs if r["deaths"] <= 0.10 * WORLD_POP]
@@ -940,19 +925,7 @@ def build_relations(rungs):
             {"narrower": "catastrophe:ai", "cause": "ai", "rung": bracket_rung, "leg": "deaths",
              "why": "10% of population (~820M) exceeds this rung's death threshold, "
                     "so the catastrophe question is strictly contained in it."},
-            {"narrower": "catastrophe:ai", "cause": "ai", "rung": bracket_rung, "leg": "damages",
-             "why": "the Severity definitions count monetized mortality at the stated "
-                    "VSL toward economic damages, so ~820M deaths also exceed this "
-                    "rung's dollar threshold and the catastrophe question is contained "
-                    "in it."},
         ],
-        "legs": {
-            "container": "damages", "contained": "deaths",
-            "why": "the Severity definitions count monetized mortality, at the stated "
-                   "VSL, toward economic damages, and each rung's dollar threshold is "
-                   "its death threshold times that VSL, so any incident reaching a "
-                   "rung's death threshold has reached its dollar threshold.",
-        },
         "subset": [
             {"narrower": "catastrophe:ai", "broader": "catastrophe:general",
              "why": "an AI-caused global catastrophe is a global catastrophe"},
