@@ -4,10 +4,7 @@
     "version": "airo-incidents-prospective-v2",
     "available": false,
     "runDate": null,
-    "countingWindows": {},
-    "change": "Each severity rung is now asked as two questions, one resolving on deaths (or equivalent morbidity) and one on economic damages, in place of one deaths-or-damages question. The entire joint forecast series starts anew because the questions are elicited together. Earlier forecasts remain in the download under their recorded instrument version or as unversioned legacy rows. Current charts require all four panel models on the same elicitation date.",
-    "windowChange": "Incident onset starts advance with each elicitation date, including for fixed-year deadlines. Changes across runs therefore reflect changing intervals as well as revised beliefs.",
-    "archiveUrl": "redlines-data.zip"
+    "countingWindows": {}
   },
   "latest": null,
   "grounding": "shared web search (Tavily) + Metaculus cross-check",

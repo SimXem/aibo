@@ -2,20 +2,10 @@
 function Panel({ children, style }) {
   return <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "var(--shadow)", ...style }}>{children}</div>;
 }
-function InstrumentNotice({ info, empty = false }) {
-  if (!info) return null;
-  return <details open={empty ? true : undefined} style={{ fontSize: 12.5, lineHeight: 1.5, color: "var(--ink-soft)", margin: "10px 0" }}>
-    <summary style={{ cursor: "pointer" }}>New forecast version: prospective incident counting</summary>
-    <p style={{ margin: "6px 0" }}>{info.change}</p>
-    <p style={{ margin: "6px 0" }}>{info.windowChange}</p>
-    <div>Version: <span className="mono">{info.version}</span>. <a href={info.archiveUrl} download>Download current and earlier versions</a></div>
-  </details>;
-}
-function ForecastUnavailable({ title, info, onDefinitions }) {
+function ForecastUnavailable({ title, onDefinitions }) {
   return <Panel style={{ padding: 24, marginBottom: 24 }}>
     <h2 style={{ fontSize: 22, margin: "0 0 8px" }}>{title}</h2>
     <p style={{ fontSize: 13.5, color: "var(--ink-soft)", margin: 0 }}>Awaiting a complete four-model run under the revised counting rules.</p>
-    <InstrumentNotice info={info} empty />
     {onDefinitions && <button className="linkbtn" onClick={onDefinitions}>Definitions →</button>}
   </Panel>;
 }

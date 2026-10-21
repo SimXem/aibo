@@ -267,8 +267,6 @@ def _prob_row(q, rail, by_day, days, horizons, var_meds=None):
         "value_kind": "probability", "horizons": horizons,
         "series": series, "median": median, "rerun": rerun, "ci": ci, **extra,
         "declined": dict(declined),
-        "display_note": ("GPT-6 Astra's first exploratory run (September 8) is omitted from this graph; its raw forecast remains in the archive and download."
-                          if q["id"] == "catastrophe:ai" else None),
     }
 
 

@@ -175,7 +175,7 @@ function EciTrendChart({ eci, variants, active, onPick }) {
 function CapabilityPanel({ onDefinitions }) {
   const variants = (CAP && CAP.variants || []).filter(v => v.questions && v.questions.length);
   if (!CAP || !variants.length) {
-    return <ForecastUnavailable title="Forecasts conditional on AI capability" info={CAP && CAP.instrumentInfo} onDefinitions={onDefinitions} />;
+    return <ForecastUnavailable title="Forecasts conditional on AI capability" onDefinitions={onDefinitions} />;
   }
   // ?cap=<variant>&q=<question id>&h=<horizon> deep-links a chart.
   const params = new URLSearchParams(typeof location !== "undefined" ? location.search : "");

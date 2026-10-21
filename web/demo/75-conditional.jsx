@@ -324,7 +324,7 @@ function CondText({ cond, conditioning, labels }) {
 
 function ConditionalPanel() {
   if (!COND || !COND.questions.length) {
-    return <ForecastUnavailable title="Forecasts conditional on policies" info={COND && COND.instrumentInfo} />;
+    return <ForecastUnavailable title="Forecasts conditional on policies" />;
   }
   // ?q=<question id>&h=<horizon> deep-links a chart.
   const params = new URLSearchParams(typeof location !== "undefined" ? location.search : "");
@@ -392,7 +392,6 @@ function ConditionalPanel() {
             </div>
             {showTable && <div style={{ marginTop: 12 }}><CondDeltaTable cell={cell} /></div>}
             {q.valueKind === "loss" && <CountingWindow info={COND.instrumentInfo} horizon={hz} />}
-            <InstrumentNotice info={COND.instrumentInfo} />
           </Panel>
 
           <CondText cond={cond} conditioning={COND.conditioning} />
