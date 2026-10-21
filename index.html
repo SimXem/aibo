@@ -441,7 +441,7 @@ const G4_GRAD = G4 ? "linear-gradient(90deg, " + G4.models.map(m => m.color).joi
 
 /* ============================ Timeline · live (window.__TIMELINE__) ============================ */
 // How the AI-catastrophe forecast MOVES between elicitation dates: one dot
-// per model per date, the ensemble median as an ink mark, at the horizon
+// per prompt condition since Oct 21, the ensemble median as an ink mark, at the horizon
 // the picker selects (2030 to open). The lead panel of the Forecasts tab
 // since 2026-09-08 (Nick: the series is the first thing a visitor sees, not
 // a link to it) -- it was a standalone timeline.html from 2026-08-11 until
@@ -470,10 +470,31 @@ const tlFmtRatio = r => (r == null || !isFinite(r) ? "—" : "×" + (r >= 10 ? r
 // One formatter per row kind.
 const tlFmtFor = q => (q && q.value_kind === "loss" ? tlFmtBig : tlFmt);
 
+// Colors belong to prompt conditions, never to models or their array order.
+// New condition IDs stay neutral until explicitly assigned a color here.
+const TL_CONDITION_START = "2026-10-21";
+const TL_CONDITIONS = {
+  none: { label: "Baseline", color: "#0969da" },
+  independent: { label: "Independent", color: "#bc4c00" },
+  recent: { label: "Recent", color: "#1a7f37" },
+  critical: { label: "Critical", color: "#8250df" },
+  "two-step": { label: "Two-step", color: "#bf3989" },
+};
+const tlVariants = (q, horizon, snapshots) => {
+  const info = Object.fromEntries(((TL && TL.variants) || []).map(v => [v.id, v]));
+  return Object.entries(q.variants || {}).map(([id, hs]) => ({
+    id, ...(TL_CONDITIONS[id] || { label: id, color: "var(--ink-soft)" }),
+    vals: (hs[horizon] || []).map((v, i) => snapshots[i].date >= TL_CONDITION_START ? v : null),
+    models: ((q.variantModels || {})[id] || {})[horizon] || [],
+    text: (info[id] || {}).text,
+  })).filter(v => v.vals.some(val => val != null));
+};
+
 /* ---------------- time-series chart ---------------- */
-// One dot per model per date -- no connecting lines since 2026-08-27: like
-// Graph 1, a model's forecasts on two dates are two answers, not a
-// trajectory -- and the ensemble median as an ink mark, for the ONE horizon
+// Before Oct 21 only the median is visible until hovered or selected; then
+// model answers appear as ink-gray circles. Since Oct 21 each prompt condition
+// has a colored dot, with model answers in its details. No connecting lines.
+// The ensemble median remains an ink mark, for the ONE horizon
 // the panel's picker selects (Nick, 2026-09-09: a horizon picker, Graph 2's,
 // in place of the six shaded lines of the day before). No line joins the
 // medians since 2026-10-21 (project lead): the series spans a protocol change.
@@ -512,7 +533,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
       if (day <= axisEnd) futureTicks.push({ day, label: new Date(day * 864e5).toLocaleString("en-US", { month: "short", timeZone: "UTC" }) + " 1" });
     }
   }
-  const labelGap = narrow ? 34 : 46;
+  const labelGap = 46;
   const labelled = new Set(n ? [n - 1] : []);
   for (let i = 0, lastX = -Infinity; i < n - 1; i++) {
     if (xs[i] - lastX >= labelGap && xs[n - 1] - xs[i] >= labelGap) { labelled.add(i); lastX = xs[i]; }
@@ -521,8 +542,21 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   const h = horizon;
   const med = q.median[h] || [];
   const fmtV = tlFmtFor(q);
-  const [hv, setHv] = useState(null);                 // hovered snapshot index
-  const [hvar, setHvar] = useState(null);             // hovered variant dot: { id, i }
+  const [active, setActive] = useState(null);         // { i, id }, null id = median
+  const [pinned, setPinned] = useState(false);        // click/tap keeps the details open
+  const hv = active ? active.i : null;
+  const hvar = active && active.id != null ? active : null;
+  const clear = () => { setActive(null); setPinned(false); };
+  const hover = (i, id = null) => { if (!pinned) setActive({ i, id }); };
+  const leave = () => { if (!pinned) setActive(null); };
+  const select = (e, i, id = null) => {
+    e.stopPropagation();
+    if (pinned && hv === i && (active && active.id) === id) clear();
+    else { setActive({ i, id }); setPinned(true); }
+  };
+  const keySelect = (e, i, id = null) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(e, i, id); }
+  };
   const series = q.series.map(s => ({ ...s, vals: s.ps[h] || [] }));
   // Prompt variants (combined-v10): one dot per variant, the panel median of
   // that prompt's calls; the ink mark is the median of the models' means
@@ -530,15 +564,8 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   // (project lead, 2026-10-21): hovering a variant dot lists that prompt's
   // instruction and model answers. The unpooled sixth call is never in the
   // blob.
-  const VLABEL = { none: "Baseline", independent: "Independent", recent: "Recent", critical: "Critical", "two-step": "Two-step" };
-  const vinfo = Object.fromEntries((TL.variants || []).map(v => [v.id, v]));
-  const variants = Object.entries(q.variants || {}).map(([id, hs]) => {
-    const info = vinfo[id] || {};
-    return { id, label: VLABEL[id] || id, vals: hs[h] || [], models: ((q.variantModels || {})[id] || {})[h] || [],
-      text: info.text };
-  });
+  const variants = tlVariants(q, h, snapshots);
   const hasVar = i => variants.some(v => v.vals[i] != null);
-  const colorOf = Object.fromEntries(series.map(s => [s.label, s.color]));
   const hovered = hvar && variants.find(v => v.id === hvar.id);
   const hoveredModels = hovered ? Object.entries(hovered.models[hvar.i] || {}) : [];
 
@@ -575,30 +602,34 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   }
   const marks = loss ? (TL.marks || []) : [];
 
+  // Nearby answers can otherwise cover each other's color and hit target.
+  // Dodge only colliding condition dots a few pixels sideways, keeping
+  // their probability unchanged and the median on the date's grid line.
+  const variantDots = snapshots.flatMap((_, i) => {
+    const placed = med[i] == null ? [] : [{ cx: x(i), cy: y(med[i]) }];
+    return variants.filter(v => v.vals[i] != null).map(v => {
+      const cy = y(v.vals[i]);
+      const dx = [0, -12, 12, -24, 24, -36, 36].find(offset =>
+        placed.every(p => Math.hypot(x(i) + offset - p.cx, cy - p.cy) >= 12)) || 0;
+      const dot = { v, i, cx: x(i) + dx, cy };
+      placed.push(dot);
+      return dot;
+    });
+  });
+
   const li = med.map((v, i) => (v != null ? i : -1)).reduce((a, b) => Math.max(a, b), -1);
   // Right-margin label: the latest median, kept above the date labels.
   const endLabel = li >= 0 ? { v: med[li], y: Math.min(y(med[li]), H - pad.b - 2), xi: li } : null;
-  const anchor = i => (narrow && n > 1 ? (i === 0 ? "start" : i === n - 1 ? "end" : "middle") : "middle");
   // A hover card beside date i, flipped left in the right 40%.
-  const tipStyle = (i, maxWidth) => ({ position: "absolute", top: 8, left: `${(x(i) / W) * 100}%`,
-    transform: x(i) > W * 0.6 ? "translateX(calc(-100% - 8px))" : "translateX(10px)",
+  const tipStyle = i => ({ ...(narrow ? { position: "relative", marginTop: 8 } : {
+    position: "absolute", top: 8, left: `${(x(i) / W) * 100}%`,
+    transform: x(i) > W * 0.6 ? "translateX(calc(-100% - 8px))" : "translateX(10px)" }),
     background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "9px 11px",
-    boxShadow: "var(--shadow)", pointerEvents: "none", minWidth: 210, maxWidth });
-
-  // The nearest run by x.
-  const locate = e => {
-    const svg = e.currentTarget.ownerSVGElement || e.currentTarget;
-    const r = svg.getBoundingClientRect();
-    if (!r.width || !r.height || !n) return null;
-    const px = (e.clientX - r.left) * W / r.width;
-    let i = 0;
-    for (let k = 1; k < n; k++) if (Math.abs(xs[k] - px) < Math.abs(xs[i] - px)) i = k;
-    return i;
-  };
+    boxShadow: "var(--shadow)", pointerEvents: "none", maxWidth: narrow ? "100%" : 340 });
 
   return (
-    <div ref={box} style={{ position: "relative", minWidth: 0 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} onMouseLeave={() => { setHv(null); setHvar(null); }}>
+    <div ref={box} style={{ position: "relative", minWidth: 0 }} onKeyDown={e => { if (e.key === "Escape") clear(); }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} onMouseLeave={leave} onClick={clear}>
         {yticks.map((t, i) => (
           <g key={i}>
             <line x1={pad.l} x2={W - pad.r} y1={y(t)} y2={y(t)} stroke="var(--line-soft)" />
@@ -616,33 +647,30 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
         {snapshots.map((s, i) => (
           <g key={s.date}>
             <line x1={x(i)} x2={x(i)} y1={pad.t} y2={H - pad.b} stroke="var(--line)" strokeWidth="1" opacity={labelled.has(i) ? 0.55 : 0.3} />
-            {labelled.has(i) && <text x={x(i)} y={H - 18} textAnchor={anchor(i)} fontSize="12" fill="var(--ink-soft)" fontWeight="600">{s.label}</text>}
+            {labelled.has(i) && <text x={x(i)} y={H - 18} textAnchor="middle" fontSize="12" fill="var(--ink-soft)" fontWeight="600">{s.label}</text>}
           </g>
         ))}
         {futureTicks.map(t => (
           <g key={t.day}>
             <line x1={xDay(t.day)} x2={xDay(t.day)} y1={pad.t} y2={H - pad.b} stroke="var(--line)" strokeWidth="1" strokeDasharray="3 4" opacity="0.55" />
-            <text x={xDay(t.day)} y={H - 18} textAnchor="middle" fontSize="12" fill="var(--ink-faint)" fontWeight="600">{t.label}</text>
+            {xDay(t.day) - xs[n - 1] >= labelGap && W - pad.r - xDay(t.day) >= labelGap && (
+              <text x={xDay(t.day)} y={H - 18} textAnchor="middle" fontSize="12" fill="var(--ink-faint)" fontWeight="600">{t.label}</text>
+            )}
           </g>
         ))}
-        {axisEnd > days[n - 1] && <text x={W - pad.r} y={H - 18} textAnchor="end"
+        {axisEnd > days[n - 1] && W - pad.r - xs[n - 1] >= labelGap && <text x={W - pad.r} y={H - 18} textAnchor="end"
           fontSize="12" fill="var(--ink-faint)" fontWeight="600">Dec 31</text>}
-        {/* The median's marks, unjoined. */}
-        {med.map((v, i) => v == null ? null : (
-          <circle key={"m" + i} cx={x(i)} cy={y(v)} r="5" fill="var(--panel)" stroke="var(--ink)" strokeWidth="2.6" />
-        ))}
-
-        {/* Every model, every date but a variant date, where the variants stand in. */}
+        {/* Historical model answers are revealed only for the active date. */}
         {series.map(s => (
           <g key={s.label}>
-            {s.vals.map((v, i) => v == null || hasVar(i) ? null : (
-              <circle key={"d" + i} cx={x(i)} cy={y(v)} r="4" fill={s.color} stroke="var(--panel)" strokeWidth="1.5" />
+            {s.vals.map((v, i) => v == null || hasVar(i) || hv !== i ? null : (
+              <circle key={"d" + i} cx={x(i)} cy={y(v)} r="4" fill="var(--ink-soft)" stroke="var(--panel)" strokeWidth="1.5" />
             ))}
           </g>
         ))}
 
         {!narrow && endLabel && (
-          <text x={x(endLabel.xi) + 10} y={endLabel.y + 4} fontSize="11.5" fill="var(--ink)" className="mono" fontWeight="700">
+          <text x={Math.max(x(endLabel.xi), ...variantDots.filter(d => d.i === endLabel.xi).map(d => d.cx)) + 10} y={endLabel.y + 4} fontSize="11.5" fill="var(--ink)" className="mono" fontWeight="700">
             by {h} {fmtV(endLabel.v)}
           </text>
         )}
@@ -652,26 +680,43 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
           <circle cx={x(hv)} cy={y(med[hv])} r="8" fill="none" stroke="var(--ink)" strokeOpacity="0.35" strokeWidth="2" />
         )}
         <rect x={pad.l} y={pad.t} width={Math.max(1, W - pad.l - pad.r)} height={H - pad.t - pad.b} fill="transparent"
-          style={{ cursor: "crosshair" }}
-          onMouseMove={e => setHv(locate(e))} />
+          onMouseMove={leave} />
+
+        {/* The median's marks, unjoined. The larger transparent target also works on touchscreens. */}
+        {med.map((v, i) => v == null ? null : (
+          <g key={"m" + i} role="button" tabIndex={0} style={{ cursor: "pointer" }}
+            aria-label={`${snapshots[i].date}, ensemble median ${fmtV(v)}; show model forecasts`}
+            aria-pressed={pinned && hv === i && !hvar}
+            onMouseEnter={() => hover(i)} onMouseLeave={leave} onFocus={() => hover(i)} onBlur={leave}
+            onClick={e => select(e, i)} onKeyDown={e => keySelect(e, i)}>
+            <circle cx={x(i)} cy={y(v)} r="10" fill="transparent" />
+            <circle cx={x(i)} cy={y(v)} r="5" fill="var(--panel)" stroke="var(--ink)" strokeWidth="2.6" />
+          </g>
+        ))}
 
         {/* One dot per prompt variant, above the hover layer so each can be hovered. */}
-        {variants.map(v => v.vals.map((val, i) => val == null ? null : (
+        {variantDots.map(({ v, i, cx, cy }) => (
           <g key={`${v.id}:${i}`} opacity={hvar && (hvar.id !== v.id || hvar.i !== i) ? 0.3 : 1}
-            onMouseEnter={() => { setHv(i); setHvar({ id: v.id, i }); }} onMouseLeave={() => setHvar(null)}>
-            <circle cx={x(i)} cy={y(val)} r="10" fill="transparent" />
-            <circle cx={x(i)} cy={y(val)} r="4.5" fill="var(--ink-soft)" stroke="var(--panel)" strokeWidth="1.5" />
+            role="button" tabIndex={0} style={{ cursor: "pointer" }}
+            aria-label={`${snapshots[i].date}, ${v.label} prompt ${fmtV(v.vals[i])}; show model forecasts`}
+            aria-pressed={pinned && hv === i && hvar && hvar.id === v.id ? true : false}
+            onMouseEnter={() => hover(i, v.id)} onMouseLeave={leave} onFocus={() => hover(i, v.id)} onBlur={leave}
+            onClick={e => select(e, i, v.id)} onKeyDown={e => keySelect(e, i, v.id)}>
+            <circle cx={cx} cy={cy} r="10" fill="transparent" />
+            <circle cx={cx} cy={cy} r="4.5" fill={v.color} stroke="var(--panel)" strokeWidth="1.5" />
           </g>
-        )))}
+        ))}
       </svg>
 
       {hovered && (
-        <div style={tipStyle(hvar.i, "min(340px, calc(100% - 16px))")}>
+        <div style={tipStyle(hvar.i)}>
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>
             {snapshots[hvar.i].date} · <span style={{ color: "var(--ink)", fontWeight: 600 }}>by {h}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12.5, fontWeight: 600 }}>
-            <span>{hovered.label} prompt</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: hovered.color, flexShrink: 0 }}></span>{hovered.label} prompt
+            </span>
             <span className="mono">{fmtV(hovered.vals[hvar.i])}</span>
           </div>
           <div style={{ fontSize: 11.5, color: "var(--ink-soft)", margin: "4px 0 6px" }}>
@@ -680,7 +725,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
           {hoveredModels.map(([label, val]) => (
             <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 9, height: 9, borderRadius: 2, background: colorOf[label] || "var(--ink-faint)" }}></span>{label}
+                <span style={{ width: 9, height: 9, borderRadius: "50%", background: "var(--ink-soft)", flexShrink: 0 }}></span>{label}
               </span>
               <span className="mono">{fmtV(val)}</span>
             </div>
@@ -688,7 +733,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
         </div>
       )}
       {hv != null && !hovered && (
-        <div style={tipStyle(hv, "calc(100% - 16px)")}>
+        <div style={tipStyle(hv)}>
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>
             {snapshots[hv].date} · <span style={{ color: "var(--ink)", fontWeight: 600 }}>by {h}</span>
             {hasVar(hv) ? ` · ${variants.filter(v => v.vals[hv] != null).length} prompts per model · each model = mean of its prompts`
@@ -702,13 +747,15 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
           </div>
           {variants.filter(v => v.vals[hv] != null).map(v => (
             <div key={"tv" + v.id} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12, color: "var(--ink-soft)" }}>
-              <span>{v.label} prompt</span><span className="mono">{fmtV(v.vals[hv])}</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 9, height: 9, borderRadius: "50%", background: v.color, flexShrink: 0 }}></span>{v.label} prompt
+              </span><span className="mono">{fmtV(v.vals[hv])}</span>
             </div>
           ))}
           {series.filter(s => s.vals[hv] != null).map(s => (
             <div key={s.label} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 9, height: 9, borderRadius: 2, background: s.color }}></span>{s.label}
+                <span style={{ width: 9, height: 9, borderRadius: "50%", background: "var(--ink-soft)", flexShrink: 0 }}></span>{s.label}
                 {s.legacy && <span style={{ color: "var(--ink-faint)" }}>· earlier panel</span>}
               </span>
               <span className="mono">
@@ -728,7 +775,7 @@ function TimelineTable({ q, horizon, snapshots }) {
   const fmtV = tlFmtFor(q);
   const rows = [
     { label: "Ensemble median", color: "var(--ink)", vals: q.median[horizon] || [], bold: true },
-    ...q.series.map(s => ({ label: s.label, color: s.color, vals: s.ps[horizon] || [] })),
+    ...q.series.map(s => ({ label: s.label, color: "var(--ink-soft)", vals: s.ps[horizon] || [] })),
   ];
   // Change first -> last: percentage points for a probability, a ratio for a loss.
   const change = v => {
@@ -750,7 +797,7 @@ function TimelineTable({ q, horizon, snapshots }) {
         {rows.map(r => (
           <tr key={r.label}>
             <td style={{ fontWeight: r.bold ? 600 : 400 }}>
-              <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: r.color, marginRight: 7 }}></span>
+              <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: r.color, marginRight: 7 }}></span>
               {r.label}
             </td>
             {r.vals.map((v, i) => (
@@ -809,10 +856,7 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
   // Flagged when this question was not re-asked in the newest run.
   const staleAt = li >= 0 && li < snapshots.length - 1 ? snapshots[li].label : null;
 
-  // The current panel and the departed: a model that left the panel keeps
-  // its points, in gray, and the legend and tooltip say who it was.
-  const currentModels = TL.models.filter(m => !m.legacy);
-  const legacyModels = TL.models.filter(m => m.legacy);
+  const variants = tlVariants(q, hz, snapshots);
 
   // Who declined, per date, for the chip under the question -- Graph 1's
   // chip is per model; here a model can decline on one date and not another.
@@ -833,20 +877,17 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
       {/* No rail: the chart takes the panel's full width, as Graph 2's does. */}
       <div style={{ marginTop: 16, minWidth: 0 }}>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 6, alignItems: "center" }}>
-          {currentModels.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
-          {legacyModels.length > 0 && (
-            <LegendDot color={legacyModels[0].color} label="Earlier panel members (hover for names)"
-              title={legacyModels.map(m => m.label).join(", ")} />
-          )}
-          <LegendDot color="var(--ink)" label="Ensemble median" />
-          {Object.values(q.variants || {}).some(hs => (hs[hz] || []).some(v => v != null)) && (
-            <LegendDot color="var(--ink-soft)" label="Prompt variants (hover)" />
-          )}
+          <LegendDot color="var(--ink)" label="Ensemble median" hollow />
+          {variants.map(v => <LegendDot key={v.id} color={v.color} label={v.label} title={v.text || "No added instruction."} />)}
           {/* The scale switch at the legend row's right end, where Graph 2 keeps its own. */}
           {!loss && <ScaleToggle value={scale} onChange={setScale} style={{ marginLeft: "auto" }} />}
         </div>
 
-        <TimelineChart q={q} snapshots={snapshots} horizon={hz} scale={scale} />
+        <TimelineChart key={hz} q={q} snapshots={snapshots} horizon={hz} scale={scale} />
+        <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "6px 0 0" }}>
+          {variants.length > 0 ? "From Oct 21, colors identify prompt conditions. " : ""}
+          Hover or select a point to see model forecasts.
+        </p>
         {loss && <>
           <CountingWindow info={TL.instrumentInfo} horizon={hz} />
           <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>Each run starts its incident window on its own elicitation date. A fixed-year forecast therefore covers a changing interval; movement is not solely a change of belief about the same event.</p>

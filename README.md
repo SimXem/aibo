@@ -18,15 +18,17 @@ still named `redlines` and some file and blob names carry the old names.
 One page, `index.html`, assembled from the chunks under `web/demo/`. Its panels:
 
 - **Timeline** — the lead panel of the Forecasts tab: how the bottom-line
-  forecasts move between elicitation dates, one dot per model per date plus the
-  ensemble median. The series starts at the agentic-harness cutover on
+  forecasts move between elicitation dates. Before 2026-10-21 only the ensemble
+  median is shown; hovering or selecting it reveals the models as ink-gray dots.
+  From 2026-10-21 each pooled prompt condition has a consistently colored dot
+  for its panel median, with the prompt and model answers available on hover,
+  click, tap, or keyboard selection. The legend identifies conditions rather
+  than models. The series starts at the agentic-harness cutover on
   2026-09-02 (`redlines/runlog.py::SERIES_START`); earlier elicitations stay in
   the run log and the download but are not drawn on the same axis. A model that
-  leaves the panel keeps its points, drawn in gray. Since combined-v10 a date
-  carries one light line per prompt variant (five, whose mean is each model's
-  published number) and, since 2026-10-19, a dashed sixth for the call with
-  AI forecasts banned and AIRO's own pages kept out of its search, which is
-  drawn but never pooled (`experiments/airo.toml`: the conditions outside `pooled`).
+  leaves the panel keeps its historical answers in the details. The five pooled
+  prompts' mean is each model's published number. The unpooled sixth call stays
+  in the download and is never drawn (`experiments/airo.toml`: `pooled`).
 - **Graph 1** — the current forecasts by horizon: the cross-cutting questions
   (general catastrophe, AI catastrophe, human disempowerment) and one
   expected-loss row per AI-related incident cause, with prior human panels
