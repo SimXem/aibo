@@ -3,7 +3,7 @@ const DB_RAW = (typeof window !== "undefined" && window.__DATABANK__) || null;
 const DB = (DB_RAW && Array.isArray(DB_RAW.rows)) ? DB_RAW : null;
 
 function LiveDataBank() {
-  if (!DB.rows.length) return <ForecastUnavailable title="Forecast data" info={DB.instrumentInfo} />;
+  if (!DB.rows.length) return <ForecastUnavailable title="Forecast data" />;
   return <LiveDataBankCurrent />;
 }
 function LiveDataBankCurrent() {

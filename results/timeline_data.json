@@ -7,10 +7,7 @@
         "version": "airo-incidents-prospective-v2",
         "available": false,
         "runDate": null,
-        "countingWindows": {},
-        "change": "Each severity rung is now asked as two questions, one resolving on deaths (or equivalent morbidity) and one on economic damages, in place of one deaths-or-damages question. The entire joint forecast series starts anew because the questions are elicited together. Earlier forecasts remain in the download under their recorded instrument version or as unversioned legacy rows. Current charts require all four panel models on the same elicitation date.",
-        "windowChange": "Incident onset starts advance with each elicitation date, including for fixed-year deadlines. Changes across runs therefore reflect changing intervals as well as revised beliefs.",
-        "archiveUrl": "redlines-data.zip"
+        "countingWindows": {}
       },
       "label": "Sep 2",
       "runs": [
@@ -33,10 +30,7 @@
         "version": "airo-incidents-prospective-v2",
         "available": false,
         "runDate": null,
-        "countingWindows": {},
-        "change": "Each severity rung is now asked as two questions, one resolving on deaths (or equivalent morbidity) and one on economic damages, in place of one deaths-or-damages question. The entire joint forecast series starts anew because the questions are elicited together. Earlier forecasts remain in the download under their recorded instrument version or as unversioned legacy rows. Current charts require all four panel models on the same elicitation date.",
-        "windowChange": "Incident onset starts advance with each elicitation date, including for fixed-year deadlines. Changes across runs therefore reflect changing intervals as well as revised beliefs.",
-        "archiveUrl": "redlines-data.zip"
+        "countingWindows": {}
       },
       "label": "Sep 4",
       "runs": [
@@ -59,10 +53,7 @@
         "version": "airo-incidents-prospective-v2",
         "available": false,
         "runDate": null,
-        "countingWindows": {},
-        "change": "Each severity rung is now asked as two questions, one resolving on deaths (or equivalent morbidity) and one on economic damages, in place of one deaths-or-damages question. The entire joint forecast series starts anew because the questions are elicited together. Earlier forecasts remain in the download under their recorded instrument version or as unversioned legacy rows. Current charts require all four panel models on the same elicitation date.",
-        "windowChange": "Incident onset starts advance with each elicitation date, including for fixed-year deadlines. Changes across runs therefore reflect changing intervals as well as revised beliefs.",
-        "archiveUrl": "redlines-data.zip"
+        "countingWindows": {}
       },
       "label": "Sep 8",
       "runs": [
@@ -85,10 +76,7 @@
         "version": "airo-incidents-prospective-v2",
         "available": false,
         "runDate": null,
-        "countingWindows": {},
-        "change": "Each severity rung is now asked as two questions, one resolving on deaths (or equivalent morbidity) and one on economic damages, in place of one deaths-or-damages question. The entire joint forecast series starts anew because the questions are elicited together. Earlier forecasts remain in the download under their recorded instrument version or as unversioned legacy rows. Current charts require all four panel models on the same elicitation date.",
-        "windowChange": "Incident onset starts advance with each elicitation date, including for fixed-year deadlines. Changes across runs therefore reflect changing intervals as well as revised beliefs.",
-        "archiveUrl": "redlines-data.zip"
+        "countingWindows": {}
       },
       "label": "Sep 10",
       "runs": [
@@ -111,10 +99,7 @@
         "version": "airo-incidents-prospective-v2",
         "available": false,
         "runDate": null,
-        "countingWindows": {},
-        "change": "Each severity rung is now asked as two questions, one resolving on deaths (or equivalent morbidity) and one on economic damages, in place of one deaths-or-damages question. The entire joint forecast series starts anew because the questions are elicited together. Earlier forecasts remain in the download under their recorded instrument version or as unversioned legacy rows. Current charts require all four panel models on the same elicitation date.",
-        "windowChange": "Incident onset starts advance with each elicitation date, including for fixed-year deadlines. Changes across runs therefore reflect changing intervals as well as revised beliefs.",
-        "archiveUrl": "redlines-data.zip"
+        "countingWindows": {}
       },
       "label": "Sep 14",
       "runs": [
@@ -137,10 +122,7 @@
         "version": "airo-incidents-prospective-v2",
         "available": false,
         "runDate": null,
-        "countingWindows": {},
-        "change": "Each severity rung is now asked as two questions, one resolving on deaths (or equivalent morbidity) and one on economic damages, in place of one deaths-or-damages question. The entire joint forecast series starts anew because the questions are elicited together. Earlier forecasts remain in the download under their recorded instrument version or as unversioned legacy rows. Current charts require all four panel models on the same elicitation date.",
-        "windowChange": "Incident onset starts advance with each elicitation date, including for fixed-year deadlines. Changes across runs therefore reflect changing intervals as well as revised beliefs.",
-        "archiveUrl": "redlines-data.zip"
+        "countingWindows": {}
       },
       "label": "Sep 16",
       "runs": [
@@ -164,10 +146,7 @@
         "version": "airo-incidents-prospective-v2",
         "available": false,
         "runDate": null,
-        "countingWindows": {},
-        "change": "Each severity rung is now asked as two questions, one resolving on deaths (or equivalent morbidity) and one on economic damages, in place of one deaths-or-damages question. The entire joint forecast series starts anew because the questions are elicited together. Earlier forecasts remain in the download under their recorded instrument version or as unversioned legacy rows. Current charts require all four panel models on the same elicitation date.",
-        "windowChange": "Incident onset starts advance with each elicitation date, including for fixed-year deadlines. Changes across runs therefore reflect changing intervals as well as revised beliefs.",
-        "archiveUrl": "redlines-data.zip"
+        "countingWindows": {}
       },
       "label": "Sep 18",
       "runs": [
@@ -188,10 +167,7 @@
     "version": "airo-incidents-prospective-v2",
     "available": false,
     "runDate": null,
-    "countingWindows": {},
-    "change": "Each severity rung is now asked as two questions, one resolving on deaths (or equivalent morbidity) and one on economic damages, in place of one deaths-or-damages question. The entire joint forecast series starts anew because the questions are elicited together. Earlier forecasts remain in the download under their recorded instrument version or as unversioned legacy rows. Current charts require all four panel models on the same elicitation date.",
-    "windowChange": "Incident onset starts advance with each elicitation date, including for fixed-year deadlines. Changes across runs therefore reflect changing intervals as well as revised beliefs.",
-    "archiveUrl": "redlines-data.zip"
+    "countingWindows": {}
   },
   "latest": "2026-09-18T13:52:56+00:00",
   "grounding": "agentic web search (Tavily): iterative search + page reads",
@@ -2865,8 +2841,7 @@
           null
         ]
       },
-      "declined": {},
-      "display_note": null
+      "declined": {}
     },
     {
       "id": "catastrophe:ai",
@@ -5426,8 +5401,7 @@
           null
         ]
       },
-      "declined": {},
-      "display_note": "GPT-6 Astra's first exploratory run (September 8) is omitted from this graph; its raw forecast remains in the archive and download."
+      "declined": {}
     },
     {
       "id": "disempowerment",
@@ -7999,8 +7973,7 @@
           null
         ]
       },
-      "declined": {},
-      "display_note": null
+      "declined": {}
     },
     {
       "id": "extinction:general",
@@ -9650,8 +9623,7 @@
           null
         ]
       },
-      "declined": {},
-      "display_note": null
+      "declined": {}
     },
     {
       "id": "extinction:ai",
@@ -11301,8 +11273,7 @@
           null
         ]
       },
-      "declined": {},
-      "display_note": null
+      "declined": {}
     },
     {
       "id": "loss:ai",

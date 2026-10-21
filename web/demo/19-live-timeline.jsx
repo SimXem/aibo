@@ -1,6 +1,6 @@
 /* ============================ Timeline · live (window.__TIMELINE__) ============================ */
 // How the AI-catastrophe forecast MOVES between elicitation dates: one dot
-// per model per date, the ensemble median as the ink line, at the horizon
+// per model per date, the ensemble median as an ink mark, at the horizon
 // the picker selects (2030 to open). The lead panel of the Forecasts tab
 // since 2026-09-08 (Nick: the series is the first thing a visitor sees, not
 // a link to it) -- it was a standalone timeline.html from 2026-08-11 until
@@ -32,14 +32,14 @@ const tlFmtFor = q => (q && q.value_kind === "loss" ? tlFmtBig : tlFmt);
 /* ---------------- time-series chart ---------------- */
 // One dot per model per date -- no connecting lines since 2026-08-27: like
 // Graph 1, a model's forecasts on two dates are two answers, not a
-// trajectory -- and the ensemble median as the ink line, for the ONE horizon
+// trajectory -- and the ensemble median as an ink mark, for the ONE horizon
 // the panel's picker selects (Nick, 2026-09-09: a horizon picker, Graph 2's,
-// in place of the six shaded lines of the day before; with one line the
-// model dots always draw). Expected-deaths rows plot deaths on the shared
-// severity axis (rung ticks, Extinction marked), log
-// only. Any per-date interval the blob carries (a date with more than one
-// draw per model) is drawn as a grey bar behind the median; on the current
-// one-call-per-run series there is none.
+// in place of the six shaded lines of the day before). No line joins the
+// medians since 2026-10-21 (project lead): the series spans a protocol change.
+// Expected-deaths rows plot deaths on the shared severity axis (rung ticks,
+// Extinction marked), log only. Any per-date interval the blob carries (a
+// date with more than one draw per model) is drawn as a grey bar behind the
+// median.
 function TimelineChart({ q, snapshots, horizon, scale }) {
   const loss = q.value_kind === "loss";
   // Laid out in the width the panel gives it (web/shared/responsive.jsx);
@@ -77,7 +77,6 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   for (let i = 0, lastX = -Infinity; i < n - 1; i++) {
     if (xs[i] - lastX >= labelGap && xs[n - 1] - xs[i] >= labelGap) { labelled.add(i); lastX = xs[i]; }
   }
-  const replicated = snapshots.some(s => s.draws > 1);
 
   const h = horizon;
   const med = q.median[h] || [];
@@ -86,7 +85,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   const series = q.series.map(s => ({ ...s, vals: s.ps[h] || [], cis: (s.ci || {})[h] || [] }));
   const ci = (q.ci || {})[h] || [];
   // Prompt variants (combined-v10): one light line per variant, the panel
-  // median of that prompt's calls; the ink line is the median of the models'
+  // median of that prompt's calls; the ink mark is the median of the models'
   // means over the five. Hover a line for its prompt. An UNPOOLED variant
   // (the sixth call since 2026-10-19: the baseline prompt with the
   // AI-forecast ban and a URL guard against AIRO's own pages) is dashed, its
@@ -194,21 +193,16 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
         {snapshots.map((s, i) => (
           <g key={s.date}>
             <line x1={x(i)} x2={x(i)} y1={pad.t} y2={H - pad.b} stroke="var(--line)" strokeWidth="1" opacity={labelled.has(i) ? 0.55 : 0.3} />
-            {labelled.has(i) && <text x={x(i)} y={H - (replicated ? 24 : 18)} textAnchor={anchor(i)} fontSize="12" fill="var(--ink-soft)" fontWeight="600">{s.label}</text>}
-            {replicated && labelled.has(i) && (
-              <text x={x(i)} y={H - 10} textAnchor={anchor(i)} fontSize="10" fill="var(--ink-faint)" className="mono">
-                {s.draws} call{s.draws === 1 ? "" : "s"}/model
-              </text>
-            )}
+            {labelled.has(i) && <text x={x(i)} y={H - 18} textAnchor={anchor(i)} fontSize="12" fill="var(--ink-soft)" fontWeight="600">{s.label}</text>}
           </g>
         ))}
         {futureTicks.map(t => (
           <g key={t.day}>
             <line x1={xDay(t.day)} x2={xDay(t.day)} y1={pad.t} y2={H - pad.b} stroke="var(--line)" strokeWidth="1" strokeDasharray="3 4" opacity="0.55" />
-            <text x={xDay(t.day)} y={H - (replicated ? 24 : 18)} textAnchor="middle" fontSize="12" fill="var(--ink-faint)" fontWeight="600">{t.label}</text>
+            <text x={xDay(t.day)} y={H - 18} textAnchor="middle" fontSize="12" fill="var(--ink-faint)" fontWeight="600">{t.label}</text>
           </g>
         ))}
-        {axisEnd > days[n - 1] && <text x={W - pad.r} y={H - (replicated ? 24 : 18)} textAnchor="end"
+        {axisEnd > days[n - 1] && <text x={W - pad.r} y={H - 18} textAnchor="end"
           fontSize="12" fill="var(--ink-faint)" fontWeight="600">Dec 31</text>}
         {/* An interval of the median, one grey bar per date, under every mark. */}
         {ci.map((c, i) => c && c[1] > c[0] ? (
@@ -230,13 +224,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
           </g>
         ))}
 
-        {/* The median line, with a halo, and its marks. */}
-        {segs(med).map((pts, k) => pts.length > 1 ? (
-          <g key={k}>
-            <path d={path(pts)} fill="none" stroke="var(--ink)" strokeWidth="9" strokeOpacity="0.1" strokeLinejoin="round" strokeLinecap="round" />
-            <path d={path(pts)} fill="none" stroke="var(--ink)" strokeWidth="3.2" strokeLinejoin="round" strokeLinecap="round" />
-          </g>
-        ) : null)}
+        {/* The median's marks, unjoined. */}
         {med.map((v, i) => v == null ? null : (
           <circle key={"m" + i} cx={x(i)} cy={y(v)} r="5" fill="var(--panel)" stroke="var(--ink)" strokeWidth="2.6" />
         ))}
@@ -371,7 +359,7 @@ const TL_HEADLINE = "catastrophe:ai";
 // redlines/views/timeline.py::_loss_row).
 function TimelinePanel(props = {}) {
   const q = TL && TL.questions.find(q => q.id === (props.qid || TL_HEADLINE));
-  if (!q || !q.horizons.length || !TL.snapshots.length) return <ForecastUnavailable title={props.title || "Probability of an AI catastrophe"} info={TL && TL.instrumentInfo} />;
+  if (!q || !q.horizons.length || !TL.snapshots.length) return <ForecastUnavailable title={props.title || "Probability of an AI catastrophe"} />;
   return <TimelinePanelCurrent {...props} />;
 }
 function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI catastrophe", sub = "Forecasts over time" } = {}) {
@@ -441,8 +429,6 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
         </div>
 
         <TimelineChart q={q} snapshots={snapshots} horizon={hz} scale={scale} />
-        {q.display_note && <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "8px 0 0" }}>{q.display_note}</p>}
-        <InstrumentNotice info={TL.instrumentInfo} />
         {loss && <>
           <CountingWindow info={TL.instrumentInfo} horizon={hz} />
           <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>Each run starts its incident window on its own elicitation date. A fixed-year forecast therefore covers a changing interval; movement is not solely a change of belief about the same event.</p>

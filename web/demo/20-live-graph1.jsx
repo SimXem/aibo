@@ -204,7 +204,7 @@ function HorizonChart({ q, models, scale }) {
 }
 
 function LiveGraph1() {
-  if (!G1 || !G1.latest) return <ForecastUnavailable title="Forecasts by horizon" info={G1 && G1.instrumentInfo} />;
+  if (!G1 || !G1.latest) return <ForecastUnavailable title="Forecasts by horizon" />;
   return <LiveGraph1Current />;
 }
 function LiveGraph1Current() {

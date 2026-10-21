@@ -253,7 +253,7 @@ function AxesPanel() {
   const [horizon, setHorizon] = useState(AX.horizons.includes(params.get("h")) ? params.get("h") : AX.defaultHorizon);
   const [showText, setShowText] = useState(false);
   if (!Q.length) {
-    return <ForecastUnavailable title="Forecasts conditional on revenue, capability and timing" info={AX.instrumentInfo} />;
+    return <ForecastUnavailable title="Forecasts conditional on revenue, capability and timing" />;
   }
   const q = Q.find(x => x.id === qid) || Q[0];
   const hz = q.horizons.includes(horizon) ? horizon : q.horizons[0];
@@ -293,7 +293,6 @@ function AxesPanel() {
                 trailing={<button className="linkbtn" style={{ marginLeft: "auto" }} onClick={() => setShowText(!showText)}>{showText ? "hide what the model was told" : "what the model was told"}</button>} />
               {q.valueKind === "loss" && <ExpectedLossNote />}
               {q.valueKind === "loss" && <CountingWindow info={AX.instrumentInfo} horizon={hz} />}
-              <InstrumentNotice info={AX.instrumentInfo} />
             </div>
             {showText && <div style={{ marginTop: 12, fontSize: 12.5, color: "var(--ink-soft)", display: "grid", gap: 8 }}>
               <div><b>Conditioning instruction (ours).</b> {axis.instruction}</div>

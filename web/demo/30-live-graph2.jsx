@@ -293,7 +293,7 @@ function IssuesPanel({ viol, declines }) {
 }
 
 function LiveGraph2({ onDefinitions }) {
-  if (!G2 || !Object.values(G2.byHorizon).some(v => Object.values(v.legs).some(s => s.causes.length))) return <ForecastUnavailable title="How risk scales with severity" info={G2 && G2.instrumentInfo} onDefinitions={onDefinitions} />;
+  if (!G2 || !Object.values(G2.byHorizon).some(v => Object.values(v.legs).some(s => s.causes.length))) return <ForecastUnavailable title="How risk scales with severity" onDefinitions={onDefinitions} />;
   return <LiveGraph2Current onDefinitions={onDefinitions} />;
 }
 function LiveGraph2Current({ onDefinitions }) {
