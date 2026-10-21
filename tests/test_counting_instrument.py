@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 class TestCountingInstrument(unittest.TestCase):
     V1 = ROOT / 'data/instruments/airo-incidents-prospective-v1'
+    V2 = ROOT / 'data/instruments/airo-incidents-prospective-v2'
 
     def test_scientific_change_is_limited_to_dates_and_cyber_boundaries(self):
         """The 2026-09-10 change, pinned between its two archives."""
@@ -54,9 +55,10 @@ class TestCountingInstrument(unittest.TestCase):
         """The 2026-10-19 change: every v1 question becomes a deaths question
         and, unless it is the extinction rung, a damages question. Thresholds,
         criteria, details and horizons are v1's; the text differs only in the
-        severity slot; the cross-cutting questions are untouched."""
+        severity slot; the cross-cutting questions are untouched. Pinned
+        between its two archives."""
         v1 = json.loads((self.V1 / 'autoarc_ladder.json').read_text())
-        cur = load_ladder()
+        cur = json.loads((self.V2 / 'autoarc_ladder.json').read_text())
         self.assertEqual([(r['short'], r['deaths'], r['damages_usd']) for r in v1['rungs']],
                          [(r['short'], r['deaths'], r['damages_usd']) for r in cur['rungs']])
         self.assertEqual([l['key'] for l in cur['legs']], ['deaths', 'damages'])
@@ -82,9 +84,39 @@ class TestCountingInstrument(unittest.TestCase):
                     self.assertEqual(leg_q[k], q[k], (leg_q['id'], k))
         self.assertEqual(len(cur['questions']), 2 * len(v1['questions']) - len(cur['causes']))
         v1_cross = json.loads((self.V1 / 'autoarc_crosscutting.json').read_text())
-        cur_cross = json.loads((ROOT / 'data/autoarc_crosscutting.json').read_text())
+        cur_cross = json.loads((self.V2 / 'autoarc_crosscutting.json').read_text())
         self.assertEqual(v1_cross['questions'], cur_cross['questions'])
-        self.assertEqual(CURRENT_INSTRUMENT, 'airo-incidents-prospective-v2')
+
+    def test_damages_without_mortality_changes_only_the_damages_accounting(self):
+        """The 2026-10-21 change: the Severity definitions' damages accounting
+        drops monetized mortality, in every question's severity details and
+        nowhere else. Thresholds, legs, ids, texts, criteria and the
+        cross-cutting questions are v2's; the damages-contains-deaths relation
+        and the damages-leg bracket go with it."""
+        v2 = json.loads((self.V2 / 'autoarc_ladder.json').read_text())
+        cur = load_ladder()
+        self.assertEqual((v2['rungs'], v2['legs']), (cur['rungs'], cur['legs']))
+        old = ("Monetized mortality, using a value of a statistical life (VSL) of $2.2 million, "
+               "regardless of the geographic distribution of fatalities.")
+        new = ("Do not count the monetized value of lives lost or of morbidity (no value of a "
+               "statistical life); deaths and illness count only through their real economic "
+               "costs, such as lost output and medical costs.")
+        self.assertEqual([q['id'] for q in v2['questions']], [q['id'] for q in cur['questions']])
+        for before, after in zip(v2['questions'], cur['questions']):
+            self.assertIn(old, before['details']['severity'])
+            self.assertEqual(after['details']['severity'], before['details']['severity'].replace(old, new))
+            self.assertEqual({k: v for k, v in before.items() if k != 'details'},
+                             {k: v for k, v in after.items() if k != 'details'})
+            self.assertEqual({k: v for k, v in before['details'].items() if k != 'severity'},
+                             {k: v for k, v in after['details'].items() if k != 'severity'})
+        self.assertIn('legs', v2['relations'])
+        self.assertNotIn('legs', cur['relations'])
+        self.assertEqual([b for b in v2['relations']['bracket'] if b['leg'] == 'deaths'],
+                         cur['relations']['bracket'])
+        v2_cross = json.loads((self.V2 / 'autoarc_crosscutting.json').read_text())
+        cur_cross = json.loads((ROOT / 'data/autoarc_crosscutting.json').read_text())
+        self.assertEqual(v2_cross['questions'], cur_cross['questions'])
+        self.assertEqual(CURRENT_INSTRUMENT, 'airo-incidents-prospective-v3')
 
     def test_windows_advance_for_every_incident_horizon_and_handle_short_months(self):
         spec = load_ladder()

@@ -6,6 +6,13 @@ changed. Old responses are retained, never inferred to answer the new rules.
 Versions, newest first (each one's generated question set is archived under
 data/instruments/<version>/ when the next replaces it):
 
+  airo-incidents-prospective-v3  2026-10-21: economic damages no longer count
+                                 monetized mortality (no value of a statistical
+                                 life), so the damages question no longer
+                                 contains the deaths question
+                                 (docs/damages-without-mortality-2026-10-21.md).
+                                 Thresholds, attribution, the deaths leg and
+                                 the counting rules are v2's.
   airo-incidents-prospective-v2  2026-10-19: every severity rung is asked as
                                  TWO questions, one resolving on deaths (or
                                  equivalent morbidity) and one on economic
@@ -20,7 +27,7 @@ data/instruments/<version>/ when the next replaces it):
 """
 from datetime import date
 
-CURRENT_INSTRUMENT = "airo-incidents-prospective-v2"
+CURRENT_INSTRUMENT = "airo-incidents-prospective-v3"
 
 
 def instrument_rows(rows, version=CURRENT_INSTRUMENT):

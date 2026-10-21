@@ -87,6 +87,19 @@ def _logit(p):
 # falls back down the line, so the tab keeps its rows on the day of a bump and
 # switches the day the first run under the new tag lands.
 PROTOCOL_LINEAGE = {
+    # 2026-10-21, v12: THE DAMAGES WORDING changes. Economic damages no longer
+    # count monetized mortality (no value of a statistical life), so the
+    # damages question measures economic losses only and no longer contains
+    # the deaths question (redlines.instrument.CURRENT_INSTRUMENT
+    # airo-incidents-prospective-v3; docs/damages-without-mortality-2026-10-21.md).
+    # Thresholds, the grid, the prompt variants, the scenarios and the loop
+    # are v11's.
+    "unified-joint-combined-v12": ("unified-joint-combined-v11", "unified-joint-combined-v10",
+                                   "unified-joint-combined-v9", "unified-joint-combined-v8",
+                                   "unified-joint-combined-v7", "unified-joint-combined-v6",
+                                   "unified-joint-combined-v5", "unified-joint-combined-v4",
+                                   "unified-joint-combined-v3", "unified-joint-combined-v2",
+                                   "unified-joint-combined-v1"),
     # 2026-10-19 evening, v11: THE GRID changes. Every severity rung is asked
     # as two questions, one resolving on deaths (or equivalent morbidity) and
     # one on economic damages, in place of one deaths-OR-damages question
@@ -192,7 +205,7 @@ PROTOCOL_LINEAGE = {
 # the same string (tests pin the two together); the views, the run log's
 # grounding line and the coherence test all read it from here, so a bump is
 # one edit plus the lineage entry above.
-COMBINED_PROTOCOL = "unified-joint-combined-v11"
+COMBINED_PROTOCOL = "unified-joint-combined-v12"
 # The first combined tag elicited by the agentic harness (iterative search +
 # page reads, 2026-09-02); v1 (2026-08-28) still ran the legacy grounding.
 AGENTIC_SINCE = "unified-joint-combined-v2"

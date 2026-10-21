@@ -1,7 +1,7 @@
 {
   "title": "Forecasts conditional on AI capability",
   "instrumentInfo": {
-    "version": "airo-incidents-prospective-v2",
+    "version": "airo-incidents-prospective-v3",
     "available": false,
     "runDate": null,
     "countingWindows": {}
@@ -541,7 +541,7 @@
       "key": "combined",
       "label": "six months out",
       "instrumentInfo": {
-        "version": "airo-incidents-prospective-v2",
+        "version": "airo-incidents-prospective-v3",
         "available": false,
         "runDate": null,
         "countingWindows": {}
@@ -658,7 +658,7 @@
         "2050"
       ],
       "defaultHorizon": "2030",
-      "protocol": "unified-joint-combined-v11",
+      "protocol": "unified-joint-combined-v12",
       "questions": [],
       "models": [],
       "runs": [],

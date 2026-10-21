@@ -417,7 +417,7 @@ function LiveCoherence({ embedded }) {
   const G2 = window.__GRAPH2__;
   const A = G2 && G2.audit && G2.audit.n ? G2.audit : null;
   if (!A) return null;
-  // Three rows, from the blob (audit.rows). CROSS, BRACKET and LEG are pooled
+  // Three rows, from the blob (audit.rows). CROSS and BRACKET are pooled
   // into SUBSET there — they are special-case orderings too — so the rows
   // still sum to the headline. Copy: project decision, 2026-08-27; the
   // earlier intro ("no resolution required", "measured, not imposed") is in

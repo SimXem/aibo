@@ -131,29 +131,25 @@ class TestSetShape(unittest.TestCase):
             with self.subTest(q=q["id"]):
                 self.assertIn(q["severity"]["kind"], ("population_share", "none", "extinction"))
 
-    def test_the_two_severity_legs_agree_with_the_stated_vsl(self):
-        """The two ladders line up rung for rung.
-
-        The criteria state a value of a statistical life ($10M until the set's
-        2026-08-31 revision, $2.2M since), so each rung's dollar threshold
-        should be that many times its death threshold. If that ratio drifts,
-        the two legs disagree about which rung is harder and the ladders stop
-        sharing rung positions — at which point the LEG constraint and the
-        paired charts mean nothing. The number is parsed from the definitions
-        (make_autoarc_questions.stated_vsl) and written to the ladder's notes.
-        """
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("gen", REPO / "code" / "make_autoarc_questions.py")
-        gen = importlib.util.module_from_spec(spec); spec.loader.exec_module(gen)
-        vsl = gen.stated_vsl(gen.read_definitions())
-        self.assertEqual(vsl, 2.2e6)
-        self.assertEqual(self.ladder["notes"]["vsl_usd"], vsl)
+    def test_the_two_severity_legs_share_rung_positions(self):
+        """The two ladders line up rung for rung: each rung's dollar threshold
+        is $2.2M times its death threshold, so the paired charts share rung
+        positions. Until 2026-10-21 that ratio was the value of a statistical
+        life the damages criteria counted lost lives at; since then damages
+        exclude monetized mortality, the ratio is only a shared log scale, and
+        the definitions must state no VSL for the models to apply."""
         for r in self.ladder["rungs"]:
             if r.get("damages_usd") is None:    # the extinction rung has no dollar leg
                 continue
             with self.subTest(rung=r["short"]):
-                self.assertAlmostEqual(r["damages_usd"] / r["deaths"], vsl, delta=1.0)
+                self.assertAlmostEqual(r["damages_usd"] / r["deaths"], 2.2e6, delta=1.0)
                 self.assertEqual(set(r["legs"]), {"deaths", "damages"})
+        self.assertNotIn("vsl_usd", self.ladder["notes"])
+        self.assertNotIn("legs", self.ladder["relations"])
+        for q in self.ladder["questions"]:
+            with self.subTest(q=q["id"]):
+                self.assertNotIn("Monetized mortality", q["details"]["severity"])
+                self.assertIn("Do not count the monetized value of lives lost", q["details"]["severity"])
 
     def test_rungs_ascend(self):
         deaths = [r["deaths"] for r in self.ladder["rungs"]]
@@ -306,7 +302,8 @@ class TestSetShape(unittest.TestCase):
                 self.assertIn(b["rung"], rungs)
                 self.assertIn(b["leg"], legs)
                 self.assertIn(f"ladder:{b['cause']}:{b['rung']}:{b['leg']}", qids)
-        self.assertEqual({rel["legs"]["container"], rel["legs"]["contained"]}, legs)
+        # Damages exclude monetized mortality since 2026-10-21: no leg contains the other.
+        self.assertNotIn("legs", rel)
         for p in rel["subset"]:
             with self.subTest(subset=p["narrower"]):
                 self.assertIn(p["narrower"], qids)

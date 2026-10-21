@@ -46,7 +46,7 @@ class TestTheAiroExperiment(unittest.TestCase):
             self.assertEqual((c["scenarios"], c["instrument"], c["harness"], c["model_set"], c["repeats"], c["publish"]),
                              ("data/combined_conditions.json", "minimal", "pi", "eci_topk", 1, True), c["id"])
             self.assertEqual(c["variant"], c["id"])               # the conditions are named for their prompts
-        self.assertEqual(ru.set_protocol(ru.load_policies(ru.COMBINED)), "unified-joint-combined-v11")
+        self.assertEqual(ru.set_protocol(ru.load_policies(ru.COMBINED)), "unified-joint-combined-v12")
         self.assertEqual(set(AIRO["conditions"]), set(ru.VARIANTS))
 
     def test_the_sixth_is_unpooled_with_its_guard(self):
@@ -293,7 +293,7 @@ class TestRunOneJoint(unittest.TestCase):
         self.assertEqual({(r["experiment"], r["condition"], r["condition_sha256"]) for r in rows},
                          {("airo", "independent", AIRO["conditions"]["independent"]["sha256"])})
         self.assertTrue(rows[0]["call_id"].endswith(":independent"))
-        self.assertEqual(rows[0]["protocol"], "unified-joint-combined-v11")   # the set's tag
+        self.assertEqual(rows[0]["protocol"], "unified-joint-combined-v12")   # the set's tag
         self.assertEqual(rows[0]["system_prompt"], ru.MINIMAL_SYSTEM)
         self.assertTrue(all(r["forecasts"] for r in rows))
         # A pooled call: no guard reaches the loop, and the rows are as before.
@@ -313,7 +313,7 @@ class TestRunOneJoint(unittest.TestCase):
         self.assertEqual({r["variant"] for r in rows}, {"ai-banned"})
         self.assertEqual({r["url_block_patterns"] for r in rows}, {guard})
         self.assertEqual({r["pooled"] for r in rows}, {False})
-        self.assertEqual({r["protocol"] for r in rows}, {"unified-joint-combined-v11"})
+        self.assertEqual({r["protocol"] for r in rows}, {"unified-joint-combined-v12"})
         self.assertTrue(rows[0]["call_id"].endswith(":ai-banned"))
         self.assertTrue(all(r["forecasts"] for r in rows))
 

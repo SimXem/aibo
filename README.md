@@ -34,7 +34,9 @@ One page, `index.html`, assembled from the chunks under `web/demo/`. Its panels:
 - **Graph 2** — the incident severity ladders: probability against a severity
   threshold for four AI-related incident causes, on two charts since 2026-10-19
   — one for deaths (or equivalent morbidity), one for economic damages, each
-  rung a separate question on each (`docs/severity-legs-2026-10-19.md`) — plus a
+  rung a separate question on each (`docs/severity-legs-2026-10-19.md`; since
+  2026-10-21 damages exclude monetized mortality,
+  `docs/damages-without-mortality-2026-10-21.md`) — plus a
   resolution-free coherence check (P of a stronger event must never exceed P of
   a weaker event it implies).
 - **Data bank** — the bottom-line forecasts collated with their resolution
@@ -136,7 +138,7 @@ identical from the outside, so the runner refuses instead;
 `--allow-ungrounded` makes that an explicit choice.
 
 **The published protocol** (since 2026-08-27; rows are tagged with a protocol
-id, currently `unified-joint-combined-v11`, see `redlines/conditional.py`) is the
+id, currently `unified-joint-combined-v12`, see `redlines/conditional.py`) is the
 single instrument: one call per model that answers every question ×
 horizon cell unconditionally *and* under each scenario in one submission, with
 no coherence relation stated in the prompt (coherence is measured afterwards).
@@ -183,9 +185,12 @@ the single source: `code/make_autoarc_questions.py` generates
 `data/autoarc_ladder.json` and `data/autoarc_crosscutting.json` from them, the
 runner and every panel read only the generated files, and
 `tests/test_autoarc_generator.py` fails if either is hand-edited. Definition
-changes are versioned as instruments (`redlines/instrument.py`): the
-2026-10-19 split of every rung into a deaths question and a damages question
-is instrument `airo-incidents-prospective-v2`, the 2026-09-10 counting rules
+changes are versioned as instruments (`redlines/instrument.py`): damages
+without monetized mortality (2026-10-21,
+`docs/damages-without-mortality-2026-10-21.md`) is instrument
+`airo-incidents-prospective-v3`, the 2026-10-19 split of every rung into a
+deaths question and a damages question was `airo-incidents-prospective-v2`,
+the 2026-09-10 counting rules
 (`docs/counting-rules-specification-2026-09-10.md`) were
 `airo-incidents-prospective-v1`, each superseded instrument's generated
 questions are archived under `data/instruments/<version>/`, and rows carry the

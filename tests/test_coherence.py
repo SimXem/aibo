@@ -235,7 +235,7 @@ class TestGuardActuallyFires(unittest.TestCase):
         rungs = [r["short"] for r in spec["rungs"]]
         rel = spec["relations"]
         top, sub = rel["cross"]["container"], rel["cross"]["contained"][0]
-        deaths, damages = rel["legs"]["contained"], rel["legs"]["container"]
+        deaths = "deaths"
         hs = sorted([h for h in spec["horizons"]],
                     key=lambda h: horizon_sort_key(h, spec))
         near, far = hs[0], hs[-1]
@@ -248,8 +248,6 @@ class TestGuardActuallyFires(unittest.TestCase):
         P[(f"ladder:{sub}:{rungs[1]}:{deaths}", lab)] = {far: 50.0}
         # CROSS: a contained cause above its container.
         P[(f"ladder:{top}:{rungs[1]}:{deaths}", lab)] = {far: 1.0}
-        # LEG: a rung's deaths question above its damages question.
-        P[(f"ladder:{top}:{rungs[0]}:{damages}", lab)] = {far: 1.0}
         # BRACKET and SUBSET: the narrower event above the broader one.
         b = rel["bracket"][0]
         P[(b["narrower"], lab)] = {far: 99.0}
