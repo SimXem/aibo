@@ -374,10 +374,14 @@ A failed debrief is a
 validator warning, never a reason to withhold publication. The unconditional
 slice lands in the dated output file; the whole instrument is appended to
 `results/conditional_runs_combined.jsonl`. Before the run, `code/cron_run.sh`
-fetches Epoch's published ECI scores (`python3 -m redlines.eci --fetch`, a dated
-`data/epoch_capabilities_index_*.csv`) and rebuilds the capability scenarios
-from it (`code/check_eci_snapshot.py --rebuild`), so the panel and the frontier
+refreshes the panel (`code/refresh_panel.sh`): it fetches Epoch's published ECI
+scores (`python3 -m redlines.eci --fetch`, a dated
+`data/epoch_capabilities_index_*.csv`), adds rows for new models
+(`redlines.autoreg`) and rebuilds the capability scenarios from it
+(`code/check_eci_snapshot.py --rebuild`), so the panel and the frontier
 history the prompt quotes follow the index with no hand step (since 2026-10-01).
+The ForecastBench rounds on the same box run the same script before reading the
+panel (since 2026-10-21), so whichever job fetches a change pages it.
 The runner's preflight refuses a snapshot older than 21 days or scenario sets
 not built from the newest one; a failed fetch keeps the previous snapshot and
 pages the operator (ntfy, `NTFY_TOPIC` in the env file). The dashboard draws the
@@ -389,6 +393,14 @@ would conflict every week — and `runlog.py`'s `load_runlog()` reads the
 historical log plus that whole directory, so nothing needs merging by hand.
 Run files are pulled down from the box with rsync into `results/runs/` and
 committed here.
+
+**Deploying is merging (since 2026-10-21).** The box's checkout is a git clone
+of this repository's main. The crontab runs `code/pull.sh` before each job
+(`cron_run.sh` and the ForecastBench rounds): a fast-forward pull that backs up
+and replaces the rebuilt outputs the incoming commits also change
+(`index.html`, `results/*.json`, `data/*_conditions.json`; the next run
+rebuilds them), and pages instead of pulling when anything else is in the way.
+The deploy notes below predate it.
 
 **Both outstanding deploy items were closed on 2026-08-13:**
 

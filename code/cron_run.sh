@@ -106,14 +106,7 @@ mkdir -p "$HOME/logs"
 exec >>"$LOG" 2>&1
 echo "=== $STAMP  scheduled run ==="
 
-# notify TITLE MESSAGE [PRIORITY] [TAGS] -- one line to the operator's phone.
-# A no-op without NTFY_TOPIC; a failed push is logged, never fatal.
-notify() {
-    [ -n "${NTFY_TOPIC:-}" ] || return 0
-    curl -fsS -m 20 -H "Title: $1" -H "Priority: ${3:-default}" -H "Tags: ${4:-}" \
-        --data-binary "$2" "https://ntfy.sh/$NTFY_TOPIC" >/dev/null \
-        || echo "WARN: ntfy push failed: $1"
-}
+. "$REPO/code/notify.sh"
 # Any exit before the end is a failed run: page with the log's last lines.
 FINISHED=0
 on_exit() {
@@ -140,40 +133,13 @@ echo "$DUE" | sed 's/^/  /'
 
 cd "$REPO"
 
-# THE ECI SNAPSHOT (2026-10-01): fetch Epoch's index, then rebuild the
-# capability scenarios from it -- the frontier history the prompt quotes.
-# A failed fetch keeps the previous snapshot and pages; the runner's
-# preflight (code/check_eci_snapshot.py) still refuses one older than 21 days.
-panel_labels() {
-    "$PY" -c 'from redlines import registry; print(", ".join(m["label"] for m, _ in registry.panel()))'
-}
-PREV_PANEL="$(panel_labels 2>/dev/null || true)"
-if ! "$PY" -m redlines.eci --fetch; then
-    notify "AIRO: Epoch ECI fetch failed" "Run $STAMP goes ahead on the previous snapshot. Check https://epoch.ai/data/eci_scores.csv" high warning
-fi
-# NEW MODELS (2026-10-07): give a row to each model the index now ranks into
-# the panel without one (redlines.autoreg), before the panel is read. A crash
-# here costs only the new model's seat -- the rest of the run goes ahead, and
-# the model is paged below as unrunnable.
-if ! ADDED="$("$PY" -m redlines.autoreg)"; then
-    echo "WARN: redlines.autoreg failed; a new model without a registry row sits this run out"
-    ADDED=""
-fi
-if [ -n "$ADDED" ]; then
-    echo "$ADDED"
-    notify "AIRO: new model joins the registry" "$ADDED" default new
-fi
-"$PY" code/check_eci_snapshot.py --rebuild
-PANEL="$(panel_labels)"
-UNRUNNABLE="$("$PY" -c 'from redlines import registry; print("\n".join(w for w in registry.panel_warnings() if "cannot run" in w or "panel is short" in w))')"
-echo "panel: $PANEL"
-if [ -n "$PREV_PANEL" ] && [ "$PANEL" != "$PREV_PANEL" ]; then
-    notify "AIRO panel changed" "Was: $PREV_PANEL
-Now: $PANEL" default busts_in_silhouette
-fi
-if [ -n "$UNRUNNABLE" ]; then
-    notify "AIRO: index model with no registry row" "$UNRUNNABLE" high warning
-fi
+# THE ECI SNAPSHOT (2026-10-01): fetch Epoch's index, add rows for models it
+# ranks into the panel, rebuild the capability scenarios -- the frontier
+# history the prompt quotes -- and page what changed. code/refresh_panel.sh
+# since 2026-10-21, shared with the ForecastBench rounds, which refresh the
+# same panel on their own days.
+"$REPO/code/refresh_panel.sh"
+PANEL="$(sed -n 's/^panel: //p' "$LOG" | tail -1)"
 # ONE call per model, every question. The second command that used to run here
 # forecast XPT question #2 (a natural pandemic), which was held out of the batch
 # because it nested under no rung of the bio ladder. The Auto-ARC set retired
