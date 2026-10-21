@@ -33,7 +33,8 @@ class TestCronDispatch(unittest.TestCase):
         t = Path(self.tmp.name)
         self.root, self.home = t / "repo", t / "home"
         (self.root / "code").mkdir(parents=True)
-        shutil.copy(ROOT / "code" / "cron_run.sh", self.root / "code" / "cron_run.sh")
+        for f in ("cron_run.sh", "refresh_panel.sh", "notify.sh"):
+            shutil.copy(ROOT / "code" / f, self.root / "code" / f)
         publish = self.root / "code" / "publish_dashboard.sh"
         publish.write_text('#!/usr/bin/env bash\necho publish >> "$CALLS"\n')
         publish.chmod(0o755)

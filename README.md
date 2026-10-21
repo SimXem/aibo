@@ -163,9 +163,11 @@ A condition's `scenarios` names its scenario set: `data/combined_conditions.json
 (the LEAP policies plus the model's own capability percentiles, what the
 published series asks), `data/eci_conditions.json` (fixed ECI levels),
 `data/axes_conditions.json` (risk against an x-axis quantity). See
-`docs/conditional-forecasts.md`. A cron on the serving box runs
-`code/cron_run.sh` at 12:00 UTC, which runs whatever is due (the published
-series on Wednesdays and Fridays) and publishes the rebuilt page with
+`docs/conditional-forecasts.md`. A cron on the serving box pulls main
+(`code/pull.sh`, so what is merged is what runs) and runs
+`code/cron_run.sh` at 12:00 UTC, which refreshes the panel from Epoch's index
+(`code/refresh_panel.sh`), runs whatever is due (the published series on
+Wednesdays and Fridays) and publishes the rebuilt page with
 `code/publish_dashboard.sh`.
 Each call ends with a debrief turn (since 2026-09-15): per question group, the
 sources that mattered most, the most compelling arguments, the most likely
@@ -250,6 +252,7 @@ experiments/                what runs ask: airo.toml (the published series), axe
 code/                       acquisition scripts, generators and thin shims (see each docstring)
   run_unified.py            THE forecast runner; --experiment, --condition, --dry-run
   cron_run.sh, publish_dashboard.sh   the weekly run and the box-side publish
+  pull.sh, refresh_panel.sh           what every box job runs first: the code, then the panel
   make_autoarc_questions.py the question generator: data/auto-arc/* -> data/autoarc_*.json
   make_*_conditions.py      the scenario sets (LEAP policies, ECI levels, self-elicited, axes, combined)
   make_eci_trend*.py, eci_projection_metrgraph.py   the ECI trend / projection inputs
