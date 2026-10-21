@@ -20,7 +20,7 @@ pilots, the 2026-08-28 three-draw pilot whose re-run bands the page used to
 draw -- are a different method and are not spliced onto this line; they stay
 in the run log and the CSV export. Everything below that pools a day's
 draws still runs, and on a one-call-per-run series it is the identity:
-`rerun`, `ci` and `noise` come out None and the page shows no bars.
+`rerun` and `noise` come out None.
 
 The local forecasts_of() read guard from the inline timeline script is gone: every
 row returned by redlines.runlog.load_runlog() already has "forecasts"
@@ -62,7 +62,7 @@ from ..registry import model_colors, published_panel
 from ..runlog import (answered_horizons, grounding, load_runlog, pool,
                       pooled_rows, rows_by_day, series_rows)
 from ..runlog import instrument_info, complete_panel_rows, current_panel, elicitation_date, SERIES_START
-from ..conditional import LOSS_LEG, apply_or, ladder_rungs, level_or
+from ..conditional import LOSS_LEG, ladder_rungs
 from ..config import REPO_ROOT
 from ..experiments import PUBLISHED, VARIANTS, load as load_experiment
 from ..questions import SEVERITY_AXIS
@@ -184,28 +184,24 @@ def condition_legend(info):
 
 def _prob_row(q, rail, by_day, days, horizons, var_meds=None):
     """One cross-cutting question: per model, lists aligned to `days` of the
-    pooled point, its draws, their min-max, and the model's 95% CI (logit
-    t-interval over that day's draws, redlines.conditional.level_or); the
-    ensemble median and ITS 95% CI (median across models of the per-model
-    odds-ratio intervals, on the ensemble median) -- the same interval
-    Graph 1's grey bars and the Policy-levers band show, so a move between
-    two dates can be read against it. `rerun` (the replicate-wise range of
-    panel medians) is kept for the table and tests."""
+    pooled point, its draws and their min-max; and the ensemble median. No
+    interval since 2026-10-21 (project lead): a date's draws are its prompt
+    variants, not re-asks, so a t-interval over them is not a 95% CI.
+    `rerun` (the replicate-wise range of panel medians) is kept for the
+    table and tests."""
     series, declined = [], defaultdict(list)
     for label, color in MODEL_COLORS:
         ps = {h: [] for h in horizons}
         lo = {h: [] for h in horizons}
         hi = {h: [] for h in horizons}
         draws = {h: [] for h in horizons}
-        ci = {h: [] for h in horizons}
-        ci_or = {h: [] for h in horizons}
         seen = False
         for d in days:
             r = by_day.get((d, q["id"], label))
             if (q["id"], label, d) in DISPLAY_EXCLUSIONS:
                 for h in horizons:
                     ps[h].append(None); lo[h].append(None); hi[h].append(None)
-                    draws[h].append(None); ci[h].append(None); ci_or[h].append(None)
+                    draws[h].append(None)
                 continue
             fcs = r["forecasts"] if r else []
             if r and not fcs:
@@ -219,30 +215,20 @@ def _prob_row(q, rail, by_day, days, horizons, var_meds=None):
                 draws[h].append(vals or None)
                 lo[h].append(min(vals) if vals else None)
                 hi[h].append(max(vals) if vals else None)
-                orr = level_or(raw.get(h, [])) if len(raw.get(h, [])) > 1 else None
-                ci_or[h].append(orr)
-                ci[h].append([round(100 * x, 3) for x in apply_or(v / 100, orr)]
-                             if orr and v else None)
                 seen = seen or v is not None
         if seen:
             series.append({"label": label, "color": color, "ps": ps,
-                           "lo": lo, "hi": hi, "draws": draws, "ci": ci, "ciOr": ci_or})
-    median, rerun, ci = {}, {}, {}
+                           "lo": lo, "hi": hi, "draws": draws})
+    median, rerun = {}, {}
     for h in horizons:
-        med, band, cis = [], [], []
+        med, band = [], []
         for i in range(len(days)):
             vals = [s["ps"][h][i] for s in series if s["ps"][h][i] is not None]
             m = round(statistics.median(vals), 3) if vals else None
             med.append(m)
             band.append(rerun_band([s["draws"][h][i] for s in series
                                     if s["draws"][h][i]]))
-            ors = [s["ciOr"][h][i] for s in series if s["ciOr"][h][i]]
-            if ors and m:
-                orr = [statistics.median(c[0] for c in ors), statistics.median(c[1] for c in ors)]
-                cis.append([round(100 * x, 3) for x in apply_or(m / 100, orr)])
-            else:
-                cis.append(None)
-        median[h], rerun[h], ci[h] = med, band, cis
+        median[h], rerun[h] = med, band
     # Conditions (redlines.experiments): one panel-median line per condition,
     # None on dates asked under one. On those dates the draws are the
     # conditions, not re-asks, so the re-run band is dropped.
@@ -265,7 +251,7 @@ def _prob_row(q, rail, by_day, days, horizons, var_meds=None):
         # the panel shows them behind the same "Resolution criteria" toggle.
         "criteria": q.get("criteria") or "", "details": q.get("details") or None,
         "value_kind": "probability", "horizons": horizons,
-        "series": series, "median": median, "rerun": rerun, "ci": ci, **extra,
+        "series": series, "median": median, "rerun": rerun, **extra,
         "declined": dict(declined),
     }
 
@@ -273,7 +259,7 @@ def _prob_row(q, rail, by_day, days, horizons, var_meds=None):
 def _loss_row(cause, rungs, by_day, days, horizons, spec):
     """One cause's deaths ladder folded to expected deaths, per day -- the same
     row Graph 1 shows (graph1._loss_series, run once per date), with the
-    lists aligned to `days`. Loss intervals are on the log scale."""
+    lists aligned to `days`."""
     color = dict(MODEL_COLORS)
     per, declined = {}, defaultdict(list)
     for d in days:
@@ -284,7 +270,7 @@ def _loss_row(cause, rungs, by_day, days, horizons, spec):
         for label, _ in MODEL_COLORS:
             s = by_label.get(label)
             e = per.setdefault(label, {k: {h: [] for h in horizons}
-                                       for k in ("ps", "lo", "hi", "draws", "ci", "ciRatio")})
+                                       for k in ("ps", "lo", "hi", "draws")})
             for h in horizons:
                 v = s["ps"].get(h) if s else None
                 dr = (s["draws"].get(h) if s else None) or None
@@ -292,25 +278,16 @@ def _loss_row(cause, rungs, by_day, days, horizons, spec):
                 e["draws"][h].append(dr)
                 e["lo"][h].append(min(dr) if dr else None)
                 e["hi"][h].append(max(dr) if dr else None)
-                e["ci"][h].append(s["ci"].get(h) if s else None)
-                e["ciRatio"][h].append(s["ciRatio"].get(h) if s else None)
     series = [{"label": l, "color": color[l], **e} for l, e in per.items()
               if any(v is not None for h in horizons for v in e["ps"][h])]
-    median, rerun, ci = {}, {}, {}
+    median, rerun = {}, {}
     for h in horizons:
-        med, cis = [], []
-        for i in range(len(days)):
-            vals = [s["ps"][h][i] for s in series if s["ps"][h][i] is not None]
-            m = round(statistics.median(vals), 1) if vals else None
-            med.append(m)
-            rs = [s["ciRatio"][h][i] for s in series if s["ciRatio"][h][i]]
-            cis.append([round(m * statistics.median(c[0] for c in rs), 1),
-                        round(m * statistics.median(c[1] for c in rs), 1)] if rs and m else None)
-        median[h], ci[h] = med, cis
+        vals = [[s["ps"][h][i] for s in series if s["ps"][h][i] is not None] for i in range(len(days))]
+        median[h] = [round(statistics.median(v), 1) if v else None for v in vals]
         rerun[h] = [None] * len(days)
     lq = _loss_question(cause, spec)
     return {**lq, "value_kind": "loss", "horizons": horizons,
-            "series": series, "median": median, "rerun": rerun, "ci": ci,
+            "series": series, "median": median, "rerun": rerun,
             "declined": {d: ls for d, ls in declined.items() if ls}}
 
 
