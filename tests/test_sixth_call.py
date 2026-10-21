@@ -239,7 +239,7 @@ class TestSixthCallLaunch(unittest.TestCase):
             want = 100 * statistics.mean(0.01 * (self.labels.index(s["label"]) + 1) + OFFSET[v] for v in POOLED)
             self.assertAlmostEqual(s["ps"]["2030"][i], want, places=3)
             self.assertEqual(len(s["draws"]["2030"][i]), 5)
-            self.assertIsNotNone(s["ci"]["2030"][i])                        # five draws: an interval
+            self.assertNotIn("ci", s)                                       # prompts, not re-asks: no interval
             means[s["label"]] = s["ps"]["2030"][i]
         self.assertEqual(set(means), set(self.labels))
         self.assertAlmostEqual(q["median"]["2030"][i], statistics.median(means.values()), places=3)

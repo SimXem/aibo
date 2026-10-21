@@ -37,9 +37,8 @@ const tlFmtFor = q => (q && q.value_kind === "loss" ? tlFmtBig : tlFmt);
 // in place of the six shaded lines of the day before). No line joins the
 // medians since 2026-10-21 (project lead): the series spans a protocol change.
 // Expected-deaths rows plot deaths on the shared severity axis (rung ticks,
-// Extinction marked), log only. Any per-date interval the blob carries (a
-// date with more than one draw per model) is drawn as a grey bar behind the
-// median.
+// Extinction marked), log only. No intervals since 2026-10-21 (project
+// lead): a date's draws are its prompt variants, not re-asks.
 function TimelineChart({ q, snapshots, horizon, scale }) {
   const loss = q.value_kind === "loss";
   // Laid out in the width the panel gives it (web/shared/responsive.jsx);
@@ -82,8 +81,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   const med = q.median[h] || [];
   const fmtV = tlFmtFor(q);
   const [hv, setHv] = useState(null);                 // hovered snapshot index
-  const series = q.series.map(s => ({ ...s, vals: s.ps[h] || [], cis: (s.ci || {})[h] || [] }));
-  const ci = (q.ci || {})[h] || [];
+  const series = q.series.map(s => ({ ...s, vals: s.ps[h] || [] }));
   // Prompt variants (combined-v10): one light line per variant, the panel
   // median of that prompt's calls; the ink mark is the median of the models'
   // means over the five. Hover a line for its prompt. An UNPOOLED variant
@@ -120,7 +118,6 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
       ...med,
       ...variants.flatMap(v => v.vals),
       ...series.flatMap(s => s.vals),
-      ...ci.flatMap(c => c || []),
     ]);
     y = v => pad.t + (1 - Math.min(1, Math.max(0, v / top))) * (H - pad.t - pad.b);
     yticks = linearTicks(top);
@@ -149,17 +146,9 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
     return out;
   };
   const path = pts => pts.map((p, k) => (k === 0 ? "M" : "L") + x(p.i).toFixed(1) + " " + y(p.v).toFixed(1)).join(" ");
-  const whisker = (i, lo, hi, color, width, opacity, cap) => (
-    <g stroke={color} strokeWidth={width} opacity={opacity} strokeLinecap="round">
-      <line x1={x(i)} x2={x(i)} y1={y(lo)} y2={y(hi)} />
-      <line x1={x(i) - cap} x2={x(i) + cap} y1={y(lo)} y2={y(lo)} />
-      <line x1={x(i) - cap} x2={x(i) + cap} y1={y(hi)} y2={y(hi)} />
-    </g>
-  );
   const li = med.map((v, i) => (v != null ? i : -1)).reduce((a, b) => Math.max(a, b), -1);
   // Right-margin label: the latest median, kept above the date labels.
   const endLabel = li >= 0 ? { v: med[li], y: Math.min(y(med[li]), H - pad.b - 2), xi: li } : null;
-  const range = c => fmtV(c[0]) + "–" + fmtV(c[1]);
   const anchor = i => (narrow && n > 1 ? (i === 0 ? "start" : i === n - 1 ? "end" : "middle") : "middle");
 
   // The nearest run by x.
@@ -204,12 +193,6 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
         ))}
         {axisEnd > days[n - 1] && <text x={W - pad.r} y={H - 18} textAnchor="end"
           fontSize="12" fill="var(--ink-faint)" fontWeight="600">Dec 31</text>}
-        {/* An interval of the median, one grey bar per date, under every mark. */}
-        {ci.map((c, i) => c && c[1] > c[0] ? (
-          <rect key={"ci" + i} x={x(i) - 9} width={18} y={y(c[1])} height={Math.max(1.5, y(c[0]) - y(c[1]))}
-            rx="2" fill="var(--ink-faint)" opacity="0.22" />
-        ) : null)}
-
         {/* One light line per prompt variant, under the median; an unpooled one dashed. */}
         {variants.map(v => (
           <g key={"v" + v.id} opacity="0.55">
@@ -232,7 +215,6 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
         {/* Every model, every date: one line, so the dots always draw. */}
         {series.map(s => (
           <g key={s.label}>
-            {s.cis.map((c, i) => c ? <g key={"w" + i}>{whisker(i, c[0], c[1], s.color, 1.3, 0.55, 3.5)}</g> : null)}
             {s.vals.map((v, i) => v == null ? null : (
               <circle key={"d" + i} cx={x(i)} cy={y(v)} r="4" fill={s.color} stroke="var(--panel)" strokeWidth="1.5" />
             ))}
@@ -262,13 +244,12 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>
             {snapshots[hv].date} · <span style={{ color: "var(--ink)", fontWeight: 600 }}>by {h}</span>
             {hasVar(hv) ? ` · ${pooledVariants.filter(v => v.vals[hv] != null).length} prompts per model · point = mean of the prompts`
-              : snapshots[hv].draws > 1 ? ` · ${snapshots[hv].draws} draws per model · point = mean, range = 95% CI` : ""}{loss ? " · deaths" : ""}
+              : snapshots[hv].draws > 1 ? ` · ${snapshots[hv].draws} draws per model · point = mean` : ""}{loss ? " · deaths" : ""}
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12.5, fontWeight: 600, marginBottom: 4 }}>
             <span>Ensemble median</span>
             <span className="mono">
               {fmtV(med[hv])}
-              {ci[hv] && <span style={{ color: "var(--ink-faint)", fontWeight: 400 }}> {range(ci[hv])}</span>}
             </span>
           </div>
           {variants.filter(v => v.vals[hv] != null).map(v => (
@@ -284,7 +265,6 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
               </span>
               <span className="mono">
                 {fmtV(s.vals[hv])}
-                {s.cis[hv] && <span style={{ color: "var(--ink-faint)" }}> {range(s.cis[hv])}</span>}
               </span>
             </div>
           ))}
@@ -298,15 +278,9 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
 function TimelineTable({ q, horizon, snapshots }) {
   const loss = q.value_kind === "loss";
   const fmtV = tlFmtFor(q);
-  const ci = (q.ci || {})[horizon] || [];
   const rows = [
-    { label: "Ensemble median", color: "var(--ink)", vals: q.median[horizon] || [],
-      ranges: ci.map(c => c || null), bold: true },
-    ...q.series.map(s => ({
-      label: s.label, color: s.color, vals: s.ps[horizon] || [],
-      // The model's own interval, only where it had more than one draw that day.
-      ranges: ((s.ci || {})[horizon] || []).map(c => c || null),
-    })),
+    { label: "Ensemble median", color: "var(--ink)", vals: q.median[horizon] || [], bold: true },
+    ...q.series.map(s => ({ label: s.label, color: s.color, vals: s.ps[horizon] || [] })),
   ];
   // Change first -> last: percentage points for a probability, a ratio for a loss.
   const change = v => {
@@ -334,7 +308,6 @@ function TimelineTable({ q, horizon, snapshots }) {
             {r.vals.map((v, i) => (
               <td key={i} className="mono">
                 {fmtV(v)}
-                {r.ranges[i] && <div style={{ fontSize: 10.5, color: "var(--ink-faint)" }}>{fmtV(r.ranges[i][0])}–{fmtV(r.ranges[i][1])}</div>}
               </td>
             ))}
             <td className="mono" style={{ color: "var(--ink-soft)" }}>{change(r.vals)}</td>
@@ -418,12 +391,6 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
               title={legacyModels.map(m => m.label).join(", ")} />
           )}
           <LegendDot color="var(--ink)" label="Ensemble median" />
-          {(q.ci && (q.ci[hz] || []).some(Boolean)) && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--ink-soft)" }}>
-              <span style={{ width: 10, height: 14, borderRadius: 2, background: "var(--ink-faint)", opacity: 0.35, display: "inline-block" }}></span>
-              95% CI
-            </span>
-          )}
           {/* The scale switch at the legend row's right end, where Graph 2 keeps its own. */}
           {!loss && <ScaleToggle value={scale} onChange={setScale} style={{ marginLeft: "auto" }} />}
         </div>
