@@ -5,8 +5,8 @@ fake loop, then the launch validator and the views over those rows.
 What this pins (the owner's decisions of 2026-10-19):
   * the validator accepts 24 calls, and the day with a sixth call missing;
     a missing pooled call still fails it;
-  * the Timeline draws six condition lines, the sixth flagged unpooled with
-    its guard, and every published number -- each model's point, the
+  * the Timeline shows the five prompts and never the sixth (2026-10-21),
+    and every published number -- each model's point, the
     ensemble median, Graph 1's latest reading, the Policy-levers baseline --
     is the mean of the FIVE prompts, the sixth never in it.
 No model or search is called (the loop is a fake)."""
@@ -218,20 +218,17 @@ class TestSixthCallLaunch(unittest.TestCase):
         self.assertEqual({r["condition"] for r in self._load(panel_only=False)} - set(AIRO["conditions"]), set())
         self.assertIn("ai-banned", {r["condition"] for r in self._load(panel_only=False)})   # the download keeps it
 
-    def test_the_timeline_draws_six_lines_over_a_five_prompt_mean(self):
+    def test_the_timeline_shows_the_five_prompts_and_never_the_sixth(self):
         with patch.object(timeline, "load_runlog", self._load):
             blob = timeline.build()
         snap = blob["snapshots"][-1]
         self.assertEqual((snap["date"], snap["draws"], snap["calls"]), (TODAY.isoformat(), 5, 20))
-        info = {v["id"]: v for v in blob["variants"]}
-        self.assertEqual(list(info), list(AIRO["conditions"]))
-        self.assertFalse(info["ai-banned"]["pooled"])
-        self.assertEqual(info["ai-banned"]["guard"], AIRO["conditions"]["ai-banned"]["url_block_patterns"])
-        self.assertEqual(info["ai-banned"]["text"], ru.VARIANTS["ai-banned"])
-        self.assertTrue(all(v["pooled"] and v["guard"] is None for k, v in info.items() if k != "ai-banned"))
+        self.assertEqual([v["id"] for v in blob["variants"]], list(POOLED))
         q = next(q for q in blob["questions"] if q["id"] == "catastrophe:ai")
         i = len(blob["snapshots"]) - 1
-        self.assertEqual(set(q["variants"]), set(AIRO["conditions"]))           # six lines
+        self.assertEqual(set(q["variants"]), set(POOLED))                        # five dots, no sixth
+        self.assertEqual(set(q["variantModels"]), set(POOLED))
+        self.assertEqual(set(q["variantModels"]["none"]["2030"][i]), set(self.labels))
         means = {}
         for s in q["series"]:
             if s["ps"]["2030"][i] is None:
@@ -244,8 +241,6 @@ class TestSixthCallLaunch(unittest.TestCase):
         self.assertEqual(set(means), set(self.labels))
         self.assertAlmostEqual(q["median"]["2030"][i], statistics.median(means.values()), places=3)
         self.assertIsNone(q["rerun"]["2030"][i])                             # the draws are prompts, not re-asks
-        # The sixth's line is the panel median of ITS calls, 5pp above the baseline's.
-        self.assertAlmostEqual(q["variants"]["ai-banned"]["2030"][i] - q["variants"]["none"]["2030"][i], 5.0, places=3)
 
     def test_the_policy_levers_baseline_is_five_calls(self):
         rows = conditional.load_conditional(self.results / "conditional_runs_combined.jsonl")

@@ -267,9 +267,8 @@ def pooled_rows(rows):
     beside its five prompts -- the baseline prompt with the AI-forecast ban
     and agent-box's URL guard against AIRO's own pages
     (experiments/airo.toml: a condition outside `pooled`). Its rows are
-    stamped `pooled: false`: the Timeline draws them as their own line
-    (redlines.views.timeline.condition_medians), and
-    nothing else reads them -- not pool(), not latest_pooled(), not the
+    stamped `pooled: false`, and nothing shows them (project lead,
+    2026-10-21) -- not the Timeline, not pool(), not latest_pooled(), not the
     Policy-levers summary (redlines.conditional.load_conditional). A row
     without the stamp is pooled, so every row before that date is unchanged.
     The download bundle (load_runlog(panel_only=False)) keeps everything.

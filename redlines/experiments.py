@@ -11,17 +11,18 @@ and the axes instruments were each run their own way).
 
 `pooled` names the conditions whose mean is each model's published number.
 They run together: the mean is taken over one day's calls
-(redlines.runlog.pool). A published condition outside `pooled` is drawn as
-its own line and enters no number; an unpublished one writes to
-results/experiments/ and nothing on the page reads it.
+(redlines.runlog.pool). A published condition outside `pooled` enters no
+number and is never shown (2026-10-21); its rows stay in the run log and the
+download. An unpublished one writes to results/experiments/ and nothing on
+the page reads it.
 
 A condition's CADENCE says when the cron runs it (2026-10-21): a list of
 weekdays, UTC ("wed"), any of which may be an ordinal one ("1st wed", the
 first Wednesday of the month), or "manual" for only when named by hand.
 code/cron_run.sh asks `python -m redlines.experiments due` what is due
 today and runs each group. The pooled conditions share one cadence, and a
-published condition outside them runs only on days they run, because the
-Timeline draws its line beside theirs.
+published condition outside them runs only on days they run (a rule from
+when the Timeline drew its line beside theirs, until 2026-10-21).
 
 code/run_unified.py --experiment NAME runs an experiment's conditions (all
 of them, or those named with --condition), whatever their cadence. Every row
@@ -237,7 +238,8 @@ def _entry(e):
 def _check_cadences(conditions, where):
     """The pooled conditions share one cadence (a day's mean is over all of
     them), and a published condition outside them runs on no day they do not
-    (the Timeline draws its line beside theirs). Run by hand, anything goes."""
+    (a rule from when the Timeline drew its line beside theirs). Run by hand,
+    anything goes."""
     pooled = [c for c in conditions.values() if c["pooled"]]
     if not pooled:
         return
@@ -251,8 +253,8 @@ def _check_cadences(conditions, where):
             continue
         if any(is_due(c, d) and not is_due(pooled[0], d) for d in year):
             raise ValueError(f"{where} [conditions.{c['id']}]: cadence {c['cadence']} runs on days "
-                             f"the pooled conditions ({pooled[0]['cadence']}) do not, and the "
-                             "Timeline draws a published condition only beside them")
+                             f"the pooled conditions ({pooled[0]['cadence']}) do not, and "
+                             "a published condition runs only beside them")
 
 
 def main(argv=None):
