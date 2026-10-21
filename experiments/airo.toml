@@ -5,7 +5,7 @@
 # LEAP Wave 12 policy and each six-month capability scenario, in one call per
 # model (data/combined_conditions.json, code/make_combined_conditions.py) --
 # asked under five prompts whose mean is each model's published number, and a
-# sixth that is drawn on the Timeline and enters no number.
+# sixth that is never shown and enters no number (its rows stay in the download).
 #
 # The settings below are every condition's unless its own table says otherwise.
 # A change to what a call is asked moves each affected condition's

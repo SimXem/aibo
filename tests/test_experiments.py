@@ -3,8 +3,8 @@
 experiments/airo.toml is the published series: the minimal instrument under
 five pooled conditions (combined-v10's prompt variants) and the unpooled
 sixth (the baseline prompt with the AI-forecast ban and a per-call URL
-guard). run_unified asks one call per model per condition; the Timeline draws
-one line per condition beside the pooled median."""
+guard). run_unified asks one call per model per condition; the Timeline shows
+one dot per pooled condition beside the pooled median, never the sixth."""
 import importlib.util
 import sys
 import tempfile
@@ -203,7 +203,7 @@ cadence = ["mon", "wed"]
                 ('[conditions.a]\ncadence = ["6th wed"]\n', "is not"),
                 ('[conditions.a]\ncadence = []\n', "is not"),
                 ('pooled = ["a", "b"]\n[conditions.a]\n[conditions.b]\ncadence = ["fri"]\n', "different cadences"),
-                ('[conditions.a]\n[conditions.b]\ncadence = ["wed", "fri"]\n', "the Timeline draws")):
+                ('[conditions.a]\n[conditions.b]\ncadence = ["wed", "fri"]\n', "runs only beside them")):
             text = head.replace('pooled = ["a"]\n', "") + body if body.startswith("pooled") else head + body
             with self.assertRaisesRegex(ValueError, why):
                 experiments.load(_toml(text))
@@ -335,34 +335,31 @@ class TestRunOneJoint(unittest.TestCase):
 
 
 class TestTimelineConditions(unittest.TestCase):
-    def test_condition_medians(self):
-        from redlines.views.timeline import condition_medians
+    def test_condition_cells(self):
+        from redlines.views.timeline import condition_cells
         mk = lambda label, c, p: {"run_date": "2026-10-19", "elicited_at": "2026-10-19T12:00:00+00:00",
                                   "question_id": "catastrophe:ai", "label": label, "condition": c,
                                   "forecasts": [{"horizon": "2030", "probability": p}]}
         rows = [mk("A", "none", 0.01), mk("B", "none", 0.03), mk("A", "independent", 0.02), mk("B", "independent", 0.04)]
-        out = condition_medians(rows, ["2026-10-19"])
-        self.assertEqual(out[("2026-10-19", "catastrophe:ai")]["none"]["2030"], 2.0)
-        self.assertEqual(out[("2026-10-19", "catastrophe:ai")]["independent"]["2030"], 3.0)
-        self.assertEqual(condition_medians(rows[:2], ["2026-10-19"]), {})       # one condition: no lines
+        out = condition_cells(rows)
+        self.assertEqual(out[("2026-10-19", "catastrophe:ai")]["none"]["2030"], {"A": 1.0, "B": 3.0})
+        self.assertEqual(out[("2026-10-19", "catastrophe:ai")]["independent"]["2030"], {"A": 2.0, "B": 4.0})
+        self.assertEqual(condition_cells(rows[:2]), {})                         # one condition: no dots
 
-    def test_condition_info_reads_the_stamp_off_the_rows(self):
-        from redlines.views.timeline import condition_info
+    def test_condition_variants_reads_the_variant_off_the_rows(self):
+        from redlines.views.timeline import condition_variants
         rows = [{"elicited_at": "2026-10-19T12:00:00+00:00", "condition": "none", "variant": "none"},
-                {"elicited_at": "2026-10-19T12:00:00+00:00", "condition": "ai-banned", "variant": "ai-banned",
-                 "pooled": False, "url_block_patterns": "x\\.org"}]
-        self.assertEqual(condition_info(rows), {
-            "none": {"pooled": True, "guard": None, "variant": "none"},
-            "ai-banned": {"pooled": False, "guard": "x\\.org", "variant": "ai-banned"}})
+                {"elicited_at": "2026-10-19T12:00:00+00:00", "condition": "crit", "variant": "critical"}]
+        self.assertEqual(condition_variants(rows), {"none": "none", "crit": "critical"})
 
-    def test_the_legend_is_the_published_experiment_in_its_order(self):
+    def test_the_legend_is_the_published_experiments_pooled_conditions_in_its_order(self):
         from redlines.views.timeline import condition_legend
-        legend = condition_legend({"none": {"pooled": True, "guard": None, "variant": "none"}})
-        self.assertEqual([e["id"] for e in legend], list(AIRO["conditions"]))
-        sixth = next(e for e in legend if e["id"] == "ai-banned")         # no rows yet: the config says
-        self.assertEqual((sixth["text"], sixth["pooled"], sixth["guard"]),
-                         (ru.VARIANTS["ai-banned"], False, AIRO["conditions"]["ai-banned"]["url_block_patterns"]))
-        old = condition_legend({"retired": {"pooled": False, "guard": None, "variant": "recent"}})
+        legend = condition_legend({"none": "none"})
+        pooled = [c for c, cfg in AIRO["conditions"].items() if cfg["pooled"]]
+        self.assertEqual([e["id"] for e in legend], pooled)
+        self.assertNotIn("ai-banned", pooled)                              # the sixth is never shown
+        self.assertEqual(legend[0]["text"], ru.VARIANTS["none"])
+        old = condition_legend({"retired": "recent"})
         self.assertEqual((old[-1]["id"], old[-1]["text"]), ("retired", ru.VARIANTS["recent"]))
 
 

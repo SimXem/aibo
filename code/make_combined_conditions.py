@@ -104,8 +104,8 @@ beyond their inputs; do not consult them -- AND agent-box's URL guard
 published forecasts out of its search. It is the `both` arm of the anchor-guard
 experiment of 2026-10-16 (elsehow/airo#5), asked every run. It is declared
 as a condition outside the pooled five (experiments/airo.toml since 2026-10-21;
-until then the set's `unpooled_variants`): drawn as its own line on the
-Timeline, and NEVER part of a model's published number -- the mean, the CI,
+until then the set's `unpooled_variants`): never shown (2026-10-21), and
+NEVER part of a model's published number -- the mean, the CI,
 Graph 1, the data bank and the Policy-levers tab stay the mean of the five
 (redlines.runlog.pooled_rows). Its rows carry `variant`, `url_block_patterns`
 and `pooled: false`; the five's rows and prompts are unchanged, so the protocol

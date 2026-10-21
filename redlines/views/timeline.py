@@ -134,55 +134,39 @@ def noise_floor(by_day, days):
     return None
 
 
-def condition_medians(rows, days):
-    """{(date, question_id): {condition: {horizon: panel median, in %}}} for
-    dates asked under more than one condition (redlines.experiments; airo:
-    the five prompts and the unpooled sixth), else {}. The pooled point per
-    model is the mean of its pooled conditions (runlog.pool); these are the
-    per-condition panel medians the Timeline draws beside it, the unpooled
-    ones included. An old row's condition is its prompt variant
-    (redlines.logs.read_row)."""
-    by = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
+def condition_cells(rows):
+    """{(date, question_id): {condition: {horizon: {model: answer, in %}}}}
+    for dates asked under more than one condition (redlines.experiments;
+    airo: the five pooled prompts), else {}. A model asked a condition more
+    than once that day gets the mean. An old row's condition is its prompt
+    variant (redlines.logs.read_row)."""
+    by = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
     for r in rows:
         v = r.get("condition") or "none"
         for f in r["forecasts"]:
-            by[(elicitation_date(r), r["question_id"])][v][f["horizon"]].append(100 * f["probability"])
-    out = {}
-    for key, per in by.items():
-        if len(per) > 1:
-            out[key] = {v: {h: round(statistics.median(ps), 3) for h, ps in hs.items()} for v, hs in per.items()}
-    return out
+            by[(elicitation_date(r), r["question_id"])][v][f["horizon"]][r["label"]].append(100 * f["probability"])
+    return {key: {v: {h: {m: round(statistics.mean(ps), 3) for m, ps in ms.items()} for h, ms in hs.items()}
+                  for v, hs in per.items()}
+            for key, per in by.items() if len(per) > 1}
 
 
-def condition_info(rows):
-    """{condition: {"pooled": bool, "guard": patterns or None, "variant"}} as
-    the rows say: an unpooled condition's rows carry `pooled: false` and the
-    URL guard its calls ran under (the newest row's, should it ever change)."""
-    info = {}
-    for r in sorted(rows, key=lambda r: r["elicited_at"]):
-        info[r.get("condition") or "none"] = {"pooled": bool(r.get("pooled", True)),
-                                              "guard": r.get("url_block_patterns") or None,
-                                              "variant": r.get("variant") or "none"}
-    return info
+def condition_variants(rows):
+    """{condition: prompt variant} as the rows say (the newest row's)."""
+    return {r.get("condition") or "none": r.get("variant") or "none"
+            for r in sorted(rows, key=lambda r: r["elicited_at"])}
 
 
-def condition_legend(info):
-    """The lines' labels and hover text, one entry per condition: the
-    published experiment's conditions in its order, then any other the rows
-    carry. `text` is the instruction its variant adds; `pooled` and `guard`
-    are what its rows say, else what the experiment says."""
+def condition_legend(variants):
+    """The variant dots' labels and hover text: the published experiment's
+    pooled conditions in its order, then any other the rows carry. `text` is
+    the instruction its variant adds. An unpooled condition (the sixth call)
+    is never shown."""
     config = load_experiment(PUBLISHED)["conditions"]
-    out = []
-    for c in list(config) + [c for c in info if c not in config]:
-        said, cfg = info.get(c), config.get(c)
-        variant = (said or cfg)["variant"]
-        out.append({"id": c, "text": VARIANTS.get(variant),
-                    "pooled": said["pooled"] if said else cfg["pooled"],
-                    "guard": said["guard"] if said else cfg["url_block_patterns"]})
-    return out
+    ids = [c for c, cfg in config.items() if cfg["pooled"]] + [c for c in variants if c not in config]
+    return [{"id": c, "text": VARIANTS.get(variants.get(c) or config[c]["variant"])} for c in ids]
 
 
-def _prob_row(q, rail, by_day, days, horizons, var_meds=None):
+def _prob_row(q, rail, by_day, days, horizons, var_cells=None):
     """One cross-cutting question: per model, lists aligned to `days` of the
     pooled point, its draws and their min-max; and the ensemble median. No
     interval since 2026-10-21 (project lead): a date's draws are its prompt
@@ -229,20 +213,23 @@ def _prob_row(q, rail, by_day, days, horizons, var_meds=None):
             band.append(rerun_band([s["draws"][h][i] for s in series
                                     if s["draws"][h][i]]))
         median[h], rerun[h] = med, band
-    # Conditions (redlines.experiments): one panel-median line per condition,
-    # None on dates asked under one. On those dates the draws are the
-    # conditions, not re-asks, so the re-run band is dropped.
-    variants = {}
+    # Conditions (redlines.experiments): per condition, its panel median and
+    # each model's answer, None on dates asked under one. On those dates the
+    # draws are the conditions, not re-asks, so the re-run band is dropped.
+    variants, variant_models = {}, {}
+    blank = lambda: {h: [None] * len(days) for h in horizons}
     for i, d in enumerate(days):
-        per = (var_meds or {}).get((d, q["id"]))
+        per = (var_cells or {}).get((d, q["id"]))
         if not per:
             continue
         for h in horizons:
             rerun[h][i] = None
         for v, hs in per.items():
             for h in horizons:
-                variants.setdefault(v, {hh: [None] * len(days) for hh in horizons})[h][i] = hs.get(h)
-    extra = {"variants": variants} if variants else {}
+                ms = hs.get(h)
+                variants.setdefault(v, blank())[h][i] = round(statistics.median(ms.values()), 3) if ms else None
+                variant_models.setdefault(v, blank())[h][i] = ms
+    extra = {"variants": variants, "variantModels": variant_models} if variants else {}
     return {
         "id": q["id"], "short": q.get("short") or q.get("cause_label"),
         "category": rail["category"], "railLabel": rail["railLabel"],
@@ -323,10 +310,8 @@ def build():
                    and r.get("question_id") in legacy_probability_ids
                    and elicitation_date(r) >= SERIES_START]
     current_series_rows = [r for r in current_rows_all if elicitation_date(r) >= SERIES_START]
-    # The unpooled rows (the sixth call, `pooled: false`) are drawn as their
-    # own variant line and enter nothing else: not the pooled point, not the
-    # median, not the CI, not the day's completeness (runlog.pooled_rows).
-    aside_rows = [r for r in current_series_rows if not r.get("pooled", True)]
+    # The unpooled rows (the sixth call, `pooled: false`) are never shown
+    # (project lead, 2026-10-21); the download keeps them (runlog.pooled_rows).
     current_series_rows = pooled_rows(current_series_rows)
     rows = current_series_rows + legacy_rows
     batches = rows_by_day(rows)
@@ -389,12 +374,7 @@ def build():
             "panel": sorted({(r.get("panel") or {}).get("set") or "frontier5" for r in drows}),
         })
 
-    # The condition lines: the pooled rows' and, on the same days, the
-    # unpooled sixth's. A day the five did not complete draws no line at all.
-    drawn = {elicitation_date(r) for r in rows}
-    aside_rows = [r for r in aside_rows if elicitation_date(r) in drawn]
-    var_meds = condition_medians(rows + aside_rows, days)
-    var_info = condition_info(rows + aside_rows)
+    var_cells = condition_cells(rows)
     # Cross-cutting questions as themselves; each incident cause as ONE
     # expected-loss row (since 2026-08-27, matching Graph 1 and the
     # Policy-levers tab), emitted at its first rung and never again.
@@ -425,7 +405,7 @@ def build():
             done.add(q["cause"])
             questions.append(_loss_row(q["cause"], rungs, current_by_day, days, horizons, spec))
             continue
-        questions.append(_prob_row(q, per_q[q["id"]], by_day, days, horizons, var_meds))
+        questions.append(_prob_row(q, per_q[q["id"]], by_day, days, horizons, var_cells))
     for q in questions:
         for s in q["series"]:
             s["legacy"] = s["label"] not in current
@@ -459,8 +439,6 @@ def build():
         "severityAxis": SEVERITY_AXIS,
         "marks": _reference_marks(),
         # The conditions a date may carry (the page calls them variants), for
-        # the lines' labels and their hover text: the instruction, whether the
-        # condition is in the published number, and the URL guard its calls
-        # ran under.
-        **({"variants": condition_legend(var_info)} if var_meds else {}),
+        # the dots' labels and the instruction their hover shows.
+        **({"variants": condition_legend(condition_variants(rows))} if var_cells else {}),
     }
