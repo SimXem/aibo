@@ -336,6 +336,7 @@ class TestView(unittest.TestCase):
         self.assertAlmostEqual(t["median"]["2050"][0], 80.5 + mean_prompt, places=3)
         self.assertAlmostEqual(t["band"]["2050"][0]["p10"], 78.5 + mean_prompt, places=3)
         self.assertEqual(t["variantModels"]["two-step"]["2050"][0], {"GPT-6 Astra": 80.4, "Opus 5.5": 81.4})
+        self.assertEqual(t["variantBands"]["two-step"]["2050"][0], {"p10": 78.9, "p25": 79.9, "p50": 80.9, "p75": 81.9, "p90": 82.9})
         self.assertEqual([x["id"] for x in b["TIMELINE"]["variants"]], WELFARE["pooled"])
         g = next(q for q in b["GRAPH1"]["questions"] if q["id"] == "gdp:emde")
         self.assertEqual(g["horizonLabels"]["2030"], "2030 (the five-year period 2026 through 2030)")

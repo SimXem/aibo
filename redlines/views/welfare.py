@@ -138,11 +138,11 @@ def _timeline(questions, rows, days, labels, colors, experiment):
     """TIMELINE: per complete day, each model's p50 (its five prompts' mean),
     the ensemble's percentiles, and each prompt's panel median."""
     by_day = {d: _pooled([r for r in rows if _day(r) == d and r.get("scenario") is None]) for d in days}
-    prompt = defaultdict(dict)          # (day, question, condition, horizon) -> {model: p50}
+    prompt = defaultdict(dict)          # (day, question, condition, horizon) -> {model: percentiles}
     for r in rows:
         if r.get("scenario") is None:
             for f in r["forecasts"]:
-                prompt[(_day(r), r["question_id"], r["condition"], f["horizon"])][r["label"]] = _r(f[KIND]["p50"], 3)
+                prompt[(_day(r), r["question_id"], r["condition"], f["horizon"])][r["label"]] = f[KIND]
     out = []
     for q in questions:
         hs = q["horizons"]
@@ -150,13 +150,18 @@ def _timeline(questions, rows, days, labels, colors, experiment):
                    "ps": {h: [_r((_at(by_day[d], (q["id"], l, None), h) or {}).get("p50"), 3) for d in days] for h in hs}}
                   for l in labels]
         band = {h: [_ensemble(_at(by_day[d], (q["id"], l, None), h) for l in labels) for d in days] for h in hs}
-        models = {c: {h: [prompt.get((d, q["id"], c, h)) or None for d in days] for h in hs}
+        models = {c: {h: [{l: _r(v["p50"], 3) for l, v in prompt.get((d, q["id"], c, h), {}).items()} or None
+                          for d in days] for h in hs}
                   for c in experiment["pooled"]}
         out.append({**_meta(q), "value_kind": KIND, "series": series,
                     "median": {h: [(e or {}).get("p50") for e in band[h]] for h in hs}, "band": band,
                     "variants": {c: {h: [_median(ms.values()) if ms else None for ms in hs_[h]] for h in hs}
                                  for c, hs_ in models.items()},
-                    "variantModels": models, "declined": {}})
+                    "variantModels": models,
+                    # Each prompt's own ensemble percentiles, drawn as its bar.
+                    "variantBands": {c: {h: [_ensemble(prompt.get((d, q["id"], c, h), {}).values()) for d in days]
+                                         for h in hs} for c in experiment["pooled"]},
+                    "declined": {}})
     return {"snapshots": [{"date": d, "label": f"{date.fromisoformat(d):%b} {date.fromisoformat(d).day}",
                            "draws": 1, "runs": sorted({r["run_id"] for r in rows if _day(r) == d})} for d in days],
             "questions": out if days else [],

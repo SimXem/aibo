@@ -46,6 +46,8 @@ const tlVariants = (q, horizon, snapshots) => {
     id, ...(TL_CONDITIONS[id] || { label: id, color: "var(--ink-soft)" }),
     vals: (hs[horizon] || []).map((v, i) => snapshots[i].date >= TL_CONDITION_START ? v : null),
     models: ((q.variantModels || {})[id] || {})[horizon] || [],
+    // A percentiles row's prompt: its own ensemble percentiles, per date.
+    bands: ((q.variantBands || {})[id] || {})[horizon] || [],
     text: (info[id] || {}).text,
   })).filter(v => v.vals.some(val => val != null));
 };
@@ -136,7 +138,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   let y, yticks, tickText, tickSub;
   if (pct) {
     const { ticks, lo, hi } = unitTicks([...med, ...variants.flatMap(v => v.vals), ...series.flatMap(s => s.vals),
-                                         ...band.flatMap(b => (b ? [b.p10, b.p90] : []))]);
+                                         ...[band, ...variants.map(v => v.bands)].flatMap(bs => bs.flatMap(b => (b ? [b.p10, b.p90] : [])))]);
     y = v => pad.t + (1 - Math.min(1, Math.max(0, (v - lo) / (hi - lo)))) * (H - pad.t - pad.b);
     yticks = ticks;
     tickText = t => unitTick(t, q.unit);
@@ -176,8 +178,16 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   // Nearby answers can otherwise cover each other's color and hit target.
   // Dodge only colliding condition dots a few pixels sideways, keeping
   // their probability unchanged and the median on the date's grid line.
+  // A percentiles row gives each prompt its own lane beside the median,
+  // nearest first, so the prompts' bars never overlap.
+  const lanes = [-14, 14, -28, 28, -42, 42, -56, 56];
   const variantDots = snapshots.flatMap((_, i) => {
     const placed = med[i] == null ? [] : [{ cx: x(i), cy: y(med[i]) }];
+    if (pct) {
+      const on = variants.filter(v => v.vals[i] != null);
+      const at = lanes.slice(0, on.length).sort((a, b) => a - b);
+      return on.map((v, k) => ({ v, i, cx: x(i) + at[k], cy: y(v.vals[i]) }));
+    }
     return variants.filter(v => v.vals[i] != null).map(v => {
       const cy = y(v.vals[i]);
       const dx = [0, -12, 12, -24, 24, -36, 36].find(offset =>
@@ -268,6 +278,12 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
           </g>
         ))}
 
+        {pct && variantDots.map(({ v, i, cx }) => (
+          <g key={`bar:${v.id}:${i}`} opacity={hvar && (hvar.id !== v.id || hvar.i !== i) ? 0.3 : 1}>
+            <PctBar q={v.bands[i]} pos={y} at={cx} color={v.color} vertical />
+          </g>
+        ))}
+
         {/* One dot per prompt variant, above the hover layer so each can be hovered. */}
         {variantDots.map(({ v, i, cx, cy }) => (
           <g key={`${v.id}:${i}`} opacity={hvar && (hvar.id !== v.id || hvar.i !== i) ? 0.3 : 1}
@@ -293,6 +309,11 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
             </span>
             <span className="mono">{fmtV(hovered.vals[hvar.i])}</span>
           </div>
+          {pct && hovered.bands[hvar.i] && (
+            <div className="mono" style={{ fontSize: 11.5, color: "var(--ink-soft)", marginTop: 2 }}>
+              25th–75th {fmtV(hovered.bands[hvar.i].p25)}–{fmtV(hovered.bands[hvar.i].p75)} · 10th–90th {fmtV(hovered.bands[hvar.i].p10)}–{fmtV(hovered.bands[hvar.i].p90)}
+            </div>
+          )}
           <div style={{ fontSize: 11.5, color: "var(--ink-soft)", margin: "4px 0 6px" }}>
             {hovered.text || "No added instruction."}
           </div>
