@@ -17,11 +17,16 @@ function RationaleSources({ sources }) {
 }
 // The selected model's forecasts on every horizon, above its explanation: the
 // explanation was recorded once per question, not once per horizon.
-function RationaleForecastTable({ forecasts, model }) {
+function RationaleForecastTable({ forecasts, model, calls }) {
   const rows = forecasts.filter(f => (f.values || {})[model] != null);
   if (!rows.length) return null;
+  const variants = new Set(calls.map(([, c]) => c.promptVariant).filter(Boolean));
+  const distinctPrompts = variants.size === calls.length;
   return <div style={{ overflowX: "auto", marginTop: 12 }}>
     <table className="tv" style={{ width: "auto", minWidth: 260 }}>
+      {calls.length > 1 && <caption style={{ textAlign: "left", fontWeight: 600, paddingBottom: 6 }}>
+        Average forecast across {calls.length} {distinctPrompts ? "prompt variants" : "calls"}
+      </caption>}
       <thead><tr><th>Horizon</th><th>Forecast</th></tr></thead>
       <tbody>{rows.map(f => <tr key={f.key}>
         <td>{rationaleHorizonLabel(f.key)}</td>
@@ -50,11 +55,16 @@ function ForecastRationales({ qid, context, forecasts = [], date, controls }) {
         {m}
       </button>)}
     </div>
-    {model && <RationaleForecastTable forecasts={forecasts} model={model} />}
+    {model && <RationaleForecastTable forecasts={forecasts} model={model} calls={calls} />}
     {!calls.length && <p>No explanation recorded for this forecast.</p>}
-    {calls.map(([id, c]) => {
+    {calls.map(([id, c], index) => {
       const explanation = (c.debriefs || {})[qid];
-      return <div key={id} style={{ marginTop: 14 }}>
+      const prompt = (RATIONALES.prompts || {})[c.promptId];
+      return <div key={id} style={{ marginTop: 16, ...(index ? { paddingTop: 16, borderTop: "1px solid var(--line-soft)" } : {}) }}>
+        <p style={{ fontWeight: 600, marginBottom: 4 }}>{c.promptLabel || "Unrecorded"} prompt</p>
+        <p style={{ fontWeight: 600, marginTop: 0 }}>
+          {c.promptVariant === "none" ? "No additional instruction." : c.promptInstruction || "Added instruction text is not available for this call."}
+        </p>
         <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>{explanation ? "Model’s explanation for this question, recorded after its forecasts. Covers all horizons." : "Model’s original explanation for its full forecast batch; not specific to this question or horizon."}{calls.length > 1 ? " Each call contributes to the displayed model mean." : ""}</p>
         <p style={{ whiteSpace: "pre-wrap" }}>{(explanation && explanation.rationale) || c.rationale || "No written rationale recorded."}</p>
         {explanation && explanation.weakest_link && <p><strong>Weakest assumption: </strong>{explanation.weakest_link}</p>}
@@ -63,8 +73,15 @@ function ForecastRationales({ qid, context, forecasts = [], date, controls }) {
         </details>
         <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>Original batch explanation and provenance</summary>
           {explanation && <p style={{ whiteSpace: "pre-wrap" }}>{c.rationale}</p>}
-          <p style={{ overflowWrap: "anywhere", color: "var(--ink-soft)" }}>Model: {c.modelId}<br />Elicited: {c.elicitedAt}<br />Run: {c.run}<br />Call: {id}<br />Instrument: {c.instrument}<br />Protocol: {c.protocol}<br />Condition: unconditional</p>
+          <p style={{ overflowWrap: "anywhere", color: "var(--ink-soft)" }}>Model: {c.modelId}<br />Elicited: {c.elicitedAt}<br />Run: {c.run}<br />Call: {id}<br />Instrument: {c.instrument}<br />Protocol: {c.protocol}<br />Prompt condition: {c.condition || "Not recorded"}<br />Scenario: unconditional</p>
           <a href="redlines-data.zip" download="airo-data.zip">Download original forecasts, explanations and logs</a>
+        </details>
+        <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>View full prompt</summary>
+          {prompt ? <>
+            {prompt.system && prompt.system.trim() && <><p style={{ fontWeight: 600 }}>System prompt</p><pre className="faq-pre">{prompt.system}</pre></>}
+            <p style={{ fontWeight: 600 }}>User prompt</p>
+            <pre className="faq-pre">{prompt.user}</pre>
+          </> : <p>Full prompt not recorded for this call.</p>}
         </details>
       </div>;
     })}
