@@ -135,7 +135,7 @@ PROTOCOL_LINEAGE = {
     # through FRI's agent-box (pi, redlines/pi_loop.py) instead of
     # redlines.llm's litellm loop, as FRI's ForecastBench runs do. The full
     # panel through pi on 2026-10-14 (results/experiments/pi-shadow-
-    # 2026-10-14T2144Z, code/compare_harness.py), against that day's litellm
+    # 2026-10-14T2144Z, archive/compare_harness.py), against that day's litellm
     # run: mean |d| 0.019-0.025 per model over 3,444 cells, 3.9-7.2% moved
     # >0.1 -- inside litellm's own spread from the run before (0.022-0.041,
     # 4.8-15.3%) for every model.

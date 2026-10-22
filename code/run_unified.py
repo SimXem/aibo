@@ -69,9 +69,10 @@ Output rows use the SAME schema as results/forecast_runs.jsonl — one row per
 (question_id, model) — so every view, both pages and both golden tests read it
 unchanged. Batch provenance rides along in extra fields.
 
-Run with any interpreter that has the acquisition extra installed
-(`pip install -e '.[acquire]'` — it pulls in litellm, the only third-party
-dependency the runners need; `python3 -m redlines build` still needs none):
+Run with any interpreter that has fri-forecaster installed (`pip install -e
+. -e ./packages/fri-forecaster`) and pi 0.99.2 (FORECASTER_PI,
+redlines/pi_loop.py); `python3 -m redlines build` still needs no third-party
+dependency:
 
     python code/run_unified.py --smoke
     python code/run_unified.py
@@ -91,7 +92,8 @@ from datetime import date, datetime, timezone
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, ROOT)
 
-from redlines.llm import call_tools, load_keys, reasoning_for, research_coverage  # noqa: E402
+from redlines.llm import load_keys, reasoning_for, research_coverage  # noqa: E402
+from redlines.pi_loop import call_tools  # noqa: E402
 from redlines.logs import run_file  # noqa: E402
 from redlines import experiments  # noqa: E402
 from redlines.experiments import DEFAULT_VARIANT, VARIANTS, check_patterns  # noqa: E402
@@ -121,7 +123,7 @@ COMBINED = os.path.join(ROOT, "data", "combined_conditions.json")
 PUBLISHED_SETS = (COMBINED, POLICIES)
 
 # How many model turns a call may take before the loop forces submit_forecast
-# (redlines.llm.call_tools max_iters). A turn is one model reply; it may carry
+# (redlines.pi_loop.call_tools max_iters). A turn is one model reply; it may carry
 # several tool calls. This is a TERMINATION GUARD, not a budget -- the prompt
 # does not mention it (Nick, 2026-09-02: the floor is fine, a stated maximum is
 # not; the model stops when more searching would not move a number). 8 -> 20
@@ -130,7 +132,7 @@ PUBLISHED_SETS = (COMBINED, POLICIES)
 # the ~30k-token instrument plus up to 8,000 characters per tool result plus
 # the carried thinking blocks -- for every panel model.
 MAX_ROUNDS = 40
-# The RESEARCH FLOOR (redlines.llm.call_tools min_evidence): submit_forecast is
+# The RESEARCH FLOOR (redlines.pi_loop.call_tools min_evidence): submit_forecast is
 # not offered until this many tool calls have returned. Asked nicely, with the
 # prompt below and no floor, Fable 5 searched four times, read nothing and
 # submitted (2026-09-02 smoke) -- the same behaviour as under the old one-pass
@@ -139,7 +141,7 @@ MAX_ROUNDS = 40
 # model may answer. A turn may carry several calls, so the floor costs a
 # handful of turns out of RESEARCH_ROUNDS.
 MIN_RESEARCH = 10
-# THE COVERAGE RULE (2026-09-11; redlines.llm.call_tools coverage): beside the
+# THE COVERAGE RULE (2026-09-11; redlines.pi_loop.call_tools coverage): beside the
 # floor, submission is withheld until EVERY question group has had a
 # web_search with recent_days tagged with the group's key (`cause`). The
 # floor counts calls; this says what they must span. Why: of three GPT-6
@@ -796,7 +798,7 @@ def _cells_schema(qids, horizons, scenario_ids):
 
 
 def submit_cells_tool(qids, horizons, scenario_ids):
-    """The PARTIAL tool (redlines.llm.call_tools partial_tool, 2026-09-02
+    """The PARTIAL tool (redlines.pi_loop.call_tools partial_tool, 2026-09-02
     evening): the model delivers the grid in as many calls as it likes, any
     subset of cells per call; the runner keeps them (run_one_joint) and
     answers with the running count and what is still missing. Same cell
@@ -862,7 +864,7 @@ def submit_tool_joint(qids, horizons, scenario_ids, elicit=None):
 # the expected loss, and the project lead's design was always the standard
 # elicitation plus a rationale per rung per outcome: the run is the run,
 # and the rationale data comes with it. Asked AFTER submission so it cannot
-# move the numbers (redlines.llm.call_tools `debrief`); stored on the
+# move the numbers (redlines.pi_loop.call_tools `debrief`); stored on the
 # call's first row as `debrief` (the answer, keyed by question id) and
 # `debrief_status`; exported as results/debriefs.csv (redlines.export).
 # The harness merges deliveries across attempts and accepts a stringified
@@ -975,17 +977,15 @@ def validate_debrief(args, questions):
 
 
 def debrief_state(groups, by_group):
-    """A fresh `debrief` dict for redlines.llm.call_tools, per attempt. Three
-    retries and a 48k turn: 37 entries is a long tool call, and deliveries
-    merge across attempts."""
+    """A fresh `debrief` dict for redlines.pi_loop.call_tools, per attempt.
+    Three retries: 37 entries is a long tool call, and deliveries merge
+    across attempts."""
     qs = debrief_questions(groups, by_group)
-    return {"tool": debrief_tool(qs), "prompt": debrief_prompt(qs),
-            "validate": lambda args: validate_debrief(args, qs), "retries": 3,
-            # the same check, for a loop that validates in another process
-            # (redlines.pi_loop -> agent-box's tool_cli.py validate)
+    return {"tool": debrief_tool(qs), "prompt": debrief_prompt(qs), "retries": 3,
+            # validate_debrief, run in pi's tool process (agent-box's
+            # tool_cli.py validate)
             "validator": {"file": os.path.abspath(__file__), "function": "validate_debrief",
-                          "kwargs": {"questions": qs}},
-            "max_tokens": 48000}
+                          "kwargs": {"questions": qs}}}
 
 
 def debrief_fields(state, first):
@@ -1127,16 +1127,6 @@ def clean_forecasts_joint(raw, allowed, horizons, scenario_ids):
     return out or None
 
 
-# The loop a call runs through (a condition's `harness`). Everything else in
-# a call -- prompt, tools, floor, coverage, turn limit, debrief, cleaning,
-# rows -- is the same under both (redlines/pi_loop.py says where they differ).
-def loop_for(harness):
-    if harness == "pi":
-        from redlines import pi_loop
-        return pi_loop.call_tools
-    return call_tools
-
-
 def research_tools(groups):
     """FORECAST_TOOLS with web_search's `cause` narrowed to this batch's
     question groups (an enum, required), and the coverage keys the loop
@@ -1164,7 +1154,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
     """One call: the full instrument, as `condition` (redlines.experiments) asks
     it. -> rows, one per (question, scenario)."""
     today = today or datetime.now(timezone.utc).date()
-    harness, variant = condition["harness"], condition["variant"]
+    variant = condition["variant"]
     minimal = condition["instrument"] == "minimal"
     policies = resolve_set(policies, today)
     scenarios = [c for c in policies["conditions"] if c["id"] in {x["id"] for x in scenarios}]
@@ -1202,7 +1192,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
     elicits = set_elicits(policies)
     grids, answer, evidence, attempts, elicited = None, {}, [], 0, None
     usage = {}   # the whole call's tokens and price, retries included
-    # The grid arrives in pieces (submit_cells; redlines.llm.call_tools
+    # The grid arrives in pieces (submit_cells; redlines.pi_loop.call_tools
     # partial_tool): keyed by cell, a later piece replacing an earlier one,
     # the final call's `forecasts` last. `delivery` records how it came.
     received, delivery = {}, {"cells_calls": 0, "cells_in_pieces": 0, "cells_in_final": 0}
@@ -1232,14 +1222,13 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
             debrief = None if minimal else debrief_state(groups, by_group)
             if minimal:
                 research, coverage = minimal_tools(research), None
-            answer, evidence = loop_for(harness)(
+            answer, evidence = call_tools(
                 model_id, prompt, research, submit_tool_joint(qids, horizons, scenario_ids, elicits),
                 system=MINIMAL_SYSTEM if minimal else SYSTEM,
-                max_iters=MINIMAL_MAX_TURNS if minimal else MAX_ROUNDS, max_tokens=64000,
+                max_iters=MINIMAL_MAX_TURNS if minimal else MAX_ROUNDS,
                 min_evidence=0 if minimal else MIN_RESEARCH, usage=usage, partial_tool=partial,
                 coverage=coverage, debrief=debrief,
-                **({"allowed_keys": [f"{q}|{h}" for q, hs in allowed.items() for h in sorted(hs)]}
-                   if harness == "pi" else {}),
+                allowed_keys=[f"{q}|{h}" for q, hs in allowed.items() for h in sorted(hs)],
                 **({"env": {BLOCK_ENV: own_guard}} if own_guard else {}))
         except Exception as exc:
             # A provider error or a call that never submitted: worth the same
@@ -1302,7 +1291,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
                     "grounded": hits > 0, "search_hits": hits,
                     "evidence": evidence if first else [],
                     # What the call cost, on the same row as its evidence
-                    # (redlines.llm.tally_usage): turns, tokens, cost_usd.
+                    # (pi's, redlines.pi_loop): turns, tokens, cost_usd.
                     "usage": usage if first else None,
                     # How the grid arrived (submit_cells pieces vs the final
                     # call) and which cited sources were never read.

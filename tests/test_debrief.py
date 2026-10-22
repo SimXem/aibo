@@ -68,12 +68,14 @@ class PerQuestionDebrief(unittest.TestCase):
         self.assertIn("disempowerment: weakest_link missing", problems)
         self.assertEqual(self.ru.validate_debrief("x", self.qs), ["the debrief must be an object keyed by question id"])
 
-    def test_state_carries_retries_and_cap(self):
+    def test_state_carries_retries_and_validator(self):
         st = self.ru.debrief_state(self.groups, self.by_group)
         self.assertEqual(st["retries"], 3)
-        self.assertEqual(st["max_tokens"], 48000)
         self.assertEqual(st["tool"]["name"], "submit_debrief")
-        self.assertEqual(st["validate"]({}), [f"{q['id']}: missing" for q in self.qs])
+        v = st["validator"]
+        self.assertEqual(v["function"], "validate_debrief")
+        self.assertEqual(getattr(self.ru, v["function"])({}, **v["kwargs"]),
+                         [f"{q['id']}: missing" for q in self.qs])
 
     def test_priming_sentence_is_per_question(self):
         for text in (self.ru.PROMPT,):

@@ -353,10 +353,10 @@ runs each due group:
 "$PY" code/run_unified.py --experiment airo --condition none ... --condition ai-banned --workers 10
 ```
 
-`$PY` only has to be an interpreter with the acquisition extra installed
-(`pip install -e '.[acquire]'`, which is just litellm); `REDLINES_PY` overrides
-it (historically it pointed at the venv of the internal checkout the LLM layer
-was imported from before it was vendored). `experiments/airo.toml` says what
+`$PY` only has to be an interpreter with the harness installed (`pip install
+-e . -e ./packages/fri-forecaster`); `REDLINES_PY` overrides it (historically
+it pointed at the venv of the internal checkout the LLM layer was imported
+from before it was vendored). `experiments/airo.toml` says what
 the run asks (`redlines/experiments.py`): six conditions, each a configured way
 of running the single instrument, one call per model each. Every call answers
 every question×horizon cell unconditionally *and* under each scenario of the

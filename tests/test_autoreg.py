@@ -97,6 +97,30 @@ def test_a_failed_probe_takes_no_seat(tmp_path):
     assert skipped and skipped[0][0] == "GPT-6.1 Sol" and "probe" in skipped[0][1]
 
 
+def test_the_probe_is_one_cell_through_pi(tmp_path, monkeypatch):
+    """The probe runs the panel's own loop (redlines.pi_loop -> agent-box's
+    harness.run), asks for one cell, and takes a seat only when it arrives."""
+    from redlines import pi_loop
+    monkeypatch.delenv("REDLINES_REASONING", raising=False)
+    monkeypatch.setenv("REDLINES_PI_DIR", str(tmp_path))
+    monkeypatch.setenv("REDLINES_PI_CWD", str(tmp_path / "w"))
+    seen = {}
+
+    def run(**kw):
+        seen.update(kw)
+        answer = {"forecasts": [{"question_id": "ping", "horizon": "0"}]} if kw["model"] != "openai/broken" else {}
+        return {"rc": 0, "seconds": 3.0, "answer": answer, "forced": False, "workdir": str(tmp_path),
+                "evidence": [], "usage": {"turns": 1, "cost_usd": 0.01}, "debrief": None, "trace": None}
+
+    def call(*a, **kw):
+        return pi_loop.call_tools(*a, run=run, **kw)
+    assert autoreg.probe("openai/responses/gpt-6.1-sol", call=call) == {"ok": True, "effort": "xhigh"}
+    assert seen["model"] == "openai/gpt-6.1-sol" and seen["allowed_keys"] == ["ping|0"]
+    assert seen["max_turns"] == 2 and seen["timeout"] == autoreg.PROBE_TIMEOUT and seen["research_tools"] == ()
+    out = autoreg.probe("openai/broken", call=call)
+    assert out["ok"] is False and "submit_forecast not called" in out["error"]
+
+
 def test_unmatched_and_unlistable_are_skipped(tmp_path):
     snap = _snapshot(tmp_path, INDEX[:2] + [("Mystery 1", 166.2, "Nobody Labs"), ("GPT-6.1 Sol", 166.09, "OpenAI")])
     out = tmp_path / "auto_models.json"

@@ -17,11 +17,11 @@ and for each model above the cut that has no row, it
      digits ("GPT-6.1 Sol" = gpt-6.1-sol, "Claude Opus 5.5" = claude-opus-5-5),
      allowing only a trailing date, "preview" or "latest". No match, or two,
      and the model stays out and is paged, as before;
-  3. probes it: one short request through the harness's own request path
-     (redlines.llm, the configured reasoning effort and its step-down) with
-     one tool offered, which must come back as a tool call. A model the run
-     would fail on never takes a seat, since one failed model blocks the
-     date's publication;
+  3. probes it: one short call through the loop the run uses (pi,
+     redlines.pi_loop, at the configured reasoning level), which must come
+     back with the one cell it asks for submitted. A model the run would
+     fail on never takes a seat, since one failed model blocks the date's
+     publication;
   4. writes the row to data/auto_models.json, which registry.py reads.
 
 The derived fields follow the hand-typed rows' conventions: the label is the
@@ -52,10 +52,11 @@ from .config import REPO_ROOT
 AUTO_MODELS = REPO_ROOT / "data" / "auto_models.json"
 
 # Epoch `Organization` (lowercased, matched as a substring) -> how to list the
-# provider's models and how litellm addresses one. OpenAI goes through the
-# Responses bridge: on /v1/chat/completions OpenAI refused function tools for
-# GPT-6 Astra (registry.py, 2026-09-08), and every current OpenAI model takes
-# the Responses API.
+# provider's models and how the registry spells one's id. OpenAI's ids name
+# the Responses API (`openai/responses/...`; pi_loop.pi_model drops the
+# segment): on /v1/chat/completions OpenAI refused function tools for GPT-6
+# Astra (registry.py, 2026-09-08), and every current OpenAI model takes the
+# Responses API.
 PROVIDERS = [
     ("anthropic", {"key": "ANTHROPIC_API_KEY", "route": "anthropic/{id}",
                    "url": "https://api.anthropic.com/v1/models?limit=1000",
@@ -177,23 +178,28 @@ def pick_color(neighbours, taken=()):
 
 
 # ── the probe ───────────────────────────────────────────────────────────────
-_PING = {"name": "ping", "description": "Acknowledge the request.",
-         "parameters": {"type": "object", "properties": {"ok": {"type": "boolean"}},
-                        "required": ["ok"]}}
+PROBE_TOOL = {"name": "submit_forecast", "description": "Submit the answer.",
+              "parameters": {"type": "object", "required": ["forecasts"], "properties": {"forecasts": {
+                  "type": "array", "items": {"type": "object", "required": ["question_id", "horizon"],
+                                             "properties": {"question_id": {"type": "string"},
+                                                            "horizon": {"type": "string"}}}}}}}
+PROBE_PROMPT = 'Call submit_forecast with forecasts=[{"question_id": "ping", "horizon": "0"}].'
+PROBE_TIMEOUT = 600
 
 
-def probe(litellm_id):
-    """One request through the harness's request path with one tool offered.
-    -> {ok, effort?, error?}: ok when the reply is a call to that tool."""
-    from .llm import _fn_spec, _litellm_complete
+def probe(model_id, call=None):
+    """One call through the run's loop (pi), asked only to submit one cell.
+    -> {ok, effort?, error?}: ok when the cell arrives. `call` replaces
+    redlines.pi_loop.call_tools (tests)."""
+    if call is None:
+        from .pi_loop import call_tools as call
+    usage = {}
     try:
-        r = _litellm_complete(litellm_id, [{"role": "user", "content": "Call the ping tool with ok=true."}],
-                              tools=[_fn_spec(_PING)], max_tokens=4000)
+        call(model_id, PROBE_PROMPT, [], PROBE_TOOL, max_iters=2, usage=usage,
+             allowed_keys=["ping|0"], timeout=PROBE_TIMEOUT)
     except Exception as e:
         return {"ok": False, "error": f"{type(e).__name__}: {str(e)[:200]}"}
-    called = any(c.get("name") == "ping" for c in r.get("tool_calls") or [])
-    return {"ok": called, "effort": r.get("reasoning_effort"),
-            **({} if called else {"error": "answered without calling the tool"})}
+    return {"ok": True, "effort": usage.get("reasoning_effort")}
 
 
 # ── the record ──────────────────────────────────────────────────────────────

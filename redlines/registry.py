@@ -144,7 +144,8 @@ _ROWS = [
     # claude-sonnet seat of their own; GPT-5.5 Pro leaves the panel. Probed on
     # the box the same day: max (adaptive) reasoning accepted, priced by
     # litellm 1.96.2, and -- like Fable 5.1 -- a forced tool_choice refused
-    # (redlines/llm.py: NO_FORCED_TOOL_CHOICE). Not on Graph 4's ladder.
+    # (the litellm loop's NO_FORCED_TOOL_CHOICE; pi never forces one). Not on
+    # Graph 4's ladder.
     ("claude-opus-5-5",     "claude-opus",   "Opus 5.5",        "anthropic/claude-opus-5-5",                                None,                          "Claude Opus 5.5",           "#4f5bd5",  "undisclosed", []),
     ("claude-sonnet-5-5",   "claude-sonnet", "Sonnet 5.5",      "anthropic/claude-sonnet-5-5",                              None,                          "Claude Sonnet 5.5",         "#d4892a",  "undisclosed", []),
 ]

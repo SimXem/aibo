@@ -302,7 +302,7 @@ class Runtime:
                 env = os.environ.copy()
                 env.update(PATH=self.config['path'], TMPDIR=str(self.root / 'tmp'))
                 run(['python3', '-m', 'venv', code / '.venv'], env=env)
-                run([code / '.venv/bin/pip', 'install', '-e', str(code) + '[acquire]', '-e', code / 'packages/fri-forecaster'], env=env)
+                run([code / '.venv/bin/pip', 'install', '-e', code, '-e', code / 'packages/fri-forecaster'], env=env)
                 run(['npm', 'ci', '--prefix', code / 'packages/fri-forecaster'], env=env)
                 (release / 'python-packages.txt').write_text(output([code / '.venv/bin/pip', 'freeze']))
                 self.stage_data(code, copy_results=publish_data)

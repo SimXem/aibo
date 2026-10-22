@@ -83,7 +83,7 @@ def load():
     """[{id, label, name, eci, reasoning, inPanel, color}] sorted by ECI ascending.
 
     `inPanel`: the model is in the dashboard's current panel
-    (redlines.registry.panel -- matched on the litellm id, which for the
+    (redlines.registry.panel -- matched on the registry id, which for the
     models in question is the OpenRouter id). `color`: a panel member's
     registry colour, the same on every chart; RETIRED_COLOR for everyone
     else, registry row or not (project lead, 2026-09-08).
