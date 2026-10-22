@@ -139,9 +139,10 @@ class Runtime:
             raise RuntimeError('Required checks have not passed for this commit: ' + ', '.join(sorted(failed)))
         return sha
 
-    def stage_data(self, code):
+    def stage_data(self, code, copy_results=True):
         # Build on a private copy: a failed candidate cannot alter live forecast data.
-        shutil.copytree(self.state / 'results', code / 'results', dirs_exist_ok=True)
+        if copy_results:
+            shutil.copytree(self.state / 'results', code / 'results', dirs_exist_ok=True)
         for pattern in GENERATED_DATA:
             for source in (self.state / 'data').glob(pattern):
                 shutil.copy2(source, code / 'data' / source.name)
@@ -215,7 +216,7 @@ class Runtime:
             link(previous, self.root / 'previous')
         write_json(self.root / 'last-deploy.json', {'release': release.name, 'previous': previous.name if previous else None, 'at': datetime.now(timezone.utc).isoformat()})
 
-    def deploy(self, requested=None):
+    def deploy(self, requested=None, keep_publication=False):
         with self.lock():
             sha = self.merged_sha(requested)
             name = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S') + '-' + sha[:12]
@@ -232,14 +233,22 @@ class Runtime:
                 run([code / '.venv/bin/pip', 'install', '-e', str(code) + '[acquire]', '-e', code / 'packages/fri-forecaster'], env=env)
                 run(['npm', 'ci', '--prefix', code / 'packages/fri-forecaster'], env=env)
                 (release / 'python-packages.txt').write_text(output([code / '.venv/bin/pip', 'freeze']))
-                self.stage_data(code)
+                self.stage_data(code, copy_results=not keep_publication)
                 site = self.root / 'sites' / name
-                site.mkdir()
-                run(['bash', code / 'code/publish_dashboard.sh'], cwd=code, env=self.environment(code, site))
+                metadata = {'release': name, 'commit': sha, 'publication': 'rebuilt', 'publication_commit': sha}
+                if keep_publication:
+                    source = self.current / 'site' if self.current.exists() else Path(self.config['bootstrap_publication'])
+                    self.verify_site(source)
+                    shutil.copytree(source, site)
+                    prior = json.loads((source / 'release.json').read_text()) if (source / 'release.json').exists() else {}
+                    metadata.update(publication='preserved', publication_commit=prior.get('publication_commit', prior.get('commit')))
+                else:
+                    site.mkdir()
+                    run(['bash', code / 'code/publish_dashboard.sh'], cwd=code, env=self.environment(code, site))
                 self.verify_site(site)
-                write_json(site / 'release.json', {'release': name, 'commit': sha})
+                write_json(site / 'release.json', metadata)
                 link(site, release / 'site')
-                write_json(release / 'release.json', {'commit': sha, 'release': name})
+                write_json(release / 'release.json', metadata)
                 self.attach_state(code)
                 self.activate(release)
                 print(json.dumps({'deployed': name, 'commit': sha}))
@@ -289,8 +298,10 @@ class Runtime:
                 if expects_site or (site / 'index.html').exists():
                     self.verify_site(site)
                     meta = json.loads((release / 'release.json').read_text())
+                    meta.update(publication='rebuilt', publication_commit=meta['commit'])
                     write_json(site / 'release.json', meta)
                     link(site, release / 'site')
+                    write_json(release / 'release.json', meta)
                 started.update(status='succeeded')
             except Exception as exc:
                 started.update(status='failed', error=type(exc).__name__)
@@ -339,10 +350,11 @@ def main():
     parser.add_argument('--config', default=os.environ.get('AIRO_RUNTIME_CONFIG', str(Path.home() / '.config/airo/runtime.json')))
     parser.add_argument('command', choices=['deploy', 'rollback', 'status', 'tick', 'serve', 'smoke'])
     parser.add_argument('--commit')
+    parser.add_argument('--keep-publication', action='store_true', help='Explicitly retain the last good website while deploying code and schedules')
     parser.add_argument('--run-id', default='smoke-' + uuid.uuid4().hex[:12])
     args = parser.parse_args()
     runtime = Runtime(json.loads(Path(args.config).read_text()))
-    if args.command == 'deploy': runtime.deploy(args.commit)
+    if args.command == 'deploy': runtime.deploy(args.commit, keep_publication=args.keep_publication)
     elif args.command == 'smoke': runtime.execute_job(args.run_id, {'id': 'smoke', 'kind': 'smoke'})
     else: getattr(runtime, args.command)()
 

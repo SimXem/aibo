@@ -4,7 +4,10 @@ Develop and test in the checkout. Production runs from a separate release.
 When the user asks to deploy, merge through the repository's normal PR/check
 requirements, then run `airo deploy`. Inspect `airo status` and verify the public
 URL from the private runtime configuration before reporting success. A merge by
-itself does not deploy. Use `airo rollback` for an unhealthy release.
+itself does not deploy. If the current instrument has no forecasts yet, explain
+the failed publication check. `airo deploy --keep-publication` can explicitly
+retain the last good site while moving code and jobs forward; report clearly
+that frontend changes were not published. Use `airo rollback` for an unhealthy release.
 
 See `deploy/README.md` for schedules, run receipts and recovery. Add or change
 scheduled work in `deploy/jobs.json`, then merge and deploy. Do not launch paid
