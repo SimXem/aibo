@@ -65,16 +65,19 @@ function ForecastRationales({ qid, context, forecasts = [], date, controls }) {
         <p style={{ fontWeight: 600, marginTop: 0 }}>
           {c.promptVariant === "none" ? "No additional instruction." : c.promptInstruction || "Added instruction text is not available for this call."}
         </p>
-        <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>{explanation ? "Model’s explanation for this question, recorded after its forecasts. Covers all horizons." : "Model’s original explanation for its full forecast batch; not specific to this question or horizon."}{calls.length > 1 ? " Each call contributes to the displayed model mean." : ""}</p>
-        <p style={{ whiteSpace: "pre-wrap" }}>{(explanation && explanation.rationale) || c.rationale || "No written rationale recorded."}</p>
-        {explanation && explanation.weakest_link && <p><strong>Weakest assumption: </strong>{explanation.weakest_link}</p>}
-        <details><summary style={{ cursor: "pointer" }}>Sources cited by this model</summary>
-          <RationaleSources sources={(explanation && explanation.key_sources) || c.sources} />
-        </details>
-        <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>Original batch explanation and provenance</summary>
-          {explanation && <p style={{ whiteSpace: "pre-wrap" }}>{c.rationale}</p>}
-          <p style={{ overflowWrap: "anywhere", color: "var(--ink-soft)" }}>Model: {c.modelId}<br />Elicited: {c.elicitedAt}<br />Run: {c.run}<br />Call: {id}<br />Instrument: {c.instrument}<br />Protocol: {c.protocol}<br />Prompt condition: {c.condition || "Not recorded"}<br />Scenario: unconditional</p>
-          <a href="redlines-data.zip" download="airo-data.zip">Download original forecasts, explanations and logs</a>
+        <details>
+          <summary style={{ cursor: "pointer" }}>Model rationale</summary>
+          <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>{explanation ? "Model’s explanation for this question, recorded after its forecasts. Covers all horizons." : "Model’s original explanation for its full forecast batch; not specific to this question or horizon."}{calls.length > 1 ? " Each call contributes to the displayed model mean." : ""}</p>
+          <p style={{ whiteSpace: "pre-wrap" }}>{(explanation && explanation.rationale) || c.rationale || "No written rationale recorded."}</p>
+          {explanation && explanation.weakest_link && <p><strong>Weakest assumption: </strong>{explanation.weakest_link}</p>}
+          <details><summary style={{ cursor: "pointer" }}>Sources cited by this model</summary>
+            <RationaleSources sources={(explanation && explanation.key_sources) || c.sources} />
+          </details>
+          <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>Original batch explanation and provenance</summary>
+            {explanation && <p style={{ whiteSpace: "pre-wrap" }}>{c.rationale}</p>}
+            <p style={{ overflowWrap: "anywhere", color: "var(--ink-soft)" }}>Model: {c.modelId}<br />Elicited: {c.elicitedAt}<br />Run: {c.run}<br />Call: {id}<br />Instrument: {c.instrument}<br />Protocol: {c.protocol}<br />Prompt condition: {c.condition || "Not recorded"}<br />Scenario: unconditional</p>
+            <a href="redlines-data.zip" download="airo-data.zip">Download original forecasts, explanations and logs</a>
+          </details>
         </details>
         <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>View full prompt</summary>
           {prompt ? <>
