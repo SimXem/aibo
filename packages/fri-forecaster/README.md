@@ -188,6 +188,15 @@ res["cells"], res["answer"], res["evidence"], res["usage"]
 ForecastBench, from picking models by ECI to the forecast sets you upload:
 [fri_forecaster/README.md](fri_forecaster/README.md).
 
+## Dependency security
+
+`brace-expansion` is overridden to `^5.0.12` to fix the filename-pattern
+availability advisories in pi → minimatch → brace-expansion. The lockfile also
+omits pi's `hasShrinkwrap` flag: otherwise npm replays pi 0.99.2's published
+shrinkwrap and installs 5.0.9 even with the override and patched lock entry.
+When refreshing dependencies, verify a clean `npm ci` followed by
+`npm ls brace-expansion` still installs 5.0.12 or later.
+
 ## Test
 
 ```sh
