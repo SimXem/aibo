@@ -116,6 +116,43 @@ function linearTicks(top) {
   return Array.from({ length: 6 }, (_, i) => Number((i * top / 5).toPrecision(3)));
 }
 const fmtTick = t => String(Number(t.toPrecision(3)));
+// A value in its question's own unit where AIRO's are probabilities: the
+// welfare questions (welfare.html, 2026-10-22) are years of life expectancy
+// and percent a year of growth, five percentiles a cell (valueKind
+// "percentiles"). The axis is linear and need not start at zero.
+const unitFmt = (v, unit) => (v == null ? "—" : unit === "years" ? v.toFixed(1) : v.toFixed(2) + "%");
+const unitShift = (d, unit) => {
+  if (d == null) return "—";
+  const s = unitFmt(Math.abs(d), unit);
+  return (Number(s.replace("%", "")) === 0 ? "±" : d > 0 ? "+" : "−") + s;
+};
+const unitTick = (t, unit) => (unit === "years" ? String(Number(t.toPrecision(4))) : Number(t.toPrecision(3)) + "%");
+function unitTicks(values) {
+  const v = values.filter(x => x != null && isFinite(x));
+  let lo = Math.min(...v), hi = Math.max(...v);
+  if (!(hi > lo)) { lo -= 1; hi += 1; }
+  const raw = (hi - lo) / 6, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw);
+  const a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step;
+  const ticks = [];
+  for (let t = a; t <= b + step * 1e-6; t += step) ticks.push(Number(t.toFixed(10)));
+  return { ticks, lo: a, hi: b };
+}
+// A percentile forecast's spread behind its median dot: 10th-90th thin,
+// 25th-75th thick. `pos` maps a value to the axis, `at` is the cross position.
+function PctBar({ q, pos, at, color, vertical }) {
+  if (!q) return null;
+  const seg = (a, b, w, op) => vertical
+    ? <line x1={at} x2={at} y1={pos(a)} y2={pos(b)} stroke={color} strokeWidth={w} strokeOpacity={op} strokeLinecap="round" />
+    : <line x1={pos(a)} x2={pos(b)} y1={at} y2={at} stroke={color} strokeWidth={w} strokeOpacity={op} strokeLinecap="round" />;
+  return <g pointerEvents="none">{seg(q.p10, q.p90, 1.5, 0.6)}{seg(q.p25, q.p75, 5, 0.4)}</g>;
+}
+const PctLegend = ({ label }) => (
+  <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}>
+    <svg width="30" height="12" viewBox="0 0 30 12"><line x1="2" x2="28" y1="6" y2="6" stroke="var(--ink-soft)" strokeWidth="1.5" strokeOpacity="0.6" strokeLinecap="round" /><line x1="9" x2="21" y1="6" y2="6" stroke="var(--ink-soft)" strokeWidth="5" strokeOpacity="0.4" strokeLinecap="round" /><circle cx="15" cy="6" r="3.5" fill="var(--ink)" /></svg>
+    {label}
+  </span>
+);
 function ScaleToggle({ value, onChange, style }) {
   return (
     <span style={{ display: "inline-flex", gap: 4, ...style }}>

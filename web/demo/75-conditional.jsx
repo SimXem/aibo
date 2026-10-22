@@ -15,8 +15,8 @@ const cFmtBig = (v, prefix) => {
 const cFmtLoss = v => (v == null ? "—" : cFmtBig(v));
 const cFmtLossShort = cFmtLoss;
 // One formatter per value kind: a probability cell prints percent, a loss cell
-// prints deaths.
-const cFmtV = (kind, v) => (kind === "loss" ? cFmtLossShort(v) : cFmtP(v));
+// prints deaths, a percentiles cell (the welfare page) its question's unit.
+const cFmtV = (kind, v, unit) => (kind === "loss" ? cFmtLossShort(v) : kind === "percentiles" ? unitFmt(v, unit) : cFmtP(v));
 
 // The one reading of a change the page plots: conditional ÷ unconditional, on
 // a log axis so 1/2× and 2× sit the same distance from the baseline. It is the
@@ -73,6 +73,9 @@ function condSeverityAxis(values, ctx) {
 // the unconditional's band and (loss cells) each model's own unconditional.
 // Kept apart from the chart so a question's axis can span all its horizons.
 function condAxisValues(cell) {
+  // A percentiles cell plots levels: every model's 10th to 90th.
+  if (cell.valueKind === "percentiles")
+    return [...cell.baselines, ...cell.bars.flatMap(b => b.models)].flatMap(m => (m.q ? [m.q.p10, m.q.p90] : [m.p]));
   const loss = (cell.valueKind || "probability") === "loss";
   const base = cell.baselineMedian;
   const zero = loss ? base : 1;
@@ -101,6 +104,14 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
   const M = COND_MEASURE;
   const kind = cell.valueKind || "probability";
   const loss = kind === "loss";
+  // A percentiles cell (the welfare page, 2026-10-22) plots levels as a loss
+  // cell does -- the unconditional row on top, the line at its ensemble
+  // median -- on a linear axis in the question's unit, each model's dot at
+  // its median with its 10th-90th bar behind, the models a few pixels apart.
+  const pct = kind === "percentiles";
+  const level = loss || pct;
+  const lane = (j, n) => (pct ? (j - (n - 1) / 2) * 5 : 0);
+  const fmtLevel = v => (pct ? unitFmt(v, cell.unit) : cFmtBig(v));
   const rows = cell.bars;
   // Width is measured (web/shared/responsive.jsx). Under 640px the policy
   // name and value sit ABOVE each bar instead of flanking it, the rows grow
@@ -118,13 +129,13 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
   // line, so each rides a panel-coloured chip (estimated width, as graph 2's
   // end labels do). Right-aligned texts pass their left edge.
   const chip = (xLeft, yTop, text, perChar) => <rect x={xLeft - 3} y={yTop} width={text.length * perChar + 6} height={15} rx="2" fill="var(--panel)" opacity="0.92" />;
-  const baseRow = loss ? 1 : 0;                       // the unconditional row, loss cells only
+  const baseRow = level ? 1 : 0;                      // the unconditional row, level cells only
   const H = pad.t + pad.b + rowH * (rows.length + baseRow);
   const base = cell.baselineMedian;
   // Position value for the ensemble bar end and for a model's dot.
-  const barVal = b => (loss ? (b.ratio == null ? null : base * b.ratio) : b.ratio);
-  const dotVal = m => (loss ? m.p : m.ratio);
-  const zero = loss ? base : 1;
+  const barVal = b => (pct ? (b.shift == null ? null : base + b.shift) : loss ? (b.ratio == null ? null : base * b.ratio) : b.ratio);
+  const dotVal = m => (level ? m.p : m.ratio);
+  const zero = level ? base : 1;
   // Each row carries its own 95% interval (as ratios); on a loss axis it is
   // placed on the ensemble-median baseline like the bar.
   const ciOf = b => (b.ci ? (loss ? [base * b.ci[0], base * b.ci[1]] : b.ci) : null);
@@ -133,14 +144,14 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
   // the paper; the chart draws the model dots, the bar to the median and a
   // line at it.
   const vals = axisValues || condAxisValues(cell);
-  const { ticks, lo, hi, marks = [] } = loss ? condSeverityAxis(vals, C) : condSymmetricTicks(vals);
+  const { ticks, lo, hi, marks = [] } = pct ? unitTicks(vals) : loss ? condSeverityAxis(vals, C) : condSymmetricTicks(vals);
   const x = v => {
-    const t = (Math.log(Math.max(v, 1e-9)) - Math.log(lo)) / (Math.log(hi) - Math.log(lo));
+    const t = pct ? (v - lo) / (hi - lo) : (Math.log(Math.max(v, 1e-9)) - Math.log(lo)) / (Math.log(hi) - Math.log(lo));
     return pad.l + Math.min(1, Math.max(0, t)) * (W - pad.l - pad.r);
   };
   const x0 = x(zero);
   // Match the deaths ladder: the rung's death count.
-  const tickLabel = t => (loss ? cFmtBig(t) : (t >= 1 ? t.toFixed(t === Math.round(t) ? 0 : 1) + "×" : "1/" + (1 / t).toFixed(1 / t === Math.round(1 / t) ? 0 : 1)));
+  const tickLabel = t => (pct ? unitTick(t, cell.unit) : loss ? cFmtBig(t) : (t >= 1 ? t.toFixed(t === Math.round(t) ? 0 : 1) + "×" : "1/" + (1 / t).toFixed(1 / t === Math.round(1 / t) ? 0 : 1)));
   const tickSub = () => null;
   const rowY = i => pad.t + rowH * (i + baseRow) + rowH / 2;
   const [hv, setHv] = useState(null);      // hovered condition: shows its policy text
@@ -162,10 +173,10 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
           </g>
         ))}
         <line x1={x0} x2={x0} y1={pad.t - 10} y2={H - pad.b} stroke="var(--ink)" strokeWidth="1.5" />
-        <text x={x0} y={pad.t - 14} textAnchor={narrow ? (x0 < W * 0.3 ? "start" : x0 > W * 0.7 ? "end" : "middle") : "middle"} fontSize="11" fill="var(--ink-soft)" fontWeight="600">{loss ? "unconditional, ensemble median" : "unconditional"}</text>
+        <text x={x0} y={pad.t - 14} textAnchor={narrow ? (x0 < W * 0.3 ? "start" : x0 > W * 0.7 ? "end" : "middle") : "middle"} fontSize="11" fill="var(--ink-soft)" fontWeight="600">{level ? "unconditional, ensemble median" : "unconditional"}</text>
         <text x={narrow ? pad.l : pad.l - 8} y={H - pad.b + (loss ? 42 : 30)} textAnchor={narrow ? "start" : "end"} fontSize="11" fill="var(--ink-faint)">◀ lower</text>
         <text x={narrow ? W - pad.r : W - pad.r + 8} y={H - pad.b + (loss ? 42 : 30)} textAnchor={narrow ? "end" : "start"} fontSize="11" fill="var(--ink-faint)">higher ▶</text>
-        {loss && (() => {
+        {level && (() => {
           // The unconditional row: each model's own same-session baseline.
           const cy = pad.t + rowH / 2;
           return (
@@ -174,8 +185,8 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
               {narrow ? <>
                 {chip(pad.l, cy - 30, "Unconditional", 6.8)}
                 <text x={pad.l} y={cy - 19} textAnchor="start" fontSize="12.5" fill="var(--ink)" fontWeight={600}>Unconditional</text>
-                {chip(W - pad.r - cFmtBig(base).length * 7.2, cy - 30, cFmtBig(base), 7.2)}
-                <text x={W - pad.r} y={cy - 19} textAnchor="end" fontSize="12" fill="var(--ink)" className="mono" fontWeight="600">{cFmtBig(base)}</text>
+                {chip(W - pad.r - fmtLevel(base).length * 7.2, cy - 30, fmtLevel(base), 7.2)}
+                <text x={W - pad.r} y={cy - 19} textAnchor="end" fontSize="12" fill="var(--ink)" className="mono" fontWeight="600">{fmtLevel(base)}</text>
                 {chip(pad.l, cy + 16, "each model, same session", 6.3)}
                 <text x={pad.l} y={cy + 27} textAnchor="start" fontSize="10.5" fill="var(--ink-faint)" className="mono">each model, same session</text>
                 {chip(W - pad.r - ("median of " + cell.baselines.length).length * 6.3, cy + 16, "median of " + cell.baselines.length, 6.3)}
@@ -183,11 +194,14 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
               </> : <>
                 <text x={pad.l - 14} y={cy + 4} textAnchor="end" fontSize="12.5" fill="var(--ink)" fontWeight={600}>Unconditional</text>
                 <text x={pad.l - 14} y={cy + 17} textAnchor="end" fontSize="10.5" fill="var(--ink-faint)" className="mono">each model, same session</text>
-                <text x={W - pad.r + 12} y={cy + 4} fontSize="12" fill="var(--ink)" className="mono" fontWeight="600">{cFmtBig(base)}</text>
+                <text x={W - pad.r + 12} y={cy + 4} fontSize="12" fill="var(--ink)" className="mono" fontWeight="600">{fmtLevel(base)}</text>
                 <text x={W - pad.r + 12} y={cy + 17} fontSize="10.5" fill="var(--ink-faint)" className="mono">median of {cell.baselines.length}</text>
               </>}
-              {cell.baselines.map(b => b.p == null ? null : (
-                <circle key={b.label} cx={x(b.p)} cy={barY(cy)} r="4.5" fill={b.color || "var(--ink)"} stroke="var(--panel)" strokeWidth="2" />
+              {cell.baselines.map((b, j) => b.p == null ? null : (
+                <React.Fragment key={b.label}>
+                  {pct && <PctBar q={b.q} pos={x} at={barY(cy) + lane(j, cell.baselines.length)} color={b.color || "var(--ink)"} />}
+                  <circle cx={x(b.p)} cy={barY(cy) + lane(j, cell.baselines.length)} r="4.5" fill={b.color || "var(--ink)"} stroke="var(--panel)" strokeWidth="2" />
+                </React.Fragment>
               ))}
             </g>
           );
@@ -198,7 +212,7 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
           const xe = v == null ? x0 : x(v);
           const isPicked = picked === b.id;
           const by = barY(cy);
-          const valueText = loss ? cFmtBig(v) + " · " + M.fmt(b.ratio) : M.fmt(b.ratio);
+          const valueText = pct ? fmtLevel(v) + " · " + unitShift(b.shift, cell.unit) : loss ? cFmtBig(v) + " · " + M.fmt(b.ratio) : M.fmt(b.ratio);
           return (
             <g key={b.id} onMouseEnter={() => setHv(b.id)} onClick={() => onPick && onPick(b.id)} style={{ cursor: "pointer" }}>
               <rect x={0} y={cy - rowH / 2} width={W} height={rowH} fill={isPicked || hv === b.id ? "var(--line-soft)" : "transparent"} opacity="0.6" />
@@ -222,10 +236,13 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
               {v != null && <line x1={xe} x2={xe} y1={by - 11} y2={by + 11} stroke="var(--ink)" strokeWidth="2.5" />}
               {/* A hollow dot is a call that ran with no search evidence
                   (grounded=false): it answered from memory, not the news. */}
-              {b.models.map(m => dotVal(m) == null ? null : (
-                <circle key={m.label} cx={x(dotVal(m))} cy={by} r="4.5"
-                  fill={m.grounded === false ? "var(--panel)" : (m.color || "var(--ink)")}
-                  stroke={m.grounded === false ? (m.color || "var(--ink)") : "var(--panel)"} strokeWidth="2" />
+              {b.models.map((m, j) => dotVal(m) == null ? null : (
+                <React.Fragment key={m.label}>
+                  {pct && <PctBar q={m.q} pos={x} at={by + lane(j, b.models.length)} color={m.color || "var(--ink)"} />}
+                  <circle cx={x(dotVal(m))} cy={by + lane(j, b.models.length)} r="4.5"
+                    fill={m.grounded === false ? "var(--panel)" : (m.color || "var(--ink)")}
+                    stroke={m.grounded === false ? (m.color || "var(--ink)") : "var(--panel)"} strokeWidth="2" />
+                </React.Fragment>
               ))}
             </g>
           );
@@ -256,8 +273,11 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
 /* ============================ the table view ============================ */
 function CondDeltaTable({ cell, ctx }) {
   const C = ctx || COND;
-  const M = COND_MEASURE;
   const kind = cell.valueKind || "probability";
+  // A percentiles cell's change is its median's shift, and each value
+  // carries its 10th-90th.
+  const M = kind === "percentiles" ? { key: "shift", fmt: d => unitShift(d, cell.unit) } : COND_MEASURE;
+  const range = m => (m.q ? <span style={{ color: "var(--ink-faint)" }}> [{unitFmt(m.q.p10, cell.unit)}–{unitFmt(m.q.p90, cell.unit)}]</span> : null);
   const models = cell.baselines.map(b => b.label);
   return (
     <div style={{ overflowX: "auto" }}>
@@ -268,17 +288,17 @@ function CondDeltaTable({ cell, ctx }) {
         <tbody>
           <tr style={{ fontWeight: 600 }}>
             <td>unconditional (same session)</td>
-            {cell.baselines.map(b => <td key={b.label} className="mono" title={b.values.map(v => cFmtV(kind, v)).join(" · ")}>{cFmtV(kind, b.p)}{b.n > 1 ? <span style={{ color: "var(--ink-faint)" }}> ×{b.n}</span> : null}</td>)}
-            <td className="mono">{cFmtV(kind, cell.baselineMedian)}</td>
+            {cell.baselines.map(b => <td key={b.label} className="mono" title={b.values.map(v => cFmtV(kind, v, cell.unit)).join(" · ")}>{cFmtV(kind, b.p, cell.unit)}{range(b)}{b.n > 1 ? <span style={{ color: "var(--ink-faint)" }}> ×{b.n}</span> : null}</td>)}
+            <td className="mono">{cFmtV(kind, cell.baselineMedian, cell.unit)}</td>
           </tr>
           {cell.bars.map(b => (
             <tr key={b.id}>
               <td>{b.label} <span className="mono" style={{ color: "var(--ink-faint)" }}>{b.leapId}</span></td>
               {models.map(m => {
                 const r = b.models.find(x => x.label === m);
-                return <td key={m} className="mono">{r ? <>{cFmtV(kind, r.p)} <span style={{ color: "var(--ink-soft)" }}>({M.fmt(r[M.key])})</span>{r.grounded === false ? " †" : ""}</> : "—"}</td>;
+                return <td key={m} className="mono">{r ? <>{cFmtV(kind, r.p, cell.unit)}{range(r)} <span style={{ color: "var(--ink-soft)" }}>({M.fmt(r[M.key])})</span>{r.grounded === false ? " †" : ""}</> : "—"}</td>;
               })}
-              <td className="mono">{cFmtV(kind, b.pMedian)} <span style={{ color: "var(--ink-soft)" }}>({M.fmt(b[M.key])})</span></td>
+              <td className="mono">{cFmtV(kind, b.pMedian, cell.unit)} <span style={{ color: "var(--ink-soft)" }}>({M.fmt(b[M.key])})</span></td>
             </tr>
           ))}
         </tbody>
@@ -388,6 +408,7 @@ function ConditionalPanel() {
               {COND.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="2" width="16" height="10" rx="2" fill="var(--ink-soft)" opacity="0.38" /><line x1="17" x2="17" y1="0" y2="14" stroke="var(--ink)" strokeWidth="2.5" /></svg>median conditional change</span>
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 10, height: 10, borderRadius: 5, border: "2px solid var(--ink-soft)", background: "var(--panel)" }}></span>no search evidence</span>
+              {q.valueKind === "percentiles" && <PctLegend label="median, 25th–75th, 10th–90th percentile" />}
               <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={() => setShowTable(!showTable)}>{showTable ? "hide table" : "show table"}</button>
             </div>
             {showTable && <div style={{ marginTop: 12 }}><CondDeltaTable cell={cell} /></div>}

@@ -156,12 +156,12 @@ def condition_variants(rows):
             for r in sorted(rows, key=lambda r: r["elicited_at"])}
 
 
-def condition_legend(variants):
-    """The variant dots' labels and hover text: the published experiment's
-    pooled conditions in its order, then any other the rows carry. `text` is
-    the instruction its variant adds. An unpooled condition (the sixth call)
-    is never shown."""
-    config = load_experiment(PUBLISHED)["conditions"]
+def condition_legend(variants, experiment=PUBLISHED):
+    """The variant dots' labels and hover text: the experiment's (the
+    published one's, or the welfare page's) pooled conditions in its order,
+    then any other the rows carry. `text` is the instruction its variant
+    adds. An unpooled condition (the sixth call) is never shown."""
+    config = load_experiment(experiment)["conditions"]
     ids = [c for c, cfg in config.items() if cfg["pooled"]] + [c for c in variants if c not in config]
     return [{"id": c, "text": VARIANTS.get(variants.get(c) or config[c]["variant"])} for c in ids]
 

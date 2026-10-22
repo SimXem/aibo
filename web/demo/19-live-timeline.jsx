@@ -26,8 +26,9 @@ const tlFmtBig = (v, prefix) => {
 };
 const tlFmtLoss = v => (v == null ? "—" : tlFmtBig(v));
 const tlFmtRatio = r => (r == null || !isFinite(r) ? "—" : "×" + (r >= 10 ? r.toFixed(0) : r.toFixed(2)));
-// One formatter per row kind.
-const tlFmtFor = q => (q && q.value_kind === "loss" ? tlFmtBig : tlFmt);
+// One formatter per row kind; a percentiles row (the welfare page) prints
+// its question's unit.
+const tlFmtFor = q => (q && q.value_kind === "loss" ? tlFmtBig : q && q.value_kind === "percentiles" ? v => unitFmt(v, q.unit) : tlFmt);
 
 // Colors belong to prompt conditions, never to models or their array order.
 // New condition IDs stay neutral until explicitly assigned a color here.
@@ -128,8 +129,19 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   const hovered = hvar && variants.find(v => v.id === hvar.id);
   const hoveredModels = hovered ? Object.entries(hovered.models[hvar.i] || {}) : [];
 
+  // A percentiles row: a linear axis in the question's unit around every
+  // plotted value, the ensemble's 10th-90th at each date included.
+  const pct = q.value_kind === "percentiles";
+  const band = (q.band || {})[h] || [];
   let y, yticks, tickText, tickSub;
-  if (loss) {
+  if (pct) {
+    const { ticks, lo, hi } = unitTicks([...med, ...variants.flatMap(v => v.vals), ...series.flatMap(s => s.vals),
+                                         ...band.flatMap(b => (b ? [b.p10, b.p90] : []))]);
+    y = v => pad.t + (1 - Math.min(1, Math.max(0, (v - lo) / (hi - lo)))) * (H - pad.t - pad.b);
+    yticks = ticks;
+    tickText = t => unitTick(t, q.unit);
+    tickSub = () => null;
+  } else if (loss) {
     const LO = (TL.severityAxis || {}).lo || 800, HI = (TL.severityAxis || {}).hi || 1.4e10;
     y = v => pad.t + (1 - Math.min(1, Math.max(0,
       (Math.log10(Math.max(v, LO)) - Math.log10(LO)) / (Math.log10(HI) - Math.log10(LO))))) * (H - pad.t - pad.b);
@@ -241,6 +253,9 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
         <rect x={pad.l} y={pad.t} width={Math.max(1, W - pad.l - pad.r)} height={H - pad.t - pad.b} fill="transparent"
           onMouseMove={leave} />
 
+        {/* A percentiles row: the ensemble's 10th-90th at each date, behind its median. */}
+        {pct && band.map((b, i) => <PctBar key={"b" + i} q={b} pos={y} at={x(i)} color="var(--ink)" vertical />)}
+
         {/* The median's marks, unjoined. The larger transparent target also works on touchscreens. */}
         {med.map((v, i) => v == null ? null : (
           <g key={"m" + i} role="button" tabIndex={0} style={{ cursor: "pointer" }}
@@ -340,7 +355,7 @@ function TimelineTable({ q, horizon, snapshots }) {
   const change = v => {
     const a = v[0], b = v[v.length - 1];
     if (a == null || b == null || v.length < 2) return "—";
-    return loss ? tlFmtRatio(b / a) : tlFmtD(b - a);
+    return loss ? tlFmtRatio(b / a) : q.value_kind === "percentiles" ? unitShift(b - a, q.unit) : tlFmtD(b - a);
   };
   return (
     <div style={{ overflowX: "auto" }}>
@@ -408,7 +423,8 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
   const li = med.map((v, i) => (v != null ? i : -1)).reduce((a, b) => Math.max(a, b), -1);
   const latest = li >= 0 ? med[li] : null;
   const loss = q.value_kind === "loss";
-  const fmtV = loss ? tlFmtLoss : tlFmt;
+  const pct = q.value_kind === "percentiles";
+  const fmtV = tlFmtFor(q);
   // Change since the first snapshot: pp for a probability, a ratio for a loss.
   const delta = first != null && latest != null && med.length > 1 ? (loss ? latest / first : latest - first) : null;
   const up = delta != null && (loss ? delta > 1 : delta > 0), flat = delta == null || (loss ? delta === 1 : delta === 0);
@@ -438,8 +454,9 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 6, alignItems: "center" }}>
           <LegendDot color="var(--ink)" label="Ensemble median" hollow />
           {variants.map(v => <LegendDot key={v.id} color={v.color} label={v.label} title={v.text || "No added instruction."} />)}
+          {pct && <PctLegend label="ensemble 25th–75th, 10th–90th percentile" />}
           {/* The scale switch at the legend row's right end, where Graph 2 keeps its own. */}
-          {!loss && <ScaleToggle value={scale} onChange={setScale} style={{ marginLeft: "auto" }} />}
+          {!loss && !pct && <ScaleToggle value={scale} onChange={setScale} style={{ marginLeft: "auto" }} />}
         </div>
 
         <TimelineChart key={hz} q={q} snapshots={snapshots} horizon={hz} scale={scale} />
@@ -462,7 +479,7 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
 
         <div style={{ display: "flex", gap: 22, marginTop: 12, paddingTop: 14, borderTop: "1px solid var(--line-soft)", flexWrap: "wrap", alignItems: "flex-start" }}>
           <Stat label={(staleAt ? "As of " + staleAt : "Latest") + " — ensemble median, by " + hz} value={fmtV(latest)} color="var(--ink)" />
-          <Stat label={"Change since " + snapshots[0].label} value={loss ? tlFmtRatio(delta) : tlFmtD(delta)} color={flat ? "var(--ink-soft)" : (up ? "var(--model)" : "var(--super)")} />
+          <Stat label={"Change since " + snapshots[0].label} value={loss ? tlFmtRatio(delta) : pct ? unitShift(delta, q.unit) : tlFmtD(delta)} color={flat ? "var(--ink-soft)" : (up ? "var(--model)" : "var(--super)")} />
           <div style={{ marginLeft: "auto" }}>
             <button className="linkbtn" onClick={() => setShowTable(v => !v)}>
               {showTable ? "Hide table" : "Show as table"}
@@ -472,7 +489,8 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
 
         {!loss && <ForecastRationales qid={q.id} context={q.short || title}
           date={li >= 0 ? snapshots[li].date : null}
-          forecasts={q.horizons.map(h => ({ key: h, values: Object.fromEntries(q.series.map(s => [s.label, (s.ps[h] || [])[li]])) }))} />}
+          forecasts={q.horizons.map(h => ({ key: h, values: Object.fromEntries(q.series.map(s => [s.label, (s.ps[h] || [])[li]])) }))}
+          fmt={pct ? fmtV : undefined} />}
         {showTable && (
           <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line-soft)" }}>
             <TimelineTable q={q} horizon={hz} snapshots={snapshots} />

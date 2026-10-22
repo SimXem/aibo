@@ -51,28 +51,33 @@ def latest_run_date(rows=None):
     return date.fromisoformat(max(days) if days else preview)
 
 
-def build(today=None):
+def build(today=None, experiment=PUBLISHED, rows=None):
+    """`experiment` and `rows` show another experiment's prompt, recorded in
+    its own rows (the welfare page's, 2026-10-22; redlines.views.welfare)."""
     ru = _runner()
-    rows = instrument_rows(current_rows(load_runlog()))
+    rows = instrument_rows(current_rows(load_runlog())) if rows is None else rows
+    # The prompt the series is asked with no added instruction: the
+    # experiment's baseline condition (redlines.experiments).
+    base = baseline(load_experiment(experiment))
     # Since combined-v10 a date carries five prompts (one per variant); the
     # FAQ shows the baseline's, the prompt with no added instruction.
     recorded = max((r for r in rows if r.get("prompt") and (r.get("variant") or "none") == "none"),
                    key=lambda r: r["elicited_at"], default=None) if today is None else None
     today = today or (date.fromisoformat(recorded["run_date"]) if recorded else latest_run_date())
-    policies = ru.load_policies(ru.COMBINED)
+    policies = ru.load_policies(str(REPO_ROOT / base["scenarios"]))
     scenarios = list(policies["conditions"])
-    groups, by_group, horizons, _skipped, spec = ru.load_batch(ru.LADDER, ru.CROSS, ru.UNBATCHED)
-    # The set AS OF that day (redlines.questions.questions_asked_on): a question
-    # added since the latest run (the extinction pair, 2026-09-15) is not in
-    # the prompt those forecasts answered, so the counts below describe the
-    # recorded prompt and not the next run's.
-    asked = questions_asked_on(today)
-    by_group = {k: [q for q in qs if q["id"] in asked] for k, qs in by_group.items()}
+    if policies.get("questions"):       # a set with its own questions (the welfare set)
+        groups, by_group, horizons, _skipped, spec = ru.load_questions(policies["questions"])
+    else:
+        groups, by_group, horizons, _skipped, spec = ru.load_batch(ru.LADDER, ru.CROSS, ru.UNBATCHED)
+        # The set AS OF that day (redlines.questions.questions_asked_on): a question
+        # added since the latest run (the extinction pair, 2026-09-15) is not in
+        # the prompt those forecasts answered, so the counts below describe the
+        # recorded prompt and not the next run's.
+        asked = questions_asked_on(today)
+        by_group = {k: [q for q in qs if q["id"] in asked] for k, qs in by_group.items()}
     horizons = ru.set_horizons(policies, horizons)
     prompt, n, cells = ru.build_prompt_joint(groups, by_group, horizons, spec, scenarios, policies, today)
-    # The prompt the series is asked with no added instruction: the published
-    # experiment's baseline condition (redlines.experiments).
-    base = baseline(load_experiment(PUBLISHED))
     minimal = base["instrument"] == "minimal"
     prompt = ru.condition_prompt(prompt, base)
     if recorded:

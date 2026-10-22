@@ -197,7 +197,7 @@ function CapabilityPanel({ onDefinitions }) {
         <h2 style={{ fontSize: 22, marginTop: 0, marginBottom: 6 }}>How does the forecast depend on the pace of AI progress?</h2>
         <p style={{ color: "var(--ink-soft)", fontSize: 13.5, maxWidth: 820, margin: 0 }}>
           Models' forecasts of frontier <a href="https://epoch.ai/benchmarks/eci" target="_blank" rel="noopener"
-          style={{ color: "var(--link)" }}>Epoch Capabilities Index</a>, along with risks conditional on those ECI scores.
+          style={{ color: "var(--link)" }}>Epoch Capabilities Index</a>, along with {CAP.subject || "risks"} conditional on those ECI scores.
         </p>
       </Panel>
 
@@ -232,7 +232,7 @@ function CapabilityPanel({ onDefinitions }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
               <div style={{ minWidth: 0 }}>
                 <h2 style={{ fontSize: 22, marginTop: 0, marginBottom: 4 }}>{q.heading || q.short} — by {hz}</h2>
-                <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>Risk conditional on each model's own estimates for frontier ECI on {capFmtDate(V.targetDate)}.</div>
+                <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{CAP.subject ? "Forecasts" : "Risk"} conditional on each model's own estimates for frontier ECI on {capFmtDate(V.targetDate)}.</div>
               </div>
               <div style={{ flexShrink: 0 }}>
                 <Toggle options={q.horizons.map(h => ({ key: h, label: "by " + h }))} value={hz} onChange={setHorizon} />
@@ -254,6 +254,7 @@ function CapabilityPanel({ onDefinitions }) {
               {V.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="2" width="16" height="10" rx="2" fill="var(--ink-soft)" opacity="0.38" /><line x1="17" x2="17" y1="0" y2="14" stroke="var(--ink)" strokeWidth="2.5" /></svg>median conditional change</span>
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 10, height: 10, borderRadius: 5, border: "2px solid var(--ink-soft)", background: "var(--panel)" }}></span>no search evidence</span>
+              {q.valueKind === "percentiles" && <PctLegend label="median, 25th–75th, 10th–90th percentile" />}
               <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={() => setShowTable(!showTable)}>{showTable ? "hide table" : "show table"}</button>
             </div>
             {showTable && <div style={{ marginTop: 12 }}><CondDeltaTable cell={cell} ctx={V} /></div>}

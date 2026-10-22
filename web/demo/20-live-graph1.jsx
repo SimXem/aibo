@@ -52,8 +52,14 @@ function HorizonChart({ q, models, scale }) {
   const minGap = hs.length > 1 ? Math.min(...xs.slice(1).map((v, i) => v - xs[i])) : Infinity;
   const hitL = i => (i === 0 ? pad.l : (xs[i - 1] + xs[i]) / 2);
   const hitR = i => (i === hs.length - 1 ? W - pad.r : (xs[i] + xs[i + 1]) / 2);
+  // A percentiles row (the welfare page, 2026-10-22): a linear axis in the
+  // question's unit around every plotted value, and the ensemble's 10th-90th
+  // (`band`) where a probability row draws its interval.
+  const pct = q.valueKind === "percentiles";
+  const pAxis = pct ? unitTicks([...q.series.flatMap(s => hs.map(h => s.ps[h])), ...hs.map(h => q.median[h]),
+                                 ...hs.flatMap(h => ((q.band || {})[h] ? [q.band[h].p10, q.band[h].p90] : []))]) : null;
   const LO = loss ? SEVERITY_AXIS.lo : 0.01, HIY = loss ? SEVERITY_AXIS.hi : 100;
-  const linear = !loss && scale === "linear";
+  const linear = !loss && !pct && scale === "linear";
   // The linear axis tops out just above the largest value drawn (models,
   // median, intervals, human panels), not at 100%: a 1-18% question would
   // otherwise sit in the bottom fifth.
@@ -64,20 +70,21 @@ function HorizonChart({ q, models, scale }) {
     ...(q.human || []).flatMap(hm => hs.map(h => hm.ps[h])),
   ]) : HIY;
   const y = v => {
-    const t = linear
+    const t = pct ? (v - pAxis.lo) / (pAxis.hi - pAxis.lo)
+      : linear
       ? v / linTop
       : (Math.log10(Math.max(v, LO)) - Math.log10(LO)) / (Math.log10(HIY) - Math.log10(LO));
     return pad.t + (1 - Math.min(1, Math.max(0, t))) * (H - pad.t - pad.b);
   };
   const [hv, setHv] = useState(null);
   const fmtP = v => (v >= 10 ? v.toFixed(0) : v >= 1 ? v.toFixed(1) : v.toFixed(2)) + "%";
-  const fmtV = v => (loss ? cFmtBig(v) : fmtP(v));
+  const fmtV = v => (loss ? cFmtBig(v) : pct ? unitFmt(v, q.unit) : fmtP(v));
   const path = ps => hs.filter(h => ps[h] != null).map((h, i) => (i === 0 ? "M" : "L") + x(h).toFixed(1) + " " + y(ps[h]).toFixed(1)).join(" ");
   // Loss rows tick at the ladder's rungs (from the blob, never typed here);
   // the Extinction reference comes from graph 2's marker data.
   const rungTicks = loss ? (G1.rungs || []).filter(r => r.deaths >= LO && r.deaths <= HIY) : [];
-  const ticks = loss ? rungTicks.map(r => r.deaths) : linear ? linearTicks(linTop) : [0.01, 0.1, 1, 10, 100];
-  const tickText = t => (loss ? (rungTicks.find(r => r.deaths === t) || {}).short : fmtTick(t) + "%");
+  const ticks = pct ? pAxis.ticks : loss ? rungTicks.map(r => r.deaths) : linear ? linearTicks(linTop) : [0.01, 0.1, 1, 10, 100];
+  const tickText = t => (pct ? unitTick(t, q.unit) : loss ? (rungTicks.find(r => r.deaths === t) || {}).short : fmtTick(t) + "%");
   const tickSub = () => null;
   const marks = loss && typeof HIST !== "undefined" && HIST
     ? HIST.events.filter(e => e.kind === "reference" && /extinction/i.test(e.label)).map(e => ({ v: e.central, label: e.short || e.label }))
@@ -144,6 +151,7 @@ function HorizonChart({ q, models, scale }) {
           <rect key={"ci" + h} x={x(h) - 9} width={18} y={y(q.ci[h][1])} height={Math.max(1.5, y(q.ci[h][0]) - y(q.ci[h][1]))}
             rx="2" fill="var(--ink-faint)" opacity="0.22" />
         ))}
+        {pct && hs.map(h => <PctBar key={"band" + h} q={(q.band || {})[h]} pos={y} at={x(h)} color="var(--ink)" vertical />)}
         {q.series.map(s => (
           <g key={s.label}>
             {hs.filter(h => s.ps[h] != null).map(h => (
@@ -184,12 +192,13 @@ function HorizonChart({ q, models, scale }) {
         const rows = q.series.filter(s => s.ps[hv] != null).map(s => ({ label: s.label, color: s.color, v: s.ps[hv] }));
         if (q.median[hv] != null) rows.push({ label: "Ensemble median", color: "var(--ink)", v: q.median[hv], bold: true });
         if ((q.ci || {})[hv]) rows.push({ label: "95% CI", color: "var(--ink-faint)", text: fmtV(q.ci[hv][0]) + "–" + fmtV(q.ci[hv][1]), ci: true });
+        if (pct && (q.band || {})[hv]) rows.push({ label: "Ensemble 10th–90th", color: "var(--ink-faint)", text: fmtV(q.band[hv].p10) + "–" + fmtV(q.band[hv].p90), ci: true });
         (q.human || []).forEach(hm => { if (hm.ps[hv] != null) rows.push({ label: hm.panel + " " + groupShort(hm.group), color: hm.color, v: hm.ps[hv], human: true }); });
         return (
           <div style={{ position: "absolute", top: 6, left: `${(x(hv) / W) * 100}%`, transform: x(hv) > W * 0.6 ? "translateX(calc(-100% - 8px))" : "translateX(8px)",
             background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 10px",
             boxShadow: "var(--shadow)", pointerEvents: "none", minWidth: 170, maxWidth: "calc(100% - 16px)" }}>
-            <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 5 }}>by end of {hv}{loss ? " · deaths" : ""}</div>
+            <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 5 }}>{pct ? (q.horizonLabels || {})[hv] || hv : "by end of " + hv}{loss ? " · deaths" : ""}</div>
             {rows.map(r => (
               <div key={r.label} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12, fontWeight: r.bold ? 600 : 400 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 2, transform: r.human ? "rotate(45deg)" : "none", background: r.human ? "var(--panel)" : r.color, border: r.human ? "1.5px solid " + r.color : "none", opacity: r.ci ? 0.35 : 1 }}></span>{r.label}</span>
@@ -244,7 +253,7 @@ function LiveGraph1Current() {
               QUESTION, never typed here; a hand-typed copy of it was off by
               80x for months. */}
           <h2 style={{ fontSize: 22, marginTop: 0 }}>
-            Catastrophic outcome forecasts
+            {G1.title || "Catastrophic outcome forecasts"}
             {G1.questions[0] && G1.questions[0].severity &&
               <span style={{ fontWeight: 400, color: "var(--ink-soft)" }}> ({G1.questions[0].severity})</span>}
           </h2>
@@ -262,7 +271,7 @@ function LiveGraph1Current() {
             colour dot on each. A multi-question category (none today; the
             rungs were folded into one loss row per cause) would list its
             rows under the category name. */}
-        <QuestionRail title="Risk category" value={q.id}
+        <QuestionRail title={G1.railTitle || "Risk category"} value={q.id}
           onChange={id => setQi(Math.max(0, G1.questions.findIndex(x => x.id === id)))}
           items={byCat.flatMap(c => c.qs.map(sq => ({ key: sq.id, color: c.color, group: c.group,
             label: c.qs.length === 1 ? c.label : c.label + " · " + (sq.railLabel || sq.short) })))} />
@@ -287,7 +296,8 @@ function LiveGraph1Current() {
                 {hm.panel} {groupShort(hm.group)}
               </span>
             ))}
-            {q.valueKind !== "loss" && <ScaleToggle value={scale} onChange={setScale} style={{ marginLeft: "auto" }} />}
+            {q.valueKind === "percentiles" && <PctLegend label="ensemble 25th–75th, 10th–90th percentile" />}
+            {q.valueKind !== "loss" && q.valueKind !== "percentiles" && <ScaleToggle value={scale} onChange={setScale} style={{ marginLeft: "auto" }} />}
           </div>
           <HorizonChart q={q} models={G1.models} scale={scale} />
           {q.valueKind === "loss" && <ExpectedLossNote />}
@@ -310,7 +320,7 @@ function LiveGraph1Current() {
           <div style={{ display: "flex", gap: 22, marginTop: 12, paddingTop: 14, borderTop: "1px solid var(--line-soft)", flexWrap: "wrap" }}>
             {q.horizons.map(h => q.median[h] != null && (
               <Stat key={h} label={`Median — by ${h}`}
-                value={q.valueKind === "loss" ? cFmtLoss(q.median[h]) : (q.median[h] >= 1 ? q.median[h].toFixed(1) : q.median[h].toFixed(2)) + "%"} color="var(--ink)" />
+                value={q.valueKind === "loss" ? cFmtLoss(q.median[h]) : q.valueKind === "percentiles" ? unitFmt(q.median[h], q.unit) : (q.median[h] >= 1 ? q.median[h].toFixed(1) : q.median[h].toFixed(2)) + "%"} color="var(--ink)" />
             ))}
           </div>
         </div>

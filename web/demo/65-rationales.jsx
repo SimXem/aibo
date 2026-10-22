@@ -17,7 +17,7 @@ function RationaleSources({ sources }) {
 }
 // The selected model's forecasts on every horizon, above its explanation: the
 // explanation was recorded once per question, not once per horizon.
-function RationaleForecastTable({ forecasts, model }) {
+function RationaleForecastTable({ forecasts, model, fmt = rationalePct }) {
   const rows = forecasts.filter(f => (f.values || {})[model] != null);
   if (!rows.length) return null;
   return <div style={{ overflowX: "auto", marginTop: 12 }}>
@@ -25,15 +25,16 @@ function RationaleForecastTable({ forecasts, model }) {
       <thead><tr><th>Horizon</th><th>Forecast</th></tr></thead>
       <tbody>{rows.map(f => <tr key={f.key}>
         <td>{rationaleHorizonLabel(f.key)}</td>
-        <td className="mono">{rationalePct(f.values[model])}</td>
+        <td className="mono">{fmt(f.values[model])}</td>
       </tr>)}</tbody>
     </table>
   </div>;
 }
 // `forecasts`: [{ key: horizon, values: { model label: probability } }], every
 // horizon the question was asked on. `date` picks the calls shown (the
-// elicitation whose forecasts the chart displays); it is not shown.
-function ForecastRationales({ qid, context, forecasts = [], date, controls }) {
+// elicitation whose forecasts the chart displays); it is not shown. `fmt`
+// prints a value (default percent; the welfare page's, its question's unit).
+function ForecastRationales({ qid, context, forecasts = [], date, controls, fmt }) {
   const [selected, setSelected] = useState("");
   const entries = RATIONALES.questions[qid] || {};
   const models = Object.keys(entries).filter(m => forecasts.some(f => (f.values || {})[m] != null));
@@ -50,7 +51,7 @@ function ForecastRationales({ qid, context, forecasts = [], date, controls }) {
         {m}
       </button>)}
     </div>
-    {model && <RationaleForecastTable forecasts={forecasts} model={model} />}
+    {model && <RationaleForecastTable forecasts={forecasts} model={model} fmt={fmt} />}
     {!calls.length && <p>No explanation recorded for this forecast.</p>}
     {calls.map(([id, c]) => {
       const explanation = (c.debriefs || {})[qid];
