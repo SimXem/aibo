@@ -163,6 +163,85 @@ class Runtime:
                    NO_PROXY='localhost,127.0.0.1,::1', no_proxy='localhost,127.0.0.1,::1')
         return env
 
+    def storage_status(self):
+        disk = shutil.disk_usage(self.root)
+        fs = os.statvfs(self.root)
+        minimum = int(self.config.get('min_free_bytes', 5 * 1024**3))
+        used_percent = round(100 * disk.used / disk.total, 1)
+        inode_percent = round(100 * (1 - fs.f_favail / fs.f_files), 1) if fs.f_files else 0
+        return {'total_bytes': disk.total, 'free_bytes': disk.free,
+                'used_percent': used_percent, 'inode_used_percent': inode_percent,
+                'min_free_bytes': minimum,
+                'healthy': disk.free >= minimum and used_percent < 80 and inode_percent < 80}
+
+    def storage(self):
+        status = self.storage_status()
+        print(json.dumps(status, indent=2))
+        if not status['healthy']:
+            raise SystemExit(1)
+
+    def require_space(self, publish_data=False):
+        # Reserve headroom in addition to the candidate's code, website and data copy.
+        def size(path):
+            return sum(p.stat().st_size for p in path.rglob('*')
+                       if not p.is_symlink() and p.is_file()) if path.exists() else 0
+        needed = 2 * 1024**3 + 2 * (size(self.current / 'code') + size(self.current / 'site'))
+        if publish_data:
+            needed += size(self.state)
+        status = self.storage_status()
+        needed = max(needed, status['min_free_bytes'])
+        if status['free_bytes'] < needed or status['inode_used_percent'] >= 90:
+            raise RuntimeError(f'Insufficient deployment storage: need {needed} free bytes; '
+                               f"have {status['free_bytes']}; inode usage {status['inode_used_percent']}%")
+
+    def prune_locked(self):
+        """Caller holds operation.lock. Only disposable releases/sites are collected."""
+        releases = self.root / 'releases'
+        sites = self.root / 'sites'
+        if releases.is_symlink() or sites.is_symlink():
+            raise RuntimeError('Retention roots must not be symlinks')
+        protected = set()
+        for name in ('current', 'previous'):
+            pointer = self.root / name
+            if pointer.exists() or pointer.is_symlink():
+                target = pointer.resolve(strict=True)
+                if target.parent != releases or not target.is_dir():
+                    raise RuntimeError('Release pointer escapes retention root')
+                protected.add(target)
+        candidates = sorted((p for p in releases.iterdir()
+                             if not p.is_symlink() and p.is_dir()
+                             and re.fullmatch(r'\d{8}T\d{6}-[0-9a-f]{12}', p.name)), reverse=True)
+        count = max(2, int(self.config.get('keep_releases', 3)))
+        retained = protected | set([p for p in candidates if p not in protected][:max(0, count - len(protected))])
+        # Keep sites referenced by every retained or unrecognized release, including job publications.
+        removed_releases = set(candidates) - retained
+        referenced = {sites / p.name for p in retained}
+        for r in releases.iterdir():
+            if r in removed_releases:
+                continue
+            site = r / 'site'
+            if site.exists() or site.is_symlink():
+                target = site.resolve(strict=True)
+                if target.parent == sites:
+                    referenced.add(target)
+        disposable_sites = sorted((p for p in sites.iterdir()
+                                   if not p.is_symlink() and p.is_dir() and p not in referenced
+                                   and re.fullmatch(r'(?:\d{8}T\d{6}-[0-9a-f]{12}|job-[a-zA-Z0-9_-]+)', p.name)),
+                                  key=lambda p: p.stat().st_mtime, reverse=True)
+        # Preserve the newest unreferenced job publication for diagnosis; receipts/logs never expire here.
+        orphan_jobs = [p for p in disposable_sites if p.name.startswith('job-')]
+        keep_jobs = set(orphan_jobs[:1])
+        removed = []
+        for path in sorted(removed_releases) + [p for p in disposable_sites if p not in keep_jobs]:
+            shutil.rmtree(path)
+            removed.append(str(path.relative_to(self.root)))
+        return removed
+
+    def prune(self):
+        with self.lock():
+            removed = self.prune_locked()
+        print(json.dumps({'removed': removed, 'storage': self.storage_status()}, indent=2))
+
     def merged_sha(self, requested=None):
         if not self.mirror.exists():
             run(['git', 'clone', '--bare', self.config['repository'], self.mirror])
@@ -290,6 +369,8 @@ class Runtime:
         if keep_publication and publish_data:
             raise ValueError('Choose either preserved publication or new data publication')
         with self.lock():
+            self.prune_locked()
+            self.require_space(publish_data=publish_data)
             sha = self.merged_sha(requested)
             name = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S') + '-' + sha[:12]
             release = self.root / 'releases' / name
@@ -330,6 +411,10 @@ class Runtime:
                 write_json(release / 'release.json', metadata)
                 self.attach_state(code)
                 self.activate(release)
+                try:
+                    self.prune_locked()
+                except (OSError, RuntimeError) as exc:
+                    print(f'Retention needs attention: {exc}', file=sys.stderr)
                 print(json.dumps({'deployed': name, 'commit': sha}))
             except Exception:
                 # Keep the candidate and logs for diagnosis; never switch on failure.
@@ -350,6 +435,8 @@ class Runtime:
             receipt = self.root / 'runs' / (key + '.json')
             if receipt.exists():
                 return False  # Includes interrupted/failed runs: no surprise paid retries.
+            if job['kind'] != 'smoke':
+                self.require_space(publish_data=job['kind'] == 'forecast')
             release = self.current.resolve(strict=True)
             code = release / 'code'
             started = {'key': key, 'job': job['id'], 'release': release.name, 'status': 'running', 'started': datetime.now(timezone.utc).isoformat()}
@@ -400,7 +487,8 @@ class Runtime:
             self.execute_job(key, job)
 
     def status(self):
-        print(json.dumps({'release': json.loads((self.current / 'release.json').read_text()) if self.current.exists() else None,
+        print(json.dumps({'storage': self.storage_status(),
+                          'release': json.loads((self.current / 'release.json').read_text()) if self.current.exists() else None,
                           'jobs_enabled': (self.root / 'jobs-enabled').exists(),
                           'jobs': json.loads((self.current / 'code/deploy/jobs.json').read_text()) if self.current.exists() else [],
                           'recent_runs': [json.loads(p.read_text()) for p in sorted((self.root / 'runs').glob('*.json'))[-10:]]}, indent=2))
@@ -428,7 +516,7 @@ class Runtime:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', default=os.environ.get('AIRO_RUNTIME_CONFIG', str(Path.home() / '.config/airo/runtime.json')))
-    parser.add_argument('command', choices=['deploy', 'rollback', 'status', 'tick', 'serve', 'smoke'])
+    parser.add_argument('command', choices=['deploy', 'rollback', 'status', 'tick', 'serve', 'smoke', 'prune', 'storage'])
     parser.add_argument('--commit')
     publication = parser.add_mutually_exclusive_group()
     publication.add_argument('--keep-publication', action='store_true', help='Retain the entire website while deploying code and schedules')

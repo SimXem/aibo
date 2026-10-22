@@ -14,7 +14,9 @@ spec.loader.exec_module(p)
 
 
 @pytest.fixture
-def runtime(tmp_path):
+def runtime(tmp_path, monkeypatch):
+    monkeypatch.setattr(p.shutil, 'disk_usage', lambda _: type('Disk', (), {
+        'total': 50*1024**3, 'used': 10*1024**3, 'free': 40*1024**3})())
     return p.Runtime({'root': str(tmp_path), 'path': '/usr/bin:/bin', 'socket': str(tmp_path / 'site.sock')})
 
 
@@ -345,3 +347,74 @@ def test_scheduled_publication_records_new_data_snapshot(runtime, monkeypatch):
     assert meta['data_snapshot']['sha256'] == p.data_snapshot(old / 'site')['sha256']
     assert meta['data_snapshot']['source_release'] == 'job-fixture-new-data'
     assert b'old dot layout' in (saved / 'index.html').read_bytes()
+
+
+def test_retention_keeps_rollback_job_site_and_accrued_data(runtime):
+    names = [f'20300101T00000{i}-' + 'a' * 12 for i in range(5)]
+    versions = [release(runtime, name) for name in names]
+    for r in versions:
+        site = runtime.root / 'sites' / r.name
+        site.mkdir()
+        (site / 'index.html').write_text(r.name)
+        p.link(site, r / 'site')
+    p.link(versions[1], runtime.current)
+    p.link(versions[0], runtime.root / 'previous')
+    job = runtime.root / 'sites/job-active'
+    job.mkdir()
+    p.link(job, versions[1] / 'site')
+    runtime.state.mkdir()
+    (runtime.state / 'raw').write_text('do not remove')
+    (runtime.root / 'runs/job.json').write_text('{}')
+    (runtime.root / 'logs/job.log').write_text('diagnostic')
+    # A failed candidate without its final site symlink retains its partial site.
+    (versions[-1] / 'site').unlink()
+    runtime.prune()
+    assert all(r.exists() for r in [versions[0], versions[1], versions[4]])
+    assert not versions[2].exists() and not versions[3].exists()
+    assert job.exists()
+    assert (runtime.root / 'sites' / names[-1]).exists()
+    assert not (runtime.root / 'sites' / names[2]).exists()
+    assert (runtime.state / 'raw').read_text() == 'do not remove'
+    assert (runtime.root / 'runs/job.json').exists()
+    assert (runtime.root / 'logs/job.log').exists()
+
+
+def test_retention_never_follows_external_symlinks(runtime, tmp_path):
+    external = tmp_path / 'external'
+    external.mkdir()
+    (external / 'precious').write_text('keep')
+    (runtime.root / 'releases/20300101T000000-aaaaaaaaaaaa').symlink_to(external)
+    (runtime.root / 'sites/job-external').symlink_to(external)
+    runtime.prune()
+    assert (external / 'precious').read_text() == 'keep'
+    p.link(external, runtime.current)
+    with pytest.raises(RuntimeError, match='escapes'):
+        runtime.prune()
+
+
+def test_low_disk_preflight_does_not_fetch_install_or_change_current(runtime, monkeypatch):
+    old = release(runtime, 'old')
+    p.link(old, runtime.current)
+    monkeypatch.setattr(p.shutil, 'disk_usage', lambda _: type('Disk', (), {'total': 10*1024**3, 'used': 9*1024**3, 'free': 1024**3})())
+    monkeypatch.setattr(runtime, 'merged_sha', lambda _: pytest.fail('must not fetch'))
+    with pytest.raises(RuntimeError, match='Insufficient deployment storage'):
+        runtime.deploy()
+    assert runtime.current.resolve() == old
+    assert list((runtime.root / 'releases').iterdir()) == [old]
+    assert not runtime.storage_status()['healthy']
+
+
+def test_low_disk_blocks_paid_work_before_receipt_or_provider_call(runtime, monkeypatch):
+    def no_space(**kw):
+        raise RuntimeError('Insufficient deployment storage')
+    monkeypatch.setattr(runtime, 'require_space', no_space)
+    monkeypatch.setattr(p, 'run', lambda *a, **kw: pytest.fail('must not run paid work'))
+    with pytest.raises(RuntimeError, match='Insufficient'):
+        runtime.execute_job('paid', {'id': 'forecast', 'kind': 'forecast'})
+    assert not (runtime.root / 'runs/paid.json').exists()
+
+
+def test_inode_exhaustion_blocks_deployment(runtime, monkeypatch):
+    monkeypatch.setattr(runtime, 'storage_status', lambda: {'free_bytes': 100*1024**3, 'min_free_bytes': 5*1024**3, 'inode_used_percent': 99})
+    with pytest.raises(RuntimeError, match='inode usage 99'):
+        runtime.require_space()
