@@ -24,17 +24,32 @@ function Eyebrow({ children }) {
 // untouched — a legend entry only becomes interactive where a caller says so.
 function LegendDot({ color, label, hollow, onClick, dim, title }) {
   const act = typeof onClick === "function";
+  const ref = React.useRef(null);
+  const tooltip = React.useRef(null);
+  React.useEffect(() => {
+    if (!title || !window.tippy || !ref.current) return;
+    const instance = window.tippy(ref.current, {
+      content: title, allowHTML: false, theme: "light-border", arrow: true,
+      maxWidth: 360, offset: [0, 8], placement: "top",
+    });
+    tooltip.current = instance;
+    return () => { instance.destroy(); tooltip.current = null; };
+  }, [title]);
   return (
     <span
       role={act ? "button" : undefined}
-      tabIndex={act ? 0 : undefined}
-      title={title}
+      tabIndex={act || title ? 0 : undefined}
+      ref={ref}
       onClick={onClick}
-      onKeyDown={act ? (e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }) : undefined}
+      onKeyDown={e => {
+        if (e.key === "Escape" && tooltip.current) tooltip.current.hide();
+        if (act && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onClick(); }
+      }}
       style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, color: "var(--ink-soft)",
-        opacity: dim ? 0.34 : 1, cursor: act ? "pointer" : undefined,
+        opacity: dim ? 0.34 : 1, cursor: act ? "pointer" : title ? "help" : undefined,
         userSelect: act ? "none" : undefined, transition: "opacity .12s" }}>
       <span style={{ width: 11, height: 11, borderRadius: 3, background: hollow ? "var(--panel)" : color, border: hollow ? `2px solid ${color}` : "none" }}></span>{label}
+
     </span>
   );
 }
