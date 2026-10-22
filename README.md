@@ -89,12 +89,58 @@ and `results/graph4_combined.json`, so a fresh clone rebuilds and assembles the
 page without sibling checkouts. Re-deriving them needs `FB_DATASETS_ROOT` /
 `FBSIM_ROOT` and `results/eval_full.json` (see "Data provenance").
 
-Tests:
+### Credential-free contributor setup and checks
+
+Use Python 3.11+ and **Node 22.19+ (22.x)** with npm. For example, on
+Debian/Ubuntu x86-64, install the tools with:
 
 ```bash
-pip install -e '.[test]'
-pytest
+sudo apt-get update
+sudo apt-get install -y python3-venv python3-pip curl xz-utils
+curl -fsSL https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.xz -o /tmp/node.tar.xz
+sudo tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1
+node --version
+npm --version
 ```
+
+On other platforms, use the matching [Node 22 distribution](https://nodejs.org/en/download)
+and install Python with venv/pip support through your package manager. From the
+repository root, in a fresh clone:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -e '.[test,paper]' -e './packages/fri-forecaster[dev]'
+(cd packages/fri-forecaster && npm ci)
+
+# Local-only exclusions for development artifacts (not shared repository changes).
+printf '\n.venv/\nredlines.egg-info/\n' >> .git/info/exclude
+
+# Use disk-backed temporary space: the suite can exceed a small /tmp tmpfs.
+mkdir -p .venv/tmp
+# Isolate tests from any existing Pi coding-provider login; do not remove it.
+TMPDIR="$PWD/.venv/tmp" PI_CODING_AGENT_DIR="$(mktemp -d "$PWD/.venv/tmp/pi.XXXXXX")" \
+    python -m pytest -q -rs
+
+python3 -m redlines build
+python3 -m redlines assemble
+git diff --exit-code   # on a fresh clone, tracked outputs must be byte-identical
+```
+
+The root pytest configuration collects **both** `tests/` and
+`packages/fri-forecaster/tests/`. The latter includes real Pi tool-loop tests
+against a local scripted model: no forecasting keys, provider login, or paid
+calls are needed. Do not omit `npm ci`: it installs Pi 0.99.2 from the committed
+lockfile; without Node and Pi these tests silently skip. Dependency installation
+needs network access, but rebuilding uses committed inputs and tracked Graph 3/4
+mirrors, not new forecasts. The optional `paper` extra above enables matplotlib
+tests too.
+
+Read the `-rs` skip summary: external ForecastBench/simulator inputs, internal
+LEAP sources, missing current-instrument forecasts and the not-yet-plotted human
+timeline can still cause skips. Missing Node/Pi is **not** an expected skip for
+this setup. Do not run acquisition, scheduling or publishing scripts to test or
+rebuild the dashboard.
 
 ## Elicit new forecasts
 
