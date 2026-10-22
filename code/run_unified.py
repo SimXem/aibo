@@ -81,6 +81,7 @@ import concurrent.futures as cf
 import copy
 import hashlib
 import json
+import math
 import os
 import re
 import subprocess
@@ -236,18 +237,14 @@ the questions: once unconditionally, and once under each {kind} condition.
 
 {blocks}
 {scenarios}
-Horizons: {horizons}. Each question names the ones it is asked over -- answer
+Horizons: {horizons}. Each question names the ones it is asked over{meant} -- answer
 those and no others.
 
 Research before answering, in rounds: search for the recent developments, base
 rates and expert estimates that bear on each cause of catastrophe, read the
 pages that matter most, and search again on what you learn. The conditions need
 no searching of their own -- they are assumptions, applied to the same evidence.
-Deliver the probabilities with submit_cells, in as many calls as you like: any
-subset of the {cells} question x horizon cells per call, each cell with a
-probability in [0,1] under each of the {k} conditions
-({total} probabilities, keyed by condition id); a later call for a cell
-replaces the earlier one. Then call submit_forecast ONCE,
+{deliver} Then call submit_forecast ONCE,
 with{extra} a 3-6 sentence rationale covering the whole set, the key sources
 you relied on (only pages you read), and any cells not yet delivered. After it is accepted you will be asked one more thing, per question: a short
 rationale for its numbers naming the mechanism at that severity and the anchor
@@ -260,7 +257,7 @@ sure of -- research with those questions in mind."""
 SCENARIOS_BLOCK = """
 ===== CONDITIONS =====
 
-Each question x horizon cell takes {k} probabilities, keyed by the condition ids
+Each question x horizon cell takes {takes}, keyed by the condition ids
 below.
 
 {instruction}
@@ -304,7 +301,7 @@ SCENARIOS_BLOCK_ELICIT = """
 
 Step 1 -- {elicit}
 
-Step 2 -- each question x horizon cell takes {k} probabilities, keyed by the
+Step 2 -- each question x horizon cell takes {takes}, keyed by the
 condition ids below.
 
 {instruction}
@@ -341,18 +338,14 @@ condition from one group is combined with a condition from another.
 
 {blocks}
 {scenarios}
-Horizons: {horizons}. Each question names the ones it is asked over -- answer
+Horizons: {horizons}. Each question names the ones it is asked over{meant} -- answer
 those and no others.
 
 Research before answering, in rounds: search for the recent developments, base
 rates and expert estimates that bear on each cause of catastrophe, read the
 pages that matter most, and search again on what you learn. The conditions need
 no searching of their own -- they are assumptions, applied to the same evidence.
-Deliver the probabilities with submit_cells, in as many calls as you like: any
-subset of the {cells} question x horizon cells per call, each cell with a
-probability in [0,1] under each of the {k} conditions
-({total} probabilities, keyed by condition id); a later call for a cell
-replaces the earlier one. Then call submit_forecast ONCE,
+{deliver} Then call submit_forecast ONCE,
 with{extra} a 3-6 sentence rationale covering the whole set, the key sources
 you relied on (only pages you read), and any cells not yet delivered. After it is accepted you will be asked one more thing, per question: a short
 rationale for its numbers naming the mechanism at that severity and the anchor
@@ -395,6 +388,9 @@ MINIMAL_JOINT_RATIONALE = ("a 3-6 sentence rationale covering the whole set, the
                            "you relied on (only pages you read), and any cells not yet delivered.")
 DEBRIEF_SENTENCE = re.compile(r" ?After it is accepted you will be asked one more thing.*?"
                               r"research with those questions in mind\.", re.S)
+# Where a variant's text goes: before the delivery paragraph, in either cell
+# mode ("Deliver the probabilities ...", "Deliver the percentiles ...").
+MINIMAL_DELIVERY = re.compile(r"^Deliver the \w+ with submit_cells", re.M)
 MINIMAL_TOOLS = {
     "web_search": "Search the web. Returns titled snippets with URLs and publication dates. "
                   "recent_days limits results to the last N days.",
@@ -412,7 +408,7 @@ def minimal_joint_prompt(prompt, variant=DEFAULT_VARIANT):
     out, n = DEBRIEF_SENTENCE.subn("", out)
     assert n == 1, "the debrief sentence changed; update DEBRIEF_SENTENCE"
     if VARIANTS[variant]:
-        at = out.index("Deliver the probabilities with submit_cells")
+        at = MINIMAL_DELIVERY.search(out).start()
         out = out[:at] + VARIANTS[variant] + "\n\n" + out[at:]
     return out
 
@@ -433,6 +429,42 @@ def minimal_tools(research):
             t["parameters"]["properties"].pop("cause", None)
             t["parameters"]["required"] = [r for r in t["parameters"].get("required", []) if r != "cause"]
     return research
+
+
+# WHAT A CELL HOLDS (2026-10-22). Every AIRO question takes one probability
+# per condition. A question set that names `percentiles` (the welfare
+# questions, data/welfare_questions.json) takes five numbers per condition
+# instead, in the question's own unit, read as eci_forecast's are. The mode
+# is also the field a row's forecast carries its value in
+# ({"horizon", "probability"} or {"horizon", "percentiles": {p10..p90}}).
+# Per mode: the cell's key in the tools, its words in Step 2, the tool and
+# the delivery paragraph, and how many numbers a cell holds per condition.
+PROBABILITY, PERCENTILES = "probability", "percentiles"
+PERCENTILE_FIELDS = ("p10", "p25", "p50", "p75", "p90")
+CELL_MODES = {
+    PROBABILITY: {
+        "key": "probabilities", "takes": "{k} probabilities", "tool": "a probability", "n": 1,
+        "count": "probabilities",
+        "deliver": ("Deliver the probabilities with submit_cells, in as many calls as you like: any\n"
+                    "subset of the {cells} question x horizon cells per call, each cell with a\n"
+                    "probability in [0,1] under each of the {k} conditions\n"
+                    "({total} probabilities, keyed by condition id); a later call for a cell\n"
+                    "replaces the earlier one.")},
+    PERCENTILES: {
+        "key": "percentiles", "takes": "five percentiles (p10, p25, p50, p75, p90) under each of {k} conditions",
+        "tool": "five percentiles", "n": len(PERCENTILE_FIELDS), "count": "numbers",
+        "deliver": ("Deliver the percentiles with submit_cells, in as many calls as you like: any\n"
+                    "subset of the {cells} question x horizon cells per call, each cell with five\n"
+                    "percentiles (p10, p25, p50, p75, p90, in the question's unit, with\n"
+                    "p10 <= p25 <= p50 <= p75 <= p90 -- read them as in eci_forecast) under each of\n"
+                    "the {k} conditions ({total} numbers, keyed by condition id); a later call for a\n"
+                    "cell replaces the earlier one.")},
+}
+
+
+def value_mode(spec):
+    """A question set's cell mode: PERCENTILES when it names them, else PROBABILITY."""
+    return PERCENTILES if spec.get("percentiles") else PROBABILITY
 
 
 GROUP_BLOCK = """
@@ -590,7 +622,7 @@ def _scenario_items(scenarios):
                    for x in scenarios)
 
 
-def scenarios_block_grouped(scenarios, policies):
+def scenarios_block_grouped(scenarios, policies, mode=PROBABILITY):
     """The CONDITIONS section (the scenarios) of a grouped set: the shared definitions and
     Step 1 (if the set elicits), the key list, the unconditional line, then
     one block per group in the set's order -- each group's own instruction,
@@ -609,7 +641,7 @@ def scenarios_block_grouped(scenarios, policies):
     k = len(scenarios) + 1
     counts = ", then ".join(f"the {len(by_group[g['key']])} {g['kind']} conditions "
                             f"({g['heading']})" for g in groups)
-    keyed = (f"each question x horizon cell takes {k} probabilities, keyed by the "
+    keyed = (f"each question x horizon cell takes {CELL_MODES[mode]['takes'].format(k=k)}, keyed by the "
              f"condition ids below: {UNCONDITIONAL_KEY}, then {counts}. {c['instruction']}")
     head = f"\n===== CONDITIONS =====\n\n{_definitions(policies)}\n\n"
     if shared:
@@ -632,19 +664,20 @@ def scenarios_block_grouped(scenarios, policies):
     return f"{head}{body}\n=====\n"
 
 
-def scenarios_block(scenarios, policies):
+def scenarios_block(scenarios, policies, mode=PROBABILITY):
     if set_groups(policies):
-        return scenarios_block_grouped(scenarios, policies)
+        return scenarios_block_grouped(scenarios, policies, mode)
+    takes = CELL_MODES[mode]["takes"].format(k=len(scenarios) + 1)
     c = policies["conditioning"]
     items = _scenario_items(scenarios)
     e = set_elicit(policies)
     if e:
-        return SCENARIOS_BLOCK_ELICIT.format(k=len(scenarios) + 1, instruction=c["instruction"],
+        return SCENARIOS_BLOCK_ELICIT.format(takes=takes, instruction=c["instruction"],
                                               definitions=_definitions(policies), horizon=c["horizon"],
                                               elicit=e["text"], uncond_key=UNCONDITIONAL_KEY,
                                               unconditional=c["unconditional_forecast"],
                                               policy_blocks=items)
-    return SCENARIOS_BLOCK.format(k=len(scenarios) + 1, instruction=c["instruction"],
+    return SCENARIOS_BLOCK.format(takes=takes, instruction=c["instruction"],
                                    definitions=_definitions(policies), horizon=c["horizon"],
                                    uncond_key=UNCONDITIONAL_KEY,
                                    unconditional=c["unconditional_forecast"],
@@ -691,6 +724,18 @@ def load_batch(ladder_path, cross_path, exclude):
     return groups, by_group, horizons, skipped, spec
 
 
+def load_questions(path):
+    """A scenario set's own question file (its `questions`; the welfare set's
+    data/welfare_questions.json, 2026-10-22) -> load_batch's tuple: one group
+    per heading, in the file's order, and nothing excluded."""
+    spec = json.load(open(os.path.join(ROOT, path)))
+    groups = [{"key": g["key"], "label": g["key"]} for g in spec["groups"]]
+    by_group = {g["key"]: [q for q in spec["questions"] if q["group"] == g["key"]] for g in groups}
+    horizons = sorted({h for q in spec["questions"] for h in q["horizons"]},
+                      key=lambda h: horizon_sort_key(h, spec))
+    return groups, by_group, horizons, [], spec
+
+
 def build_prompt(groups, by_group, horizons, spec, today=None):
     """The whole set in one prompt, with each question's own resolution criteria.
 
@@ -730,10 +775,18 @@ def build_prompt(groups, by_group, horizons, spec, today=None):
             # model's effort on the cells we then throw away.
             mine = [h for h in horizons if h in q["horizons"]]
             # The ladder's own label, verbatim: this line is part of the pinned
-            # prompt text (severity_label() is the PAGE's wording).
-            blocks += f"--- {q['id']} (severity: {q['severity']['label']}) ---\n"
+            # prompt text (severity_label() is the PAGE's wording). A question
+            # with no severity (the welfare set, 2026-10-22) has no label; it
+            # says what each of its horizons means (2050 is a year for life
+            # expectancy, a five-year period for growth) and what unit to
+            # answer in.
+            sev = f" (severity: {q['severity']['label']})" if q.get("severity") else ""
+            meaning = q.get("horizon_meaning") or {}
+            blocks += f"--- {q['id']}{sev} ---\n"
             blocks += f"{q['text']}\n"
-            blocks += f"Horizons for this question: {', '.join(mine)}\n"
+            blocks += f"Horizons for this question: {', '.join(f'{h} ({meaning[h]})' if h in meaning else h for h in mine)}\n"
+            if q.get("unit_text"):
+                blocks += f"{q['unit_text']}\n"
             if q.get("criteria") and not group_criteria:
                 blocks += f"\nResolution criteria:\n{q['criteria']}\n"
             blocks += "\n"
@@ -774,8 +827,22 @@ def _num_schema(lo, hi):
     return out
 
 
-def _cells_schema(qids, horizons, scenario_ids):
+def _cells_schema(qids, horizons, scenario_ids, mode=PROBABILITY):
     keys = [UNCONDITIONAL_KEY] + list(scenario_ids)
+    if mode == PERCENTILES:
+        # No bounds here: they are each question's own (the cleaner holds them).
+        one = {"type": "object", "properties": {p: {"type": "number"} for p in PERCENTILE_FIELDS},
+               "required": list(PERCENTILE_FIELDS)}
+        values = {"type": "object",
+                  "description": "five percentiles (p10, p25, p50, p75, p90), in the question's unit "
+                                 "and non-decreasing, per condition id: " + ", ".join(keys),
+                  "properties": {k: one for k in keys}, "required": keys}
+    else:
+        values = {"type": "object",
+                  "description": "one probability in [0,1] per condition id: " + ", ".join(keys),
+                  "properties": {k: {"type": "number", "minimum": 0, "maximum": 1} for k in keys},
+                  "required": keys}
+    key = CELL_MODES[mode]["key"]
     return {
         "type": "array",
         "items": {
@@ -783,19 +850,14 @@ def _cells_schema(qids, horizons, scenario_ids):
             "properties": {
                 "question_id": {"type": "string", "enum": qids},
                 "horizon": {"type": "string", "enum": horizons},
-                "probabilities": {
-                    "type": "object",
-                    "description": "one probability in [0,1] per condition id: " + ", ".join(keys),
-                    "properties": {k: {"type": "number", "minimum": 0, "maximum": 1} for k in keys},
-                    "required": keys,
-                },
+                key: values,
             },
-            "required": ["question_id", "horizon", "probabilities"],
+            "required": ["question_id", "horizon", key],
         },
     }
 
 
-def submit_cells_tool(qids, horizons, scenario_ids):
+def submit_cells_tool(qids, horizons, scenario_ids, mode=PROBABILITY):
     """The PARTIAL tool (redlines.llm.call_tools partial_tool, 2026-09-02
     evening): the model delivers the grid in as many calls as it likes, any
     subset of cells per call; the runner keeps them (run_one_joint) and
@@ -804,18 +866,18 @@ def submit_cells_tool(qids, horizons, scenario_ids):
     return {
         "name": "submit_cells",
         "description": "Deliver forecasts in pieces: any subset of question x horizon cells, each "
-                       "with a probability under every condition id. Call it as often as you "
+                       f"with {CELL_MODES[mode]['tool']} under every condition id. Call it as often as you "
                        "like; a later call for a cell replaces the earlier one. Returns how many "
                        "cells have been received and which are still missing.",
         "parameters": {
             "type": "object",
-            "properties": {"forecasts": _cells_schema(qids, horizons, scenario_ids)},
+            "properties": {"forecasts": _cells_schema(qids, horizons, scenario_ids, mode)},
             "required": ["forecasts"],
         },
     }
 
 
-def submit_tool_joint(qids, horizons, scenario_ids, elicit=None):
+def submit_tool_joint(qids, horizons, scenario_ids, elicit=None, mode=PROBABILITY):
     """The FINAL tool: rationale, sources, the elicited quantities, and any
     cells not delivered with submit_cells (`forecasts` is optional here since
     2026-09-02 evening; a call may still carry the whole grid). With `elicit`
@@ -828,7 +890,7 @@ def submit_tool_joint(qids, horizons, scenario_ids, elicit=None):
         "parameters": {
             "type": "object",
             "properties": {
-                "forecasts": _cells_schema(qids, horizons, scenario_ids),
+                "forecasts": _cells_schema(qids, horizons, scenario_ids, mode),
                 "rationale": {"type": "string"},
                 "key_sources": {"type": "array", "items": {"type": "string"}},
             },
@@ -1042,6 +1104,16 @@ def clean_elicit(raw, elicit):
     return out
 
 
+def clean_percentiles(raw, bounds=None):
+    """One cell's five percentiles (PERCENTILES mode) -> {p10..p90: float}, or
+    None unless all five are finite, non-decreasing and within `bounds` (the
+    question's [lo, hi]): clean_elicit's rule for eci_forecast's numbers."""
+    lo, hi = bounds or (None, None)
+    out = clean_elicit(raw, {"fields": PERCENTILE_FIELDS, "minimum": lo, "maximum": hi})
+    # json.loads takes NaN and Infinity, which no bound comparison catches.
+    return out if out and all(math.isfinite(v) for v in out.values()) else None
+
+
 def build_prompt_joint(groups, by_group, horizons, spec, scenarios, policies, today=None):
     """The whole set, and the whole scenario set, in one prompt.
 
@@ -1061,8 +1133,16 @@ def build_prompt_joint(groups, by_group, horizons, spec, scenarios, policies, to
     tail_at = base.index("\nHorizons: ")
     assert base.startswith(head), "build_prompt's head changed; update build_prompt_joint"
     blocks = base[len(head):tail_at]
-    hz = ", ".join(f"{h} ({horizon_label(h, spec, today)})" for h in horizons)
+    # Questions that say what each horizon means for them (the welfare set:
+    # 2050 is a year for one, a five-year period for another) get the
+    # horizons bare here, and a pointer to their own lines.
+    meant = any(q.get("horizon_meaning") for qs in by_group.values() for q in qs)
+    hz = ", ".join(h if meant else f"{h} ({horizon_label(h, spec, today)})" for h in horizons)
     k = len(scenarios) + 1
+    mode = value_mode(spec)
+    shared = dict(meant=" and what each means for it" if meant else "",
+                  deliver=CELL_MODES[mode]["deliver"].format(cells=cells, k=k,
+                                                             total=cells * k * CELL_MODES[mode]["n"]))
     groups = set_groups(policies)
     if groups:
         present = [g for g in groups if any(c.get("group") == g["key"] for c in scenarios)]
@@ -1070,12 +1150,12 @@ def build_prompt_joint(groups, by_group, horizons, spec, scenarios, policies, to
         return PROMPT_JOINT_GROUPED.format(
             today=today.isoformat(), n=n, k=k, blocks=blocks, ngroups=len(present),
             kinds=kinds, extra=submit_extra(policies),
-            scenarios=scenarios_block(scenarios, policies),
-            horizons=hz, cells=cells, total=cells * k), n, cells
+            scenarios=scenarios_block(scenarios, policies, mode),
+            horizons=hz, **shared), n, cells
     return PROMPT_JOINT.format(today=today.isoformat(), n=n, k=k, blocks=blocks,
                                kind=set_kind(policies), extra=submit_extra(policies),
-                               scenarios=scenarios_block(scenarios, policies),
-                               horizons=hz, cells=cells, total=cells * k), n, cells
+                               scenarios=scenarios_block(scenarios, policies, mode),
+                               horizons=hz, **shared), n, cells
 
 
 def _as_list(raw):
@@ -1089,13 +1169,16 @@ def _as_list(raw):
     return raw if isinstance(raw, list) else []
 
 
-def clean_forecasts_joint(raw, allowed, horizons, scenario_ids):
+def clean_forecasts_joint(raw, allowed, horizons, scenario_ids, mode=PROBABILITY, bounds=None):
     """-> {scenario key: {question_id: [{horizon, probability}, ...]}}, or None.
 
     A grid handed back as a JSON string is parsed (Fable 5 has done it); a
     partial grid is kept, since every downstream audit tolerates gaps; a cell
     whose probabilities object lacks a scenario keeps the scenarios it has. Keys are UNCONDITIONAL_KEY and
-    the scenario ids.
+    the scenario ids. In PERCENTILES mode a cell carries `percentiles`, each
+    condition's five kept only when clean_percentiles takes them under the
+    question's `bounds` ({question_id: [lo, hi]}), and an entry is
+    {horizon, percentiles: {p10..p90}}.
     """
     if isinstance(raw, str):
         try:
@@ -1109,7 +1192,7 @@ def clean_forecasts_joint(raw, allowed, horizons, scenario_ids):
     for f in raw:
         if not isinstance(f, dict):
             continue
-        q, h, ps = f.get("question_id"), f.get("horizon"), f.get("probabilities")
+        q, h, ps = f.get("question_id"), f.get("horizon"), f.get(CELL_MODES[mode]["key"])
         if isinstance(ps, str):
             try:
                 ps = json.loads(ps)
@@ -1119,9 +1202,13 @@ def clean_forecasts_joint(raw, allowed, horizons, scenario_ids):
             continue
         for k in keys:
             p = ps.get(k)
-            if isinstance(p, (int, float)) and not isinstance(p, bool):
+            if mode == PERCENTILES:
+                p = clean_percentiles(p, (bounds or {}).get(q))
+                if p:
+                    out[k].setdefault(q, {})[h] = p
+            elif isinstance(p, (int, float)) and not isinstance(p, bool):
                 out[k].setdefault(q, {})[h] = p
-    out = {k: {q: [{"horizon": h, "probability": p} for h, p in sorted(v.items())]
+    out = {k: {q: [{"horizon": h, mode: p} for h, p in sorted(v.items())]
                for q, v in grid.items()}
            for k, grid in out.items() if grid}
     return out or None
@@ -1182,7 +1269,8 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
     extra = {**({"url_block_patterns": guard} if guard else {}),
              # Not in the published number: redlines.runlog.pooled_rows.
              **({"pooled": False} if not condition["pooled"] else {})}
-    block = scenarios_block(scenarios, policies)
+    mode = value_mode(spec)
+    block = scenarios_block(scenarios, policies, mode)
     sha = hashlib.sha256(block.encode()).hexdigest()
     scenario_ids = [c["id"] for c in scenarios]
     stamps = {UNCONDITIONAL_KEY: None}
@@ -1198,6 +1286,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
     qids = [q["id"] for g in groups for q in by_group[g["key"]]]
     allowed = {q["id"]: {h for h in horizons if h in q["horizons"]}
                for g in groups for q in by_group[g["key"]]}
+    bounds = {q["id"]: q.get("bounds") for g in groups for q in by_group[g["key"]]}
     want = want_cells * (len(scenarios) + 1)
     elicits = set_elicits(policies)
     grids, answer, evidence, attempts, elicited = None, {}, [], 0, None
@@ -1214,7 +1303,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
         for f in forecasts:
             if (isinstance(f, dict) and f.get("question_id") in allowed
                     and f.get("horizon") in allowed[f["question_id"]]
-                    and isinstance(f.get("probabilities"), dict)):
+                    and isinstance(f.get(CELL_MODES[mode]["key"]), dict)):
                 received[(f["question_id"], f["horizon"])] = f
                 n += 1
         missing = [f"{q} @ {h}" for q in qids for h in horizons
@@ -1222,7 +1311,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
         return {"accepted": n, "received": len(received), "of": want_cells,
                 "missing": len(missing), "missing_first": missing[:20]}
 
-    partial = {**submit_cells_tool(qids, horizons, scenario_ids), "fn": take_cells}
+    partial = {**submit_cells_tool(qids, horizons, scenario_ids, mode), "fn": take_cells}
     while attempts <= retries:
         attempts += 1
         received.clear()
@@ -1233,7 +1322,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
             if minimal:
                 research, coverage = minimal_tools(research), None
             answer, evidence = loop_for(harness)(
-                model_id, prompt, research, submit_tool_joint(qids, horizons, scenario_ids, elicits),
+                model_id, prompt, research, submit_tool_joint(qids, horizons, scenario_ids, elicits, mode),
                 system=MINIMAL_SYSTEM if minimal else SYSTEM,
                 max_iters=MINIMAL_MAX_TURNS if minimal else MAX_ROUNDS, max_tokens=64000,
                 min_evidence=0 if minimal else MIN_RESEARCH, usage=usage, partial_tool=partial,
@@ -1255,7 +1344,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
                 merged[(f["question_id"], f["horizon"])] = f
                 delivery["cells_in_final"] += 1
         answer["forecasts"] = list(merged.values())
-        grids = clean_forecasts_joint(answer.get("forecasts"), allowed, horizons, scenario_ids)
+        grids = clean_forecasts_joint(answer.get("forecasts"), allowed, horizons, scenario_ids, mode, bounds)
         got = sum(len(v) for g in (grids or {}).values() for v in g.values())
         elicited = ({e["key"]: clean_elicit(answer.get(e["key"]), e) for e in elicits}
                     if elicits else None)
@@ -1521,10 +1610,14 @@ def run(args, exp, conditions, path, publish):
                          f"{p}; that is the published series/panel log")
     if os.path.abspath(cond_out) == os.path.abspath(out):
         sys.exit("--conditional-out must differ from --out")
-    groups, by_group, horizons, skipped, spec = load_batch(LADDER, CROSS, UNBATCHED)
+    # A set that names its own questions (the welfare set) asks those, not the ladder.
+    groups, by_group, horizons, skipped, spec = (load_questions(policies["questions"]) if policies.get("questions")
+                                                 else load_batch(LADDER, CROSS, UNBATCHED))
     horizons = set_horizons(policies, horizons)
     prompt, n, cells = build_prompt_joint(groups, by_group, horizons, spec, scenarios,
                                           policies, today)
+    cell = CELL_MODES[value_mode(spec)]
+    values = f"{cells * (len(scenarios) + 1) * cell['n']} {cell['count']}"
     for el in set_elicits(resolve_set(policies, today)):
         print(f"    elicits {el['key']} {el['fields']} for {el.get('target_date')}"
               + (f" (run date + {el['target_months']} months)" if el.get("target_months") else ""))
@@ -1533,7 +1626,7 @@ def run(args, exp, conditions, path, publish):
             p = condition_prompt(prompt, c)
             print(f"##### {exp['name']} / {c['id']} [{slug}: {proto}; {condition_line(c)}]: "
                   f"{n} questions, {cells} cells x (unconditional + {len(scenarios)} "
-                  f"scenarios) = {cells * (len(scenarios) + 1)} probabilities, {len(p)} chars #####")
+                  f"scenarios) = {values}, {len(p)} chars #####")
             print(p)
             print(f"##### URL GUARD ({BLOCK_ENV}): "
                   f"{c['url_block_patterns'] or os.environ.get(BLOCK_ENV) or 'off'} #####")
@@ -1555,7 +1648,7 @@ def run(args, exp, conditions, path, publish):
              for label, model in panels[c["model_set"]][0]]
     print(f"run {run_id} experiment {exp['name']}, protocol {proto} [set {slug}]: {len(calls)} calls, "
           f"{n} questions x {len(horizons)} horizons = {cells} cells x (unconditional + "
-          f"{len(scenarios)} scenarios) = {cells * (len(scenarios) + 1)} probabilities each")
+          f"{len(scenarios)} scenarios) = {values} each")
     for c in conditions:
         print(f"    {c['id']:12} {condition_line(c)}")
     models = {m for ms in panels.values() for m in ms[0]}
