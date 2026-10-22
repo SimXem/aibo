@@ -602,20 +602,13 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   }
   const marks = loss ? (TL.marks || []) : [];
 
-  // Nearby answers can otherwise cover each other's color and hit target.
-  // Dodge only colliding condition dots a few pixels sideways, keeping
-  // their probability unchanged and the median on the date's grid line.
-  const variantDots = snapshots.flatMap((_, i) => {
-    const placed = med[i] == null ? [] : [{ cx: x(i), cy: y(med[i]) }];
-    return variants.filter(v => v.vals[i] != null).map(v => {
-      const cy = y(v.vals[i]);
-      const dx = [0, -12, 12, -24, 24, -36, 36].find(offset =>
-        placed.every(p => Math.hypot(x(i) + offset - p.cx, cy - p.cy) >= 12)) || 0;
-      const dot = { v, i, cx: x(i) + dx, cy };
-      placed.push(dot);
-      return dot;
-    });
-  });
+  // Condition dots always remain on their date's vertical line. Their vertical
+  // position alone encodes the forecast, even when nearby readings overlap.
+  const variantDots = snapshots.flatMap((_, i) =>
+    variants.filter(v => v.vals[i] != null).map(v => ({
+      v, i, cx: x(i), cy: y(v.vals[i]),
+    }))
+  );
 
   const li = med.map((v, i) => (v != null ? i : -1)).reduce((a, b) => Math.max(a, b), -1);
   // Right-margin label: the latest median, kept above the date labels.
