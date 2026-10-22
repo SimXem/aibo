@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 import fcntl
 import http.client
+import hashlib
 from http.server import SimpleHTTPRequestHandler
 import json
 import os
@@ -20,6 +21,48 @@ import uuid
 REQUIRED_CHECKS = {'test (py3.11)', 'test (py3.12)', 'test (py3.13)', 'reproduce'}
 GENERATED_DATA = ('epoch_capabilities_index_*.csv', 'auto_models.json',
                   'eci_self_conditions.json', 'eci_self6mo_conditions.json', 'combined_conditions.json')
+
+
+DATA_BLOCK = re.compile(rb'<!--([A-Z][A-Z0-9_]*_DATA)-->(.*?)<!--/\1-->', re.S)
+DATA_MARKER = re.compile(rb'<!--(/?[A-Z][A-Z0-9_]*_DATA)-->')
+DATA_FILES = ('forecasts.csv', 'rationales.csv', 'debriefs.csv', 'redlines-data.zip')
+
+
+def data_blocks(html):
+    """Read the published data boundary, rejecting missing/duplicate markers."""
+    matches = list(DATA_BLOCK.finditer(html))
+    markers = DATA_MARKER.findall(html)
+    expected = [tag for match in matches for tag in (match[1], b'/' + match[1])]
+    if not matches or markers != expected or len({m[1] for m in matches}) != len(matches):
+        raise RuntimeError('Invalid or duplicate dashboard data markers')
+    for match in matches:
+        name = match[1].removesuffix(b'_DATA')
+        assignment = re.fullmatch(rb'\s*<script>\s*window\.__' + name + rb'__\s*=\s*(.*?)\s*;\s*</script>\s*', match[2], re.S)
+        if not assignment:
+            raise RuntimeError('Invalid dashboard data assignment: ' + name.decode())
+        json.loads(assignment[1])
+    return {m[1].decode(): m[0] for m in matches}
+
+
+def frontend_html(template, published):
+    """New interface, byte-identical previously published data and labels."""
+    old, new = data_blocks(published), data_blocks(template)
+    if old.keys() != new.keys():
+        raise RuntimeError('Dashboard data blocks changed; publish validated data or migrate the snapshot explicitly')
+    return DATA_BLOCK.sub(lambda m: old[m[1].decode()], template)
+
+
+def data_snapshot(site):
+    blocks = {name: hashlib.sha256(block).hexdigest()
+              for name, block in data_blocks((site / 'index.html').read_bytes()).items()}
+    files = {}
+    for name in DATA_FILES:
+        path = site / name
+        if path.exists():
+            with path.open('rb') as f:
+                files[name] = hashlib.file_digest(f, 'sha256').hexdigest()
+    manifest = {'blocks': blocks, 'files': files}
+    return {**manifest, 'sha256': hashlib.sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()}
 
 
 def write_json(path, value):
@@ -216,7 +259,36 @@ class Runtime:
             link(previous, self.root / 'previous')
         write_json(self.root / 'last-deploy.json', {'release': release.name, 'previous': previous.name if previous else None, 'at': datetime.now(timezone.utc).isoformat()})
 
-    def deploy(self, requested=None, keep_publication=False):
+    def publish_frontend(self, code, site):
+        if not self.current.exists():
+            raise RuntimeError('No published data snapshot; initialize with --publish-data or an explicit publication import')
+        source = self.current / 'site'
+        self.verify_site(source)
+        prior = json.loads((source / 'release.json').read_text())
+        snapshot = data_snapshot(source)
+        previous = prior.get('data_snapshot', {})
+        if previous.get('sha256', snapshot['sha256']) != snapshot['sha256']:
+            raise RuntimeError('Published data snapshot changed unexpectedly')
+        html = frontend_html((code / 'index.html').read_bytes(), (source / 'index.html').read_bytes())
+        shutil.copytree(source, site)
+        (site / 'index.html').write_bytes(html)
+        for name in ('img', 'fonts'):
+            assets = code / 'web' / name
+            if assets.exists():
+                target = site / 'web' / name
+                if target.exists():
+                    shutil.rmtree(target)
+                shutil.copytree(assets, target)
+        self.verify_site(site)
+        if data_snapshot(site) != snapshot:
+            raise RuntimeError('Frontend deployment changed published data')
+        return {**snapshot,
+                'origin_commit': previous.get('origin_commit', prior.get('publication_commit')),
+                'source_release': previous.get('source_release', prior.get('release'))}
+
+    def deploy(self, requested=None, keep_publication=False, publish_data=False):
+        if keep_publication and publish_data:
+            raise ValueError('Choose either preserved publication or new data publication')
         with self.lock():
             sha = self.merged_sha(requested)
             name = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S') + '-' + sha[:12]
@@ -233,18 +305,25 @@ class Runtime:
                 run([code / '.venv/bin/pip', 'install', '-e', str(code) + '[acquire]', '-e', code / 'packages/fri-forecaster'], env=env)
                 run(['npm', 'ci', '--prefix', code / 'packages/fri-forecaster'], env=env)
                 (release / 'python-packages.txt').write_text(output([code / '.venv/bin/pip', 'freeze']))
-                self.stage_data(code, copy_results=not keep_publication)
+                self.stage_data(code, copy_results=publish_data)
                 site = self.root / 'sites' / name
-                metadata = {'release': name, 'commit': sha, 'publication': 'rebuilt', 'publication_commit': sha}
+                metadata = {'release': name, 'commit': sha, 'publication': 'frontend', 'publication_commit': sha, 'frontend_commit': sha}
                 if keep_publication:
                     source = self.current / 'site' if self.current.exists() else Path(self.config['bootstrap_publication'])
                     self.verify_site(source)
                     shutil.copytree(source, site)
                     prior = json.loads((source / 'release.json').read_text()) if (source / 'release.json').exists() else {}
-                    metadata.update(publication='preserved', publication_commit=prior.get('publication_commit', prior.get('commit')))
-                else:
+                    metadata.update(publication='preserved', publication_commit=prior.get('publication_commit', prior.get('commit')),
+                                    frontend_commit=prior.get('frontend_commit', prior.get('publication_commit')))
+                    if 'data_snapshot' in prior:
+                        metadata['data_snapshot'] = prior['data_snapshot']
+                elif publish_data:
                     site.mkdir()
                     run(['bash', code / 'code/publish_dashboard.sh'], cwd=code, env=self.environment(code, site))
+                    self.verify_site(site)
+                    metadata.update(publication='rebuilt', data_snapshot={**data_snapshot(site), 'origin_commit': sha, 'source_release': name})
+                else:
+                    metadata['data_snapshot'] = self.publish_frontend(code, site)
                 self.verify_site(site)
                 write_json(site / 'release.json', metadata)
                 link(site, release / 'site')
@@ -298,7 +377,8 @@ class Runtime:
                 if expects_site or (site / 'index.html').exists():
                     self.verify_site(site)
                     meta = json.loads((release / 'release.json').read_text())
-                    meta.update(publication='rebuilt', publication_commit=meta['commit'])
+                    meta.update(publication='rebuilt', publication_commit=meta['commit'], frontend_commit=meta['commit'],
+                                data_snapshot={**data_snapshot(site), 'origin_commit': meta['commit'], 'source_release': 'job-' + key})
                     write_json(site / 'release.json', meta)
                     link(site, release / 'site')
                     write_json(release / 'release.json', meta)
@@ -350,11 +430,13 @@ def main():
     parser.add_argument('--config', default=os.environ.get('AIRO_RUNTIME_CONFIG', str(Path.home() / '.config/airo/runtime.json')))
     parser.add_argument('command', choices=['deploy', 'rollback', 'status', 'tick', 'serve', 'smoke'])
     parser.add_argument('--commit')
-    parser.add_argument('--keep-publication', action='store_true', help='Explicitly retain the last good website while deploying code and schedules')
+    publication = parser.add_mutually_exclusive_group()
+    publication.add_argument('--keep-publication', action='store_true', help='Retain the entire website while deploying code and schedules')
+    publication.add_argument('--publish-data', action='store_true', help='Rebuild and validate forecast data as part of deployment; never launches forecast jobs')
     parser.add_argument('--run-id', default='smoke-' + uuid.uuid4().hex[:12])
     args = parser.parse_args()
     runtime = Runtime(json.loads(Path(args.config).read_text()))
-    if args.command == 'deploy': runtime.deploy(args.commit, keep_publication=args.keep_publication)
+    if args.command == 'deploy': runtime.deploy(args.commit, keep_publication=args.keep_publication, publish_data=args.publish_data)
     elif args.command == 'smoke': runtime.execute_job(args.run_id, {'id': 'smoke', 'kind': 'smoke'})
     else: getattr(runtime, args.command)()
 

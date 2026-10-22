@@ -194,3 +194,154 @@ def test_preserved_publication_requires_explicit_request_and_keeps_its_provenanc
     assert meta['publication'] == 'preserved'
     assert meta['publication_commit'] == 'b' * 40
     assert (runtime.current / 'site/index.html').read_bytes() == (source / 'index.html').read_bytes()
+
+
+def dashboard(label, value, name='TIMELINE'):
+    return ('<html><head><!--' + name + '_DATA-->\n<script>window.__' + name + '__ = ' +
+            json.dumps({'value': value, 'instrument': 'published-version'}) +
+            ';</script>\n<!--/' + name + '_DATA--></head><body>' + label + '</body></html>').encode()
+
+
+def published_release(runtime):
+    old = release(runtime, 'published')
+    site = old / 'site'
+    site.mkdir()
+    (site / 'index.html').write_bytes(dashboard('old dot layout', 10))
+    for name in p.DATA_FILES:
+        (site / name).write_bytes(b'published forecast bytes\x00\xff')
+    p.write_json(site / 'release.json', {'release': 'published', 'commit': 'b' * 40, 'publication_commit': 'b' * 40})
+    p.link(old, runtime.current)
+    return old
+
+
+def fake_install(runtime, monkeypatch, publication=None):
+    monkeypatch.setattr(runtime, 'merged_sha', lambda _: 'a' * 40)
+    def command(argv, **kw):
+        if argv[:2] == ['git', 'clone']:
+            code = Path(argv[-1])
+            (code / 'deploy').mkdir(parents=True)
+            (code / 'deploy/jobs.json').write_text('[]')
+            (code / 'index.html').write_bytes(dashboard('aligned dots', 999))
+        if 'publish_dashboard.sh' in str(argv):
+            if publication is None:
+                raise AssertionError('Frontend deployment must not build new forecast data')
+            publication(Path(kw['env']['REDLINES_DOCROOT']))
+    monkeypatch.setattr(p, 'run', command)
+    monkeypatch.setattr(p, 'output', lambda *a, **kw: 'dependencies')
+    monkeypatch.setattr(runtime, 'stage_data', lambda code, copy_results: None)
+    monkeypatch.setattr(runtime, 'attach_state', lambda _: None)
+    monkeypatch.setattr(runtime, 'probe', lambda _: None)
+
+
+def test_frontend_deploy_publishes_new_ui_with_exact_existing_data_and_exports(runtime, monkeypatch):
+    old = published_release(runtime)
+    fake_install(runtime, monkeypatch)
+    runtime.deploy()
+    site = runtime.current / 'site'
+    assert b'aligned dots' in (site / 'index.html').read_bytes()
+    assert p.data_blocks((site / 'index.html').read_bytes()) == p.data_blocks((old / 'site/index.html').read_bytes())
+    for name in p.DATA_FILES:
+        assert (site / name).read_bytes() == (old / 'site' / name).read_bytes()
+    meta = json.loads((site / 'release.json').read_text())
+    assert meta['publication'] == 'frontend'
+    assert meta['frontend_commit'] == 'a' * 40
+    assert meta['data_snapshot']['origin_commit'] == 'b' * 40
+    assert meta['data_snapshot']['sha256'] == p.data_snapshot(old / 'site')['sha256']
+    assert (runtime.root / 'previous').resolve() == old
+
+
+def test_data_publication_failure_cannot_fall_back_or_change_current_site(runtime, monkeypatch):
+    old = published_release(runtime)
+    def reject(_):
+        raise subprocess.CalledProcessError(1, 'publication integrity check')
+    fake_install(runtime, monkeypatch, reject)
+    with pytest.raises(subprocess.CalledProcessError):
+        runtime.deploy(publish_data=True)
+    assert runtime.current.resolve() == old
+    assert b'old dot layout' in (old / 'site/index.html').read_bytes()
+
+
+def test_explicit_validated_data_publication_updates_data_provenance(runtime, monkeypatch):
+    published_release(runtime)
+    def publish(site):
+        (site / 'index.html').write_bytes(dashboard('aligned dots', 20))
+        for name in p.DATA_FILES:
+            (site / name).write_text('new validated forecast data')
+    fake_install(runtime, monkeypatch, publish)
+    runtime.deploy(publish_data=True)
+    meta = json.loads((runtime.current / 'site/release.json').read_text())
+    assert meta['publication'] == 'rebuilt'
+    assert meta['data_snapshot']['origin_commit'] == 'a' * 40
+    assert b'20' in (runtime.current / 'site/index.html').read_bytes()
+
+
+def test_frontend_requires_existing_publication_and_compatible_markers(runtime, monkeypatch):
+    fake_install(runtime, monkeypatch)
+    with pytest.raises(RuntimeError, match='No published data snapshot'):
+        runtime.deploy()
+    assert not runtime.current.exists()
+    with pytest.raises(RuntimeError, match='data blocks changed'):
+        p.frontend_html(dashboard('new', 5, 'DIFFERENT'), dashboard('old', 3))
+
+
+@pytest.mark.parametrize('bad', [
+    b'<html>no data</html>',
+    dashboard('old', 1).replace(b'<!--/TIMELINE_DATA-->', b''),
+    dashboard('old', 1) + dashboard('old', 1),
+    dashboard('old', 1).replace(b'window.__TIMELINE__', b'window.__OTHER__'),
+    dashboard('old', 1).replace(b'<script>', b'<script>bad();'),
+])
+def test_frontend_rejects_malformed_or_ambiguous_data_boundaries(bad):
+    with pytest.raises((RuntimeError, ValueError)):
+        p.frontend_html(dashboard('new', 2), bad)
+
+
+def test_frontend_detects_corrupt_snapshot_and_retains_original_provenance(runtime):
+    old = published_release(runtime)
+    source = old / 'site'
+    meta = json.loads((source / 'release.json').read_text())
+    meta.update(publication_commit='c' * 40, data_snapshot={**p.data_snapshot(source), 'origin_commit': None, 'source_release': 'imported'})
+    p.write_json(source / 'release.json', meta)
+    code = runtime.root / 'candidate-code'
+    code.mkdir()
+    (code / 'index.html').write_bytes(dashboard('aligned dots', 999))
+    snapshot = runtime.publish_frontend(code, runtime.root / 'candidate-site')
+    assert snapshot['origin_commit'] is None
+    assert snapshot['source_release'] == 'imported'
+    (source / 'forecasts.csv').write_text('unexpected alteration')
+    with pytest.raises(RuntimeError, match='changed unexpectedly'):
+        runtime.publish_frontend(code, runtime.root / 'another-site')
+
+
+def test_frontend_updates_static_assets_without_changing_the_previous_site(runtime):
+    old = published_release(runtime)
+    code = runtime.root / 'candidate-code'
+    (code / 'web/img').mkdir(parents=True)
+    (code / 'index.html').write_bytes(dashboard('new', 999))
+    (code / 'web/img/logo.svg').write_text('<svg>new logo</svg>')
+    site = runtime.root / 'candidate-site'
+    runtime.publish_frontend(code, site)
+    assert (site / 'web/img/logo.svg').read_text() == '<svg>new logo</svg>'
+    assert not (old / 'site/web/img/logo.svg').exists()
+
+
+def test_scheduled_publication_records_new_data_snapshot(runtime, monkeypatch):
+    old = published_release(runtime)
+    before = (old / 'site').resolve()
+    # Production sites live outside releases; mirror that layout in this fixture.
+    saved = runtime.root / 'sites/before'
+    before.rename(saved)
+    p.link(saved, old / 'site')
+    monkeypatch.setattr(p, 'output', lambda *a, **kw: 'fixture publish')
+    def publish(argv, **kw):
+        site = Path(kw['env']['REDLINES_DOCROOT'])
+        (site / 'index.html').write_bytes(dashboard('new forecast', 25))
+        for name in p.DATA_FILES:
+            (site / name).write_text('validated new forecast')
+    monkeypatch.setattr(p, 'run', publish)
+    runtime.execute_job('fixture-new-data', {'id': 'forecast', 'kind': 'forecast'})
+    meta = json.loads((old / 'site/release.json').read_text())
+    assert meta['publication'] == 'rebuilt'
+    assert meta['data_snapshot']['sha256'] == p.data_snapshot(old / 'site')['sha256']
+    assert meta['data_snapshot']['source_release'] == 'job-fixture-new-data'
+    assert b'old dot layout' in (saved / 'index.html').read_bytes()
