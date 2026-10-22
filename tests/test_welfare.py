@@ -291,52 +291,86 @@ class TestRows(unittest.TestCase):
 
 
 class TestView(unittest.TestCase):
-    def test_it_pools_five_calls_per_model(self):
-        blob = welfare.build(log_path=_log(_calls()))
-        self.assertEqual(blob["day"], TODAY.isoformat())
-        self.assertEqual([m["label"] for m in blob["models"]], list(LABELS))
-        self.assertEqual(blob["rows"], 2 * 5 * 5 * 14)
-        self.assertEqual([p["condition"] for p in blob["prompts"]], WELFARE["pooled"])
-        self.assertEqual(blob["prompts"][4]["text"], experiments.VARIANTS["welfare-two-step"])
-        prompt_step = sum(0.1 * i for i in range(5)) / 5
-        q = next(q for q in blob["questions"] if q["id"] == "gdp:ae")
-        self.assertEqual(q["horizons"], ["2030", "2050"])
+    """The welfare log, pooled, in the shapes AIRO's panels read."""
+
+    def test_it_pools_five_calls_per_model_into_airos_blobs(self):
+        b = welfare.build(log_path=_log(_calls()))
+        self.assertEqual(set(b), {"WELFARE", "TIMELINE", "GRAPH1", "CONDITIONAL", "CAPABILITY", "METHOD", "RATIONALES"})
+        self.assertEqual(b["WELFARE"]["day"], TODAY.isoformat())
+        self.assertEqual([p["condition"] for p in b["WELFARE"]["prompts"]], WELFARE["pooled"])
+        self.assertEqual(b["WELFARE"]["prompts"][4]["text"], experiments.VARIANTS["welfare-two-step"])
+        self.assertEqual(b["WELFARE"]["usage"], {"GPT-6 Astra": 7.5, "Opus 5.5": 7.5})
+        mean_prompt = sum(0.1 * i for i in range(5)) / 5
+        # Policy levers: each model's p50, percentiles and shift, the ensemble median.
+        c = b["CONDITIONAL"]
+        self.assertEqual([m["label"] for m in c["models"]], list(LABELS))
+        self.assertEqual(c["repeats"], {"GPT-6 Astra": 5, "Opus 5.5": 5})
+        self.assertEqual(c["rows"], 2 * 5 * 5 * 14)
+        q = next(q for q in c["questions"] if q["id"] == "gdp:ae")
+        self.assertEqual((q["valueKind"], q["unit"], q["horizons"]), ("percentiles", "% per year", ["2030", "2050"]))
         cell = q["byHorizon"]["2030"]
+        self.assertEqual([x["id"] for x in cell["bars"]], ["sq", "p1", "p2a", "p2b", "p3a", "p3b", "p4", "p5"])
         for i, label in enumerate(LABELS):
-            base = next(b for b in cell["baselines"] if b["label"] == label)["q"]
-            mid = 2.0 + i + prompt_step
-            self.assertEqual(base, {p: round(mid + d, 3) for p, d in zip(ru.PERCENTILE_FIELDS, (-2, -1, 0, 1, 2))})
-            bar = next(b for b in cell["bars"] if b["id"] == "p3a")
-            m = next(m for m in bar["models"] if m["label"] == label)
-            self.assertAlmostEqual(m["q"]["p50"], mid + 0.01 * 5, places=3)       # p3a is the 5th condition
+            mid = 2.0 + i + mean_prompt
+            base = next(x for x in cell["baselines"] if x["label"] == label)
+            self.assertEqual(base["q"], {p: round(mid + d, 3) for p, d in zip(ru.PERCENTILE_FIELDS, (-2, -1, 0, 1, 2))})
+            self.assertEqual(base["n"], 5)                       # its five calls
+            m = next(m for m in cell["bars"][4]["models"] if m["label"] == label)    # p3a, the 5th condition
+            self.assertAlmostEqual(m["p"], mid + 0.05, places=3)
             self.assertAlmostEqual(m["shift"], 0.05, places=3)
-        self.assertEqual(blob["eciForecast"]["Opus 5.5"], {"p10": 169, "p25": 170, "p50": 172, "p75": 175, "p90": 180})
-        p90 = next(c for c in blob["conditions"] if c["id"] == "eci_p90")
-        self.assertEqual((p90["label"], p90["leapId"], p90["levels"]),
-                         ("Own 90th percentile", "ECI ≈ 180", {"GPT-6 Astra": 180, "Opus 5.5": 180}))
-        self.assertNotIn("{target_date}", json.dumps(blob))
-        self.assertEqual(blob["usage"]["Opus 5.5"], {"turns": 50, "cost_usd": 7.5})
-        self.assertEqual(len(blob["rationales"]["questions"]["le:us"]["Opus 5.5"]), 5)
+        self.assertAlmostEqual(cell["baselineMedian"], 2.5 + mean_prompt, places=3)
+        self.assertAlmostEqual(cell["bars"][4]["shift"], 0.05, places=3)
+        self.assertNotIn("{target_date}", json.dumps(c))
+        # Capability: the ECI forecast pooled, the own-percentile rows.
+        v = b["CAPABILITY"]["variants"][0]
+        self.assertEqual(v["forecast"]["models"][1]["p90"], 180)
+        self.assertEqual(v["forecast"]["ensemble"]["p10"], 168.5)
+        p90 = next(x for x in v["conditions"] if x["id"] == "eci_p90")
+        self.assertEqual((p90["label"], p90["leapId"]), ("Own 90th percentile", "ECI ≈ 180"))
+        self.assertEqual([x["id"] for x in v["questions"][0]["byHorizon"]["2050"]["bars"]],
+                         ["eci_p10", "eci_p25", "eci_p50", "eci_p75", "eci_p90"])
+        self.assertTrue(b["CAPABILITY"]["eci"]["history"])        # AIRO's frontier history
+        # Timeline and Graph 1: the ensemble's percentiles, each prompt's dot.
+        t = next(q for q in b["TIMELINE"]["questions"] if q["id"] == "le:us")
+        self.assertEqual([s["date"] for s in b["TIMELINE"]["snapshots"]], [TODAY.isoformat()])
+        self.assertAlmostEqual(t["median"]["2050"][0], 80.5 + mean_prompt, places=3)
+        self.assertAlmostEqual(t["band"]["2050"][0]["p10"], 78.5 + mean_prompt, places=3)
+        self.assertEqual(t["variantModels"]["two-step"]["2050"][0], {"GPT-6 Astra": 80.4, "Opus 5.5": 81.4})
+        self.assertEqual([x["id"] for x in b["TIMELINE"]["variants"]], WELFARE["pooled"])
+        g = next(q for q in b["GRAPH1"]["questions"] if q["id"] == "gdp:emde")
+        self.assertEqual(g["horizonLabels"]["2030"], "2030 (the five-year period 2026 through 2030)")
+        self.assertAlmostEqual(g["band"]["2050"]["p90"], 4.5 + mean_prompt, places=3)
+        # The FAQ's prompt is the welfare baseline's, and the rationales are each call's.
+        self.assertIn("Deliver the percentiles", b["METHOD"]["prompt"])
+        self.assertEqual(b["METHOD"]["k"], 14)
+        self.assertEqual(len(b["RATIONALES"]["questions"]["le:us"]["Opus 5.5"]), 5)
 
     def test_an_incomplete_day_gives_way_to_the_last_complete_one_and_none_is_empty(self):
         old = _calls(today=date(2026, 10, 21))
         new = _calls(WELFARE["pooled"][:4], today=TODAY)          # a prompt short
-        self.assertEqual(welfare.build(log_path=_log(old + new))["day"], "2026-10-21")
-        self.assertIsNone(welfare.build(log_path=_log(new)))
-        self.assertIsNone(welfare.build(log_path=os.path.join(tempfile.mkdtemp(), "none.jsonl")))
+        self.assertEqual(welfare.build(log_path=_log(old + new))["WELFARE"]["day"], "2026-10-21")
+        both = welfare.build(log_path=_log(old + _calls(today=TODAY)))
+        self.assertEqual([s["date"] for s in both["TIMELINE"]["snapshots"]], ["2026-10-21", TODAY.isoformat()])
+        for log in (_log(new), os.path.join(tempfile.mkdtemp(), "none.jsonl")):
+            b = welfare.build(log_path=log)
+            self.assertIsNone(b["WELFARE"]["day"])
+            self.assertEqual((b["TIMELINE"]["questions"], b["GRAPH1"]["questions"], b["CONDITIONAL"]["questions"],
+                              b["CAPABILITY"]["variants"]), ([], [], [], []))
 
 
 class TestPage(unittest.TestCase):
-    def test_the_page_assembles_from_the_shared_chunks_and_the_pilots(self):
+    def test_the_page_is_airos_panels_with_the_welfare_blobs(self):
         d = REPO / "web" / "welfare"
         manifest = json.loads((d / "manifest.json").read_text())
-        self.assertEqual((manifest["target"], manifest["blobs"]), ("welfare.html", ["WELFARE", "CAPABILITY"]))
+        self.assertEqual(manifest["target"], "welfare.html")
+        self.assertEqual(set(manifest["blobs"]), set(welfare.build(log_path=os.devnull)))
         self.assertNotIn("../demo/80-app.jsx", manifest["chunks"])
-        blob = welfare.build(log_path=_log(_calls(labels=LABELS[:1])))
-        for w in (blob, None):
-            html = hydrate_page(d, {"WELFARE": w, "CAPABILITY": {"eci": {}}})
-            self.assertIn(f"<script>window.__WELFARE__ = {json.dumps(w).replace('</', '<' + chr(92) + '/')};</script>", html)
-            self.assertIn('<script>window.__CAPABILITY__ = {"eci": {}};</script>', html)
+        for panel in ("19-live-timeline", "20-live-graph1", "75-conditional", "77-capability", "79-faq"):
+            self.assertIn(f"../demo/{panel}.jsx", manifest["chunks"])
+        for blobs in (welfare.build(log_path=_log(_calls(labels=LABELS[:1]))), welfare.build(log_path=os.devnull)):
+            html = hydrate_page(d, blobs)
+            for name, blob in blobs.items():
+                self.assertIn(f"<script>window.__{name}__ = {json.dumps(blob).replace('</', '<' + chr(92) + '/')};</script>", html)
             self.assertEqual(html.count("function App()"), 1)
             self.assertEqual(html.count("ReactDOM.createRoot"), 1)
         self.assertTrue((REPO / "welfare.html").exists())

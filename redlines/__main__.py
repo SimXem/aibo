@@ -209,19 +209,21 @@ def _build_axes():
 
 
 # The welfare page (2026-10-22; redlines/views/welfare.py, web/welfare/) is
-# its own file: its blob, and the capability blob its ECI chart reads, go
-# there and never into index.html. No results/ mirror: nothing reads one.
+# its own file: AIRO's panels drawn from the welfare log, through the same
+# blob names (TIMELINE, CONDITIONAL, ...) index.html uses. Its blobs go there
+# and never into index.html, and no results/ mirror: nothing reads one.
 WELFARE_PAGE = REPO_ROOT / "welfare.html"
 
 
 def _build_welfare():
-    from .views import capability, welfare
+    from .views import welfare
 
-    blob = welfare.build()
-    path = inject("WELFARE", blob, html_path=WELFARE_PAGE)
-    inject("CAPABILITY", capability.build(), html_path=WELFARE_PAGE)
-    print(f"welfare: day {blob['day']}, {len(blob['models'])} model(s), {blob['rows']} rows -> {path.name}"
-          if blob else f"welfare: no complete day in the welfare log; the page shows it unavailable -> {path.name}")
+    blobs = welfare.build()
+    for name, blob in blobs.items():
+        path = inject(name, blob, html_path=WELFARE_PAGE)
+    day = blobs["WELFARE"]["day"]
+    print(f"welfare: {len(blobs)} blobs, day {day}, {len(blobs['CONDITIONAL']['models'])} model(s) -> {path.name}"
+          if day else f"welfare: no complete day in the welfare log; the panels show it unavailable -> {path.name}")
 
 
 def _build_capability():
@@ -372,10 +374,10 @@ def _blobs_for_demo():
 
 
 def _blobs_for_welfare():
-    """welfare.html's two blobs (web/welfare/manifest.json)."""
-    from .views import capability, welfare
+    """welfare.html's blobs (web/welfare/manifest.json)."""
+    from .views import welfare
 
-    return {"WELFARE": welfare.build(), "CAPABILITY": capability.build()}
+    return welfare.build()
 
 
 PAGE_BLOB_BUILDERS = {
