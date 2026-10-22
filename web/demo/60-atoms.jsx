@@ -28,10 +28,7 @@ function LegendDot({ color, label, hollow, onClick, dim, title }) {
   const tooltip = React.useRef(null);
   React.useEffect(() => {
     if (!title || !window.tippy || !ref.current) return;
-    const instance = window.tippy(ref.current, {
-      content: title, allowHTML: false, theme: "light-border", arrow: true,
-      maxWidth: 360, offset: [0, 8], placement: "top",
-    });
+    const instance = appTooltip(ref.current, { content: title, allowHTML: false });
     tooltip.current = instance;
     return () => { instance.destroy(); tooltip.current = null; };
   }, [title]);

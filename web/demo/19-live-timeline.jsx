@@ -49,28 +49,6 @@ const tlVariants = (q, horizon, snapshots) => {
   })).filter(v => v.vals.some(val => val != null));
 };
 
-// React owns the content; Tippy owns placement relative to the actual SVG dot.
-function TimelinePointTooltip({ anchor, children }) {
-  const [content] = useState(() => document.createElement("div"));
-  const tooltip = React.useRef(null);
-  React.useEffect(() => {
-    if (!anchor || !window.tippy) return;
-    const instance = window.tippy(anchor, {
-      content, trigger: "manual", theme: "light-border", arrow: true,
-      maxWidth: 340, offset: [0, 8], placement: "top", appendTo: () => document.body,
-      animation: false,
-    });
-    tooltip.current = instance;
-    instance.show();
-    return () => { instance.destroy(); tooltip.current = null; };
-  }, [anchor, content]);
-  // Scale changes can move a pinned dot without changing its DOM element.
-  React.useLayoutEffect(() => {
-    if (tooltip.current && tooltip.current.popperInstance) tooltip.current.popperInstance.update();
-  });
-  return ReactDOM.createPortal(children, content);
-}
-
 /* ---------------- time-series chart ---------------- */
 // Before Oct 21 only the median is visible until hovered or selected; then
 // model answers appear as ink-gray circles. Since Oct 21 each prompt condition
@@ -277,7 +255,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
       </svg>
 
       {hovered && (
-        <TimelinePointTooltip anchor={active.anchor}>
+        <PointTooltip anchor={active.anchor}>
           {hoveredModels.map(([label, val]) => (
             <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -286,10 +264,10 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
               <span className="mono">{fmtV(val)}</span>
             </div>
           ))}
-        </TimelinePointTooltip>
+        </PointTooltip>
       )}
       {hv != null && !hovered && (
-        <TimelinePointTooltip anchor={active.anchor}>
+        <PointTooltip anchor={active.anchor}>
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>
             {snapshots[hv].date} · <span style={{ color: "var(--ink)", fontWeight: 600 }}>by {h}</span>
             {hasVar(hv) ? ` · ${variants.filter(v => v.vals[hv] != null).length} prompts per model · each model = mean of its prompts`
@@ -319,7 +297,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
               </span>
             </div>
           ))}
-        </TimelinePointTooltip>
+        </PointTooltip>
       )}
     </div>
   );

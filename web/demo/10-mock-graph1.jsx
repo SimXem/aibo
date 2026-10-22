@@ -89,6 +89,7 @@ function TimeSeriesChart({ panel, active }) {
   const ymax = niceMax(Math.max(...allV, bandTop, 0.5) * 1.05);
   const y = v => pad.t + (1 - v / ymax) * (H - pad.t - pad.b);
   const yticks = Array.from({ length: 6 }, (_, i) => (ymax / 5) * i);
+  const box = React.useRef(null);
   const [hv, setHv] = useState(null);
 
   const linePath = pts => pts.map((p, k) => (k === 0 ? "M" : "L") + x(p.i).toFixed(1) + " " + y(p.v).toFixed(1)).join(" ");
@@ -101,7 +102,7 @@ function TimeSeriesChart({ panel, active }) {
   }
 
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={box} style={{ position: "relative" }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} onMouseLeave={() => setHv(null)}>
         {yticks.map((t, i) => (
           <g key={i}>
@@ -141,9 +142,7 @@ function TimeSeriesChart({ panel, active }) {
         const rows = lines.map(l => ({ l, p: l.pts.find(p => p.i === hv) })).filter(r => r.p);
         if (!rows.length) return null;
         return (
-          <div style={{ position: "absolute", top: 6, left: `${(x(hv) / W) * 100}%`, transform: "translateX(8px)",
-            background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 10px",
-            boxShadow: "var(--shadow)", pointerEvents: "none", minWidth: 150 }}>
+          <PointTooltip box={box} x={x(hv)} y={y(rows[0].p.v)}>
             <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 5 }}>{MONTHS[hv]}{SURVEY_IDX.includes(hv) ? " · survey" : ""}</div>
             {rows.map(({ l, p }) => (
               <div key={l.key} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12 }}>
@@ -151,7 +150,7 @@ function TimeSeriesChart({ panel, active }) {
                 <span className="mono" style={{ fontWeight: 500 }}>{p.v.toFixed(2)}%</span>
               </div>
             ))}
-          </div>
+          </PointTooltip>
         );
       })()}
     </div>
