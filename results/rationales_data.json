@@ -1,5 +1,12 @@
 {
   "calls": {},
   "questions": {},
-  "prompts": {}
+  "prompts": {},
+  "conditionOrder": [
+    "none",
+    "independent",
+    "recent",
+    "critical",
+    "two-step"
+  ]
 }

@@ -52,7 +52,7 @@ def build():
     for r in rows:
         cid = _call_id(r)
         if cid not in calls:
-            calls[cid] = _prompt_metadata(r, recorded.get(cid), prompts)
+            calls[cid] = {**_prompt_metadata(r, recorded.get(cid), prompts), 'forecasts': {}}
         calls[cid].update({
             'model': r['label'], 'modelId': r['model'], 'run': r['run_id'],
             'elicitedAt': r['elicited_at'], 'date': elicitation_date(r),
@@ -60,6 +60,12 @@ def build():
             'rationale': r.get('rationale') or '', 'sources': r.get('key_sources') or [],
             'debriefs': debriefs.get(cid, {}),
         })
+        # Keep the original [0, 1] probabilities by call and question. The
+        # rationale table can select one condition without borrowing a mean
+        # across prompts from the main chart, or another question's numbers.
+        calls[cid]['forecasts'][r['question_id']] = {
+            f['horizon']: f['probability'] for f in r.get('forecasts', [])
+        }
         ids = questions[r['question_id']][r['label']]
         if cid not in ids:
             ids.append(cid)
@@ -68,4 +74,5 @@ def build():
         for ids in models.values():
             ids.sort(key=lambda cid: (order.get(calls[cid]['condition'], len(order)),
                                      calls[cid]['elicitedAt'], cid))
-    return {'calls': calls, 'questions': dict(questions), 'prompts': prompts}
+    return {'calls': calls, 'questions': dict(questions), 'prompts': prompts,
+            'conditionOrder': list(order)}

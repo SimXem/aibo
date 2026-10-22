@@ -15,79 +15,118 @@ function RationaleSources({ sources }) {
     </li>;
   })}</ul>;
 }
-// The selected model's forecasts on every horizon, above its explanation: the
-// explanation was recorded once per question, not once per horizon.
-function RationaleForecastTable({ forecasts, model, calls }) {
-  const rows = forecasts.filter(f => (f.values || {})[model] != null);
-  if (!rows.length) return null;
-  const variants = new Set(calls.map(([, c]) => c.promptVariant).filter(Boolean));
-  const distinctPrompts = variants.size === calls.length;
+const rationaleConditionKey = c => c.condition || c.promptVariant || "unrecorded";
+// One condition only. Raw call probabilities are fractions; convert to percent
+// once, after averaging any repeat calls that answered this question/horizon.
+function rationaleConditionForecasts(qid, horizons, models, calls) {
+  return horizons.map(key => {
+    const values = {}, counts = {};
+    models.forEach(model => {
+      const ps = calls.filter(([, c]) => c.model === model)
+        .map(([, c]) => (((c.forecasts || {})[qid] || {})[key]))
+        .filter(p => typeof p === "number" && Number.isFinite(p));
+      counts[model] = ps.length;
+      values[model] = ps.length ? 100 * ps.reduce((sum, p) => sum + p, 0) / ps.length : null;
+    });
+    return { key, values, counts };
+  });
+}
+function RationaleForecastTable({ rows, models, conditionLabel }) {
+  if (!rows.length || !models.length) return null;
+  const repeated = rows.some(row => models.some(model => row.counts[model] > 1));
   return <div style={{ overflowX: "auto", marginTop: 12 }}>
     <table className="tv" style={{ width: "auto", minWidth: 260 }}>
-      {calls.length > 1 && <caption style={{ textAlign: "left", fontWeight: 600, paddingBottom: 6 }}>
-        Average forecast across {calls.length} {distinctPrompts ? "prompt variants" : "calls"}
-      </caption>}
-      <thead><tr><th>Horizon</th><th>Forecast</th></tr></thead>
-      <tbody>{rows.map(f => <tr key={f.key}>
-        <td>{rationaleHorizonLabel(f.key)}</td>
-        <td className="mono">{rationalePct(f.values[model])}</td>
+      <caption style={{ textAlign: "left", fontWeight: 600, paddingBottom: 6 }}>
+        {conditionLabel} prompt: forecasts by model
+      </caption>
+      <thead><tr><th scope="col">Horizon</th>{models.map(model => <th scope="col" key={model}>{model}</th>)}</tr></thead>
+      <tbody>{rows.map(row => <tr key={row.key}>
+        <td>{rationaleHorizonLabel(row.key)}</td>
+        {models.map(model => <td key={model} className="mono"
+          title={row.counts[model] > 1 ? `Mean of ${row.counts[model]} recorded calls` : undefined}>
+          {rationalePct(row.values[model])}
+        </td>)}
       </tr>)}</tbody>
     </table>
+    {repeated && <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>Each cell averages the available repeat calls for that model and horizon within this prompt condition.</p>}
   </div>;
 }
-// `forecasts`: [{ key: horizon, values: { model label: probability } }], every
-// horizon the question was asked on. `date` picks the calls shown (the
-// elicitation whose forecasts the chart displays); it is not shown.
+function RationaleExplanation({ id, call: c, qid }) {
+  const explanation = (c.debriefs || {})[qid];
+  const prompt = (RATIONALES.prompts || {})[c.promptId];
+  return <div style={{ marginTop: 16 }}>
+    <details>
+      <summary style={{ cursor: "pointer" }}>Model rationale</summary>
+      <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>{explanation ? "Model’s explanation for this question, recorded after its forecasts. Covers all horizons." : "Model’s original explanation for its full forecast batch; not specific to this question or horizon."}</p>
+      <p style={{ whiteSpace: "pre-wrap" }}>{(explanation && explanation.rationale) || c.rationale || "No written rationale recorded."}</p>
+      {explanation && explanation.weakest_link && <p><strong>Weakest assumption: </strong>{explanation.weakest_link}</p>}
+      <details><summary style={{ cursor: "pointer" }}>Sources cited by this model</summary>
+        <RationaleSources sources={(explanation && explanation.key_sources) || c.sources} />
+      </details>
+      <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>Original batch explanation and provenance</summary>
+        {explanation && <p style={{ whiteSpace: "pre-wrap" }}>{c.rationale}</p>}
+        <p style={{ overflowWrap: "anywhere", color: "var(--ink-soft)" }}>Model: {c.modelId}<br />Elicited: {c.elicitedAt}<br />Run: {c.run}<br />Call: {id}<br />Instrument: {c.instrument}<br />Protocol: {c.protocol}<br />Prompt condition: {c.condition || "Not recorded"}<br />Scenario: unconditional</p>
+        <a href="redlines-data.zip" download="airo-data.zip">Download original forecasts, explanations and logs</a>
+      </details>
+    </details>
+    <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>View full prompt</summary>
+      {prompt ? <>
+        {prompt.system && prompt.system.trim() && <><p style={{ fontWeight: 600 }}>System prompt</p><pre className="faq-pre">{prompt.system}</pre></>}
+        <p style={{ fontWeight: 600 }}>User prompt</p>
+        <pre className="faq-pre">{prompt.user}</pre>
+      </> : <p>Full prompt not recorded for this call.</p>}
+    </details>
+  </div>;
+}
+// `forecasts` supplies the chart's horizons and model roster, not its pooled
+// probabilities. The comparison table uses only archived calls for the chosen
+// prompt condition, question, and displayed date.
 function ForecastRationales({ qid, context, forecasts = [], date, controls }) {
-  const [selected, setSelected] = useState("");
+  const [selectedCondition, setSelectedCondition] = useState("");
+  const [selectedModel, setSelectedModel] = useState("");
+  const [selectedCall, setSelectedCall] = useState("");
   const entries = RATIONALES.questions[qid] || {};
   const models = Object.keys(entries).filter(m => forecasts.some(f => (f.values || {})[m] != null));
-  const model = models.includes(selected) ? selected : models[0];
-  const calls = (entries[model] || []).map(id => [id, RATIONALES.calls[id]])
+  const allCalls = models.flatMap(model => (entries[model] || []).map(id => [id, RATIONALES.calls[id]]))
     .filter(([, c]) => c && (!date || c.date === date));
+  const order = RATIONALES.conditionOrder || [];
+  const rank = condition => order.includes(condition) ? order.indexOf(condition) : order.length;
+  const conditions = [...new Set(allCalls.map(([, c]) => rationaleConditionKey(c)))].sort((a, b) => rank(a) - rank(b));
+  const condition = conditions.includes(selectedCondition) ? selectedCondition : conditions[0];
+  const conditionCalls = allCalls.filter(([, c]) => rationaleConditionKey(c) === condition);
+  const availableModels = models.filter(model => conditionCalls.some(([, c]) => c.model === model));
+  const model = availableModels.includes(selectedModel) ? selectedModel : availableModels[0];
+  const calls = conditionCalls.filter(([, c]) => c.model === model);
+  const current = calls.find(([id]) => id === selectedCall) || calls[0];
+  const chosen = current && current[1];
+  const label = c => c.promptLabel || "Unrecorded";
+  const rows = rationaleConditionForecasts(qid, forecasts.map(f => f.key), models, conditionCalls);
   return <details style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-soft)", fontSize: 13, lineHeight: 1.6 }}>
     <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--ink)" }}>Model rationale for its forecasts</summary>
     {controls}
     <p style={{ margin: "10px 0", fontWeight: 600 }}>{context}</p>
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-      {models.map(m => <button key={m} aria-pressed={model === m} onClick={() => setSelected(m)}
-        style={{ padding: "7px 10px", border: "1px solid var(--line)", borderRadius: 8, cursor: "pointer", background: model === m ? "var(--ink)" : "var(--panel)", color: model === m ? "white" : "var(--ink)" }}>
-        {m}
-      </button>)}
-    </div>
-    {model && <RationaleForecastTable forecasts={forecasts} model={model} calls={calls} />}
-    {!calls.length && <p>No explanation recorded for this forecast.</p>}
-    {calls.map(([id, c], index) => {
-      const explanation = (c.debriefs || {})[qid];
-      const prompt = (RATIONALES.prompts || {})[c.promptId];
-      return <div key={id} style={{ marginTop: 16, ...(index ? { paddingTop: 16, borderTop: "1px solid var(--line-soft)" } : {}) }}>
-        <p style={{ fontWeight: 600, marginBottom: 4 }}>{c.promptLabel || "Unrecorded"} prompt</p>
-        <p style={{ fontWeight: 600, marginTop: 0 }}>
-          {c.promptVariant === "none" ? "No additional instruction." : c.promptInstruction || "Added instruction text is not available for this call."}
-        </p>
-        <details>
-          <summary style={{ cursor: "pointer" }}>Model rationale</summary>
-          <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>{explanation ? "Model’s explanation for this question, recorded after its forecasts. Covers all horizons." : "Model’s original explanation for its full forecast batch; not specific to this question or horizon."}{calls.length > 1 ? " Each call contributes to the displayed model mean." : ""}</p>
-          <p style={{ whiteSpace: "pre-wrap" }}>{(explanation && explanation.rationale) || c.rationale || "No written rationale recorded."}</p>
-          {explanation && explanation.weakest_link && <p><strong>Weakest assumption: </strong>{explanation.weakest_link}</p>}
-          <details><summary style={{ cursor: "pointer" }}>Sources cited by this model</summary>
-            <RationaleSources sources={(explanation && explanation.key_sources) || c.sources} />
-          </details>
-          <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>Original batch explanation and provenance</summary>
-            {explanation && <p style={{ whiteSpace: "pre-wrap" }}>{c.rationale}</p>}
-            <p style={{ overflowWrap: "anywhere", color: "var(--ink-soft)" }}>Model: {c.modelId}<br />Elicited: {c.elicitedAt}<br />Run: {c.run}<br />Call: {id}<br />Instrument: {c.instrument}<br />Protocol: {c.protocol}<br />Prompt condition: {c.condition || "Not recorded"}<br />Scenario: unconditional</p>
-            <a href="redlines-data.zip" download="airo-data.zip">Download original forecasts, explanations and logs</a>
-          </details>
-        </details>
-        <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>View full prompt</summary>
-          {prompt ? <>
-            {prompt.system && prompt.system.trim() && <><p style={{ fontWeight: 600 }}>System prompt</p><pre className="faq-pre">{prompt.system}</pre></>}
-            <p style={{ fontWeight: 600 }}>User prompt</p>
-            <pre className="faq-pre">{prompt.user}</pre>
-          </> : <p>Full prompt not recorded for this call.</p>}
-        </details>
-      </div>;
-    })}
+    {!chosen ? <p>No explanation recorded for this forecast.</p> : <>
+      <div className="rationale-controls">
+        <label>Prompt condition<select value={condition} onChange={e => setSelectedCondition(e.target.value)}>
+          {conditions.map(key => <option key={key} value={key}>{label(allCalls.find(([, c]) => rationaleConditionKey(c) === key)[1])}</option>)}
+        </select></label>
+      </div>
+      <p style={{ fontWeight: 600, marginBottom: 4 }}>{label(chosen)} prompt</p>
+      <p style={{ fontWeight: 600, marginTop: 0 }}>
+        {chosen.promptVariant === "none" ? "No additional instruction." : chosen.promptInstruction || "Added instruction text is not available for this call."}
+      </p>
+      <RationaleForecastTable rows={rows} models={models} conditionLabel={label(chosen)} />
+      {conditions.length > 1 && <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>The main charts average across prompt conditions; this table shows the selected condition.</p>}
+      <div className="rationale-controls">
+        <label>Model<select value={model} onChange={e => setSelectedModel(e.target.value)}>
+          {availableModels.map(name => <option key={name} value={name}>{name}</option>)}
+        </select></label>
+        {calls.length > 1 && <label>Explanation from call<select value={current[0]} onChange={e => setSelectedCall(e.target.value)}>
+          {calls.map(([id], index) => <option key={id} value={id}>Call {index + 1}</option>)}
+        </select></label>}
+      </div>
+      <RationaleExplanation key={`${qid}:${current[0]}`} id={current[0]} call={chosen} qid={qid} />
+    </>}
   </details>;
 }
 // `causes`: [{key, label, rungs}], each cause's rungs from BOTH ladders (the

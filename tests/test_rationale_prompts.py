@@ -48,6 +48,7 @@ class TestRationalePrompts(unittest.TestCase):
         data = build_rows(rows + [rows[-1]])  # duplicate question must not repeat a call
         ids = data["questions"]["second"]["Example model"]
         self.assertEqual([data["calls"][cid]["condition"] for cid in ids], experiment["pooled"])
+        self.assertEqual(data["conditionOrder"], experiment["pooled"])
         self.assertEqual(len(data["calls"]), len(experiment["pooled"]))
         for row in rows:
             call = data["calls"][row["call_id"]]
@@ -111,3 +112,24 @@ class TestRationalePrompts(unittest.TestCase):
         call = data["calls"][rows[0]["call_id"]]
         self.assertEqual(call["rationale"], rows[-1]["rationale"])
         self.assertEqual(call["sources"], rows[-1]["key_sources"])
+
+    def test_forecasts_remain_separate_by_call_condition_and_question(self):
+        baseline = call_rows("none", DEFAULT_VARIANT)
+        baseline[0]["forecasts"] = [{"horizon": "2030", "probability": 0},
+                                    {"horizon": "2100", "probability": 1}]
+        baseline[1]["forecasts"] = [{"horizon": "2030", "probability": 0.2}]
+        independent = call_rows("independent", "independent")
+        independent[0]["forecasts"] = [{"horizon": "2030", "probability": 0.8}]
+        repeat = copy.deepcopy(baseline[0])
+        repeat["call_id"] += ":repeat"
+        repeat["forecasts"] = [{"horizon": "2030", "probability": 0.6}]
+        rows = baseline + independent + [repeat]
+        original = copy.deepcopy(rows)
+        data = build_rows(rows)
+        self.assertEqual(data["calls"][baseline[0]["call_id"]]["forecasts"],
+                         {"first": {"2030": 0, "2100": 1}, "second": {"2030": 0.2}})
+        self.assertEqual(data["calls"][independent[0]["call_id"]]["forecasts"],
+                         {"first": {"2030": 0.8}, "second": {}})
+        self.assertEqual(data["calls"][repeat["call_id"]]["forecasts"],
+                         {"first": {"2030": 0.6}})
+        self.assertEqual(rows, original)
