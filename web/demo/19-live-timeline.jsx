@@ -120,8 +120,8 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   // Prompt variants (combined-v10): one dot per variant, the panel median of
   // that prompt's calls; the ink mark is the median of the models' means
   // over the five. On a variant date the models' means are not drawn
-  // (project lead, 2026-10-21): hovering a variant dot lists that prompt's
-  // instruction and model answers. The unpooled sixth call is never in the
+  // (project lead, 2026-10-21): hovering a variant dot lists only model
+  // answers; the legend carries the prompt instruction. The unpooled sixth call is never in the
   // blob.
   const variants = tlVariants(q, h, snapshots);
   const hasVar = i => variants.some(v => v.vals[i] != null);
@@ -262,18 +262,6 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
 
       {hovered && (
         <div style={tipStyle(hvar.i)}>
-          <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>
-            {snapshots[hvar.i].date} · <span style={{ color: "var(--ink)", fontWeight: 600 }}>by {h}</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12.5, fontWeight: 600 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ width: 9, height: 9, borderRadius: "50%", background: hovered.color, flexShrink: 0 }}></span>{hovered.label} prompt
-            </span>
-            <span className="mono">{fmtV(hovered.vals[hvar.i])}</span>
-          </div>
-          <div style={{ fontSize: 11.5, color: "var(--ink-soft)", margin: "4px 0 6px" }}>
-            {hovered.text || "No added instruction."}
-          </div>
           {hoveredModels.map(([label, val]) => (
             <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -437,7 +425,7 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
 
         <TimelineChart key={hz} q={q} snapshots={snapshots} horizon={hz} scale={scale} />
         <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "6px 0 0" }}>
-          {variants.length > 0 ? "From Oct 21, colors identify prompt conditions. " : ""}
+          {variants.length > 0 ? "From Oct 21, colors identify prompt conditions; hover the legend to read each prompt. " : ""}
           Hover or select a point to see model forecasts.
         </p>
         {loss && <>
