@@ -88,7 +88,7 @@ class TestTheAiroExperiment(unittest.TestCase):
         for name in ("axes", "paperaxes"):                       # the axes instruments: one standard call
             (c,) = experiments.load(name)["conditions"].values()
             self.assertEqual((c["variant"], c["instrument"], c["harness"], c["pooled"], c["publish"]),
-                             ("none", "standard", "litellm", True, True))
+                             ("none", "standard", "pi", True, True))
 
 
 class TestConditions(unittest.TestCase):
@@ -116,7 +116,7 @@ model_set = "frontier5"
         base = dict(experiments.DEFAULTS, scenarios="data/combined_conditions.json")
         h = experiments.condition_sha256(base)
         self.assertEqual(h, experiments.condition_sha256(dict(base, publish=True, repeats=3)))
-        for k, v in (("variant", "recent"), ("harness", "pi"), ("model_set", "frontier5"),
+        for k, v in (("variant", "recent"), ("harness", "other"), ("model_set", "frontier5"),
                      ("url_block_patterns", "x"), ("scenarios", "data/axes_conditions.json")):
             self.assertNotEqual(h, experiments.condition_sha256(dict(base, **{k: v})), k)
         self.assertEqual(AIRO["conditions"]["none"]["sha256"],
@@ -128,9 +128,8 @@ model_set = "frontier5"
                 ('[conditions.a]\nharnes = "pi"\n', "unknown setting"),
                 ('pooled = ["b"]\n[conditions.a]\n', "not conditions"),
                 ('pooled = ["a"]\n[conditions.a]\n', "pooled condition publishes"),
-                ('[conditions.a]\ninstrument = "minimal"\n', "minimal instrument runs through pi"),
-                ('[conditions.a]\nurl_block_patterns = "x"\n', "through pi only"),
-                ('harness = "pi"\n[conditions.a]\nurl_block_patterns = "(x"\n', "bad url_block_patterns"),
+                ('[conditions.a]\nharness = "litellm"\n', "harness 'litellm' is not one of"),
+                ('[conditions.a]\nurl_block_patterns = "(x"\n', "bad url_block_patterns"),
                 ('[conditions.a]\nvariant = "nope"\n', "unknown variant"),
                 ('[conditions.a]\nrepeats = 0\n', "repeats"),
                 ('', "no \\[conditions")):
@@ -271,14 +270,14 @@ class TestRunOneJoint(unittest.TestCase):
             return {"forecasts": cells, "rationale": "r",
                     "eci_forecast": {"p10": 168, "p25": 170, "p50": 172, "p75": 175, "p90": 178}}, []
 
-        orig = ru.loop_for
-        ru.loop_for = lambda harness: fake
+        orig = ru.call_tools
+        ru.call_tools = fake
         try:
             rows = ru.run_one_joint("M", "anthropic/x", g, b, h, "2026-10-19T0000Z", 0, spec,
                                     pol["conditions"], pol, {**AIRO["conditions"][cid], **settings},
                                     "airo", today=today)
         finally:
-            ru.loop_for = orig
+            ru.call_tools = orig
         return rows, seen
 
     def test_rows_and_loop_settings(self):

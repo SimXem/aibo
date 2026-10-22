@@ -1,30 +1,21 @@
-"""The same call as redlines.llm.call_tools, with pi as the loop: the
-published loop since combined-v9 (2026-10-16): a condition's
-`harness = "pi"` (redlines/experiments.py; experiments/airo.toml).
+"""The loop every call runs through: FRI's agent-box (the `fri_forecaster`
+package, packages/fri-forecaster). pi drives the model, and its extension
+enforces the instrument's rules -- the research floor, the coverage rule, the
+turn limit, the debrief and its validator -- with the loop options in
+agent-box's README ("How it works"). The prompt, the tools and their schemas,
+the cell cleaning and the rows are the instrument's own (code/run_unified.py).
 
-Under pi, run_unified swaps this in for call_tools and changes nothing else: the prompt, the tools and their schemas, the research floor, the
-coverage rule, the turn limit, the debrief and its validator, the cell
-cleaning and the rows are the instrument's own. The loop is FRI's agent-box
-(github.com/forecastingresearch/agent-box, the `fri_forecaster` package):
-pi drives the model, and its extension enforces the rules above with the
-loop options that mirror call_tools (agent-box README, "How it works").
+The published loop since combined-v9 (2026-10-16), and the only one since
+2026-10-22, when the litellm loop before it left the repo. The loop is a
+condition's `harness` setting (redlines/experiments.py), so a condition with
+another loop would be its own condition, with its own condition_sha256.
 
-So the loop is the only difference between v8 and v9. Until 2026-10-21 a
-run through the loop a set did not name (the cron's shadow) carried protocol
-"<protocol>+<harness>"; now the loop is a condition's setting, and a condition
-with another loop is its own condition, with its own condition_sha256.
+pi cannot force a tool choice, so the last turn ASKS for submit_forecast and
+offers nothing else, and the output cap per turn is pi's for the model.
 
-Where the loops differ, by design of pi rather than of the instrument:
-  * pi cannot force a tool choice, so the last turn ASKS for submit_forecast
-    and offers nothing else, for every model -- the path call_tools takes
-    for models that refuse a forced choice (Opus 5.5, Sonnet 5.5), not the
-    forced one it takes for OpenAI's;
-  * the output cap per turn is pi's for the model, not max_tokens;
-  * the debrief's text-only fallback (a model that returns nothing to the
-    tool-only turn) is not ported.
-
-Needs `pip install -e '.[pi]'` (or agent-box itself) and pi 0.99.2:
-FORECASTER_PI names its cli.js unless agent-box's own `npm ci` put it in place.
+Needs fri-forecaster (`pip install -e ./packages/fri-forecaster`) and pi
+0.99.2: FORECASTER_PI names its cli.js unless agent-box's own `npm ci` put it
+in place.
 """
 import json
 import os
@@ -33,31 +24,33 @@ import time
 
 from .llm import reasoning_for
 
-# A whole call, research and debrief included; REDLINES_LLM_TIMEOUT is per
-# request on the litellm path, which has no single process to time out.
+# A whole call, research and debrief included.
 DEFAULT_TIMEOUT = 3 * 3600
 
 
 def pi_model(model):
-    """litellm's id -> pi's: litellm routes OpenAI's Responses API by a path
-    segment; pi picks the API itself."""
+    """The registry's id -> pi's. The registry's ids name OpenAI's Responses
+    API by a path segment (`openai/responses/...`, the route the litellm loop
+    took, and what rows and data/auto_models.json record); pi picks the API
+    itself."""
     return model.replace("openai/responses/", "openai/", 1)
 
 
 def call_tools(model, prompt, tools, final_tool, *, max_iters=6, system=None,
-               max_tokens=8000, temperature=0.0, complete=None, min_evidence=0,
-               usage=None, partial_tool=None, coverage=None, debrief=None,
-               allowed_keys=None, env=None, run=None):
-    """redlines.llm.call_tools's contract: -> (answer_args, evidence); fills
-    `usage` and `debrief` in place, feeds `partial_tool["fn"]` every piece in
-    order, raises if the model never submits. `allowed_keys` ("qid|horizon")
-    are the cells the call asks for, which pi's tools check pieces against.
-    `env` is THIS call's environment for pi and its tool processes, over the
-    process's own (agent-box `harness.run(env=...)`): the URL guard
-    (redlines.tools.BLOCK_ENV) travels here, per call, never in os.environ,
-    because the runner's workers run calls side by side (2026-10-19).
-    `max_tokens`, `temperature` and `complete` are the litellm path's and do
-    nothing here; `run` replaces fri_forecaster.harness.run (tests)."""
+               min_evidence=0, usage=None, partial_tool=None, coverage=None, debrief=None,
+               allowed_keys=None, env=None, timeout=None, run=None):
+    """Let the model call `tools` to gather evidence, then submit its answer
+    through `final_tool` (whose `forecasts` items are the cell schema).
+    -> (answer_args, evidence); fills `usage` and `debrief` in place, feeds
+    `partial_tool["fn"]` every piece in order, raises if the model never
+    submits. `allowed_keys` ("qid|horizon") are the cells the call asks for,
+    which pi's tools check pieces against. `env` is THIS call's environment
+    for pi and its tool processes, over the process's own (agent-box
+    `harness.run(env=...)`): the URL guard (redlines.tools.BLOCK_ENV) travels
+    here, per call, never in os.environ, because the runner's workers run
+    calls side by side (2026-10-19). `timeout` (seconds) caps the whole call,
+    REDLINES_PI_TIMEOUT or three hours by default; `run` replaces
+    fri_forecaster.harness.run (tests)."""
     if run is None:
         from fri_forecaster import harness
         run = harness.run
@@ -94,7 +87,7 @@ def call_tools(model, prompt, tools, final_tool, *, max_iters=6, system=None,
               tool_parameters={t["name"]: t["parameters"] for t in specs},
               research_tools=tuple(n for n in ("web_search", "read_page") if n in names),
               cells_tool=bool(partial_tool), thinking=thinking,
-              timeout=int(os.environ.get("REDLINES_PI_TIMEOUT", DEFAULT_TIMEOUT)),
+              timeout=int(timeout or os.environ.get("REDLINES_PI_TIMEOUT", DEFAULT_TIMEOUT)),
               env={"PI_CODING_AGENT_DIR": os.environ.get("PI_CODING_AGENT_DIR") or os.path.join(base, "agent"),
                    **(env or {})},
               **loop)

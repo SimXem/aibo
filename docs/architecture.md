@@ -190,7 +190,7 @@ was answered five different, disagreeing ways:
 | `code/eci_scores.py` | `GAP_FILLERS` | +2 137/143 gap-fillers |
 | `code/run_forecasts.py` | `MODELS` | the frontier five |
 | `code/make_demo_graph1.py` | `MODEL_COLORS` | frontier-five display colors |
-| `code/pandemic_smoke.py` | `SMOKE_MODELS` | hand-typed ECI integers (!) |
+| `archive/litellm-runners/pandemic_smoke.py` | `SMOKE_MODELS` | hand-typed ECI integers (!) |
 | `code/make_demo_graph3.py` | `DASH_MODELS` | ForecastBench display names |
 
 `registry.py`'s `MODELS` is the union: one row per distinct model, each
@@ -235,7 +235,7 @@ correct data:
 - **The climatology constant disagrees with itself: `0.045` vs `0.0458`.**
   `CLIM_FREECIV_COMBINED = 0.045` is Graph 4's fallback `class_base_rate`
   (from `code/make_demo_combined.py`); `CLIM_FREECIV_OBSERVED = 0.0458` is
-  `code/run_eval.py`'s per-class climatology fallback — the corpus's actual
+  `archive/litellm-runners/run_eval.py`'s per-class climatology fallback — the corpus's actual
   observed yes-rate, measured independently. They were already two different
   numbers before this refactor, and both remain as they were.
 
@@ -298,8 +298,8 @@ Three things this repo depends on but does not own or vendor:
 - **`forecastbench-sim`** (sibling checkout, `FBSIM_ROOT`, default
   `~/Projects/forecastbench-sim`, pinned at commit `24d88de`). Supplies the
   FreeCiv simulation worlds, the question generator/resolver, and the model
-  eval harness. `code/mine_lowprob_corpus.py`, `code/run_eval.py`,
-  `code/pandemic_build_corpus.py`, and `code/pandemic_smoke.py` all run
+  eval harness. `code/mine_lowprob_corpus.py`, `archive/litellm-runners/run_eval.py`,
+  `code/pandemic_build_corpus.py`, and `archive/litellm-runners/pandemic_smoke.py` all run
   *inside* that repo's `uv` environment, not this one — they import
   `freeciv_world` / `fbsim_core`, which are not this repo's dependencies.
 - **`forecastbench-datasets`** (sibling checkout, `FB_DATASETS_ROOT`). The
@@ -310,7 +310,7 @@ Three things this repo depends on but does not own or vendor:
   2026-08-11).
 - **`xrisk-canaries`** (an internal FRI checkout, not published; `XRISK_CANARIES_ROOT`). **Code
   dependency removed 2026-08-28.** It used to supply the runners' whole LLM
-  layer: `code/run_unified.py` and `code/run_ladder_joint.py` inserted the
+  layer: `code/run_unified.py` and `archive/litellm-runners/run_ladder_joint.py` inserted the
   sibling checkout onto `sys.path` and imported `call_tools` / `load_keys` /
   `FORECAST_TOOLS` from `forecast.cruxgen`. Both repos are private, so nobody
   outside them could re-elicit — the dashboard rebuilt fine from committed
@@ -353,10 +353,10 @@ runs each due group:
 "$PY" code/run_unified.py --experiment airo --condition none ... --condition ai-banned --workers 10
 ```
 
-`$PY` only has to be an interpreter with the acquisition extra installed
-(`pip install -e '.[acquire]'`, which is just litellm); `REDLINES_PY` overrides
-it (historically it pointed at the venv of the internal checkout the LLM layer
-was imported from before it was vendored). `experiments/airo.toml` says what
+`$PY` only has to be an interpreter with the harness installed (`pip install
+-e . -e ./packages/fri-forecaster`); `REDLINES_PY` overrides it (historically
+it pointed at the venv of the internal checkout the LLM layer was imported
+from before it was vendored). `experiments/airo.toml` says what
 the run asks (`redlines/experiments.py`): six conditions, each a configured way
 of running the single instrument, one call per model each. Every call answers
 every question×horizon cell unconditionally *and* under each scenario of the

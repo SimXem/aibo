@@ -88,17 +88,20 @@ VARIANTS = {
 DEFAULT_VARIANT = "none"
 
 INSTRUMENTS = ("standard", "minimal")
-HARNESSES = ("litellm", "pi")
+# The loop: pi (agent-box), the only one since litellm left on 2026-10-22.
+# Still a setting, and still hashed, so a condition records the loop its
+# calls ran through.
+HARNESSES = ("pi",)
 # Every setting a condition has, and its value when neither the experiment
 # nor the condition sets it.
 DEFAULTS = {
     "scenarios": None,                # the scenario set, a path from the repo root (required)
     "variant": DEFAULT_VARIANT,       # the instruction VARIANTS adds to the prompt
     "instrument": "standard",         # "minimal": the guidance cut (code/run_unified.py)
-    "harness": "litellm",             # the loop: litellm (redlines.llm) or pi (agent-box)
+    "harness": "pi",                  # the loop (redlines.pi_loop)
     "model_set": DEFAULT_MODEL_SET,   # redlines.registry.MODEL_SETS
     "repeats": 1,                     # calls per model per run
-    "url_block_patterns": None,       # agent-box's URL guard for these calls alone (pi only)
+    "url_block_patterns": None,       # agent-box's URL guard for these calls alone
     "publish": False,                 # rows go to the scenario set's own logs, which the page reads
     "cadence": "manual",              # when the cron runs it: weekdays (UTC), or "manual"
 }
@@ -210,11 +213,7 @@ def _check(s, pooled, where):
         raise ValueError(f"{where}: instrument {s['instrument']!r} is not one of {INSTRUMENTS}")
     if s["harness"] not in HARNESSES:
         raise ValueError(f"{where}: harness {s['harness']!r} is not one of {HARNESSES}")
-    if s["instrument"] == "minimal" and s["harness"] != "pi":
-        raise ValueError(f"{where}: the minimal instrument runs through pi")
     if s["url_block_patterns"]:
-        if s["harness"] != "pi":
-            raise ValueError(f"{where}: a URL guard travels per call through pi only")
         try:
             check_patterns(s["url_block_patterns"])
         except re.error as e:
