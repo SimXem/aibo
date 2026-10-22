@@ -1,4 +1,4 @@
-# Production releases in the development cell
+# Production releases
 
 On a configured cell, say **deploy** after merging the work. The agent runs
 `airo deploy`, then `airo status` and checks the configured public URL. Deployment
@@ -62,8 +62,29 @@ including licensed fonts. Repository results seed missing files, but never
 replace accrued data. Corrections to existing production data require a separate,
 reviewed data migration. Dependency versions resolved by pip are recorded per
 release; npm uses its checked-in lockfile. Rollback reuses installed environments.
-Retained releases and data need disk monitoring and backups; automatic deletion
-is deliberately absent.
+Development and production should use separate VMs/filesystems so development
+cannot exhaust production storage. Separate directories on the same filesystem
+do not provide that isolation. Keep development checkouts and coding credentials
+off the production VM; copy only the runtime, forecasting credentials and data.
+
+Deployment prunes disposable releases before building and after activation.
+The current and previous releases are always preserved, plus recent candidates
+up to `keep_releases` (default 3, minimum 2). Sites referenced by retained releases
+are preserved, including publications produced by jobs. The latest unreferenced
+job publication is also retained for diagnosis. Unknown directory names and
+symlinks are left alone. `state/`, `home/`, run receipts and logs are never pruned.
+Run `airo prune` to apply the same retention policy explicitly. Keep backups of
+accrued data independently; release retention is not a backup policy.
+
+Before installing dependencies or starting paid jobs, the runtime checks free
+bytes and inodes. Deployment requires at least `min_free_bytes` (default 5 GiB),
+or estimated staging space plus a 2 GiB reserve, whichever is larger. This is a
+preflight estimate, not a quota; unexpected dependency or forecast growth can
+still exceed it. `airo status` includes filesystem usage. `airo storage` prints
+usage and exits nonzero below the free-space floor or at 80% byte/inode usage.
+Run it from a five-minute systemd timer and monitor failures. Monitor development
+storage independently on its own VM; a healthy production disk says nothing
+about the development disk.
 
 ## Scheduling
 
