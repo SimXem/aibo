@@ -6,7 +6,7 @@ conventions:
   code/eci_scores.py     DEMO_MODEL_SET (9) + GAP_FILLERS (2) + ALT_HIGH_ANCHOR (1)
   archive/legacy-questions/run_forecasts.py  MODELS -- the frontier five
   code/make_demo_graph1.py  MODEL_COLORS      -- frontier-five display colors
-  code/pandemic_smoke.py    SMOKE_MODELS      -- hand-typed ECI integers (!)
+  archive/litellm-runners/pandemic_smoke.py    SMOKE_MODELS      -- hand-typed ECI integers (!)
   code/make_demo_graph3.py  DASH_MODELS       -- ForecastBench display names
 
 MODELS below is the union: one row per distinct model, tagged with every role
@@ -67,7 +67,7 @@ def load_epoch_index(csv_path: Path = EPOCH_CSV, supplement: Path | None = None)
 #                  since 2026-08-27 also GPT-5.5 / Gemini 3.1 Pro / Grok 4.20, so
 #                  every model the dashboard runs sits on Graph 4's ladder)
 #   g4_gapfiller   code/eci_scores.py GAP_FILLERS (the +2 137/143 gap-fillers)
-#   pandemic_smoke code/pandemic_smoke.py SMOKE_MODELS
+#   pandemic_smoke archive/litellm-runners/pandemic_smoke.py SMOKE_MODELS
 #   graph3_dash    code/make_demo_graph3.py DASH_MODELS (ForecastBench display names)
 #
 # architecture: public facts only -- never guessed. One of:

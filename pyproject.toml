@@ -12,7 +12,7 @@ dependencies = []
 paper = [
     "matplotlib>=3.9",
 ]
-# Eliciting NEW forecasts (code/run_unified.py, code/run_ladder_joint.py) needs a
+# Eliciting NEW forecasts (code/run_unified.py, archive/litellm-runners/run_ladder_joint.py) needs a
 # provider client; nothing else in the repo does. redlines/llm.py imports litellm
 # inside the call, so this extra is only required to RUN a forecast — importing
 # the module, running the tests, and rebuilding the dashboard all work without it.
@@ -40,7 +40,7 @@ test = [
 # Two test suites: AIRO's and the harness's (packages/fri-forecaster/tests,
 # which runs pi_tools.ts through the pinned pi against a scripted model --
 # `npm ci` in that directory first, else those tests skip). archive/ and the
-# vendored code/causal/ carry files pytest would otherwise try to collect.
+# vendored archive/causal/ carry files pytest would otherwise try to collect.
 testpaths = ["tests", "packages/fri-forecaster/tests"]
 
 [tool.setuptools]

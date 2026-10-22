@@ -64,7 +64,7 @@ class TestImportIsStdlibOnly(unittest.TestCase):
     def test_runner_prompts_name_only_tools_the_loop_serves(self):
         import importlib.util
         names = {t["name"] for t in tools.FORECAST_TOOLS}
-        for runner in ("run_unified", "run_ladder_joint"):
+        for runner in ("run_unified",):
             spec = importlib.util.spec_from_file_location(runner, REPO / "code" / f"{runner}.py")
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)

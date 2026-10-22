@@ -1,7 +1,7 @@
 {
   "source": {
     "bench": "StarSim single-region causal bench, locked dataset 2026-08-28 (data/causal/README.md)",
-    "upstream": "iclr-2026 repo, results/causal/data at tag causal-v4-locked; code frozen under code/causal/",
+    "upstream": "iclr-2026 repo, results/causal/data at tag causal-v4-locked; code frozen under archive/causal/",
     "file": "data/causal/results/eci_vs_pooled.csv",
     "eci": "data/causal/models.csv (Epoch Capabilities Index as published 2026-08-27; see redlines/roster.py)"
   },

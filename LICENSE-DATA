@@ -16,7 +16,7 @@ everything else.
 
 2. THIRD-PARTY MATERIAL — not covered by the licenses above
 
-   - `code/causal/` is a frozen copy of the Starsim causal bench's generating
+   - `archive/causal/` is a frozen copy of the Starsim causal bench's generating
      code from forecastingresearch/forecastbench-sim and carries that
      project's license (GPL-3.0). It is a record of how the locked dataset
      was produced, not part of the build.

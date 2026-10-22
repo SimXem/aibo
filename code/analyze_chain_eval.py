@@ -32,7 +32,7 @@ sys.path.insert(0, str(REPO))
 
 from redlines.stats import wilson_interval  # noqa: E402
 
-CLIM_FALLBACK = 0.0458   # corpus-wide observed yes-rate, as in code/run_eval.py
+CLIM_FALLBACK = 0.0458   # corpus-wide observed yes-rate, as in archive/litellm-runners/run_eval.py
 
 
 def load(path):

@@ -261,9 +261,9 @@ Produces `data/lowprob/{lowprob_classes,lowprob_selected_classes,lowprob_questio
 The reference run (1,019 games, snapshot turn 40) yields 425,270 binary
 questions in 564 classes, of which 35 tail classes (1–9%) with 25,919 resolved
 instances feed Graph 4; `data/lowprob_classes.json` records `min_n: 40`. The
-pandemic side is `code/pandemic_build_corpus.py` and `code/pandemic_smoke.py`
-in the same environment; the model eval is `code/run_eval.py` (API keys +
-`FBSIM_ROOT`).
+pandemic side is `code/pandemic_build_corpus.py` in the same environment. The
+model evals that ran on these corpora (`run_eval.py`, `pandemic_smoke.py`; API
+keys + `FBSIM_ROOT`) called litellm and are archived in `archive/litellm-runners/`.
 
 ## Layout
 
@@ -309,11 +309,10 @@ code/                       acquisition scripts, generators and thin shims (see 
   make_autoarc_questions.py the question generator: data/auto-arc/* -> data/autoarc_*.json
   make_*_conditions.py      the scenario sets (LEAP policies, ECI levels, self-elicited, axes, combined)
   make_eci_trend*.py, eci_projection_metrgraph.py   the ECI trend / projection inputs
-  validate_launch_run.py, audit_cyber.py, check_counting_comprehension.py   launch-run audits
-  run_eval.py, mine_lowprob_corpus.py, pandemic_*.py   the Graph 4 corpus and eval (need forecastbench-sim)
+  validate_launch_run.py, audit_cyber.py   launch-run audits
+  mine_lowprob_corpus.py, pandemic_build_corpus.py   the Graph 4 corpus (needs forecastbench-sim)
   graph3_comparability.py   the Graph 3 methodology decomposition (needs FB_DATASETS_ROOT)
-  observational/            Graph 5: the observational bench, vendored (spec.md, runners, scoring)
-  causal/                   Graph 6: the Starsim causal bench's generating code, frozen at causal-v4-locked
+  observational/            Graph 5: the observational bench, vendored (spec.md, mining, scoring)
   compare_harness.py        a run through the other loop against the cron's, cell by cell
 data/
   auto-arc/                 the Auto-ARC question workbook (.xlsx) and definitions (.md) by date
@@ -343,6 +342,9 @@ paper/                      figures, numbers.tex and dashboard screenshots for t
 tests/                      golden tests for build/assemble/paper, the generators, the runner's guards
 docs/                       see below
 archive/                    dead scripts, retired question sets and forecasts, superseded runs (archive/README.md)
+  causal/                   Graph 6: the Starsim causal bench's generating code, frozen at causal-v4-locked
+  litellm-runners/          the research runners that called litellm (the Graph 4 eval, the coherence
+                            experiment, the observational roster run), archived 2026-10-22
 archive/jason-demo.html     the original mock dashboard the live page grew from (Jason Abaluck)
 ```
 
@@ -406,7 +408,7 @@ archive/jason-demo.html     the original mock dashboard the live page grew from 
 
 Code is MIT; the data, documentation and figures are CC BY 4.0 (cite "AIRO,
 Forecasting Research Institute, https://airo.forecastingresearch.org"). Three
-things are not covered: `code/causal/` (a frozen copy from
+things are not covered: `archive/causal/` (a frozen copy from
 `forecastbench-sim`, GPL-3.0), the Epoch Capabilities Index snapshots (Epoch
 AI's), and the Season Sans web fonts, which are not in the repository (licensed for the live site only).
 See `LICENSE` (MIT) and `LICENSE-DATA` (CC BY 4.0 and the carve-outs).

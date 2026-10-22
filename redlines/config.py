@@ -47,7 +47,7 @@ PAN_MIN_N = 400
 CLIM_FREECIV_COMBINED = 0.045
 #
 # CLIM_FREECIV_OBSERVED is the fallback `class_base_rate` used by
-# code/run_eval.py's per-class climatology scoring — the corpus's actual
+# archive/litellm-runners/run_eval.py's per-class climatology scoring — the corpus's actual
 # observed yes-rate, measured independently of the 0.045 above.
 CLIM_FREECIV_OBSERVED = 0.0458
 
