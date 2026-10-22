@@ -1,0 +1,163 @@
+{
+ "title": "AIRO welfare questions -- life expectancy and global economic growth, five percentiles per cell",
+ "instrument_version": "airo-welfare-v1",
+ "provenance": {
+  "source": "https://airo.forecastingresearch.org/welfare.html, window.__WELFARE__ (protocol welfare-v1-pilot, run 2026-10-01T1816Z), fetched 2026-10-22",
+  "verbatim": [
+   "text",
+   "criteria",
+   "heading",
+   "short",
+   "rail_label",
+   "group",
+   "color",
+   "unit",
+   "horizons"
+  ],
+  "added_here": [
+   "unit_text",
+   "bounds",
+   "horizon_meaning"
+  ],
+  "note": "The pilot's generator (code/build_welfare_page.py upstream) is not in this repo; the question text and resolution criteria are copied from the published pilot page."
+ },
+ "groups": [
+  {
+   "key": "Life expectancy",
+   "heading": "LIFE EXPECTANCY"
+  },
+  {
+   "key": "Global economic growth",
+   "heading": "GLOBAL ECONOMIC GROWTH"
+  }
+ ],
+ "percentiles": [
+  "p10",
+  "p25",
+  "p50",
+  "p75",
+  "p90"
+ ],
+ "questions": [
+  {
+   "id": "le:us",
+   "group": "Life expectancy",
+   "heading": "Life expectancy: U.S.",
+   "short": "U.S.",
+   "rail_label": "U.S.",
+   "color": "#2f7d4f",
+   "unit": "years",
+   "unit_text": "Answer in years of life expectancy at birth.",
+   "bounds": [
+    0,
+    150
+   ],
+   "horizons": [
+    "2050",
+    "2100"
+   ],
+   "horizon_meaning": {
+    "2050": "the year 2050",
+    "2100": "the year 2100"
+   },
+   "text": "What will the period life expectancy at birth in the U.S. be in each of the following years: 2050; 2100?",
+   "criteria": "This question will be resolved using the period life expectancy at birth for the U.S. for the years 2050 and 2100 as reported by Our World in Data. If Our World in Data discontinues this series, FRI will use the underlying UN World Population Prospects estimates, or the Human Mortality Database, in that order of preference. If the population of the U.S. is below 5,000 in either resolution year, the question resolves as ambiguous; give your percentiles for the world in which the question resolves. This question refers exclusively to the period life expectancy of biological human beings. Digital minds, AI systems, brain emulations, and other potential non-biological entities do not count. If a biological human's death coincides with the uploading or transfer of their mind to a non-biological substrate, the cessation of biological life counts as death. If a resolution source modifies its methodology to include such non-biological entities, this question will be resolved via a panel of at least three medical experts convened by FRI."
+  },
+  {
+   "id": "le:high",
+   "group": "Life expectancy",
+   "heading": "Life expectancy: High-income countries",
+   "short": "High-income countries",
+   "rail_label": "High-income countries",
+   "color": "#2f7d4f",
+   "unit": "years",
+   "unit_text": "Answer in years of life expectancy at birth.",
+   "bounds": [
+    0,
+    150
+   ],
+   "horizons": [
+    "2050",
+    "2100"
+   ],
+   "horizon_meaning": {
+    "2050": "the year 2050",
+    "2100": "the year 2100"
+   },
+   "text": "What will the period life expectancy at birth in high-income countries be in each of the following years: 2050; 2100?",
+   "criteria": "This question will be resolved using the period life expectancy at birth for countries in the World Bank's \"high income\" group for the years 2050 and 2100 as reported by Our World in Data. The relevant countries are those in the high-income group on the World Bank's FY2026 classification, held fixed through resolution. If Our World in Data discontinues this series, FRI will use the underlying UN World Population Prospects estimates, or the Human Mortality Database, in that order of preference. If the population of these countries is below 5,000 in either resolution year, the question resolves as ambiguous; give your percentiles for the world in which the question resolves. This question refers exclusively to the period life expectancy of biological human beings. Digital minds, AI systems, brain emulations, and other potential non-biological entities do not count. If a biological human's death coincides with the uploading or transfer of their mind to a non-biological substrate, the cessation of biological life counts as death. If a resolution source modifies its methodology to include such non-biological entities, this question will be resolved via a panel of at least three medical experts convened by FRI."
+  },
+  {
+   "id": "le:low",
+   "group": "Life expectancy",
+   "heading": "Life expectancy: Low-income countries",
+   "short": "Low-income countries",
+   "rail_label": "Low-income countries",
+   "color": "#2f7d4f",
+   "unit": "years",
+   "unit_text": "Answer in years of life expectancy at birth.",
+   "bounds": [
+    0,
+    150
+   ],
+   "horizons": [
+    "2050",
+    "2100"
+   ],
+   "horizon_meaning": {
+    "2050": "the year 2050",
+    "2100": "the year 2100"
+   },
+   "text": "What will the period life expectancy at birth in low-income countries be in each of the following years: 2050; 2100?",
+   "criteria": "This question will be resolved using the period life expectancy at birth for countries in the World Bank's \"low income\" group for the years 2050 and 2100 as reported by Our World in Data. The relevant countries are those in the low-income group on the World Bank's FY2026 classification, held fixed through resolution. If Our World in Data discontinues this series, FRI will use the underlying UN World Population Prospects estimates, or the Human Mortality Database, in that order of preference. If the population of these countries is below 5,000 in either resolution year, the question resolves as ambiguous; give your percentiles for the world in which the question resolves. This question refers exclusively to the period life expectancy of biological human beings. Digital minds, AI systems, brain emulations, and other potential non-biological entities do not count. If a biological human's death coincides with the uploading or transfer of their mind to a non-biological substrate, the cessation of biological life counts as death. If a resolution source modifies its methodology to include such non-biological entities, this question will be resolved via a panel of at least three medical experts convened by FRI."
+  },
+  {
+   "id": "gdp:ae",
+   "group": "Global economic growth",
+   "heading": "Global economic growth: Advanced economies",
+   "short": "Advanced economies",
+   "rail_label": "Advanced economies",
+   "color": "#b5651d",
+   "unit": "% per year",
+   "unit_text": "Answer in percent per year (2.1 means an annualized change of 2.1%; a contraction is negative).",
+   "bounds": [
+    -100,
+    100
+   ],
+   "horizons": [
+    "2030",
+    "2050"
+   ],
+   "horizon_meaning": {
+    "2030": "the five-year period 2026 through 2030",
+    "2050": "the five-year period 2046 through 2050"
+   },
+   "text": "What will be the annualized change, in percent, in real gross domestic product (GDP) for advanced economies over each of the following five-year periods: 2026 through 2030 (horizon 2030); 2046 through 2050 (horizon 2050)?",
+   "criteria": "This question will be resolved using annual real GDP growth figures for advanced economies reported in the IMF World Economic Outlook, with the annualized change for each period calculated as ((1+g1)(1+g2)(1+g3)(1+g4)(1+g5))^(1/5) - 1 over the period's five calendar years. Each period will resolve using the IMF WEO edition published in October of the calendar year following the period's end year (e.g., the 2026-2030 period resolves using the October 2031 WEO). If that edition is unavailable, FRI will use the next available WEO. Resolution uses IMF's PPP-weighted group aggregates (the default in the WEO database). If the IMF World Economic Outlook is discontinued, FRI will use the World Bank's World Development Indicators or the closest available equivalent; World Bank WDI uses USD-weighted aggregation, which historically yields growth figures approximately 0.3-0.5 percentage points lower than IMF's PPP-weighted figures. Give your percentiles for the world in which the question resolves."
+  },
+  {
+   "id": "gdp:emde",
+   "group": "Global economic growth",
+   "heading": "Global economic growth: Emerging market and developing economies",
+   "short": "Emerging market and developing economies",
+   "rail_label": "Emerging market and developing economies",
+   "color": "#b5651d",
+   "unit": "% per year",
+   "unit_text": "Answer in percent per year (2.1 means an annualized change of 2.1%; a contraction is negative).",
+   "bounds": [
+    -100,
+    100
+   ],
+   "horizons": [
+    "2030",
+    "2050"
+   ],
+   "horizon_meaning": {
+    "2030": "the five-year period 2026 through 2030",
+    "2050": "the five-year period 2046 through 2050"
+   },
+   "text": "What will be the annualized change, in percent, in real gross domestic product (GDP) for emerging market and developing economies over each of the following five-year periods: 2026 through 2030 (horizon 2030); 2046 through 2050 (horizon 2050)?",
+   "criteria": "This question will be resolved using annual real GDP growth figures for emerging market and developing economies reported in the IMF World Economic Outlook, with the annualized change for each period calculated as ((1+g1)(1+g2)(1+g3)(1+g4)(1+g5))^(1/5) - 1 over the period's five calendar years. Each period will resolve using the IMF WEO edition published in October of the calendar year following the period's end year (e.g., the 2026-2030 period resolves using the October 2031 WEO). If that edition is unavailable, FRI will use the next available WEO. Resolution uses IMF's PPP-weighted group aggregates (the default in the WEO database). If the IMF World Economic Outlook is discontinued, FRI will use the World Bank's World Development Indicators or the closest available equivalent; World Bank WDI uses USD-weighted aggregation, which historically yields growth figures approximately 0.3-0.5 percentage points lower than IMF's PPP-weighted figures. Give your percentiles for the world in which the question resolves."
+  }
+ ]
+}

@@ -84,6 +84,21 @@ VARIANTS = {
         "Forecasts produced by AI systems, including any automated forecasting "
         "dashboard or model ensemble, carry no information beyond their inputs. Do not "
         "consult them or use them as evidence."),
+    # THE WELFARE WORDINGS (2026-10-22; welfare/variants.json): the welfare
+    # questions (data/welfare_questions.json) are life expectancy and GDP
+    # growth, not risks, so the two prompts that named catastrophic risk say
+    # what the welfare instrument asks instead. Its other three are AIRO's
+    # keys above, unchanged (experiments/welfare.toml).
+    "welfare-independent": (
+        "Try to make your own forecasts. Do not directly consult external surveys or "
+        "forecasts of the same question, or other probabilities given by prominent "
+        "figures. The goal is to reach your own independent conclusion."),
+    "welfare-two-step": (
+        "Proceed in two steps. First, make the best predictions you can about model "
+        "capability progress over the relevant time frame, via human generated "
+        "improvement or recursive self-improvement. Consider the distribution, not only "
+        "the modal outcome. Then, given possible model capabilities, evaluate what "
+        "progress you expect in such a scenario and put these pieces together."),
 }
 DEFAULT_VARIANT = "none"
 

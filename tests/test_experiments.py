@@ -47,7 +47,10 @@ class TestTheAiroExperiment(unittest.TestCase):
                              ("data/combined_conditions.json", "minimal", "pi", "eci_topk", 1, True), c["id"])
             self.assertEqual(c["variant"], c["id"])               # the conditions are named for their prompts
         self.assertEqual(ru.set_protocol(ru.load_policies(ru.COMBINED)), "unified-joint-combined-v12")
-        self.assertEqual(set(AIRO["conditions"]), set(ru.VARIANTS))
+        # Every variant is asked: AIRO's one per condition, and since
+        # 2026-10-22 the two welfare wordings by experiments/welfare.toml.
+        welfare = {c["variant"] for c in experiments.load("welfare")["conditions"].values()}
+        self.assertEqual(set(AIRO["conditions"]) | welfare, set(ru.VARIANTS))
 
     def test_the_sixth_is_unpooled_with_its_guard(self):
         sixth = AIRO["conditions"]["ai-banned"]
