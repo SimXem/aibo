@@ -245,7 +245,9 @@ function CapabilityPanel({ onDefinitions, ctx }) {
 
             <div style={{ marginTop: 14 }}>
               <CondDeltaChart cell={cell} ctx={V} picked={picked} onPick={id => setPicked(picked === id ? null : id)}
-                axisValues={q.valueKind === "loss"
+                axisValues={q.valueKind === "percentiles"
+                  ? condAxisValues(cell)          // a level per horizon: 2050 and 2100 life expectancy are worlds apart
+                  : q.valueKind === "loss"
                   ? Q.filter(x => x.valueKind === "loss").flatMap(x => x.horizons.flatMap(h => condAxisValues(x.byHorizon[h])))
                   : q.horizons.flatMap(h => condAxisValues(q.byHorizon[h]))} />
             </div>
@@ -257,6 +259,7 @@ function CapabilityPanel({ onDefinitions, ctx }) {
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="2" width="16" height="10" rx="2" fill="var(--ink-soft)" opacity="0.38" /><line x1="17" x2="17" y1="0" y2="14" stroke="var(--ink)" strokeWidth="2.5" /></svg>median conditional change</span>
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 10, height: 10, borderRadius: 5, border: "2px solid var(--ink-soft)", background: "var(--panel)" }}></span>no search evidence</span>
               {q.valueKind === "percentiles" && <PctLegend label="median, 25th–75th, 10th–90th percentile" />}
+              <PromptLegend cell={cell} />
               <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={() => setShowTable(!showTable)}>{showTable ? "hide table" : "show table"}</button>
             </div>
             {showTable && <div style={{ marginTop: 12 }}><CondDeltaTable cell={cell} ctx={V} /></div>}

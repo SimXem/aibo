@@ -3066,6 +3066,10 @@ function condAxisValues(cell) {
   return vals;
 }
 
+// The legend's prompt dots, for a cell that carries them (the welfare page).
+const PromptLegend = ({ cell }) => (cell.baselinePrompts || []).map(pp => (
+  <LegendDot key={pp.id} color={(TL_CONDITIONS[pp.id] || {}).color} label={((TL_CONDITIONS[pp.id] || {}).label || pp.id) + " prompt"} />));
+
 // The axis is fixed per question, not per horizon: switching 2030 → 2050
 // moves the marks, never the ticks, so a policy's effect at two horizons
 // can be compared by eye. For a probability cell `axisValues` is the union
@@ -3089,6 +3093,23 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
   const level = loss || pct;
   const lane = (j, n) => (pct ? (j - (n - 1) / 2) * 5 : 0);
   const fmtLevel = v => (pct ? unitFmt(v, cell.unit) : cFmtBig(v));
+  // The welfare page's prompts: one chosen (C.promptId) tints the median bar
+  // and the percentile bars in its colour; the mean of five shows each
+  // prompt's ensemble median (b.prompts) as a small dot above the row, in
+  // the Timeline's prompt colours.
+  const tint = pct && C.promptId ? (TL_CONDITIONS[C.promptId] || {}).color : null;
+  // Dots that would touch take the next tier, above then below the row;
+  // across, every dot stays at its value.
+  const promptDots = (ps, cy) => {
+    const placed = [];
+    return (ps || []).map(pp => {
+      if (pp.p == null) return null;
+      const cx = x(pp.p);
+      const dy = [-13, 13, -19, 19, -25, 25].find(d => placed.every(o => o.dy !== d || Math.abs(o.cx - cx) >= 7)) || -13;
+      placed.push({ cx, dy });
+      return <circle key={"pr" + pp.id} cx={cx} cy={cy + dy} r="3.2" fill={(TL_CONDITIONS[pp.id] || {}).color || "var(--ink-soft)"} stroke="var(--panel)" strokeWidth="1" />;
+    });
+  };
   const rows = cell.bars;
   // Width is measured (web/shared/responsive.jsx). Under 640px the policy
   // name and value sit ABOVE each bar instead of flanking it, the rows grow
@@ -3176,10 +3197,11 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
               </>}
               {cell.baselines.map((b, j) => b.p == null ? null : (
                 <React.Fragment key={b.label}>
-                  {pct && <PctBar q={b.q} pos={x} at={barY(cy) + lane(j, cell.baselines.length)} color={b.color || "var(--ink)"} />}
+                  {pct && <PctBar q={b.q} pos={x} at={barY(cy) + lane(j, cell.baselines.length)} color={tint || b.color || "var(--ink)"} />}
                   <circle cx={x(b.p)} cy={barY(cy) + lane(j, cell.baselines.length)} r="4.5" fill={b.color || "var(--ink)"} stroke="var(--panel)" strokeWidth="2" />
                 </React.Fragment>
               ))}
+              {pct && promptDots(cell.baselinePrompts, barY(cy))}
             </g>
           );
         })()}
@@ -3207,20 +3229,21 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
               </>}
               {v != null && (
                 <rect x={Math.min(x0, xe)} y={by - 9} width={Math.max(1.5, Math.abs(xe - x0))} height={18}
-                  fill="var(--ink-soft)" opacity="0.38" rx={3} />
+                  fill={tint || "var(--ink-soft)"} opacity="0.38" rx={3} />
               )}
               {/* the median change itself, as a line */}
-              {v != null && <line x1={xe} x2={xe} y1={by - 11} y2={by + 11} stroke="var(--ink)" strokeWidth="2.5" />}
+              {v != null && <line x1={xe} x2={xe} y1={by - 11} y2={by + 11} stroke={tint || "var(--ink)"} strokeWidth="2.5" />}
               {/* A hollow dot is a call that ran with no search evidence
                   (grounded=false): it answered from memory, not the news. */}
               {b.models.map((m, j) => dotVal(m) == null ? null : (
                 <React.Fragment key={m.label}>
-                  {pct && <PctBar q={m.q} pos={x} at={by + lane(j, b.models.length)} color={m.color || "var(--ink)"} />}
+                  {pct && <PctBar q={m.q} pos={x} at={by + lane(j, b.models.length)} color={tint || m.color || "var(--ink)"} />}
                   <circle cx={x(dotVal(m))} cy={by + lane(j, b.models.length)} r="4.5"
                     fill={m.grounded === false ? "var(--panel)" : (m.color || "var(--ink)")}
                     stroke={m.grounded === false ? (m.color || "var(--ink)") : "var(--panel)"} strokeWidth="2" />
                 </React.Fragment>
               ))}
+              {pct && promptDots(b.prompts, by)}
             </g>
           );
         })}
@@ -3378,7 +3401,9 @@ function ConditionalPanel({ ctx } = {}) {
 
             <div style={{ marginTop: 14 }}>
               <CondDeltaChart cell={cell} ctx={C} picked={picked} onPick={id => setPicked(picked === id ? null : id)}
-                axisValues={q.valueKind === "loss"
+                axisValues={q.valueKind === "percentiles"
+                  ? condAxisValues(cell)          // a level per horizon: 2050 and 2100 life expectancy are worlds apart
+                  : q.valueKind === "loss"
                   ? Q.filter(x => x.valueKind === "loss").flatMap(x => x.horizons.flatMap(h => condAxisValues(x.byHorizon[h])))
                   : q.horizons.flatMap(h => condAxisValues(q.byHorizon[h]))} />
             </div>
@@ -3388,6 +3413,7 @@ function ConditionalPanel({ ctx } = {}) {
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="2" width="16" height="10" rx="2" fill="var(--ink-soft)" opacity="0.38" /><line x1="17" x2="17" y1="0" y2="14" stroke="var(--ink)" strokeWidth="2.5" /></svg>median conditional change</span>
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 10, height: 10, borderRadius: 5, border: "2px solid var(--ink-soft)", background: "var(--panel)" }}></span>no search evidence</span>
               {q.valueKind === "percentiles" && <PctLegend label="median, 25th–75th, 10th–90th percentile" />}
+              <PromptLegend cell={cell} />
               <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={() => setShowTable(!showTable)}>{showTable ? "hide table" : "show table"}</button>
             </div>
             {showTable && <div style={{ marginTop: 12 }}><CondDeltaTable cell={cell} ctx={C} /></div>}
@@ -3647,7 +3673,9 @@ function CapabilityPanel({ onDefinitions, ctx }) {
 
             <div style={{ marginTop: 14 }}>
               <CondDeltaChart cell={cell} ctx={V} picked={picked} onPick={id => setPicked(picked === id ? null : id)}
-                axisValues={q.valueKind === "loss"
+                axisValues={q.valueKind === "percentiles"
+                  ? condAxisValues(cell)          // a level per horizon: 2050 and 2100 life expectancy are worlds apart
+                  : q.valueKind === "loss"
                   ? Q.filter(x => x.valueKind === "loss").flatMap(x => x.horizons.flatMap(h => condAxisValues(x.byHorizon[h])))
                   : q.horizons.flatMap(h => condAxisValues(q.byHorizon[h]))} />
             </div>
@@ -3659,6 +3687,7 @@ function CapabilityPanel({ onDefinitions, ctx }) {
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="2" width="16" height="10" rx="2" fill="var(--ink-soft)" opacity="0.38" /><line x1="17" x2="17" y1="0" y2="14" stroke="var(--ink)" strokeWidth="2.5" /></svg>median conditional change</span>
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 10, height: 10, borderRadius: 5, border: "2px solid var(--ink-soft)", background: "var(--panel)" }}></span>no search evidence</span>
               {q.valueKind === "percentiles" && <PctLegend label="median, 25th–75th, 10th–90th percentile" />}
+              <PromptLegend cell={cell} />
               <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={() => setShowTable(!showTable)}>{showTable ? "hide table" : "show table"}</button>
             </div>
             {showTable && <div style={{ marginTop: 12 }}><CondDeltaTable cell={cell} ctx={V} /></div>}

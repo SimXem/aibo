@@ -299,7 +299,6 @@ class TestView(unittest.TestCase):
         self.assertEqual(b["WELFARE"]["day"], TODAY.isoformat())
         self.assertEqual([p["condition"] for p in b["WELFARE"]["prompts"]], WELFARE["pooled"])
         self.assertEqual(b["WELFARE"]["prompts"][4]["text"], experiments.VARIANTS["welfare-two-step"])
-        self.assertEqual(b["WELFARE"]["usage"], {"GPT-6 Astra": 7.5, "Opus 5.5": 7.5})
         mean_prompt = sum(0.1 * i for i in range(5)) / 5
         # Policy levers: each model's p50, percentiles and shift, the ensemble median.
         c = b["CONDITIONAL"]
@@ -327,6 +326,10 @@ class TestView(unittest.TestCase):
         self.assertEqual(next(x for x in two["baselines"] if x["label"] == "Opus 5.5")["p"], 3.4)
         self.assertEqual(c["byPrompt"]["two-step"]["repeats"], {"GPT-6 Astra": 1, "Opus 5.5": 1})
         self.assertEqual(set(b["GRAPH1"]["byPrompt"]), set(WELFARE["pooled"]))
+        # Each prompt's median on every row of the mean's charts (the prompt dots).
+        self.assertEqual(cell["baselinePrompts"][4], {"id": "two-step", "p": 2.9})
+        self.assertEqual(cell["bars"][4]["prompts"][0], {"id": "none", "p": 2.55})
+        self.assertEqual(c["byPrompt"]["critical"]["promptId"], "critical")
         self.assertEqual(b["CAPABILITY"]["byPrompt"]["two-step"]["variants"][0]["forecast"]["models"][1]["p90"], 182)
         # Capability: the ECI forecast pooled, the own-percentile rows.
         v = b["CAPABILITY"]["variants"][0]

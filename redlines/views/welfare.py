@@ -264,8 +264,23 @@ def build(log_path=None, set_path=None):
     graph1, conditional, cap = _panels(rows, spec, qspec, colors, labels, proto, eci_history)
     for cid in experiment["pooled"]:
         one = _panels([r for r in rows if r["condition"] == cid], spec, qspec, colors, labels, proto, eci_history)
+        one[1]["promptId"] = cid
+        for v in one[2]["variants"]:
+            v["promptId"] = cid
         for blob, part in zip((graph1, conditional, cap), one):
             blob.setdefault("byPrompt", {})[cid] = part
+    # Each prompt's ensemble median on every row of the mean's charts, drawn
+    # as a dot in the prompt's colour, as on the Timeline.
+    for mean, per in ((conditional["questions"], {c: b["questions"] for c, b in conditional["byPrompt"].items()}),
+                      *((v["questions"], {c: b["variants"][0]["questions"] for c, b in cap["byPrompt"].items()})
+                        for v in cap["variants"])):
+        for i, q in enumerate(mean):
+            for h, cell in q["byHorizon"].items():
+                cells = {c: qs[i]["byHorizon"][h] for c, qs in per.items()}
+                cell["baselinePrompts"] = [{"id": c, "p": x["baselineMedian"]} for c, x in cells.items()]
+                for bar in cell["bars"]:
+                    bar["prompts"] = [{"id": c, "p": next((y["pMedian"] for y in x["bars"] if y["id"] == bar["id"]), None)}
+                                      for c, x in cells.items()]
 
     return {
         "TIMELINE": _timeline(qspec["questions"], all_rows, days, labels, colors, experiment),
@@ -277,8 +292,6 @@ def build(log_path=None, set_path=None):
         "RATIONALES": rationales.build(rows=[r for r in all_rows if r.get("scenario") is None]),
         # The day shown and the five prompts each number is the mean of.
         "WELFARE": {"day": days[-1] if days else None, "protocol": proto,
-                    "usage": {l: round(sum((r.get("usage") or {}).get("cost_usd") or 0 for r in rows
-                                           if r["label"] == l), 2) for l in labels},
                     "prompts": [{"condition": v["id"], "text": v["text"]} for v in condition_legend(
                         {c: experiment["conditions"][c]["variant"] for c in experiment["pooled"]}, EXPERIMENT)]},
     }

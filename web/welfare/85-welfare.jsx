@@ -5,8 +5,12 @@
 // log through the same blobs index.html's read. Every cell is five
 // percentiles in its question's unit (valueKind "percentiles"): a dot is a
 // median, its bar the 25th-75th and 10th-90th. __WELFARE__ carries what only
-// this page shows: the day, the five prompts, the cost.
+// this page shows: the day and the five prompts.
 const WF = (typeof window !== "undefined" && window.__WELFARE__) || null;
+// The page's name, in its heading and its tab (the head is index.html's, so
+// the tab title is set here).
+const WELFARE_TITLE = "AIRO (Automated AI Benefit Outlook)";
+if (typeof document !== "undefined") document.title = WELFARE_TITLE;
 
 // The prompt toggle: the five prompts' mean (each panel's own blob) or one
 // prompt's calls (its `byPrompt` entry; the Timeline draws that prompt's
@@ -80,7 +84,7 @@ function App() {
     <React.Fragment>
       <header style={{ marginBottom: 20 }}>
         <a href="https://forecastingresearch.org" title="Forecasting Research Institute"><img className="brand-logo" src="web/img/fri-logo.svg" alt="Forecasting Research Institute" width="231" height="37" /></a>
-        <h1 style={{ fontSize: "clamp(25px, 7.5vw, 33px)", marginTop: 8, marginBottom: 6 }}>AIRO: life expectancy and economic growth</h1>
+        <h1 style={{ fontSize: "clamp(25px, 7.5vw, 33px)", marginTop: 8, marginBottom: 6 }}>{WELFARE_TITLE}</h1>
         <p style={{ color: "var(--ink-soft)", maxWidth: 760, margin: 0 }}>
           Tracking life expectancy and economic growth at multiple horizons, as forecast by an ensemble of frontier
           LLMs: unconditionally, under AI policies, and at different levels of AI capability.
@@ -89,7 +93,7 @@ function App() {
       {WF && WF.day && (
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10, fontSize: 13, color: "var(--ink-soft)" }}>
           <span style={{ background: "var(--warn-bg)", border: "1px solid var(--warn-line)", borderRadius: 999, color: "var(--warn-ink)", fontWeight: 700, letterSpacing: "0.04em", padding: "3px 8px" }}>{WF.day}</span>
-          <span className="mono">{WF.protocol} · {Object.entries(WF.usage).map(([m, c]) => m + " $" + c.toFixed(2)).join(", ")}</span>
+          <span className="mono">{WF.protocol}</span>
         </div>
       )}
       <details style={{ marginBottom: 14, fontSize: 13, color: "var(--ink-soft)" }}>
