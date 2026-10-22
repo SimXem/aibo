@@ -154,3 +154,12 @@ def test_newest_failed_check_cannot_be_hidden_by_previous_pass(runtime, monkeypa
     monkeypatch.setattr(p, 'output', lambda args, **kw: json.dumps({'check_runs': checks}) if args[0] == 'gh' else 'a' * 40)
     with pytest.raises(RuntimeError, match='reproduce'):
         runtime.merged_sha()
+
+
+def test_forecast_environment_uses_proxy_and_separate_agent_directory(runtime, monkeypatch):
+    monkeypatch.setenv('OPENAI_API_KEY', 'coding-session-key')
+    env = runtime.environment(runtime.root / 'code', runtime.root / 'site')
+    assert env['NODE_USE_ENV_PROXY'] == '1'
+    assert env['PI_CODING_AGENT_DIR'] == str(runtime.home / 'pi-agent')
+    assert env['HOME'] == str(runtime.home)
+    assert 'OPENAI_API_KEY' not in env

@@ -25,7 +25,9 @@ machine names, environment files, credentials, production data, or receipts.
 The installer provides an `airo` wrapper, a persistent serving service and a
 systemd timer that calls `airo tick` each minute. Both run inside the cell as the
 agent user; the host ingress forwards only public static requests to the socket.
-No supervisor credentials are needed for subsequent deployments.
+Use Node 22.21 or newer for native environment-proxy support; the runner enables
+`NODE_USE_ENV_PROXY` for forecasting. Keep the production toolchain on the private
+configured PATH. No supervisor credentials are needed for subsequent deployments.
 
 Under the private runtime root:
 

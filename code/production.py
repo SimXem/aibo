@@ -116,7 +116,8 @@ class Runtime:
                    FORECASTER_ENV_FILE=str(self.home / '.config/fri-forecaster/env'),
                    FORECASTER_ROUND_ENV=str(self.home / '.config/fri-forecaster/round.env'),
                    PI_CODING_AGENT_DIR=str(self.home / 'pi-agent'),
-                   TMPDIR=str(self.root / 'tmp'), TZ='UTC')
+                   TMPDIR=str(self.root / 'tmp'), TZ='UTC', NODE_USE_ENV_PROXY='1',
+                   NO_PROXY='localhost,127.0.0.1,::1', no_proxy='localhost,127.0.0.1,::1')
         return env
 
     def merged_sha(self, requested=None):
