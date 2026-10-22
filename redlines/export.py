@@ -142,10 +142,7 @@ def _lines(rows, qs):
     for r in rows:
         scenario = r.get("scenario") or {}
         q = qs.get(r["question_id"], {})
-        # A welfare row's cells are five percentiles, not a probability
-        # (code/run_unified.py CELL_MODES, 2026-10-22): its log rides in the
-        # bundle like every instrument's, but this file has one number per line.
-        for f in (f for f in r.get("forecasts") or [] if "probability" in f):
+        for f in r.get("forecasts") or []:
             window = (r.get("counting_window") or {}).get(f["horizon"], {})
             yield {
                 "elicited_at": r.get("elicited_at", ""),
@@ -261,13 +258,26 @@ def _debrief_lines(rows):
 
 
 RESULTS = CONDITIONAL_LOG.parent
+# Instruments of another page, kept out of AIRO's download: the welfare
+# instrument (2026-10-22; welfare.html) -- its set, its logs and its
+# percentile cells, which this file's one-probability lines cannot hold.
+OTHER_PAGES = ("welfare",)
+
+
+def airo_file(p):
+    """Not another page's file (OTHER_PAGES): its set and run folder (<slug>_*),
+    its instrument log (conditional_runs_<slug>*), and an unpublished run's or
+    a smoke's files under results/experiments/ (<slug>-*, smoke-<slug>-*)."""
+    name = Path(p).name
+    return not any(name.startswith((f"{s}_", f"conditional_runs_{s}", f"{s}-", f"smoke-{s}-"))
+                   for s in OTHER_PAGES)
 
 
 def conditional_logs():
     """Every instrument log: results/conditional_runs*.jsonl, the LEAP policy
     instrument and the combined one first, then the rest by name."""
     first = [COMBINED_LOG, CONDITIONAL_LOG]
-    rest = [p for p in log_names(RESULTS) if p not in first]
+    rest = [p for p in log_names(RESULTS) if p not in first and airo_file(p)]
     return [p for p in first if log_exists(p)] + rest
 
 
@@ -452,13 +462,13 @@ def _bundle_members():
         for f in log_files(p):
             out.append((f"raw/{f.relative_to(RESULTS)}", f))
     for d in sorted(RESULTS.glob("*_runs")):
-        if d.is_dir():
+        if d.is_dir() and airo_file(d):
             for p in sorted(d.glob("*.jsonl")):
                 out.append((f"raw/{d.name}/{p.name}", p))
     exp = RESULTS / "experiments"
     if exp.is_dir():
         for p in sorted(exp.rglob("*")):
-            if p.is_file():
+            if p.is_file() and airo_file(p):
                 out.append((f"raw/experiments/{p.relative_to(exp)}", p))
     if LEGACY_DIR.is_dir():
         for p in sorted(LEGACY_DIR.rglob("*")):
@@ -475,7 +485,8 @@ def _bundle_members():
             sorted((DATA_DIR / "auto-arc").glob("addendum-*.json")):
         out.append((f"questions/sources/{p.name}", p))
     for p in sorted(DATA_DIR.glob("*_conditions.json")) + sorted(DATA_DIR.glob("epoch_capabilities_index_*.csv")):
-        out.append((f"scenarios/{p.name}", p))
+        if airo_file(p):
+            out.append((f"scenarios/{p.name}", p))
     return out
 
 

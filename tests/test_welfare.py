@@ -258,12 +258,36 @@ class TestRows(unittest.TestCase):
         eci = next(r for r in rows if (r["scenario"] or {}).get("id") == "eci_p90")
         self.assertEqual(eci["scenario"]["value"], 182)          # the call's own p90
 
-    def test_airos_forecasts_csv_passes_over_percentile_cells(self):
-        """The export reads every conditional_runs_* log, the welfare one too."""
+    def test_airos_download_leaves_the_welfare_instrument_out(self):
+        """AIRO's CSVs and bundle sweep every instrument log, run folder,
+        scenario set and experiment file: the welfare ones stay out."""
+        from unittest.mock import patch
         from redlines import export
-        rows = [r for r in _calls(["none"], LABELS[:1]) if r["scenario"]]
-        self.assertEqual(list(export._lines(rows, {})), [])
-        self.assertEqual(len(list(export._rationale_lines(rows, {}))), len(rows))
+        root = Path(tempfile.mkdtemp())
+        files = ["results/conditional_runs_welfare/2026-10-22T0000Z.jsonl",
+                 "results/conditional_runs_axes/2026-10-22T0000Z.jsonl",
+                 "results/welfare_runs/2026-10-22T0000Z.jsonl", "results/axes_runs/2026-10-22T0000Z.jsonl",
+                 "results/experiments/smoke-welfare-2026-10-22T0000Z.jsonl",
+                 "results/experiments/airo-2026-10-22T0000Z.jsonl",
+                 "data/welfare_conditions.json", "data/axes_conditions.json"]
+        for f in files:
+            (root / f).parent.mkdir(parents=True, exist_ok=True)
+            (root / f).write_text("{}\n")
+        res = root / "results"
+        with patch.object(export, "RESULTS", res), patch.object(export, "DATA_DIR", root / "data"), \
+                patch.object(export, "COMBINED_LOG", res / "conditional_runs_combined.jsonl"), \
+                patch.object(export, "CONDITIONAL_LOG", res / "conditional_runs.jsonl"):
+            logs = [p.name for p in export.conditional_logs()]
+            bundle = [n for n, _ in export._bundle_members()]
+        self.assertIn("conditional_runs_axes.jsonl", logs)
+        self.assertNotIn("conditional_runs_welfare.jsonl", logs)
+        for n in ("raw/conditional_runs_axes/2026-10-22T0000Z.jsonl", "raw/axes_runs/2026-10-22T0000Z.jsonl",
+                  "raw/experiments/airo-2026-10-22T0000Z.jsonl", "scenarios/axes_conditions.json"):
+            self.assertIn(n, bundle)
+        self.assertFalse([n for n in bundle if "welfare" in n], bundle)
+        # AIRO's own files all pass.
+        self.assertTrue(all(export.airo_file(p) for p in (REPO / "data").iterdir()
+                            if not p.name.startswith("welfare_")))
 
 
 class TestView(unittest.TestCase):
