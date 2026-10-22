@@ -14,6 +14,12 @@ Commands:
 
 - `airo status`: selected commit, schedules, and recent run receipts.
 - `airo deploy [--commit FULL_SHA]`: deploy a checked commit reachable from main.
+- `airo deploy --keep-publication`: explicitly deploy code and schedules while
+  retaining the last good website. Use for a migration or instrument transition
+  with no new forecasts yet; this does **not** publish frontend changes. The first
+  migration requires a verified private `bootstrap_publication` path. Release
+  metadata records the preserved publication separately from the code commit.
+  Ordinary deploys never silently fall back when an integrity check fails.
 - `airo rollback`: select the previous code and website; keep accrued data.
 - `airo smoke --run-id NAME`: exercise the job runner without calling providers.
   Repeating the same run ID does not execute twice.

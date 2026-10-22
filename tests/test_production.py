@@ -163,3 +163,34 @@ def test_forecast_environment_uses_proxy_and_separate_agent_directory(runtime, m
     assert env['PI_CODING_AGENT_DIR'] == str(runtime.home / 'pi-agent')
     assert env['HOME'] == str(runtime.home)
     assert 'OPENAI_API_KEY' not in env
+
+
+def test_preserved_publication_requires_explicit_request_and_keeps_its_provenance(runtime, monkeypatch):
+    runtime.config['repository'] = 'https://example.invalid/repo.git'
+    runtime.config['github_repository'] = 'example/project'
+    source = runtime.root / 'imported-site'
+    source.mkdir()
+    for name in ('forecasts.csv', 'rationales.csv', 'redlines-data.zip'):
+        (source / name).write_text('published data')
+    (source / 'index.html').write_text('<html>last good publication</html>')
+    p.write_json(source / 'release.json', {'commit': 'b' * 40})
+    runtime.config['bootstrap_publication'] = str(source)
+    monkeypatch.setattr(runtime, 'merged_sha', lambda _: 'a' * 40)
+    def fake_run(argv, **kw):
+        if argv[:2] == ['git', 'clone']:
+            code = Path(argv[-1])
+            (code / 'deploy').mkdir(parents=True)
+            (code / 'deploy/jobs.json').write_text('[]')
+        if 'publish_dashboard.sh' in str(argv):
+            raise AssertionError('Preserve must not rebuild data')
+    monkeypatch.setattr(p, 'run', fake_run)
+    monkeypatch.setattr(p, 'output', lambda *a, **kw: 'dependency inventory')
+    monkeypatch.setattr(runtime, 'stage_data', lambda code, copy_results: None)
+    monkeypatch.setattr(runtime, 'attach_state', lambda _: None)
+    monkeypatch.setattr(runtime, 'probe', lambda _: None)
+    runtime.deploy(keep_publication=True)
+    meta = json.loads((runtime.current / 'release.json').read_text())
+    assert meta['commit'] == 'a' * 40
+    assert meta['publication'] == 'preserved'
+    assert meta['publication_commit'] == 'b' * 40
+    assert (runtime.current / 'site/index.html').read_bytes() == (source / 'index.html').read_bytes()
