@@ -5,9 +5,12 @@ from ..runlog import (load_runlog, complete_panel_rows, latest_instrument_rows,
                       current_rows, elicitation_date)
 
 
-def build():
-    all_rows = load_runlog()
-    rows = current_rows(complete_panel_rows(latest_instrument_rows(all_rows)))
+def build(rows=None):
+    """`rows` replaces the current charts' (the welfare view's unconditional
+    rows, 2026-10-22); their own debriefs come with them."""
+    all_rows = load_runlog() if rows is None else rows
+    if rows is None:
+        rows = current_rows(complete_panel_rows(latest_instrument_rows(all_rows)))
     debriefs = {r['call_id']: r['debrief'] for r in all_rows if r.get('debrief')}
     calls, questions = {}, defaultdict(lambda: defaultdict(list))
     for r in rows:

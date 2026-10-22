@@ -18,6 +18,10 @@ if str(REPO_ROOT) not in sys.path:
 from redlines.__main__ import BUILDERS, VIEW_ORDER  # noqa: E402
 
 FROZEN = {"g3", "g4", "observational", "causal"}
+# Views of another page, which publish_dashboard.sh does not serve: the
+# welfare page's (welfare.html, 2026-10-22), run and published by hand, so
+# AIRO's publish never waits on it.
+OTHER_PAGES = {"welfare"}
 
 
 class TestPublishViews(unittest.TestCase):
@@ -27,7 +31,7 @@ class TestPublishViews(unittest.TestCase):
         self.assertIsNotNone(m, "publish_dashboard.sh no longer calls `redlines build --views`")
         views = m.group(1).split(",")
         self.assertTrue(set(views) <= set(BUILDERS), f"unknown view(s): {set(views) - set(BUILDERS)}")
-        self.assertEqual(set(views), set(VIEW_ORDER) - FROZEN)
+        self.assertEqual(set(views), set(VIEW_ORDER) - FROZEN - OTHER_PAGES)
 
 
 if __name__ == "__main__":

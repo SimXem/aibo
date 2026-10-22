@@ -26,14 +26,15 @@ byte-identical output.
 `assemble` is the web/-is-source counterpart: for each page it runs the
 views feeding that page's manifest blobs, calls redlines.pages.hydrate_page
 to splice them into the chunks under web/<page>/, and writes the result
-straight to the manifest's target page. There is one page since 2026-09-08,
-when timeline.html was folded into index.html. It writes no results/*.json
+straight to the manifest's target page. There was one page from 2026-09-08,
+when timeline.html was folded into index.html, until welfare.html
+(web/welfare/) joined it on 2026-10-22. It writes no results/*.json
 mirrors -- only `build` does that -- so `assemble` then `build` (or vice
 versa) round-trip to the same tracked bytes; that mutual idempotence is what
 tests/test_assemble_golden.py and W4's gauntlet check.
 
-    python3 -m redlines assemble                  # index.html
-    python3 -m redlines assemble --pages demo      # the same, by name
+    python3 -m redlines assemble                  # index.html and welfare.html
+    python3 -m redlines assemble --pages demo      # index.html alone
 
 `export-fb` is standalone: it is never run as part of build or assemble.
 
@@ -55,7 +56,7 @@ from .pages import hydrate_page
 # Canonical build order. --views may name a subset but not reorder it -- the
 # views are independent (no view reads another's output) so order only
 # affects print order, but we keep it fixed for predictable output.
-VIEW_ORDER = ["g1", "g2", "g3", "g4", "observational", "causal", "databank", "timeline", "conditional", "capability", "axes", "method", "rationales", "csv"]
+VIEW_ORDER = ["g1", "g2", "g3", "g4", "observational", "causal", "databank", "timeline", "conditional", "capability", "axes", "method", "rationales", "csv", "welfare"]
 
 
 def _build_g1():
@@ -207,6 +208,22 @@ def _build_axes():
     return path
 
 
+# The welfare page (2026-10-22; redlines/views/welfare.py, web/welfare/) is
+# its own file: its blob, and the capability blob its ECI chart reads, go
+# there and never into index.html. No results/ mirror: nothing reads one.
+WELFARE_PAGE = REPO_ROOT / "welfare.html"
+
+
+def _build_welfare():
+    from .views import capability, welfare
+
+    blob = welfare.build()
+    path = inject("WELFARE", blob, html_path=WELFARE_PAGE)
+    inject("CAPABILITY", capability.build(), html_path=WELFARE_PAGE)
+    print(f"welfare: day {blob['day']}, {len(blob['models'])} model(s), {blob['rows']} rows -> {path.name}"
+          if blob else f"welfare: no complete day in the welfare log; the page shows it unavailable -> {path.name}")
+
+
 def _build_capability():
     from .views import capability
 
@@ -274,6 +291,7 @@ BUILDERS = {
     "method": _build_method,
     "rationales": _build_rationales,
     "csv": _build_csv,
+    "welfare": _build_welfare,
 }
 
 
@@ -315,9 +333,9 @@ def cmd_build(args):
 # --- assemble: web/<page>/ chunks + fresh view blob()s -> tracked page ---
 
 # Canonical page order. --pages may name a subset but not reorder it, same
-# convention as --views above. One page since 2026-09-08 (the timeline is a
-# panel of index.html); the machinery stays general.
-PAGE_ORDER = ["demo"]
+# convention as --views above. The timeline is a panel of index.html since
+# 2026-09-08; welfare.html is the welfare instrument's page (2026-10-22).
+PAGE_ORDER = ["demo", "welfare"]
 
 
 def _page_dir(name):
@@ -353,8 +371,16 @@ def _blobs_for_demo():
     }
 
 
+def _blobs_for_welfare():
+    """welfare.html's two blobs (web/welfare/manifest.json)."""
+    from .views import capability, welfare
+
+    return {"WELFARE": welfare.build(), "CAPABILITY": capability.build()}
+
+
 PAGE_BLOB_BUILDERS = {
     "demo": _blobs_for_demo,
+    "welfare": _blobs_for_welfare,
 }
 
 

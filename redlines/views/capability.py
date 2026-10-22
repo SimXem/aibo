@@ -128,6 +128,13 @@ def _trend(target_dates):
     }
 
 
+# Row labels short enough for the chart's left column; the set's own label
+# ("Frontier ECI 6 months from the run date = your 25th percentile") is the
+# prompt's, not the page's. The welfare page's capability rows use them too.
+SHORT_LABELS = {"p10": "Own 10th percentile", "p25": "Own 25th percentile", "p50": "Own median (50th)",
+                "p75": "Own 75th percentile", "p90": "Own 90th percentile"}
+
+
 def _r(x, nd=1):
     return None if x is None else round(x, nd)
 
@@ -229,17 +236,12 @@ def build(horizons=DEFAULT_HORIZONS, variants=VARIANTS):
                     b["leapId"] = f"ECI ≈ {levels[b['id']]:.0f}" if b["id"] in levels else None
         models, ens = _forecasts(rows, spec, colors)
         present = {m["label"] for m in models} | {r["label"] for r in rows}
-        # Row labels short enough for the chart's left column; the set's own
-        # label ("Frontier ECI 6 months from the run date = your 25th
-        # percentile") is the prompt's, not the page's.
-        short = {"p10": "Own 10th percentile", "p25": "Own 25th percentile", "p50": "Own median (50th)",
-                 "p75": "Own 75th percentile", "p90": "Own 90th percentile"}
         for q in v["questions"]:
             for cell in q["byHorizon"].values():
                 for b in cell["bars"]:
                     f = next((c["field"] for c in spec["conditions"] if c["id"] == b["id"]), None)
-                    b["label"] = short.get(f, b["label"])
-        scenarios = [{"id": c["id"], "label": short.get(c["field"], c["label"]), "promptLabel": c["label"],
+                    b["label"] = SHORT_LABELS.get(f, b["label"])
+        scenarios = [{"id": c["id"], "label": SHORT_LABELS.get(c["field"], c["label"]), "promptLabel": c["label"],
                   "leapId": (f"ECI ≈ {levels[c['id']]:.0f}" if c["id"] in levels else None),
                   "field": c["field"], "assume": c["assume"], "policy": None, "part": None,
                   "level": _r(levels.get(c["id"])),

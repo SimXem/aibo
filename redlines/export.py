@@ -142,7 +142,10 @@ def _lines(rows, qs):
     for r in rows:
         scenario = r.get("scenario") or {}
         q = qs.get(r["question_id"], {})
-        for f in r.get("forecasts") or []:
+        # A welfare row's cells are five percentiles, not a probability
+        # (code/run_unified.py CELL_MODES, 2026-10-22): its log rides in the
+        # bundle like every instrument's, but this file has one number per line.
+        for f in (f for f in r.get("forecasts") or [] if "probability" in f):
             window = (r.get("counting_window") or {}).get(f["horizon"], {})
             yield {
                 "elicited_at": r.get("elicited_at", ""),

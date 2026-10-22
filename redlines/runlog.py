@@ -360,7 +360,15 @@ def replicate_order(row):
     return (row.get("arm") or "", row["elicited_at"], row.get("call_id") or "")
 
 
-def pool(reps):
+def _mean(values):
+    """The mean of one horizon's draws; of each field, when a draw is several
+    numbers (five percentiles). One draw is that draw, exactly."""
+    if isinstance(values[0], dict):
+        return {k: _mean([v[k] for v in values]) for k in values[0]}
+    return values[0] if len(values) == 1 else statistics.mean(values)
+
+
+def pool(reps, value="probability"):
     """[rows for ONE (question, model) on ONE date] -> one synthetic row.
 
     WHY. From 2026-08-28 the weekly run asks each model THREE times in one
@@ -381,6 +389,10 @@ def pool(reps):
     LAST draw: those fields belong to a call, and a pooled row has no single
     call. A pooled row with one draw is that draw, exactly (the mean of one
     value is the value; no rounding is applied here).
+
+    `value` is the field a forecast carries its number in: "probability",
+    or "percentiles" for the welfare instrument (2026-10-22;
+    redlines.views.welfare), whose five are each averaged the same way.
     """
     reps = sorted(reps, key=replicate_order)
     draws = defaultdict(list)
@@ -389,11 +401,9 @@ def pool(reps):
         if r["forecasts"]:
             answered += 1
         for f in r["forecasts"]:
-            draws[f["horizon"]].append(f["probability"])
+            draws[f["horizon"]].append(f[value])
     out = dict(reps[-1])
-    out["forecasts"] = [
-        {"horizon": h, "probability": ps[0] if len(ps) == 1 else statistics.mean(ps)}
-        for h, ps in sorted(draws.items())]
+    out["forecasts"] = [{"horizon": h, value: _mean(ps)} for h, ps in sorted(draws.items())]
     out["draws"] = dict(draws)
     out["replicates"] = len(reps)
     out["answered"] = answered
