@@ -63,7 +63,10 @@ const tlVariants = (q, horizon, snapshots) => {
 // Expected-deaths rows plot deaths on the shared severity axis (rung ticks,
 // Extinction marked), log only. No intervals since 2026-10-21 (project
 // lead): a date's draws are its prompt variants, not re-asks.
-function TimelineChart({ q, snapshots, horizon, scale }) {
+// `prompt`: one prompt condition's id (the welfare page's prompt toggle):
+// only its dot, drawn on its date with its own bar on a percentiles row, in
+// place of the ensemble mark wherever it has a value.
+function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
   const loss = q.value_kind === "loss";
   // Laid out in the width the panel gives it (web/shared/responsive.jsx);
   // under 620px the right-margin label goes — the tooltip carries it.
@@ -126,8 +129,9 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   // (project lead, 2026-10-21): hovering a variant dot lists that prompt's
   // instruction and model answers. The unpooled sixth call is never in the
   // blob.
-  const variants = tlVariants(q, h, snapshots);
+  const variants = tlVariants(q, h, snapshots).filter(v => !prompt || v.id === prompt);
   const hasVar = i => variants.some(v => v.vals[i] != null);
+  const shown = i => !prompt || !hasVar(i);              // the ensemble mark at date i
   const hovered = hvar && variants.find(v => v.id === hvar.id);
   const hoveredModels = hovered ? Object.entries(hovered.models[hvar.i] || {}) : [];
 
@@ -178,16 +182,8 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   // Nearby answers can otherwise cover each other's color and hit target.
   // Dodge only colliding condition dots a few pixels sideways, keeping
   // their probability unchanged and the median on the date's grid line.
-  // A percentiles row gives each prompt its own lane beside the median,
-  // nearest first, so the prompts' bars never overlap.
-  const lanes = [-14, 14, -28, 28, -42, 42, -56, 56];
   const variantDots = snapshots.flatMap((_, i) => {
-    const placed = med[i] == null ? [] : [{ cx: x(i), cy: y(med[i]) }];
-    if (pct) {
-      const on = variants.filter(v => v.vals[i] != null);
-      const at = lanes.slice(0, on.length).sort((a, b) => a - b);
-      return on.map((v, k) => ({ v, i, cx: x(i) + at[k], cy: y(v.vals[i]) }));
-    }
+    const placed = med[i] == null || !shown(i) ? [] : [{ cx: x(i), cy: y(med[i]) }];
     return variants.filter(v => v.vals[i] != null).map(v => {
       const cy = y(v.vals[i]);
       const dx = [0, -12, 12, -24, 24, -36, 36].find(offset =>
@@ -200,7 +196,8 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
 
   const li = med.map((v, i) => (v != null ? i : -1)).reduce((a, b) => Math.max(a, b), -1);
   // Right-margin label: the latest median, kept above the date labels.
-  const endLabel = li >= 0 ? { v: med[li], y: Math.min(y(med[li]), H - pad.b - 2), xi: li } : null;
+  const endV = li >= 0 && !shown(li) ? variants[0].vals[li] : med[li];     // the chosen prompt's, where it stands in
+  const endLabel = li >= 0 ? { v: endV, y: Math.min(y(endV), H - pad.b - 2), xi: li } : null;
   // A hover card beside date i, flipped left in the right 40%.
   const tipStyle = i => ({ ...(narrow ? { position: "relative", marginTop: 8 } : {
     position: "absolute", top: 8, left: `${(x(i) / W) * 100}%`,
@@ -257,17 +254,17 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
         )}
 
         {hv != null && <line x1={x(hv)} x2={x(hv)} y1={pad.t} y2={H - pad.b} stroke="var(--ink-faint)" strokeDasharray="3 3" opacity="0.6" />}
-        {hv != null && med[hv] != null && (
+        {hv != null && med[hv] != null && shown(hv) && (
           <circle cx={x(hv)} cy={y(med[hv])} r="8" fill="none" stroke="var(--ink)" strokeOpacity="0.35" strokeWidth="2" />
         )}
         <rect x={pad.l} y={pad.t} width={Math.max(1, W - pad.l - pad.r)} height={H - pad.t - pad.b} fill="transparent"
           onMouseMove={leave} />
 
         {/* A percentiles row: the ensemble's 10th-90th at each date, behind its median. */}
-        {pct && band.map((b, i) => <PctBar key={"b" + i} q={b} pos={y} at={x(i)} color="var(--ink)" vertical />)}
+        {pct && band.map((b, i) => shown(i) && <PctBar key={"b" + i} q={b} pos={y} at={x(i)} color="var(--ink)" vertical />)}
 
         {/* The median's marks, unjoined. The larger transparent target also works on touchscreens. */}
-        {med.map((v, i) => v == null ? null : (
+        {med.map((v, i) => v == null || !shown(i) ? null : (
           <g key={"m" + i} role="button" tabIndex={0} style={{ cursor: "pointer" }}
             aria-label={`${snapshots[i].date}, ensemble median ${fmtV(v)}; show model forecasts`}
             aria-pressed={pinned && hv === i && !hvar}
@@ -278,7 +275,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
           </g>
         ))}
 
-        {pct && variantDots.map(({ v, i, cx }) => (
+        {pct && prompt && variantDots.map(({ v, i, cx }) => (
           <g key={`bar:${v.id}:${i}`} opacity={hvar && (hvar.id !== v.id || hvar.i !== i) ? 0.3 : 1}>
             <PctBar q={v.bands[i]} pos={y} at={cx} color={v.color} vertical />
           </g>
@@ -425,7 +422,7 @@ function TimelinePanel(props = {}) {
   if (!q || !q.horizons.length || !TL.snapshots.length) return <ForecastUnavailable title={props.title || "Probability of an AI catastrophe"} />;
   return <TimelinePanelCurrent {...props} />;
 }
-function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI catastrophe", sub = "Forecasts over time" } = {}) {
+function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI catastrophe", sub = "Forecasts over time", prompt } = {}) {
   const snapshots = TL.snapshots;
   const q = TL.questions.find(x => x.id === qid) || TL.questions[0];
   // The horizon picker, Graph 2's toggle: opens on 2030 like every other
@@ -452,7 +449,7 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
   // Flagged when this question was not re-asked in the newest run.
   const staleAt = li >= 0 && li < snapshots.length - 1 ? snapshots[li].label : null;
 
-  const variants = tlVariants(q, hz, snapshots);
+  const variants = tlVariants(q, hz, snapshots).filter(v => !prompt || v.id === prompt);
 
   // Who declined, per date, for the chip under the question -- Graph 1's
   // chip is per model; here a model can decline on one date and not another.
@@ -480,7 +477,7 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
           {!loss && !pct && <ScaleToggle value={scale} onChange={setScale} style={{ marginLeft: "auto" }} />}
         </div>
 
-        <TimelineChart key={hz} q={q} snapshots={snapshots} horizon={hz} scale={scale} />
+        <TimelineChart key={hz} q={q} snapshots={snapshots} horizon={hz} scale={scale} prompt={prompt} />
         <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "6px 0 0" }}>
           {variants.length > 0 ? "From Oct 21, colors identify prompt conditions. " : ""}
           Hover or select a point to see model forecasts.

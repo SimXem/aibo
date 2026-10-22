@@ -25,7 +25,7 @@ const groupShort = g => GROUP_SHORT[g] || g;
 // the deaths ladder's eight rungs folded to a floor on E[deaths] — plots
 // deaths on graph 2's deaths axis (SEVERITY_AXIS: rung ticks, Extinction
 // marked), log only, so a loss reads at its rung.
-function HorizonChart({ q, models, scale }) {
+function HorizonChart({ q, models, scale, G = G1 }) {
   const loss = q.valueKind === "loss";
   // Laid out in the width the column gives it (web/shared/responsive.jsx);
   // under 620px the right-margin labels go (the legend and tooltip carry
@@ -41,7 +41,7 @@ function HorizonChart({ q, models, scale }) {
   // the left edge (linear time would put four of six in the first 6% of the
   // width). Falls back to one slot per horizon if a date is missing.
   const inner = W - pad.l - pad.r, mid = (pad.l + W - pad.r) / 2;
-  const asOf = Date.parse(G1.latest || "") || Date.now();
+  const asOf = Date.parse(G.latest || "") || Date.now();
   const lg = h => Math.log10(Math.max(0.05, (Date.parse((q.resolvesOn || {})[h] || "") - asOf) / (365.25 * 864e5)));
   const lgs = hs.map(lg), lgMin = Math.min(...lgs), lgMax = Math.max(...lgs);
   const uniform = hs.length === 1 || lgs.some(v => !isFinite(v)) || lgMax === lgMin;
@@ -82,7 +82,7 @@ function HorizonChart({ q, models, scale }) {
   const path = ps => hs.filter(h => ps[h] != null).map((h, i) => (i === 0 ? "M" : "L") + x(h).toFixed(1) + " " + y(ps[h]).toFixed(1)).join(" ");
   // Loss rows tick at the ladder's rungs (from the blob, never typed here);
   // the Extinction reference comes from graph 2's marker data.
-  const rungTicks = loss ? (G1.rungs || []).filter(r => r.deaths >= LO && r.deaths <= HIY) : [];
+  const rungTicks = loss ? (G.rungs || []).filter(r => r.deaths >= LO && r.deaths <= HIY) : [];
   const ticks = pct ? pAxis.ticks : loss ? rungTicks.map(r => r.deaths) : linear ? linearTicks(linTop) : [0.01, 0.1, 1, 10, 100];
   const tickText = t => (pct ? unitTick(t, q.unit) : loss ? (rungTicks.find(r => r.deaths === t) || {}).short : fmtTick(t) + "%");
   const tickSub = () => null;
@@ -212,37 +212,39 @@ function HorizonChart({ q, models, scale }) {
   );
 }
 
-function LiveGraph1() {
-  if (!G1 || !G1.latest) return <ForecastUnavailable title="Forecasts by horizon" />;
-  return <LiveGraph1Current />;
+function LiveGraph1({ ctx } = {}) {
+  // `ctx`: a blob of G1's shape in its place (the welfare page's prompt toggle).
+  const G = ctx || G1;
+  if (!G || !G.latest) return <ForecastUnavailable title="Forecasts by horizon" />;
+  return <LiveGraph1Current G={G} />;
 }
-function LiveGraph1Current() {
+function LiveGraph1Current({ G }) {
   // ?g1=<question id> opens the rail on that row (a shareable view; the
   // Conditional-on tab's ?q= does the same).
   const [qi, setQi] = useState(() => {
     const want = new URLSearchParams(window.location.search).get("g1");
-    return Math.max(0, G1.questions.findIndex(x => x.id === want));
+    return Math.max(0, G.questions.findIndex(x => x.id === want));
   });
   const [scale, setScale] = useState("linear");
-  const q = G1.questions[qi];
+  const q = G.questions[qi];
   // Rail groups come from the blob; fall back to deriving them so a stale
   // __GRAPH1__ (injected before categories existed) still renders.
-  const cats = G1.categories || [
+  const cats = G.categories || [
     { key: "broad", label: "Total catastrophic risk", color: "#24292f" },
     { key: "AI", label: "AI-enabled risk", color: "#8250df" },
     { key: "Biorisk", label: "Biorisk", color: "#1b7c83" },
     { key: "Nuclear", label: "Nuclear", color: "#1a7f37" },
   ];
   const byCat = cats
-    .map(c => ({ ...c, qs: G1.questions.filter(x => x.category === c.key) }))
+    .map(c => ({ ...c, qs: G.questions.filter(x => x.category === c.key) }))
     .filter(c => c.qs.length);
   // `latest` is null when nothing has been forecast yet — a fresh checkout, or
   // the window between retiring one question set and running the next. The
   // panel must say so rather than throw: an unguarded .slice() here blanked the
   // ENTIRE page, because one component throwing during render unmounts the
   // whole React tree and the rail, both graphs and every panel below go with it.
-  const latest = (G1.latest || "").slice(0, 10);
-  const hasRuns = G1.runs.length > 0;
+  const latest = (G.latest || "").slice(0, 10);
+  const hasRuns = G.runs.length > 0;
   return (
     <Panel style={{ padding: 24, marginBottom: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12 }}>
@@ -253,14 +255,14 @@ function LiveGraph1Current() {
               QUESTION, never typed here; a hand-typed copy of it was off by
               80x for months. */}
           <h2 style={{ fontSize: 22, marginTop: 0 }}>
-            {G1.title || "Catastrophic outcome forecasts"}
-            {G1.questions[0] && G1.questions[0].severity &&
-              <span style={{ fontWeight: 400, color: "var(--ink-soft)" }}> ({G1.questions[0].severity})</span>}
+            {G.title || "Catastrophic outcome forecasts"}
+            {G.questions[0] && G.questions[0].severity &&
+              <span style={{ fontWeight: 400, color: "var(--ink-soft)" }}> ({G.questions[0].severity})</span>}
           </h2>
         </div>
         <div style={{ fontSize: 12, color: "var(--ink-faint)", textAlign: "right" }}>
           {hasRuns
-            ? <>{G1.runs.length} run{G1.runs.length > 1 ? "s" : ""} · latest {latest} · search and news enabled</>
+            ? <>{G.runs.length} run{G.runs.length > 1 ? "s" : ""} · latest {latest} · search and news enabled</>
             : <>no forecasts yet · questions loaded, awaiting the first run</>}
         </div>
       </div>
@@ -271,14 +273,14 @@ function LiveGraph1Current() {
             colour dot on each. A multi-question category (none today; the
             rungs were folded into one loss row per cause) would list its
             rows under the category name. */}
-        <QuestionRail title={G1.railTitle || "Risk category"} value={q.id}
-          onChange={id => setQi(Math.max(0, G1.questions.findIndex(x => x.id === id)))}
+        <QuestionRail title={G.railTitle || "Risk category"} value={q.id}
+          onChange={id => setQi(Math.max(0, G.questions.findIndex(x => x.id === id)))}
           items={byCat.flatMap(c => c.qs.map(sq => ({ key: sq.id, color: c.color, group: c.group,
             label: c.qs.length === 1 ? c.label : c.label + " · " + (sq.railLabel || sq.short) })))} />
 
         <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 4, alignItems: "center" }}>
-            {G1.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
+            {G.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
             <LegendDot color="var(--ink)" label="Ensemble median" />
             {Object.keys(q.ci || {}).length > 0 && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--ink-soft)" }}>
@@ -299,7 +301,7 @@ function LiveGraph1Current() {
             {q.valueKind === "percentiles" && <PctLegend label="ensemble 25th–75th, 10th–90th percentile" />}
             {q.valueKind !== "loss" && q.valueKind !== "percentiles" && <ScaleToggle value={scale} onChange={setScale} style={{ marginLeft: "auto" }} />}
           </div>
-          <HorizonChart q={q} models={G1.models} scale={scale} />
+          <HorizonChart q={q} models={G.models} scale={scale} G={G} />
           {q.valueKind === "loss" && <ExpectedLossNote />}
           {/* The question, in full, BELOW the chart. It sat above until
               2026-08-18; question text runs one to six lines depending on the

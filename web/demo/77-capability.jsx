@@ -172,14 +172,16 @@ function EciTrendChart({ eci, variants, active, onPick }) {
 }
 
 /* ============================ the panel ============================ */
-function CapabilityPanel({ onDefinitions }) {
-  const variants = (CAP && CAP.variants || []).filter(v => v.questions && v.questions.length);
-  if (!CAP || !variants.length) {
+function CapabilityPanel({ onDefinitions, ctx }) {
+  // `ctx`: a blob of CAP's shape in its place (the welfare page's prompt toggle).
+  const CP = ctx || CAP;
+  const variants = (CP && CP.variants || []).filter(v => v.questions && v.questions.length);
+  if (!CP || !variants.length) {
     return <ForecastUnavailable title="Forecasts conditional on AI capability" onDefinitions={onDefinitions} />;
   }
   // ?cap=<variant>&q=<question id>&h=<horizon> deep-links a chart.
   const params = new URLSearchParams(typeof location !== "undefined" ? location.search : "");
-  const [vkey, setVkey] = useState(variants.some(v => v.key === params.get("cap")) ? params.get("cap") : (CAP.defaultVariant || variants[0].key));
+  const [vkey, setVkey] = useState(variants.some(v => v.key === params.get("cap")) ? params.get("cap") : (CP.defaultVariant || variants[0].key));
   const V = variants.find(v => v.key === vkey) || variants[0];
   const Q = V.questions;
   const [qid, setQid] = useState(Q.some(x => x.id === params.get("q")) ? params.get("q") : Q[0].id);
@@ -189,7 +191,7 @@ function CapabilityPanel({ onDefinitions }) {
   const q = Q.find(x => x.id === qid) || Q[0];
   const hz = q.horizons.includes(horizon) ? horizon : q.horizons[0];
   const cell = q.byHorizon[hz];
-  const eci = CAP.eci;
+  const eci = CP.eci;
 
   return (
     <React.Fragment>
@@ -197,7 +199,7 @@ function CapabilityPanel({ onDefinitions }) {
         <h2 style={{ fontSize: 22, marginTop: 0, marginBottom: 6 }}>How does the forecast depend on the pace of AI progress?</h2>
         <p style={{ color: "var(--ink-soft)", fontSize: 13.5, maxWidth: 820, margin: 0 }}>
           Models' forecasts of frontier <a href="https://epoch.ai/benchmarks/eci" target="_blank" rel="noopener"
-          style={{ color: "var(--link)" }}>Epoch Capabilities Index</a>, along with {CAP.subject || "risks"} conditional on those ECI scores.
+          style={{ color: "var(--link)" }}>Epoch Capabilities Index</a>, along with {CP.subject || "risks"} conditional on those ECI scores.
         </p>
       </Panel>
 
@@ -216,7 +218,7 @@ function CapabilityPanel({ onDefinitions }) {
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
           <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 18, height: 2, background: "var(--ink)" }}></span>Frontier ECI</span>
           <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="14" height="18" viewBox="0 0 14 18"><rect x="1.5" y="2" width="11" height="14" rx="2" fill="var(--ink)" fillOpacity="0.14" stroke="var(--ink)" strokeOpacity="0.75" strokeWidth="1.5" /><line x1="1.5" x2="12.5" y1="9" y2="9" stroke="var(--ink)" strokeWidth="2.5" /></svg>Ensemble's ECI percentiles</span>
-          {CAP && CAP.leap && <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="14" height="18" viewBox="0 0 14 18"><rect x="1.5" y="2" width="11" height="14" rx="2" fill="var(--panel)" stroke="var(--ink)" strokeOpacity="0.75" strokeWidth="1.5" strokeDasharray="3 2" /><path d="M7,5L11,9L7,13L3,9Z" fill="var(--ink)" /></svg><span>LEAP supers (<a href={CAP.leap.url}>Wave 5</a>)</span></span>}
+          {CP && CP.leap && <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="14" height="18" viewBox="0 0 14 18"><rect x="1.5" y="2" width="11" height="14" rx="2" fill="var(--panel)" stroke="var(--ink)" strokeOpacity="0.75" strokeWidth="1.5" strokeDasharray="3 2" /><path d="M7,5L11,9L7,13L3,9Z" fill="var(--ink)" /></svg><span>LEAP supers (<a href={CP.leap.url}>Wave 5</a>)</span></span>}
           <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 18, height: 10, background: "var(--ink-faint)", opacity: 0.25 }}></span><span>ECI trend (<a href={eci.trend.url}>Peter Wildeford</a>)</span></span>
         </div>
       </Panel>
@@ -232,7 +234,7 @@ function CapabilityPanel({ onDefinitions }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
               <div style={{ minWidth: 0 }}>
                 <h2 style={{ fontSize: 22, marginTop: 0, marginBottom: 4 }}>{q.heading || q.short} — by {hz}</h2>
-                <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{CAP.subject ? "Forecasts" : "Risk"} conditional on each model's own estimates for frontier ECI on {capFmtDate(V.targetDate)}.</div>
+                <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{CP.subject ? "Forecasts" : "Risk"} conditional on each model's own estimates for frontier ECI on {capFmtDate(V.targetDate)}.</div>
               </div>
               <div style={{ flexShrink: 0 }}>
                 <Toggle options={q.horizons.map(h => ({ key: h, label: "by " + h }))} value={hz} onChange={setHorizon} />

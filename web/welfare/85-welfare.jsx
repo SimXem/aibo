@@ -8,8 +8,25 @@
 // this page shows: the day, the five prompts, the cost.
 const WF = (typeof window !== "undefined" && window.__WELFARE__) || null;
 
+// The prompt toggle: the five prompts' mean (each panel's own blob) or one
+// prompt's calls (its `byPrompt` entry; the Timeline draws that prompt's
+// dot and bar on its date). Labels and colours are the Timeline's.
+function PromptToggle({ value, onChange }) {
+  const ids = ((WF && WF.prompts) || []).map(p => p.condition);
+  const dot = c => <span style={{ display: "inline-block", width: 9, height: 9, borderRadius: "50%", background: c, marginRight: 6 }}></span>;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 18, fontSize: 13, color: "var(--ink-soft)" }}>
+      <span>Prompt</span>
+      <Toggle value={value} onChange={onChange}
+        options={[{ key: "mean", label: <>{dot("var(--ink)")}Mean of {ids.length}</> },
+                  ...ids.map(id => ({ key: id, label: <>{dot((TL_CONDITIONS[id] || {}).color || "var(--ink-soft)")}{(TL_CONDITIONS[id] || {}).label || id}</> }))]} />
+    </div>
+  );
+}
+const byPrompt = (blob, prompt) => (prompt === "mean" || !blob || !blob.byPrompt ? undefined : blob.byPrompt[prompt]);
+
 // The Timeline, one question at a time, chosen on the rail Graph 1 uses.
-function WelfareTimeline() {
+function WelfareTimeline({ prompt }) {
   const Q = (TL && TL.questions) || [];
   const [qid, setQid] = useState(Q.length ? Q[0].id : null);
   if (!Q.length) return <TimelinePanel qid="" title="Welfare forecasts over time" />;
@@ -21,7 +38,7 @@ function WelfareTimeline() {
           items={Q.map(x => ({ key: x.id, label: x.railLabel || x.short, color: x.color, group: x.group }))} />
       </Panel>
       <div style={{ minWidth: 0 }}>
-        <TimelinePanel key={q.id} qid={q.id} title={q.heading} sub="Forecasts over time" />
+        <TimelinePanel key={q.id} qid={q.id} title={q.heading} sub="Forecasts over time" prompt={prompt === "mean" ? null : prompt} />
       </div>
     </div>
   );
@@ -54,8 +71,11 @@ function WelfareFaq() {
 }
 
 function App() {
-  const tabRaw = new URLSearchParams(typeof location !== "undefined" ? location.search : "").get("tab");
+  // ?tab=<tab>&prompt=<condition id> deep-links a tab and a prompt.
+  const params = new URLSearchParams(typeof location !== "undefined" ? location.search : "");
+  const tabRaw = params.get("tab");
   const [mainTab, setMainTab] = useState(["forecasts", "capability", "conditional", "faq"].includes(tabRaw) ? tabRaw : "forecasts");
+  const [prompt, setPrompt] = useState(((WF && WF.prompts) || []).some(p => p.condition === params.get("prompt")) ? params.get("prompt") : "mean");
   return (
     <React.Fragment>
       <header style={{ marginBottom: 20 }}>
@@ -82,9 +102,10 @@ function App() {
         <Toggle options={[{ key: "forecasts", label: "Forecasts" }, { key: "capability", label: "Capability" }, { key: "conditional", label: "Policy levers" }, { key: "faq", label: "FAQ" }]}
           value={mainTab} onChange={setMainTab} />
       </div>
-      {mainTab === "forecasts" && <React.Fragment><WelfareTimeline /><LiveGraph1 /></React.Fragment>}
-      {mainTab === "capability" && <CapabilityPanel />}
-      {mainTab === "conditional" && <ConditionalPanel />}
+      {mainTab !== "faq" && <PromptToggle value={prompt} onChange={setPrompt} />}
+      {mainTab === "forecasts" && <React.Fragment><WelfareTimeline prompt={prompt} /><LiveGraph1 ctx={byPrompt(G1, prompt)} /></React.Fragment>}
+      {mainTab === "capability" && <CapabilityPanel ctx={byPrompt(CAP, prompt)} />}
+      {mainTab === "conditional" && <ConditionalPanel ctx={byPrompt(COND, prompt)} />}
       {mainTab === "faq" && <WelfareFaq />}
     </React.Fragment>
   );

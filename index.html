@@ -504,7 +504,10 @@ const tlVariants = (q, horizon, snapshots) => {
 // Expected-deaths rows plot deaths on the shared severity axis (rung ticks,
 // Extinction marked), log only. No intervals since 2026-10-21 (project
 // lead): a date's draws are its prompt variants, not re-asks.
-function TimelineChart({ q, snapshots, horizon, scale }) {
+// `prompt`: one prompt condition's id (the welfare page's prompt toggle):
+// only its dot, drawn on its date with its own bar on a percentiles row, in
+// place of the ensemble mark wherever it has a value.
+function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
   const loss = q.value_kind === "loss";
   // Laid out in the width the panel gives it (web/shared/responsive.jsx);
   // under 620px the right-margin label goes — the tooltip carries it.
@@ -567,8 +570,9 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   // (project lead, 2026-10-21): hovering a variant dot lists that prompt's
   // instruction and model answers. The unpooled sixth call is never in the
   // blob.
-  const variants = tlVariants(q, h, snapshots);
+  const variants = tlVariants(q, h, snapshots).filter(v => !prompt || v.id === prompt);
   const hasVar = i => variants.some(v => v.vals[i] != null);
+  const shown = i => !prompt || !hasVar(i);              // the ensemble mark at date i
   const hovered = hvar && variants.find(v => v.id === hvar.id);
   const hoveredModels = hovered ? Object.entries(hovered.models[hvar.i] || {}) : [];
 
@@ -619,16 +623,8 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
   // Nearby answers can otherwise cover each other's color and hit target.
   // Dodge only colliding condition dots a few pixels sideways, keeping
   // their probability unchanged and the median on the date's grid line.
-  // A percentiles row gives each prompt its own lane beside the median,
-  // nearest first, so the prompts' bars never overlap.
-  const lanes = [-14, 14, -28, 28, -42, 42, -56, 56];
   const variantDots = snapshots.flatMap((_, i) => {
-    const placed = med[i] == null ? [] : [{ cx: x(i), cy: y(med[i]) }];
-    if (pct) {
-      const on = variants.filter(v => v.vals[i] != null);
-      const at = lanes.slice(0, on.length).sort((a, b) => a - b);
-      return on.map((v, k) => ({ v, i, cx: x(i) + at[k], cy: y(v.vals[i]) }));
-    }
+    const placed = med[i] == null || !shown(i) ? [] : [{ cx: x(i), cy: y(med[i]) }];
     return variants.filter(v => v.vals[i] != null).map(v => {
       const cy = y(v.vals[i]);
       const dx = [0, -12, 12, -24, 24, -36, 36].find(offset =>
@@ -641,7 +637,8 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
 
   const li = med.map((v, i) => (v != null ? i : -1)).reduce((a, b) => Math.max(a, b), -1);
   // Right-margin label: the latest median, kept above the date labels.
-  const endLabel = li >= 0 ? { v: med[li], y: Math.min(y(med[li]), H - pad.b - 2), xi: li } : null;
+  const endV = li >= 0 && !shown(li) ? variants[0].vals[li] : med[li];     // the chosen prompt's, where it stands in
+  const endLabel = li >= 0 ? { v: endV, y: Math.min(y(endV), H - pad.b - 2), xi: li } : null;
   // A hover card beside date i, flipped left in the right 40%.
   const tipStyle = i => ({ ...(narrow ? { position: "relative", marginTop: 8 } : {
     position: "absolute", top: 8, left: `${(x(i) / W) * 100}%`,
@@ -698,17 +695,17 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
         )}
 
         {hv != null && <line x1={x(hv)} x2={x(hv)} y1={pad.t} y2={H - pad.b} stroke="var(--ink-faint)" strokeDasharray="3 3" opacity="0.6" />}
-        {hv != null && med[hv] != null && (
+        {hv != null && med[hv] != null && shown(hv) && (
           <circle cx={x(hv)} cy={y(med[hv])} r="8" fill="none" stroke="var(--ink)" strokeOpacity="0.35" strokeWidth="2" />
         )}
         <rect x={pad.l} y={pad.t} width={Math.max(1, W - pad.l - pad.r)} height={H - pad.t - pad.b} fill="transparent"
           onMouseMove={leave} />
 
         {/* A percentiles row: the ensemble's 10th-90th at each date, behind its median. */}
-        {pct && band.map((b, i) => <PctBar key={"b" + i} q={b} pos={y} at={x(i)} color="var(--ink)" vertical />)}
+        {pct && band.map((b, i) => shown(i) && <PctBar key={"b" + i} q={b} pos={y} at={x(i)} color="var(--ink)" vertical />)}
 
         {/* The median's marks, unjoined. The larger transparent target also works on touchscreens. */}
-        {med.map((v, i) => v == null ? null : (
+        {med.map((v, i) => v == null || !shown(i) ? null : (
           <g key={"m" + i} role="button" tabIndex={0} style={{ cursor: "pointer" }}
             aria-label={`${snapshots[i].date}, ensemble median ${fmtV(v)}; show model forecasts`}
             aria-pressed={pinned && hv === i && !hvar}
@@ -719,7 +716,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
           </g>
         ))}
 
-        {pct && variantDots.map(({ v, i, cx }) => (
+        {pct && prompt && variantDots.map(({ v, i, cx }) => (
           <g key={`bar:${v.id}:${i}`} opacity={hvar && (hvar.id !== v.id || hvar.i !== i) ? 0.3 : 1}>
             <PctBar q={v.bands[i]} pos={y} at={cx} color={v.color} vertical />
           </g>
@@ -866,7 +863,7 @@ function TimelinePanel(props = {}) {
   if (!q || !q.horizons.length || !TL.snapshots.length) return <ForecastUnavailable title={props.title || "Probability of an AI catastrophe"} />;
   return <TimelinePanelCurrent {...props} />;
 }
-function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI catastrophe", sub = "Forecasts over time" } = {}) {
+function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI catastrophe", sub = "Forecasts over time", prompt } = {}) {
   const snapshots = TL.snapshots;
   const q = TL.questions.find(x => x.id === qid) || TL.questions[0];
   // The horizon picker, Graph 2's toggle: opens on 2030 like every other
@@ -893,7 +890,7 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
   // Flagged when this question was not re-asked in the newest run.
   const staleAt = li >= 0 && li < snapshots.length - 1 ? snapshots[li].label : null;
 
-  const variants = tlVariants(q, hz, snapshots);
+  const variants = tlVariants(q, hz, snapshots).filter(v => !prompt || v.id === prompt);
 
   // Who declined, per date, for the chip under the question -- Graph 1's
   // chip is per model; here a model can decline on one date and not another.
@@ -921,7 +918,7 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
           {!loss && !pct && <ScaleToggle value={scale} onChange={setScale} style={{ marginLeft: "auto" }} />}
         </div>
 
-        <TimelineChart key={hz} q={q} snapshots={snapshots} horizon={hz} scale={scale} />
+        <TimelineChart key={hz} q={q} snapshots={snapshots} horizon={hz} scale={scale} prompt={prompt} />
         <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "6px 0 0" }}>
           {variants.length > 0 ? "From Oct 21, colors identify prompt conditions. " : ""}
           Hover or select a point to see model forecasts.
@@ -1006,7 +1003,7 @@ const groupShort = g => GROUP_SHORT[g] || g;
 // the deaths ladder's eight rungs folded to a floor on E[deaths] — plots
 // deaths on graph 2's deaths axis (SEVERITY_AXIS: rung ticks, Extinction
 // marked), log only, so a loss reads at its rung.
-function HorizonChart({ q, models, scale }) {
+function HorizonChart({ q, models, scale, G = G1 }) {
   const loss = q.valueKind === "loss";
   // Laid out in the width the column gives it (web/shared/responsive.jsx);
   // under 620px the right-margin labels go (the legend and tooltip carry
@@ -1022,7 +1019,7 @@ function HorizonChart({ q, models, scale }) {
   // the left edge (linear time would put four of six in the first 6% of the
   // width). Falls back to one slot per horizon if a date is missing.
   const inner = W - pad.l - pad.r, mid = (pad.l + W - pad.r) / 2;
-  const asOf = Date.parse(G1.latest || "") || Date.now();
+  const asOf = Date.parse(G.latest || "") || Date.now();
   const lg = h => Math.log10(Math.max(0.05, (Date.parse((q.resolvesOn || {})[h] || "") - asOf) / (365.25 * 864e5)));
   const lgs = hs.map(lg), lgMin = Math.min(...lgs), lgMax = Math.max(...lgs);
   const uniform = hs.length === 1 || lgs.some(v => !isFinite(v)) || lgMax === lgMin;
@@ -1063,7 +1060,7 @@ function HorizonChart({ q, models, scale }) {
   const path = ps => hs.filter(h => ps[h] != null).map((h, i) => (i === 0 ? "M" : "L") + x(h).toFixed(1) + " " + y(ps[h]).toFixed(1)).join(" ");
   // Loss rows tick at the ladder's rungs (from the blob, never typed here);
   // the Extinction reference comes from graph 2's marker data.
-  const rungTicks = loss ? (G1.rungs || []).filter(r => r.deaths >= LO && r.deaths <= HIY) : [];
+  const rungTicks = loss ? (G.rungs || []).filter(r => r.deaths >= LO && r.deaths <= HIY) : [];
   const ticks = pct ? pAxis.ticks : loss ? rungTicks.map(r => r.deaths) : linear ? linearTicks(linTop) : [0.01, 0.1, 1, 10, 100];
   const tickText = t => (pct ? unitTick(t, q.unit) : loss ? (rungTicks.find(r => r.deaths === t) || {}).short : fmtTick(t) + "%");
   const tickSub = () => null;
@@ -1193,37 +1190,39 @@ function HorizonChart({ q, models, scale }) {
   );
 }
 
-function LiveGraph1() {
-  if (!G1 || !G1.latest) return <ForecastUnavailable title="Forecasts by horizon" />;
-  return <LiveGraph1Current />;
+function LiveGraph1({ ctx } = {}) {
+  // `ctx`: a blob of G1's shape in its place (the welfare page's prompt toggle).
+  const G = ctx || G1;
+  if (!G || !G.latest) return <ForecastUnavailable title="Forecasts by horizon" />;
+  return <LiveGraph1Current G={G} />;
 }
-function LiveGraph1Current() {
+function LiveGraph1Current({ G }) {
   // ?g1=<question id> opens the rail on that row (a shareable view; the
   // Conditional-on tab's ?q= does the same).
   const [qi, setQi] = useState(() => {
     const want = new URLSearchParams(window.location.search).get("g1");
-    return Math.max(0, G1.questions.findIndex(x => x.id === want));
+    return Math.max(0, G.questions.findIndex(x => x.id === want));
   });
   const [scale, setScale] = useState("linear");
-  const q = G1.questions[qi];
+  const q = G.questions[qi];
   // Rail groups come from the blob; fall back to deriving them so a stale
   // __GRAPH1__ (injected before categories existed) still renders.
-  const cats = G1.categories || [
+  const cats = G.categories || [
     { key: "broad", label: "Total catastrophic risk", color: "#24292f" },
     { key: "AI", label: "AI-enabled risk", color: "#8250df" },
     { key: "Biorisk", label: "Biorisk", color: "#1b7c83" },
     { key: "Nuclear", label: "Nuclear", color: "#1a7f37" },
   ];
   const byCat = cats
-    .map(c => ({ ...c, qs: G1.questions.filter(x => x.category === c.key) }))
+    .map(c => ({ ...c, qs: G.questions.filter(x => x.category === c.key) }))
     .filter(c => c.qs.length);
   // `latest` is null when nothing has been forecast yet — a fresh checkout, or
   // the window between retiring one question set and running the next. The
   // panel must say so rather than throw: an unguarded .slice() here blanked the
   // ENTIRE page, because one component throwing during render unmounts the
   // whole React tree and the rail, both graphs and every panel below go with it.
-  const latest = (G1.latest || "").slice(0, 10);
-  const hasRuns = G1.runs.length > 0;
+  const latest = (G.latest || "").slice(0, 10);
+  const hasRuns = G.runs.length > 0;
   return (
     <Panel style={{ padding: 24, marginBottom: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 12 }}>
@@ -1234,14 +1233,14 @@ function LiveGraph1Current() {
               QUESTION, never typed here; a hand-typed copy of it was off by
               80x for months. */}
           <h2 style={{ fontSize: 22, marginTop: 0 }}>
-            {G1.title || "Catastrophic outcome forecasts"}
-            {G1.questions[0] && G1.questions[0].severity &&
-              <span style={{ fontWeight: 400, color: "var(--ink-soft)" }}> ({G1.questions[0].severity})</span>}
+            {G.title || "Catastrophic outcome forecasts"}
+            {G.questions[0] && G.questions[0].severity &&
+              <span style={{ fontWeight: 400, color: "var(--ink-soft)" }}> ({G.questions[0].severity})</span>}
           </h2>
         </div>
         <div style={{ fontSize: 12, color: "var(--ink-faint)", textAlign: "right" }}>
           {hasRuns
-            ? <>{G1.runs.length} run{G1.runs.length > 1 ? "s" : ""} · latest {latest} · search and news enabled</>
+            ? <>{G.runs.length} run{G.runs.length > 1 ? "s" : ""} · latest {latest} · search and news enabled</>
             : <>no forecasts yet · questions loaded, awaiting the first run</>}
         </div>
       </div>
@@ -1252,14 +1251,14 @@ function LiveGraph1Current() {
             colour dot on each. A multi-question category (none today; the
             rungs were folded into one loss row per cause) would list its
             rows under the category name. */}
-        <QuestionRail title={G1.railTitle || "Risk category"} value={q.id}
-          onChange={id => setQi(Math.max(0, G1.questions.findIndex(x => x.id === id)))}
+        <QuestionRail title={G.railTitle || "Risk category"} value={q.id}
+          onChange={id => setQi(Math.max(0, G.questions.findIndex(x => x.id === id)))}
           items={byCat.flatMap(c => c.qs.map(sq => ({ key: sq.id, color: c.color, group: c.group,
             label: c.qs.length === 1 ? c.label : c.label + " · " + (sq.railLabel || sq.short) })))} />
 
         <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 4, alignItems: "center" }}>
-            {G1.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
+            {G.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
             <LegendDot color="var(--ink)" label="Ensemble median" />
             {Object.keys(q.ci || {}).length > 0 && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "var(--ink-soft)" }}>
@@ -1280,7 +1279,7 @@ function LiveGraph1Current() {
             {q.valueKind === "percentiles" && <PctLegend label="ensemble 25th–75th, 10th–90th percentile" />}
             {q.valueKind !== "loss" && q.valueKind !== "percentiles" && <ScaleToggle value={scale} onChange={setScale} style={{ marginLeft: "auto" }} />}
           </div>
-          <HorizonChart q={q} models={G1.models} scale={scale} />
+          <HorizonChart q={q} models={G.models} scale={scale} G={G} />
           {q.valueKind === "loss" && <ExpectedLossNote />}
           {/* The question, in full, BELOW the chart. It sat above until
               2026-08-18; question text runs one to six lines depending on the
@@ -3320,33 +3319,35 @@ function CondText({ cond, conditioning, labels }) {
 }
 
 
-function ConditionalPanel() {
-  if (!COND || !COND.questions.length) {
+function ConditionalPanel({ ctx } = {}) {
+  // `ctx`: a blob of COND's shape in its place (the welfare page's prompt toggle).
+  const C = ctx || COND;
+  if (!C || !C.questions.length) {
     return <ForecastUnavailable title="Forecasts conditional on policies" />;
   }
   // ?q=<question id>&h=<horizon> deep-links a chart.
   const params = new URLSearchParams(typeof location !== "undefined" ? location.search : "");
-  const [qid, setQid] = useState(COND.questions.some(x => x.id === params.get("q")) ? params.get("q") : COND.questions[0].id);
-  const [horizon, setHorizon] = useState(COND.horizons.includes(params.get("h")) ? params.get("h") : COND.defaultHorizon);
+  const [qid, setQid] = useState(C.questions.some(x => x.id === params.get("q")) ? params.get("q") : C.questions[0].id);
+  const [horizon, setHorizon] = useState(C.horizons.includes(params.get("h")) ? params.get("h") : C.defaultHorizon);
   const [picked, setPicked] = useState(null);
   const [showTable, setShowTable] = useState(false);
-  const Q = COND.questions;
+  const Q = C.questions;
 
   const q = Q.find(x => x.id === qid) || Q[0];
   const hz = q.horizons.includes(horizon) ? horizon : q.horizons[0];
   const cell = q.byHorizon[hz];
-  const cond = COND.conditions.find(c => c.id === picked);
+  const cond = C.conditions.find(c => c.id === picked);
 
   return (
     <React.Fragment>
       <Panel style={{ padding: "16px 22px", marginBottom: 18 }}>
         <h2 style={{ fontSize: 22, marginTop: 0, marginBottom: 6 }}>How would policies change the forecast?</h2>
         <p style={{ color: "var(--ink-soft)", fontSize: 13.5, maxWidth: 820, margin: "0 0 6px" }}>
-          How would these forecasts change if certain policies were enacted, effective immediately? (These questions come from the {COND.source.panel} {COND.source.wave} survey, currently underway with human respondents.)
+          How would these forecasts change if certain policies were enacted, effective immediately? (These questions come from the {C.source.panel} {C.source.wave} survey, currently underway with human respondents.)
         </p>
         <p style={{ color: "var(--ink-faint)", fontSize: 12.5, margin: 0 }}>
-          Run {COND.runs.join(", ")} · {COND.rows} rows · {Object.keys(COND.repeats || {}).length} models × {Object.values(COND.repeats || {})[0] || "?"} repeats
-          {COND.instrument && COND.instrument.group ? " · elicited in one call with the capability conditions (" + COND.protocol + ")" : ""}
+          Run {C.runs.join(", ")} · {C.rows} rows · {Object.keys(C.repeats || {}).length} models × {Object.values(C.repeats || {})[0] || "?"} repeats
+          {C.instrument && C.instrument.group ? " · elicited in one call with the capability conditions (" + C.protocol + ")" : ""}
         </p>
       </Panel>
 
@@ -3376,24 +3377,24 @@ function ConditionalPanel() {
             {cell.note && <div style={{ fontSize: 12.5, color: "var(--warn-ink)", background: "var(--warn-bg)", border: "1px solid var(--warn-line)", borderRadius: 8, padding: "6px 10px", margin: "12px 0 0" }}>{cell.note}.</div>}
 
             <div style={{ marginTop: 14 }}>
-              <CondDeltaChart cell={cell} picked={picked} onPick={id => setPicked(picked === id ? null : id)}
+              <CondDeltaChart cell={cell} ctx={C} picked={picked} onPick={id => setPicked(picked === id ? null : id)}
                 axisValues={q.valueKind === "loss"
                   ? Q.filter(x => x.valueKind === "loss").flatMap(x => x.horizons.flatMap(h => condAxisValues(x.byHorizon[h])))
                   : q.horizons.flatMap(h => condAxisValues(q.byHorizon[h]))} />
             </div>
 
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
-              {COND.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
+              {C.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="2" width="16" height="10" rx="2" fill="var(--ink-soft)" opacity="0.38" /><line x1="17" x2="17" y1="0" y2="14" stroke="var(--ink)" strokeWidth="2.5" /></svg>median conditional change</span>
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 10, height: 10, borderRadius: 5, border: "2px solid var(--ink-soft)", background: "var(--panel)" }}></span>no search evidence</span>
               {q.valueKind === "percentiles" && <PctLegend label="median, 25th–75th, 10th–90th percentile" />}
               <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={() => setShowTable(!showTable)}>{showTable ? "hide table" : "show table"}</button>
             </div>
-            {showTable && <div style={{ marginTop: 12 }}><CondDeltaTable cell={cell} /></div>}
-            {q.valueKind === "loss" && <CountingWindow info={COND.instrumentInfo} horizon={hz} />}
+            {showTable && <div style={{ marginTop: 12 }}><CondDeltaTable cell={cell} ctx={C} /></div>}
+            {q.valueKind === "loss" && <CountingWindow info={C.instrumentInfo} horizon={hz} />}
           </Panel>
 
-          <CondText cond={cond} conditioning={COND.conditioning} />
+          <CondText cond={cond} conditioning={C.conditioning} />
         </div>
       </div>
     </React.Fragment>
@@ -3573,14 +3574,16 @@ function EciTrendChart({ eci, variants, active, onPick }) {
 }
 
 /* ============================ the panel ============================ */
-function CapabilityPanel({ onDefinitions }) {
-  const variants = (CAP && CAP.variants || []).filter(v => v.questions && v.questions.length);
-  if (!CAP || !variants.length) {
+function CapabilityPanel({ onDefinitions, ctx }) {
+  // `ctx`: a blob of CAP's shape in its place (the welfare page's prompt toggle).
+  const CP = ctx || CAP;
+  const variants = (CP && CP.variants || []).filter(v => v.questions && v.questions.length);
+  if (!CP || !variants.length) {
     return <ForecastUnavailable title="Forecasts conditional on AI capability" onDefinitions={onDefinitions} />;
   }
   // ?cap=<variant>&q=<question id>&h=<horizon> deep-links a chart.
   const params = new URLSearchParams(typeof location !== "undefined" ? location.search : "");
-  const [vkey, setVkey] = useState(variants.some(v => v.key === params.get("cap")) ? params.get("cap") : (CAP.defaultVariant || variants[0].key));
+  const [vkey, setVkey] = useState(variants.some(v => v.key === params.get("cap")) ? params.get("cap") : (CP.defaultVariant || variants[0].key));
   const V = variants.find(v => v.key === vkey) || variants[0];
   const Q = V.questions;
   const [qid, setQid] = useState(Q.some(x => x.id === params.get("q")) ? params.get("q") : Q[0].id);
@@ -3590,7 +3593,7 @@ function CapabilityPanel({ onDefinitions }) {
   const q = Q.find(x => x.id === qid) || Q[0];
   const hz = q.horizons.includes(horizon) ? horizon : q.horizons[0];
   const cell = q.byHorizon[hz];
-  const eci = CAP.eci;
+  const eci = CP.eci;
 
   return (
     <React.Fragment>
@@ -3598,7 +3601,7 @@ function CapabilityPanel({ onDefinitions }) {
         <h2 style={{ fontSize: 22, marginTop: 0, marginBottom: 6 }}>How does the forecast depend on the pace of AI progress?</h2>
         <p style={{ color: "var(--ink-soft)", fontSize: 13.5, maxWidth: 820, margin: 0 }}>
           Models' forecasts of frontier <a href="https://epoch.ai/benchmarks/eci" target="_blank" rel="noopener"
-          style={{ color: "var(--link)" }}>Epoch Capabilities Index</a>, along with {CAP.subject || "risks"} conditional on those ECI scores.
+          style={{ color: "var(--link)" }}>Epoch Capabilities Index</a>, along with {CP.subject || "risks"} conditional on those ECI scores.
         </p>
       </Panel>
 
@@ -3617,7 +3620,7 @@ function CapabilityPanel({ onDefinitions }) {
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
           <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 18, height: 2, background: "var(--ink)" }}></span>Frontier ECI</span>
           <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="14" height="18" viewBox="0 0 14 18"><rect x="1.5" y="2" width="11" height="14" rx="2" fill="var(--ink)" fillOpacity="0.14" stroke="var(--ink)" strokeOpacity="0.75" strokeWidth="1.5" /><line x1="1.5" x2="12.5" y1="9" y2="9" stroke="var(--ink)" strokeWidth="2.5" /></svg>Ensemble's ECI percentiles</span>
-          {CAP && CAP.leap && <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="14" height="18" viewBox="0 0 14 18"><rect x="1.5" y="2" width="11" height="14" rx="2" fill="var(--panel)" stroke="var(--ink)" strokeOpacity="0.75" strokeWidth="1.5" strokeDasharray="3 2" /><path d="M7,5L11,9L7,13L3,9Z" fill="var(--ink)" /></svg><span>LEAP supers (<a href={CAP.leap.url}>Wave 5</a>)</span></span>}
+          {CP && CP.leap && <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="14" height="18" viewBox="0 0 14 18"><rect x="1.5" y="2" width="11" height="14" rx="2" fill="var(--panel)" stroke="var(--ink)" strokeOpacity="0.75" strokeWidth="1.5" strokeDasharray="3 2" /><path d="M7,5L11,9L7,13L3,9Z" fill="var(--ink)" /></svg><span>LEAP supers (<a href={CP.leap.url}>Wave 5</a>)</span></span>}
           <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 18, height: 10, background: "var(--ink-faint)", opacity: 0.25 }}></span><span>ECI trend (<a href={eci.trend.url}>Peter Wildeford</a>)</span></span>
         </div>
       </Panel>
@@ -3633,7 +3636,7 @@ function CapabilityPanel({ onDefinitions }) {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
               <div style={{ minWidth: 0 }}>
                 <h2 style={{ fontSize: 22, marginTop: 0, marginBottom: 4 }}>{q.heading || q.short} — by {hz}</h2>
-                <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{CAP.subject ? "Forecasts" : "Risk"} conditional on each model's own estimates for frontier ECI on {capFmtDate(V.targetDate)}.</div>
+                <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>{CP.subject ? "Forecasts" : "Risk"} conditional on each model's own estimates for frontier ECI on {capFmtDate(V.targetDate)}.</div>
               </div>
               <div style={{ flexShrink: 0 }}>
                 <Toggle options={q.horizons.map(h => ({ key: h, label: "by " + h }))} value={hz} onChange={setHorizon} />

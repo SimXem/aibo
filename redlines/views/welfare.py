@@ -193,31 +193,18 @@ def _graph1(questions, pooled, labels, colors, rows, groups):
             "questions": out if rows else []}
 
 
-def build(log_path=None, set_path=None):
-    """{blob name: blob} for welfare.html (web/welfare/manifest.json)."""
-    spec = json.load(open(set_path or SET))
-    qspec = json.load(open(REPO_ROOT / spec["questions"]))
-    experiment = load_experiment(EXPERIMENT)
-    all_rows, proto, days = _rows(log_path or LOG, spec, experiment)
-    rows = [r for r in all_rows if days and _day(r) == days[-1]]
-    colors = dict(model_colors())
-    labels = [l for l, _ in model_colors() if l in {r["label"] for r in rows}]
+def _panels(rows, spec, qspec, colors, labels, proto, eci_history):
+    """GRAPH1, CONDITIONAL and the capability variant from one day's `rows`:
+    all five prompts' (their mean) or one prompt's."""
     pooled = _pooled(rows)
     questions = qspec["questions"]
-
     el = spec["elicit"]
     calls = defaultdict(dict)
     for r in rows:
         if (r.get("elicited") or {}).get(el["key"]):
             calls[r["label"]][r["call_id"]] = r["elicited"][el["key"]]
     eci = {l: {f: _r(st.mean(c[f] for c in calls[l].values()), 2) for f in el["fields"]} for l in labels if calls[l]}
-    targets = sorted({(r.get("elicited") or {}).get("target_date") for r in rows} - {None})
-    target = targets[-1] if targets else None
-    # The set's texts as the run's prompt filled them (run_unified.resolve_set).
-    if target:
-        t = date.fromisoformat(target)
-        spec = json.loads(json.dumps(spec).replace("{target_date}", f"{t:%B} {t.day}, {t.year}"))
-
+    target = max(((r.get("elicited") or {}).get("target_date") for r in rows), default=None, key=lambda d: d or "")
     common = {"protocol": proto, "runs": sorted({r["run_id"] for r in rows}), "rows": len(rows),
               "repeats": {l: len({r["call_id"] for r in rows if r["label"] == l}) for l in labels},
               "models": [{"label": l, "color": colors.get(l)} for l in labels],
@@ -232,7 +219,6 @@ def build(log_path=None, set_path=None):
                    "questions": _cells(questions, pooled, labels, colors,
                                        [{"id": c["id"], "label": c["label"], "leapId": c["leap_id"]}
                                         for c in policy["conditions"]]) if rows else []}
-
     # The capability rows' sub-line is the level each named (median over the
     # day's calls), and their labels the Capability tab's own.
     cap = group_view(spec, "capability")
@@ -242,24 +228,50 @@ def build(log_path=None, set_path=None):
                        "field": c["field"], "assume": c["assume"], "description": el["text"],
                        "levels": {l: eci.get(l, {}).get(c["field"]) for l in labels}}
                       for c in cap["conditions"]]
-    trend = capability._trend([target])["at"].get(target) if target else None
-    aibo_cap = capability.build()
     variant = {**common, "key": "6mo", "label": "6 months", "targetDate": target,
                "conditioning": cap["conditioning"], "conditions": cap_conditions,
                "questions": _cells(questions, pooled, labels, colors, cap_conditions),
                "forecast": {"models": [{"label": l, "color": colors.get(l), **eci[l],
                                         "n": len(calls[l])} for l in labels if l in eci],
                             "ensemble": {f: _median(eci[l][f] for l in eci) for f in el["fields"]},
-                            "trend": trend}}
+                            "trend": capability._trend([target])["at"].get(target) if target else None}}
+    graph1 = _graph1(questions, pooled, labels, colors, rows, qspec["groups"])
+    capability_ = {**eci_history, "subject": "forecasts", "variants": [variant] if rows else [], "defaultVariant": "6mo"}
+    return graph1, conditional, capability_
+
+
+def build(log_path=None, set_path=None):
+    """{blob name: blob} for welfare.html (web/welfare/manifest.json). GRAPH1,
+    CONDITIONAL and CAPABILITY are the five prompts' mean, each with
+    `byPrompt`: the same blob from one prompt's calls, which the page's
+    prompt toggle shows."""
+    spec = json.load(open(set_path or SET))
+    qspec = json.load(open(REPO_ROOT / spec["questions"]))
+    experiment = load_experiment(EXPERIMENT)
+    all_rows, proto, days = _rows(log_path or LOG, spec, experiment)
+    rows = [r for r in all_rows if days and _day(r) == days[-1]]
+    colors = dict(model_colors())
+    labels = [l for l, _ in model_colors() if l in {r["label"] for r in rows}]
+    targets = sorted({(r.get("elicited") or {}).get("target_date") for r in rows} - {None})
+    # The set's texts as the run's prompt filled them (run_unified.resolve_set).
+    if targets:
+        t = date.fromisoformat(targets[-1])
+        spec = json.loads(json.dumps(spec).replace("{target_date}", f"{t:%B} {t.day}, {t.year}"))
+    # AIRO's frontier ECI history, trend and LEAP's ECI forecast, beside the
+    # welfare day's own forecast and conditions.
+    aibo_cap = capability.build()
+    eci_history = {"eci": aibo_cap["eci"], "leap": aibo_cap["leap"]}
+    graph1, conditional, cap = _panels(rows, spec, qspec, colors, labels, proto, eci_history)
+    for cid in experiment["pooled"]:
+        one = _panels([r for r in rows if r["condition"] == cid], spec, qspec, colors, labels, proto, eci_history)
+        for blob, part in zip((graph1, conditional, cap), one):
+            blob.setdefault("byPrompt", {})[cid] = part
 
     return {
-        "TIMELINE": _timeline(questions, all_rows, days, labels, colors, experiment),
-        "GRAPH1": _graph1(questions, pooled, labels, colors, rows, qspec["groups"]),
+        "TIMELINE": _timeline(qspec["questions"], all_rows, days, labels, colors, experiment),
+        "GRAPH1": graph1,
         "CONDITIONAL": conditional,
-        # AIRO's frontier ECI history, trend and LEAP's ECI forecast, with
-        # the welfare day's own forecast and conditions.
-        "CAPABILITY": {"eci": aibo_cap["eci"], "leap": aibo_cap["leap"], "subject": "forecasts",
-                       "variants": [variant] if rows else [], "defaultVariant": "6mo"},
+        "CAPABILITY": cap,
         "METHOD": method.build(today=date.fromisoformat(days[-1]) if days else None,
                                experiment=EXPERIMENT, rows=rows),
         "RATIONALES": rationales.build(rows=[r for r in all_rows if r.get("scenario") is None]),

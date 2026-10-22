@@ -342,33 +342,35 @@ function CondText({ cond, conditioning, labels }) {
 }
 
 
-function ConditionalPanel() {
-  if (!COND || !COND.questions.length) {
+function ConditionalPanel({ ctx } = {}) {
+  // `ctx`: a blob of COND's shape in its place (the welfare page's prompt toggle).
+  const C = ctx || COND;
+  if (!C || !C.questions.length) {
     return <ForecastUnavailable title="Forecasts conditional on policies" />;
   }
   // ?q=<question id>&h=<horizon> deep-links a chart.
   const params = new URLSearchParams(typeof location !== "undefined" ? location.search : "");
-  const [qid, setQid] = useState(COND.questions.some(x => x.id === params.get("q")) ? params.get("q") : COND.questions[0].id);
-  const [horizon, setHorizon] = useState(COND.horizons.includes(params.get("h")) ? params.get("h") : COND.defaultHorizon);
+  const [qid, setQid] = useState(C.questions.some(x => x.id === params.get("q")) ? params.get("q") : C.questions[0].id);
+  const [horizon, setHorizon] = useState(C.horizons.includes(params.get("h")) ? params.get("h") : C.defaultHorizon);
   const [picked, setPicked] = useState(null);
   const [showTable, setShowTable] = useState(false);
-  const Q = COND.questions;
+  const Q = C.questions;
 
   const q = Q.find(x => x.id === qid) || Q[0];
   const hz = q.horizons.includes(horizon) ? horizon : q.horizons[0];
   const cell = q.byHorizon[hz];
-  const cond = COND.conditions.find(c => c.id === picked);
+  const cond = C.conditions.find(c => c.id === picked);
 
   return (
     <React.Fragment>
       <Panel style={{ padding: "16px 22px", marginBottom: 18 }}>
         <h2 style={{ fontSize: 22, marginTop: 0, marginBottom: 6 }}>How would policies change the forecast?</h2>
         <p style={{ color: "var(--ink-soft)", fontSize: 13.5, maxWidth: 820, margin: "0 0 6px" }}>
-          How would these forecasts change if certain policies were enacted, effective immediately? (These questions come from the {COND.source.panel} {COND.source.wave} survey, currently underway with human respondents.)
+          How would these forecasts change if certain policies were enacted, effective immediately? (These questions come from the {C.source.panel} {C.source.wave} survey, currently underway with human respondents.)
         </p>
         <p style={{ color: "var(--ink-faint)", fontSize: 12.5, margin: 0 }}>
-          Run {COND.runs.join(", ")} · {COND.rows} rows · {Object.keys(COND.repeats || {}).length} models × {Object.values(COND.repeats || {})[0] || "?"} repeats
-          {COND.instrument && COND.instrument.group ? " · elicited in one call with the capability conditions (" + COND.protocol + ")" : ""}
+          Run {C.runs.join(", ")} · {C.rows} rows · {Object.keys(C.repeats || {}).length} models × {Object.values(C.repeats || {})[0] || "?"} repeats
+          {C.instrument && C.instrument.group ? " · elicited in one call with the capability conditions (" + C.protocol + ")" : ""}
         </p>
       </Panel>
 
@@ -398,24 +400,24 @@ function ConditionalPanel() {
             {cell.note && <div style={{ fontSize: 12.5, color: "var(--warn-ink)", background: "var(--warn-bg)", border: "1px solid var(--warn-line)", borderRadius: 8, padding: "6px 10px", margin: "12px 0 0" }}>{cell.note}.</div>}
 
             <div style={{ marginTop: 14 }}>
-              <CondDeltaChart cell={cell} picked={picked} onPick={id => setPicked(picked === id ? null : id)}
+              <CondDeltaChart cell={cell} ctx={C} picked={picked} onPick={id => setPicked(picked === id ? null : id)}
                 axisValues={q.valueKind === "loss"
                   ? Q.filter(x => x.valueKind === "loss").flatMap(x => x.horizons.flatMap(h => condAxisValues(x.byHorizon[h])))
                   : q.horizons.flatMap(h => condAxisValues(q.byHorizon[h]))} />
             </div>
 
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
-              {COND.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
+              {C.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="2" width="16" height="10" rx="2" fill="var(--ink-soft)" opacity="0.38" /><line x1="17" x2="17" y1="0" y2="14" stroke="var(--ink)" strokeWidth="2.5" /></svg>median conditional change</span>
               <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 10, height: 10, borderRadius: 5, border: "2px solid var(--ink-soft)", background: "var(--panel)" }}></span>no search evidence</span>
               {q.valueKind === "percentiles" && <PctLegend label="median, 25th–75th, 10th–90th percentile" />}
               <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={() => setShowTable(!showTable)}>{showTable ? "hide table" : "show table"}</button>
             </div>
-            {showTable && <div style={{ marginTop: 12 }}><CondDeltaTable cell={cell} /></div>}
-            {q.valueKind === "loss" && <CountingWindow info={COND.instrumentInfo} horizon={hz} />}
+            {showTable && <div style={{ marginTop: 12 }}><CondDeltaTable cell={cell} ctx={C} /></div>}
+            {q.valueKind === "loss" && <CountingWindow info={C.instrumentInfo} horizon={hz} />}
           </Panel>
 
-          <CondText cond={cond} conditioning={COND.conditioning} />
+          <CondText cond={cond} conditioning={C.conditioning} />
         </div>
       </div>
     </React.Fragment>
