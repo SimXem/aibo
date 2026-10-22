@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AIRO (Automated AI Risk Outlook)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="preload" href="web/fonts/SeasonSans-Regular.woff2" as="font" type="font/woff2" crossorigin />
+<style>
+  /* FRI brand (2026-09-08; "FRI _ Brand Guidelines.pdf", Communications
+     resources / Brand assets): Season Sans for text, DM Mono for the
+     eyebrows, tags and figures, the stone ground, and the brand's green and
+     orange as the two highlight colours. Season Sans is licensed, so it is
+     self-hosted from web/fonts/; DM Mono is a Google font. The chart series
+     tokens (--model, --super, --dash, --hybrid) and the ink scale are
+     unchanged from the GitHub Light palette chosen 2026-09-02: the charts
+     were explicitly out of scope for the rebrand. */
+  @font-face { font-family: "Season Sans"; src: url("web/fonts/SeasonSans-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+  @font-face { font-family: "Season Sans"; src: url("web/fonts/SeasonSans-Medium.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+  @font-face { font-family: "Season Sans"; src: url("web/fonts/SeasonSans-SemiBold.woff2") format("woff2"); font-weight: 600 800; font-style: normal; font-display: swap; }
+  :root {
+    --bg: #f6f8f1;            /* FRI stone */
+    --panel: #ffffff;
+    --ink: #1f2328;
+    --ink-soft: #57606a;
+    --ink-faint: #6e7781;
+    --line: #d0d7de;
+    --line-soft: #eaeef2;
+    --model: #bc4c00;
+    --super: #0969da;
+    /* Graph 3's third series: the models this dashboard actually runs. Green
+       reads as "ours" against the 2024 crowd (warm) and the humans (cool). */
+    --dash: #1a7f37;
+    --hybrid: #8250df;
+    /* The two brand highlights. --link is FRI's mid-dark green (#115633), the
+       darkest green tint the guidelines offer, so 12-13px link text stays
+       legible on stone; the warn-* band is the brand orange (#E96B26) with a
+       tint of the light orange (#FFA575) as its ground. */
+    --link: #115633;
+    --accent-green: #115633;
+    --accent-orange: #e96b26;
+    --warn-bg: #fdeee2;
+    --warn-ink: #c4561b;
+    --warn-line: #e96b26;
+    --shadow: 0 1px 2px rgba(16, 43, 35, 0.06), 0 6px 20px rgba(16, 43, 35, 0.05);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Season Sans", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  #root { max-width: 1180px; margin: 0 auto; padding: 32px 28px 72px; }
+  h1, h2, h3 { font-family: "Season Sans", system-ui, sans-serif; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+  .mono { font-family: "DM Mono", ui-monospace, monospace; }
+  button { font-family: inherit; }
+  .rationale-controls { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+  .rationale-controls label { display: flex; flex-direction: column; gap: 5px; min-width: 0; max-width: 100%; font-size: 12px; color: var(--ink-soft); }
+  .rationale-controls select { appearance: none; font: inherit; font-size: 13px; color: var(--ink); background-color: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 32px 8px 12px; max-width: 100%; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='m1 1 5 5 5-5' fill='none' stroke='%2357606a' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+  .rationale-controls select:hover { border-color: var(--accent-green); }
+  .rationale-controls select:focus-visible { outline: 2px solid var(--accent-green); outline-offset: 2px; }
+
+  a { color: var(--link); }
+  /* The FRI lockup, top left of the header (brand guidelines: dark green on stone; minimum 70px wide). */
+  .brand-logo { display: block; width: 231px; max-width: 70vw; height: auto; color: #102b23; margin-bottom: 22px; }
+  .linkbtn { background: none; border: none; color: var(--link); cursor: pointer; font-size: inherit; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+  /* The Timeline panel's "show as table" view (19-live-timeline.jsx). */
+  table.tv { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  table.tv th, table.tv td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+  table.tv th:first-child, table.tv td:first-child { text-align: left; }
+  table.tv thead th { color: var(--ink-faint); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+  /* The FAQ tab (79-faq.jsx): collapsed questions, each a row; figures
+     inside an answer sit on a stone ground. Green on hover and orange on
+     the open chevron are the brand's two highlight colors. */
+  .faq { max-width: 860px; }
+  .faq-item { border-top: 1px solid var(--line); }
+  .faq-q { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 16px; text-align: left;
+    background: none; border: none; cursor: pointer; padding: 15px 2px; font: inherit; font-size: 16px; font-weight: 600; color: var(--ink); line-height: 1.35; }
+  .faq-q:hover { color: var(--accent-green); }
+  .faq-chev { flex: none; width: 15px; height: 15px; color: var(--ink-faint); transition: transform 0.15s ease; }
+  .faq-item.open > .faq-q .faq-chev { transform: rotate(180deg); color: var(--accent-orange); }
+  .faq-a { padding: 0 2px 22px; font-size: 14.5px; line-height: 1.6; color: var(--ink-soft); }
+  .faq-a p { margin: 0 0 12px; }
+  .faq-a p:last-child { margin-bottom: 0; }
+  .faq-fig { margin: 16px 0 18px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+  .faq-img { margin: 16px 0 18px; }
+  .faq-img img { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); background: white; }
+  .faq-img figcaption { font-size: 12px; color: var(--ink-faint); margin-top: 6px; }
+  /* A disclosure inside an answer (the full prompt), and the prompt text itself. */
+  .faq-sub { margin: 14px 0 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+  .faq-sub-q { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left;
+    background: none; border: none; cursor: pointer; padding: 10px 14px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+  .faq-sub-q:hover { color: var(--accent-green); }
+  .faq-sub-q .faq-chev { width: 13px; height: 13px; }
+  .faq-sub.open .faq-chev { transform: rotate(180deg); color: var(--accent-orange); }
+  .faq-sub-a { padding: 0 14px 14px; }
+  .faq-pre { font-family: "DM Mono", ui-monospace, monospace; font-size: 11.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
+    background: var(--panel); border: 1px solid var(--line-soft); border-radius: 8px; padding: 12px 14px; margin: 6px 0 12px; max-height: 520px; overflow: auto; color: var(--ink); }
+  .faq-pre:last-child { margin-bottom: 0; }
+  /* Phones (2026-08-27). The page must never scroll sideways: rail grids
+     collapse to one column under 760px (minmax(0,1fr) so a chart can never
+     widen its column), the root padding tightens, and the details modal's
+     two-column rows stack. Charts handle their own width — see
+     web/shared/responsive.jsx. */
+  @media (max-width: 640px) { #root { padding: 16px 12px 56px; } }
+  .rail-grid { display: grid; grid-template-columns: 252px minmax(0, 1fr); gap: 24px; align-items: start; }
+  @media (max-width: 760px) { .rail-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; } }
+  .modal-grid { display: grid; grid-template-columns: 180px 1fr; gap: 12px; }
+  @media (max-width: 560px) { .modal-grid { grid-template-columns: 1fr; gap: 4px; } }
+</style>
+<link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/dist/tippy.css" />
+<link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/themes/light-border.css" />
+<!-- Visitor analytics (2026-09-11): who reaches the page, where from, which
+     country. Plausible rather than GA because it sets no cookies and stores
+     no personal data, so the page needs no consent banner and no privacy
+     policy it does not have. The site is identified by the script filename,
+     so there is no domain attribute to keep in sync. -->
+<script async src="https://plausible.io/js/pa-3u4Edz2m1_b6GvluJUp0Y.js"></script>
+<script>
+  window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+  plausible.init()
+</script>
+<!--GRAPH4_DATA--><!--/GRAPH4_DATA-->
+<!--TIMELINE_DATA--><!--/TIMELINE_DATA-->
+<!--GRAPH1_DATA--><!--/GRAPH1_DATA-->
+<!--GRAPH2_DATA--><!--/GRAPH2_DATA-->
+<!--DATABANK_DATA--><!--/DATABANK_DATA-->
+<!--GRAPH3_DATA--><!--/GRAPH3_DATA-->
+<!--CONDITIONAL_DATA--><!--/CONDITIONAL_DATA-->
+<!--CAPABILITY_DATA-->
+<script>window.__CAPABILITY__ = {"title": "Forecasts conditional on AI capability", "instrumentInfo": {"version": "airo-incidents-prospective-v3", "available": false, "runDate": null, "countingWindows": {}}, "generatedAt": null, "eci": {"csvDate": "2026-09-10", "definition": "Epoch AI's Capabilities Index: one score per model across dozens of benchmarks, fit with an item-response model. Frontier ECI = the highest score of any released model from a US developer.", "history": [{"date": "2024-02-29", "score": 126.9, "model": "Claude 3 Opus"}, {"date": "2024-04-09", "score": 127.25, "model": "GPT-4 Turbo (Apr 2024)"}, {"date": "2024-05-13", "score": 128.98, "model": "GPT-4o (May 2024)"}, {"date": "2024-06-20", "score": 130.0, "model": "Claude 3.5 Sonnet (Jun 2024)"}, {"date": "2024-09-12", "score": 135.84, "model": "o1-mini (high)"}, {"date": "2024-12-17", "score": 141.9, "model": "o1 (high)"}, {"date": "2025-03-31", "score": 144.2, "model": "Gemini 2.5 Pro Preview (Mar 2025)"}, {"date": "2025-04-16", "score": 146.91, "model": "o3 (high)"}, {"date": "2025-06-10", "score": 147.46, "model": "o3-pro"}, {"date": "2025-08-07", "score": 150.0, "model": "GPT-5 (low)"}, {"date": "2025-10-07", "score": 150.3, "model": "GPT-5 Pro"}, {"date": "2025-11-18", "score": 152.94, "model": "Gemini 3 Pro Preview"}, {"date": "2025-12-11", "score": 155.3, "model": "GPT-5.2 Pro"}, {"date": "2026-02-05", "score": 156.4, "model": "GPT-5.3 Codex (high)"}, {"date": "2026-03-05", "score": 158.89, "model": "GPT-5.4 Pro (xhigh)"}, {"date": "2026-04-23", "score": 159.23, "model": "GPT-5.5 (xhigh)"}, {"date": "2026-04-23", "score": 162.03, "model": "GPT-5.5 Pro (xhigh)"}, {"date": "2026-06-09", "score": 162.9, "model": "Claude Fable 5 (max)"}, {"date": "2026-09-03", "score": 169.2, "model": "GPT-6 Astra (high)"}], "latest": {"date": "2026-09-03", "score": 169.2, "model": "GPT-6 Astra (high)"}, "trend": {"source": "METR graph's live ECI trend, linear default", "url": "https://metrgraph.streamlit.app/?tab=eci", "dataDate": "2026-09-10", "fit": {"n_frontier": 19, "pts_per_year": 16.3, "pts_per_year_ci80": [8.2, 32.6], "anchor": {"model": "GPT-6 Astra (high)", "date": "2026-09-03", "score": 169.2}, "fitted_trend_score_at_anchor": 167.31, "start_sd": 0.78}, "curve": [{"date": "2026-09-03", "p25": 166.8, "p50": 167.3, "p75": 167.8}, {"date": "2026-10-01", "p25": 168.0, "p50": 168.7, "p75": 169.4}, {"date": "2026-11-01", "p25": 169.1, "p50": 170.0, "p75": 171.3}, {"date": "2026-12-01", "p25": 170.0, "p50": 171.4, "p75": 173.2}, {"date": "2027-01-01", "p25": 171.0, "p50": 172.7, "p75": 175.1}, {"date": "2027-02-01", "p25": 172.0, "p50": 174.1, "p75": 177.1}, {"date": "2027-03-01", "p25": 172.9, "p50": 175.4, "p75": 178.9}, {"date": "2027-04-01", "p25": 173.9, "p50": 176.8, "p75": 180.9}, {"date": "2027-05-01", "p25": 174.8, "p50": 178.1, "p75": 182.8}, {"date": "2027-06-01", "p25": 175.8, "p50": 179.5, "p75": 184.8}, {"date": "2027-07-01", "p25": 176.7, "p50": 180.8, "p75": 186.7}, {"date": "2027-08-01", "p25": 177.7, "p50": 182.2, "p75": 188.7}, {"date": "2027-09-01", "p25": 178.6, "p50": 183.6, "p75": 190.7}, {"date": "2027-10-01", "p25": 179.6, "p50": 184.9, "p75": 192.7}, {"date": "2027-11-01", "p25": 180.6, "p50": 186.3, "p75": 194.6}, {"date": "2027-12-01", "p25": 181.5, "p50": 187.7, "p75": 196.6}, {"date": "2028-01-01", "p25": 182.5, "p50": 189.1, "p75": 198.6}, {"date": "2028-02-01", "p25": 183.4, "p50": 190.5, "p75": 200.6}, {"date": "2028-03-01", "p25": 184.3, "p50": 191.8, "p75": 202.4}, {"date": "2028-04-01", "p25": 185.3, "p50": 193.1, "p75": 204.4}, {"date": "2028-05-01", "p25": 186.2, "p50": 194.5, "p75": 206.4}, {"date": "2028-06-01", "p25": 187.2, "p50": 195.9, "p75": 208.4}, {"date": "2028-07-01", "p25": 188.1, "p50": 197.2, "p75": 210.3}, {"date": "2028-08-01", "p25": 189.1, "p50": 198.6, "p75": 212.3}, {"date": "2028-09-01", "p25": 190.1, "p50": 200.0, "p75": 214.3}, {"date": "2028-10-01", "p25": 191.0, "p50": 201.3, "p75": 216.2}, {"date": "2028-11-01", "p25": 192.0, "p50": 202.7, "p75": 218.2}, {"date": "2028-12-01", "p25": 192.9, "p50": 204.1, "p75": 220.1}, {"date": "2029-01-01", "p25": 193.9, "p50": 205.5, "p75": 222.1}, {"date": "2029-02-01", "p25": 194.9, "p50": 206.9, "p75": 224.1}, {"date": "2029-03-01", "p25": 195.7, "p50": 208.1, "p75": 225.9}, {"date": "2029-04-01", "p25": 196.7, "p50": 209.5, "p75": 227.9}, {"date": "2029-05-01", "p25": 197.6, "p50": 210.8, "p75": 229.9}, {"date": "2029-06-01", "p25": 198.6, "p50": 212.2, "p75": 231.9}, {"date": "2029-07-01", "p25": 199.5, "p50": 213.6, "p75": 233.8}, {"date": "2029-08-01", "p25": 200.5, "p50": 215.0, "p75": 235.8}, {"date": "2029-09-01", "p25": 201.5, "p50": 216.4, "p75": 237.8}, {"date": "2029-10-01", "p25": 202.4, "p50": 217.7, "p75": 239.7}, {"date": "2029-11-01", "p25": 203.4, "p50": 219.1, "p75": 241.7}, {"date": "2029-12-01", "p25": 204.3, "p50": 220.4, "p75": 243.7}, {"date": "2030-01-01", "p25": 205.3, "p50": 221.8, "p75": 245.7}, {"date": "2030-02-01", "p25": 206.3, "p50": 223.2, "p75": 247.7}, {"date": "2030-03-01", "p25": 207.1, "p50": 224.5, "p75": 249.5}, {"date": "2030-04-01", "p25": 208.1, "p50": 225.9, "p75": 251.4}, {"date": "2030-05-01", "p25": 209.0, "p50": 227.2, "p75": 253.4}, {"date": "2030-06-01", "p25": 210.0, "p50": 228.6, "p75": 255.4}, {"date": "2030-07-01", "p25": 210.9, "p50": 229.9, "p75": 257.3}, {"date": "2030-08-01", "p25": 211.9, "p50": 231.3, "p75": 259.3}, {"date": "2030-09-01", "p25": 212.9, "p50": 232.7, "p75": 261.3}, {"date": "2030-10-01", "p25": 213.8, "p50": 234.1, "p75": 263.2}, {"date": "2030-11-01", "p25": 214.8, "p50": 235.4, "p75": 265.2}, {"date": "2030-12-01", "p25": 215.7, "p50": 236.8, "p75": 267.2}, {"date": "2030-12-31", "p25": 216.7, "p50": 238.1, "p75": 269.1}], "at": {}}}, "leap": {"kind": "leap", "wave": "Wave 5: Security and Geopolitics", "question": "U.S. versus China Polarity", "dimension": "United States", "what": "the top-performing American AI system's score on the Epoch Capabilities Index", "text": "What scores will the top-performing American AI system and top-performing Chinese AI system have on the Epoch Capabilities Index at the following resolution dates (Dec 31, 2026, Dec 31, 2030, and Dec 31, 2040)?\n", "fielded": ["2026-01-12", "2026-02-03"], "url": "https://leap.forecastingresearch.org/reports/wave5", "percentiles": [25, 50, 75], "shown": "superforecaster", "dates": {"2026-12-31": {"expert": {"n": 240, "p25": 160.0, "p50": 165.0, "p75": 172.4}, "public": {"n": 698, "p25": 155.8, "p50": 160.6, "p75": 168.0}, "superforecaster": {"n": 55, "p25": 161.0, "p50": 169.0, "p75": 176.0}}, "2030-12-31": {"expert": {"n": 240, "p25": 175.0, "p50": 190.0, "p75": 202.4}, "public": {"n": 701, "p25": 161.5, "p50": 170.0, "p75": 176.8}, "superforecaster": {"n": 55, "p25": 185.0, "p50": 205.0, "p75": 240.0}}, "2040-12-31": {"expert": {"n": 240, "p25": 200.0, "p50": 240.0, "p75": 280.0}, "public": {"n": 702, "p25": 170.0, "p50": 180.0, "p75": 190.0}, "superforecaster": {"n": 55, "p25": 225.0, "p50": 310.0, "p75": 400.0}}}, "scale": "the index as it stood when the wave was fielded (anchors: Claude 3.5 Sonnet 130, GPT-5 150), the same anchors as the CSV of 2026-08-21; Epoch notes scores can shift retroactively as models and benchmarks are added."}, "variants": [{"key": "combined", "label": "six months out", "instrumentInfo": {"version": "airo-incidents-prospective-v3", "available": false, "runDate": null, "countingWindows": {}}, "instrument": {"set": "data/combined_conditions.json", "group": "capability", "slug": "combined", "log": "results/conditional_runs_combined.jsonl"}, "targetDate": null, "targetMonths": 6, "title": "Policy and capability conditions in one instrument -- LEAP Wave 12 policies beside the self-elicited frontier ECI six months from the run date -- as the runner prepends them", "source": {"panel": null, "wave": "Frontier ECI 6 months from the run date, the model's own p10/p25/p50/p75/p90 (Epoch ECI snapshot of 2026-10-01)", "status": "no human panel; the model's percentiles are compared to the metr_graph projection at the run's own target date (code/analyze_eci_self.py)", "documents": ["data/epoch_capabilities_index_2026-10-01.csv"], "outcome_horizons": [], "policy_probability_horizons": [], "instrument": "LEAP Wave 12 policies + frontier ECI 6 months from the run date (the model's own p10/p25/p50/p75/p90)"}, "conditioning": {"instruction": "For each condition below, assume that the frontier ECI on {target_date} is approximately the value you gave for that percentile in eci_forecast (within about two points of it). Treat it as a fact you have learned about the world, not as an intervention: update your expectations about everything that would ordinarily accompany that level of capability -- investment, compute, algorithmic progress, deployment, and how governments and developers respond -- as you would upon learning it, and then forecast each question in that world. Do not hold other factors fixed where the stated level would change them.", "unconditional_forecast": "forecast the world as you expect it to unfold, including AI policies you expect to be implemented and whatever level of AI capability you expect to be reached by {target_date}.", "definitions": "Definitions. ECI: the Epoch Capabilities Index, published by Epoch AI -- a single score summarising a model's results across dozens of benchmarks, fit with an item-response model so that scores stay comparable as benchmarks saturate and new ones are added. Higher is more capable; the scale has no ceiling. All scores here are on the scale as published by Epoch on 2026-10-01.\nFrontier ECI: the highest ECI score of any publicly released model from a US developer, as scored by Epoch.\n\nFrontier ECI history -- every release by a US developer that set a new high, from GPT-4 on (Epoch's index of 2026-10-01, 270 models scored):\n  2023-03-14   125.9  GPT-4 (Mar 2023)\n  2024-01-25   126.5  GPT-4 Turbo (Nov 2023)\n  2024-02-29   126.9  Claude 3 Opus\n  2024-04-09   127.2  GPT-4 Turbo (Apr 2024)\n  2024-05-13   129.0  GPT-4o (May 2024)\n  2024-06-20   130.0  Claude 3.5 Sonnet\n  2024-09-12   134.8  o1-preview\n  2024-09-12   135.8  o1-mini\n  2024-12-17   141.9  o1\n  2025-03-31   144.2  Gemini 2.5 Pro (Mar 2025)\n  2025-04-16   145.6  o4-mini\n  2025-04-16   146.9  o3\n  2025-06-10   147.4  o3-pro\n  2025-08-07   150.0  GPT-5\n  2025-10-07   150.3  GPT-5 Pro\n  2025-11-18   152.9  Gemini 3 Pro\n  2025-12-11   153.5  GPT-5.2\n  2025-12-11   155.4  GPT-5.2 Pro\n  2026-02-05   156.8  GPT-5.3 Codex\n  2026-03-05   156.9  GPT-5.4\n  2026-03-05   159.1  GPT-5.4 Pro\n  2026-04-23   159.2  GPT-5.5\n  2026-04-23   162.4  GPT-5.5 Pro\n  2026-07-24   162.9  Claude Opus 5\n  2026-09-01   164.8  Claude Fable 5.1\n  2026-09-03   166.5  GPT-6 Astra\n  2026-09-22   167.3  Claude Opus 5.5\nAs of 2026-10-01 no released model has scored above Claude Opus 5.5, 167.3 (2026-09-22).", "horizon": "every condition is a level of the frontier ECI on {target_date}.", "assumption": "No policy condition applies here. As in the unconditional forecast, assume whatever AI policies you expect to be implemented -- not any of the conditions in the POLICY CONDITIONS section."}, "elicit": {"key": "eci_forecast", "fields": ["p10", "p25", "p50", "p75", "p90"], "percentiles": {"p10": 10, "p25": 25, "p50": 50, "p75": 75, "p90": 90}, "text": "Forecast the frontier ECI on {target_date}, on the scale above. Give your 10th, 25th, 50th, 75th and 90th percentiles as eci_forecast (p10, p25, p50, p75, p90; numbers, with p10 <= p25 <= p50 <= p75 <= p90): your 50th percentile is the value you think the frontier is equally likely to end up above or below, your 25th and 75th bracket the middle half of your distribution, and your 10th and 90th bracket the middle four-fifths."}, "conditions": [{"id": "eci_p10", "label": "Own 10th percentile", "promptLabel": "Frontier ECI 6 months from the run date = your 10th percentile", "leapId": null, "field": "p10", "assume": "Assume that on {target_date} the frontier ECI is approximately your 10th-percentile value from eci_forecast (within about two points of it).", "policy": null, "part": null, "level": null, "description": "Forecast the frontier ECI on {target_date}, on the scale above. Give your 10th, 25th, 50th, 75th and 90th percentiles as eci_forecast (p10, p25, p50, p75, p90; numbers, with p10 <= p25 <= p50 <= p75 <= p90): your 50th percentile is the value you think the frontier is equally likely to end up above or below, your 25th and 75th bracket the middle half of your distribution, and your 10th and 90th bracket the middle four-fifths."}, {"id": "eci_p25", "label": "Own 25th percentile", "promptLabel": "Frontier ECI 6 months from the run date = your 25th percentile", "leapId": null, "field": "p25", "assume": "Assume that on {target_date} the frontier ECI is approximately your 25th-percentile value from eci_forecast (within about two points of it).", "policy": null, "part": null, "level": null, "description": "Forecast the frontier ECI on {target_date}, on the scale above. Give your 10th, 25th, 50th, 75th and 90th percentiles as eci_forecast (p10, p25, p50, p75, p90; numbers, with p10 <= p25 <= p50 <= p75 <= p90): your 50th percentile is the value you think the frontier is equally likely to end up above or below, your 25th and 75th bracket the middle half of your distribution, and your 10th and 90th bracket the middle four-fifths."}, {"id": "eci_p50", "label": "Own median (50th)", "promptLabel": "Frontier ECI 6 months from the run date = your 50th percentile", "leapId": null, "field": "p50", "assume": "Assume that on {target_date} the frontier ECI is approximately your 50th-percentile value from eci_forecast (within about two points of it).", "policy": null, "part": null, "level": null, "description": "Forecast the frontier ECI on {target_date}, on the scale above. Give your 10th, 25th, 50th, 75th and 90th percentiles as eci_forecast (p10, p25, p50, p75, p90; numbers, with p10 <= p25 <= p50 <= p75 <= p90): your 50th percentile is the value you think the frontier is equally likely to end up above or below, your 25th and 75th bracket the middle half of your distribution, and your 10th and 90th bracket the middle four-fifths."}, {"id": "eci_p75", "label": "Own 75th percentile", "promptLabel": "Frontier ECI 6 months from the run date = your 75th percentile", "leapId": null, "field": "p75", "assume": "Assume that on {target_date} the frontier ECI is approximately your 75th-percentile value from eci_forecast (within about two points of it).", "policy": null, "part": null, "level": null, "description": "Forecast the frontier ECI on {target_date}, on the scale above. Give your 10th, 25th, 50th, 75th and 90th percentiles as eci_forecast (p10, p25, p50, p75, p90; numbers, with p10 <= p25 <= p50 <= p75 <= p90): your 50th percentile is the value you think the frontier is equally likely to end up above or below, your 25th and 75th bracket the middle half of your distribution, and your 10th and 90th bracket the middle four-fifths."}, {"id": "eci_p90", "label": "Own 90th percentile", "promptLabel": "Frontier ECI 6 months from the run date = your 90th percentile", "leapId": null, "field": "p90", "assume": "Assume that on {target_date} the frontier ECI is approximately your 90th-percentile value from eci_forecast (within about two points of it).", "policy": null, "part": null, "level": null, "description": "Forecast the frontier ECI on {target_date}, on the scale above. Give your 10th, 25th, 50th, 75th and 90th percentiles as eci_forecast (p10, p25, p50, p75, p90; numbers, with p10 <= p25 <= p50 <= p75 <= p90): your 50th percentile is the value you think the frontier is equally likely to end up above or below, your 25th and 75th bracket the middle half of your distribution, and your 10th and 90th bracket the middle four-fifths."}], "horizons": ["2030", "2050"], "defaultHorizon": "2030", "protocol": "unified-joint-combined-v12", "questions": [], "models": [], "runs": [], "experiments": [], "rows": 0, "repeats": {}, "forecast": {"models": [], "ensemble": null, "trend": null}, "notes": {"design": "Nick, 2026-08-28: one instrument covering the policy levers and the capability conditionals, never their product. Policy conditions are evaluated on the model's own median capability trajectory (its eci_p50); capability conditions under whatever policy the model expects unconditionally.", "baseline": "Each condition's delta is read against the same call's unconditional, as on both tabs. For a policy condition the like-for-like baseline is eci_p50 (same capability assumption); on 2026-08-28 every model's own-median world reproduced its unconditional (0.98-1.00x), so the two agree to within noise.", "authored": "conditioning.instruction, conditioning.unconditional_forecast and each group's assumption are ours; every other sentence is the component set's, verbatim. A policy item renders byte-identically to data/leap_policies.json's (tests/test_conditional.py).", "levels": "per call: the model's own eci_forecast values; the runner stamps condition.value with the number the condition refers to.", "conditioning": "policy: LEAP's exogenous-intervention clause; capability: a fact learned about the world (the component sets' own clauses, each in its own section).", "target": "run date + 6 months; the prompt's {target_date} is filled by run_unified.resolve_set with the same month arithmetic as the rolling horizons (day clamped to the month's length).", "cost": "222 cells x 14 keys = 3,108 probabilities per call (210 x 14 = 2,940 before the extinction pair, 2026-09-15), against 1,998 on the policy instrument and 1,332 on the capability one."}, "rungs": [{"short": "100", "label": "100 deaths", "deaths": 100.0}, {"short": "1k", "label": "1k deaths", "deaths": 1000.0}, {"short": "10k", "label": "10k deaths", "deaths": 10000.0}, {"short": "100k", "label": "100k deaths", "deaths": 100000.0}, {"short": "1M", "label": "1M deaths", "deaths": 1000000.0}, {"short": "10M", "label": "10M deaths", "deaths": 10000000.0}, {"short": "100M", "label": "100M deaths", "deaths": 100000000.0}, {"short": "1B", "label": "1B deaths", "deaths": 1000000000.0}, {"short": "extinction", "label": "human extinction (global population below 5,000)", "deaths": 8200000000.0}], "method": {"baseline": "Each model's own unconditional forecast, elicited in the same call as the conditionals (mean over the day's repeats).", "ensemble": "Median across models of the per-model change, not the change of the ensemble median.", "noise": "Band (drawn only when a day holds repeats of the same call): the unconditional forecast's own 95% CI when re-asked. Per model, a t-interval over its same-day repeats on the logit scale (log scale for an expected loss); the band is the median across models of those intervals, placed on the ensemble median. Since 2026-09-02 each model answers once per run, so no band is drawn.", "outside": "95% CI of the change (when a day holds repeats). Per model: a paired t-interval on the log of (conditional \u00f7 unconditional) over repeats of the same call. Ensemble: a bootstrap percentile interval for the median across models of those per-model means, resampling models and repeats.", "loss": "Sum over the deaths ladder's rungs of P(deaths \u2265 rung) \u00d7 (rung \u2212 previous rung): a floor under the forecast distribution for deaths (or equivalent morbidity). Small probabilities at extreme thresholds can dominate the estimate; the damages ladder is not folded.", "conditioning": "policy: LEAP's exogenous-intervention clause; capability: a fact learned about the world (the component sets' own clauses, each in its own section)."}}], "defaultVariant": "combined"};</script>
+<!--/CAPABILITY_DATA-->
+<!--AXES_DATA--><!--/AXES_DATA-->
+<!--OBSERVATIONAL_DATA--><!--/OBSERVATIONAL_DATA-->
+<!--CAUSAL_DATA--><!--/CAUSAL_DATA-->
+<!--METHOD_DATA--><!--/METHOD_DATA-->
+<!--RATIONALES_DATA--><!--/RATIONALES_DATA-->
+<!--WELFARE_DATA-->
+<script>window.__WELFARE__ = null;</script>
+<!--/WELFARE_DATA-->
+</head>
+<body>
+<div id="root"></div>
+
+<script
+  src="https://unpkg.com/react@18.3.1/umd/react.development.js"
+  integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L"
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"
+  integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm"
+  crossorigin="anonymous"
+></script>
+<script
+  src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"
+  integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y"
+  crossorigin="anonymous"
+></script>
+<script src="https://unpkg.com/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
+<script src="https://unpkg.com/tippy.js@6.3.7/dist/tippy-bundle.umd.min.js"></script>
+
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+/* ============================ atoms ============================ */
+function Panel({ children, style }) {
+  return <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 14, boxShadow: "var(--shadow)", ...style }}>{children}</div>;
+}
+function ForecastUnavailable({ title, onDefinitions }) {
+  return <Panel style={{ padding: 24, marginBottom: 24 }}>
+    <h2 style={{ fontSize: 22, margin: "0 0 8px" }}>{title}</h2>
+    <p style={{ fontSize: 13.5, color: "var(--ink-soft)", margin: 0 }}>Awaiting a complete four-model run under the revised counting rules.</p>
+    {onDefinitions && <button className="linkbtn" onClick={onDefinitions}>Definitions →</button>}
+  </Panel>;
+}
+function CountingWindow({ info, horizon }) {
+  const windows = ((info || {}).countingWindows || {})[horizon] || [];
+  if (!windows.length) return null;
+  return <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-soft)", marginTop: 8 }}>
+    {windows.map((w, i) => <div key={i}>Eligible incident onset: {w.start} through {w.end}, inclusive ({w.timezone}). Count each incident’s first {w.harm_years} years of harm, even after the onset deadline. The start advances with each run, including for fixed-year deadlines.</div>)}
+  </div>;
+}
+function Eyebrow({ children }) {
+  return <div className="mono" style={{ fontSize: 11, letterSpacing: "0.09em", textTransform: "uppercase", color: "var(--ink-faint)", fontWeight: 500 }}>{children}</div>;
+}
+// `onClick` turns a legend entry into a filter control; `dim` greys the ones not
+// currently selected. Both optional, so the eight read-only usages elsewhere are
+// untouched — a legend entry only becomes interactive where a caller says so.
+function LegendDot({ color, label, hollow, onClick, dim, title }) {
+  const act = typeof onClick === "function";
+  return (
+    <span
+      role={act ? "button" : undefined}
+      tabIndex={act ? 0 : undefined}
+      title={title}
+      onClick={onClick}
+      onKeyDown={act ? (e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }) : undefined}
+      style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, color: "var(--ink-soft)",
+        opacity: dim ? 0.34 : 1, cursor: act ? "pointer" : undefined,
+        userSelect: act ? "none" : undefined, transition: "opacity .12s" }}>
+      <span style={{ width: 11, height: 11, borderRadius: 3, background: hollow ? "var(--panel)" : color, border: hollow ? `2px solid ${color}` : "none" }}></span>{label}
+    </span>
+  );
+}
+// The question, in full, under a chart: its text, and the resolution
+// criteria behind a toggle. Graph 1's block since 2026-08-18, shared with the
+// Timeline since 2026-09-08 (Nick: the two panels' question UI must be
+// identical). `q.text`, `q.criteria`, `q.details` as the view blobs carry them.
+function ExpectedLossNote() {
+  // One sentence about the fold, written by the pipeline that does it
+  // (redlines/views/conditional.py::build, method.loss; the Capability blob
+  // carries the same string), so the page cannot describe a calculation the
+  // code does not do. Graph 1's loss rows carry the per-cause wording as the
+  // fallback when the Conditional blob is not on the page.
+  const method = (typeof COND !== "undefined" && COND && COND.method && COND.method.loss)
+    || (((G1 && G1.questions) || []).find(q => q.valueKind === "loss") || {}).text;
+  if (!method) return null;
+  return (
+    <div style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-soft)", marginTop: 10 }}>
+      <strong>Expected deaths.</strong> {method}
+    </div>
+  );
+}
+function QuestionBox({ q }) {
+  const [showCriteria, setShowCriteria] = useState(false);
+  return (
+    <div style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "12px 14px", marginTop: 14, background: "var(--bg)" }}>
+      <div style={{ fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-faint)", fontWeight: 600, marginBottom: 5 }}>
+        The question
+      </div>
+      <div style={{ fontSize: 13.5, lineHeight: 1.5, color: "var(--ink)" }}>{q.text}</div>
+      {(q.criteria || q.details) && (
+        <button className="linkbtn" onClick={() => setShowCriteria(v => !v)}
+          style={{ marginTop: 8, fontSize: 12.5 }}>
+          {showCriteria ? "Hide resolution criteria" : "Resolution criteria →"}
+        </button>
+      )}
+      {showCriteria && (
+        <div style={{ marginTop: 9, paddingTop: 9, borderTop: "1px solid var(--line-soft)", fontSize: 12.5, lineHeight: 1.55, color: "var(--ink-soft)", whiteSpace: "pre-wrap", maxHeight: 320, overflowY: "auto" }}>
+          {q.criteria}
+          {q.details && Object.entries(q.details).map(([k, v]) => v && (
+            <div key={k} style={{ marginTop: 10 }}>
+              <div style={{ fontWeight: 600, color: "var(--ink)", textTransform: "capitalize" }}>{k.replace(/_/g, " ")}</div>
+              {v}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+function Stat({ label, value, color }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 2 }}>{label}</div>
+      <div className="mono" style={{ fontSize: 18, fontWeight: 500, color }}>{value}</div>
+    </div>
+  );
+}
+function Toggle({ options, value, onChange }) {
+  return (
+    <div style={{ display: "flex", gap: 6, background: "var(--bg)", padding: 4, borderRadius: 10, border: "1px solid var(--line)", flexWrap: "wrap" }}>
+      {options.map(o => (
+        <button key={o.key} onClick={() => onChange(o.key)} style={{ border: "none", cursor: "pointer", padding: "6px 12px",
+          borderRadius: 7, fontSize: 13, fontWeight: 500, background: value === o.key ? "var(--ink)" : "transparent",
+          color: value === o.key ? "white" : "var(--ink-soft)" }}>{o.label}</button>
+      ))}
+    </div>
+  );
+}
+// Log/linear switch for a chart's probability axis (Bridget, 2026-08-19).
+// Linear is the default since 2026-09-08 (Nick), auto-scaled to the plotted
+// values; log is the view for the tails, which linear flattens into the
+// baseline. The helpers give a linear axis a rounded top and six ticks.
+function linearTop(values) {
+  const vs = values.filter(v => v != null && isFinite(v));
+  return niceMax(Math.max(0.5, ...vs));
+}
+function linearTicks(top) {
+  return Array.from({ length: 6 }, (_, i) => Number((i * top / 5).toPrecision(3)));
+}
+const fmtTick = t => String(Number(t.toPrecision(3)));
+function ScaleToggle({ value, onChange, style }) {
+  return (
+    <span style={{ display: "inline-flex", gap: 4, ...style }}>
+      {["log", "linear"].map(k => (
+        <button key={k} onClick={() => onChange(k)} style={{ border: "1px solid var(--line)",
+          background: value === k ? "var(--bg)" : "transparent", borderRadius: 7, cursor: "pointer",
+          padding: "3px 9px", fontSize: 11.5, fontWeight: value === k ? 600 : 400,
+          color: value === k ? "var(--ink)" : "var(--ink-soft)" }}>{k} scale</button>
+      ))}
+    </span>
+  );
+}
+function ForecasterLegend({ active, setActive }) {
+  const items = [FC.model, FC.super, FC.hybrid];
+  return (
+    <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
+      {items.map(f => (
+        <button key={f.key} onClick={() => setActive(a => ({ ...a, [f.key]: !a[f.key] }))}
+          style={{ border: "none", background: "transparent", cursor: "pointer", padding: 0, opacity: active[f.key] ? 1 : 0.36 }}>
+          <LegendDot color={f.color} label={f.label} hollow={f.key !== "model"} />
+        </button>
+      ))}
+    </div>
+  );
+}
+/* Original model explanations; no generated ensemble or revision narrative. */
+const RATIONALES = window.__RATIONALES__ || { calls: {}, questions: {} };
+// Horizon keys are shared with the severity ladder, whose labels carry the
+// dated window ("within 12 months (by 2027-09-16)"); fall back to "by <key>".
+const rationaleHorizonLabel = h => (((typeof G2 !== "undefined" && G2) || {}).horizonLabels || {})[h] || "by " + h;
+const rationalePct = v => (v == null ? "—" : Number(v.toPrecision(4)) + "%");
+function RationaleSources({ sources }) {
+  if (!sources.length) return <p>No sources recorded for this explanation.</p>;
+  return <ul style={{ paddingLeft: 20 }}>{sources.map((s, i) => {
+    const url = typeof s === "string" ? s : s.url;
+    const safe = typeof url === "string" && /^https?:\/\//i.test(url);
+    return <li key={i} style={{ marginBottom: 6, overflowWrap: "anywhere" }}>
+      {safe ? <a href={url} target="_blank" rel="noopener noreferrer">{url}</a> : String(url || "Source not recorded")}
+      {s.contribution && <span> — {s.contribution}</span>}
+    </li>;
+  })}</ul>;
+}
+// The selected model's forecasts on every horizon, above its explanation: the
+// explanation was recorded once per question, not once per horizon.
+function RationaleForecastTable({ forecasts, model }) {
+  const rows = forecasts.filter(f => (f.values || {})[model] != null);
+  if (!rows.length) return null;
+  return <div style={{ overflowX: "auto", marginTop: 12 }}>
+    <table className="tv" style={{ width: "auto", minWidth: 260 }}>
+      <thead><tr><th>Horizon</th><th>Forecast</th></tr></thead>
+      <tbody>{rows.map(f => <tr key={f.key}>
+        <td>{rationaleHorizonLabel(f.key)}</td>
+        <td className="mono">{rationalePct(f.values[model])}</td>
+      </tr>)}</tbody>
+    </table>
+  </div>;
+}
+// `forecasts`: [{ key: horizon, values: { model label: probability } }], every
+// horizon the question was asked on. `date` picks the calls shown (the
+// elicitation whose forecasts the chart displays); it is not shown.
+function ForecastRationales({ qid, context, forecasts = [], date, controls }) {
+  const [selected, setSelected] = useState("");
+  const entries = RATIONALES.questions[qid] || {};
+  const models = Object.keys(entries).filter(m => forecasts.some(f => (f.values || {})[m] != null));
+  const model = models.includes(selected) ? selected : models[0];
+  const calls = (entries[model] || []).map(id => [id, RATIONALES.calls[id]])
+    .filter(([, c]) => c && (!date || c.date === date));
+  return <details style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-soft)", fontSize: 13, lineHeight: 1.6 }}>
+    <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--ink)" }}>Model rationale for its forecasts</summary>
+    {controls}
+    <p style={{ margin: "10px 0", fontWeight: 600 }}>{context}</p>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      {models.map(m => <button key={m} aria-pressed={model === m} onClick={() => setSelected(m)}
+        style={{ padding: "7px 10px", border: "1px solid var(--line)", borderRadius: 8, cursor: "pointer", background: model === m ? "var(--ink)" : "var(--panel)", color: model === m ? "white" : "var(--ink)" }}>
+        {m}
+      </button>)}
+    </div>
+    {model && <RationaleForecastTable forecasts={forecasts} model={model} />}
+    {!calls.length && <p>No explanation recorded for this forecast.</p>}
+    {calls.map(([id, c]) => {
+      const explanation = (c.debriefs || {})[qid];
+      return <div key={id} style={{ marginTop: 14 }}>
+        <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>{explanation ? "Model’s explanation for this question, recorded after its forecasts. Covers all horizons." : "Model’s original explanation for its full forecast batch; not specific to this question or horizon."}{calls.length > 1 ? " Each call contributes to the displayed model mean." : ""}</p>
+        <p style={{ whiteSpace: "pre-wrap" }}>{(explanation && explanation.rationale) || c.rationale || "No written rationale recorded."}</p>
+        {explanation && explanation.weakest_link && <p><strong>Weakest assumption: </strong>{explanation.weakest_link}</p>}
+        <details><summary style={{ cursor: "pointer" }}>Sources cited by this model</summary>
+          <RationaleSources sources={(explanation && explanation.key_sources) || c.sources} />
+        </details>
+        <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>Original batch explanation and provenance</summary>
+          {explanation && <p style={{ whiteSpace: "pre-wrap" }}>{c.rationale}</p>}
+          <p style={{ overflowWrap: "anywhere", color: "var(--ink-soft)" }}>Model: {c.modelId}<br />Elicited: {c.elicitedAt}<br />Run: {c.run}<br />Call: {id}<br />Instrument: {c.instrument}<br />Protocol: {c.protocol}<br />Condition: unconditional</p>
+          <a href="redlines-data.zip" download="airo-data.zip">Download original forecasts, explanations and logs</a>
+        </details>
+      </div>;
+    })}
+  </details>;
+}
+// `causes`: [{key, label, rungs}], each cause's rungs from BOTH ladders (the
+// deaths questions, then the damages ones), keyed by question id.
+function LadderRationales({ causes, date }) {
+  const [causeKey, setCauseKey] = useState("ai");
+  const [qid, setQid] = useState(null);
+  const cause = causes.find(c => c.key === causeKey) || causes[0];
+  if (!cause) return null;
+  const rung = cause.rungs.find(r => r.qid === qid) || cause.rungs.find(r => r.rung === "1M") || cause.rungs[0];
+  if (!rung) return null;
+  // The same question on every horizon the ladder was elicited on, on
+  // whichever ladder it sits.
+  const forecasts = G2.horizons.map(h => {
+    let r = null;
+    Object.values((G2.byHorizon[h] || {}).legs || {}).some(side => {
+      const c = (side.causes || []).find(x => x.key === cause.key);
+      r = c && c.rungs.find(x => x.qid === rung.qid);
+      return !!r;
+    });
+    return { key: h, values: (r && r.per_model) || {} };
+  });
+  const controls = <div className="rationale-controls">
+    <label>Explain cause <select value={cause.key} onChange={e => setCauseKey(e.target.value)}>{causes.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}</select></label>
+    <label>Severity <select value={rung.qid} onChange={e => setQid(e.target.value)}>{cause.rungs.map(r => <option key={r.qid} value={r.qid}>{r.label}</option>)}</select></label>
+  </div>;
+  return <ForecastRationales qid={rung.qid} forecasts={forecasts} date={date} controls={controls}
+    context={`${cause.label} · ${rung.label}`} />;
+}
+/* ============================ responsive helpers (shared by index.html and timeline.html) ============================ */
+// Every chart on the site is an SVG with a viewBox. Until 2026-08-27 each one
+// laid itself out at a fixed width (880, 900, 430) and let the browser scale
+// the whole drawing to the column — so on a phone a 10px label became a 4px
+// label. Now a chart measures the width it actually gets and lays out INTO
+// it: W is the column's width, text stays at CSS-pixel size, and each chart
+// decides for itself what to drop or move when `narrow` (Graph 1/2 and the
+// timeline lose their right-margin labels, which the legend and tooltip
+// already carry; the policy chart moves labels above the bars).
+function useContainerWidth(ref, fallback) {
+  const [w, setW] = useState(fallback);
+  React.useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const read = () => {
+      const cw = el.getBoundingClientRect().width;
+      if (cw > 0) setW(Math.round(cw));
+    };
+    read();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", read);
+      return () => window.removeEventListener("resize", read);
+    }
+    const ro = new ResizeObserver(read);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref]);
+  return w;
+}
+
+// True while the viewport is at most `px` wide; follows rotation and resizes.
+function useNarrow(px) {
+  const q = "(max-width: " + (px || 760) + "px)";
+  const get = () => typeof window !== "undefined" && !!window.matchMedia && window.matchMedia(q).matches;
+  const [narrow, setNarrow] = useState(get);
+  React.useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia(q);
+    const on = e => setNarrow(e.matches);
+    if (mq.addEventListener) mq.addEventListener("change", on); else mq.addListener(on);
+    return () => { if (mq.removeEventListener) mq.removeEventListener("change", on); else mq.removeListener(on); };
+  }, [q]);
+  return narrow;
+}
+
+// "within 6 months" -> "6 mo", "by 2030" -> "2030": the horizon labels a
+// phone-width axis has room for.
+function shortHorizon(s) {
+  return String(s).replace(/^within\s+/i, "").replace(/\s*months?$/i, " mo").replace(/^by\s+/i, "");
+}
+
+// Keep only ticks at least `minGap` px apart (in axis order); 0 keeps all.
+function thinTicks(ticks, x, minGap) {
+  if (!minGap) return ticks;
+  const out = [];
+  let last = -Infinity;
+  for (const t of ticks) {
+    const px = x(t);
+    if (px - last >= minGap) { out.push(t); last = px; }
+  }
+  return out;
+}
+/* ============================ question rail (shared by index.html and timeline.html) ============================ */
+// Referenced from both manifests as ../shared/question-rail.jsx so the two
+// pages' rails are one component, not two copies.
+// The question rail, one component for every tab that has one (Graph 1, the
+// Policy-levers tab): a title, sections named by `group`, one row per item
+// with its colour dot; the selected row is outlined on the page background.
+// Nick, 2026-08-27: the two tabs' rails looked different — "why have them be
+// different?" — so they no longer can.
+// On a phone (the .rail-grid column has collapsed under the chart's) the
+// same items render as a wrapping row of chips, group headings inline, so
+// the rail costs three lines instead of a screen.
+function QuestionRail({ title, items, value, onChange }) {
+  const groups = [...new Set(items.map(it => it.group || ""))];
+  const narrow = useNarrow(760);
+  const heading = <div style={{ fontSize: 11.5, color: "var(--ink-faint)", marginBottom: 4, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}>{title}</div>;
+  if (narrow) {
+    return (
+      <div>
+        {heading}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+          {groups.map(g => (
+            <React.Fragment key={g || "all"}>
+              {g && <div style={{ width: "100%", fontSize: 11, color: "var(--ink-faint)", fontWeight: 600, margin: "6px 0 0" }}>{g}</div>}
+              {items.filter(it => (it.group || "") === g).map(it => {
+                const sel = it.key === value;
+                return (
+                  <button key={it.key} onClick={() => onChange(it.key)} style={{ display: "inline-flex", alignItems: "center", gap: 7,
+                    border: "1px solid " + (sel ? "var(--ink)" : "var(--line)"), background: sel ? "var(--ink)" : "var(--panel)",
+                    color: sel ? "white" : "var(--ink)", cursor: "pointer", padding: "6px 11px", borderRadius: 999,
+                    fontSize: 12.5, fontWeight: sel ? 600 : 500, lineHeight: 1.2 }}>
+                    <span style={{ width: 9, height: 9, borderRadius: 3, background: it.color || "var(--ink-faint)", flexShrink: 0,
+                      outline: sel ? "1px solid rgba(255,255,255,0.7)" : "none" }}></span>
+                    <span>{it.label}</span>
+                  </button>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {heading}
+      <div style={{ maxHeight: 620, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2, paddingRight: 4 }}>
+        {groups.map(g => (
+          <div key={g || "all"} style={{ marginBottom: 8 }}>
+            {g && <div style={{ fontSize: 11, color: "var(--ink-faint)", fontWeight: 600, margin: "6px 10px 4px" }}>{g}</div>}
+            {items.filter(it => (it.group || "") === g).map(it => {
+              const sel = it.key === value;
+              return (
+                <button key={it.key} onClick={() => onChange(it.key)} style={{ display: "flex", alignItems: "center", gap: 8,
+                  textAlign: "left", width: "100%", border: "1px solid " + (sel ? "var(--line)" : "transparent"),
+                  background: sel ? "var(--bg)" : "transparent", cursor: "pointer", padding: "7px 10px",
+                  borderRadius: 9, marginBottom: 2 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 3, background: it.color || "var(--ink-faint)", flexShrink: 0 }}></span>
+                  <span style={{ fontSize: 13, color: "var(--ink)", fontWeight: sel ? 600 : 500, lineHeight: 1.25 }}>{it.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+/* ============================ CONDITIONAL ON: helpers ============================ */
+const COND = (typeof window !== "undefined" && window.__CONDITIONAL__) || null;
+
+/* ============================ helpers ============================ */
+const cFmtP = v => (v == null ? "—" : v >= 10 ? v.toFixed(1) + "%" : v >= 1 ? v.toFixed(2) + "%" : v.toFixed(3) + "%");
+const cFmtRatio = r => (r == null ? "—" : r >= 10 ? r.toFixed(0) + "×" : r.toFixed(2) + "×");
+const cFmtBig = (v, prefix) => {
+  if (v == null) return "—";
+  const p = prefix || "";
+  const units = [[1e15, "Q"], [1e12, "T"], [1e9, "B"], [1e6, "M"], [1e3, "k"]];
+  for (const [cut, suf] of units) if (Math.abs(v) >= cut) return p + Number((v / cut).toPrecision(3)) + suf;
+  return p + Number(v.toPrecision(3));
+};
+// Death-equivalents, with the dollar reading at the ladder's own rate.
+const cFmtLoss = v => (v == null ? "—" : cFmtBig(v));
+const cFmtLossShort = cFmtLoss;
+// One formatter per value kind: a probability cell prints percent, a loss cell
+// prints deaths.
+const cFmtV = (kind, v) => (kind === "loss" ? cFmtLossShort(v) : cFmtP(v));
+
+// The one reading of a change the page plots: conditional ÷ unconditional, on
+// a log axis so 1/2× and 2× sit the same distance from the baseline. It is the
+// only measure that reads on a ~1% baseline AND applies to an expected loss.
+const COND_MEASURE = { key: "ratio", label: "× baseline", axis: "conditional ÷ unconditional", fmt: cFmtRatio, zero: 1, scale: "log" };
+
+// A tick set that brackets the extremes symmetrically about 1× (log scale).
+function condSymmetricTicks(values) {
+  const lv = values.filter(v => v != null && v > 0).map(v => Math.abs(Math.log2(v)));
+  const top = Math.max(0.5, ...lv);
+  const step = top <= 1 ? 0.5 : top <= 2 ? 1 : top <= 4 ? 2 : 4;
+  const n = Math.ceil(top / step);
+  const ticks = [];
+  for (let i = -n; i <= n; i++) ticks.push(Math.pow(2, i * step));
+  return { ticks, lo: Math.pow(2, -n * step), hi: Math.pow(2, n * step) };
+}
+
+// The expected-deaths axis: graph 2's deaths-ladder rung ticks, on a domain
+// CROPPED to the data — the decades that bracket
+// every value on every domain-specific row at every horizon (bars, dots,
+// CIs, the band). One domain for all four causes and both horizons, so a
+// bar's position means the same thing on every loss row; cropped, rather
+// than graph 2's full 1k–Extinction span, because on the full span a bar and
+// its band collapsed into a few pixels and whether the bar cleared the band
+// could not be seen (Nick, 2026-08-27). The Extinction mark is drawn only
+// when the domain reaches it.
+function condSeverityAxis(values, ctx) {
+  const C = ctx || COND;
+  const v = (values || []).filter(x => x != null && x > 0);
+  const lo = v.length ? Math.pow(10, Math.floor(Math.log10(Math.min(...v)))) : SEVERITY_AXIS.lo;
+  const hi = v.length ? Math.pow(10, Math.ceil(Math.log10(Math.max(...v)))) : SEVERITY_AXIS.hi;
+  const ticks = ((C && C.rungs) || []).map(r => r.deaths).filter(d => d >= lo && d <= hi);
+  const refs = (typeof HIST !== "undefined" && HIST) ? HIST.events.filter(e => e.kind === "reference" && /extinction/i.test(e.label)) : [];
+  const marks = refs.length ? refs.map(e => ({ v: e.central, label: e.short || e.label }))
+                            : [{ v: 8.2e9, label: "Extinction" }];
+  return { ticks, lo, hi, marks: marks.filter(m => m.v >= lo && m.v <= hi) };
+}
+
+/* ============================ the delta chart ============================ */
+// One row per policy condition. The vertical line is the unconditional
+// forecast; the bar is exp(median(log(per-model ratios))); the dots
+// are the models. The grey band is the re-elicitation spread of the
+// unconditional arms — a bar that does not clear it has not been shown to
+// move anything.
+//
+// Two axes for two kinds of cell. A probability cell plots RATIOS: baselines
+// differ twentyfold across models, so each dot is a model's move against its
+// own baseline and the line is 1×. An expected-deaths cell plots LEVELS in
+// deaths: the unit is the
+// point, so the dots are absolute, the line is the ensemble-median baseline,
+// and a top row shows each model's own unconditional value so a colour's move
+// is still readable.
+// Everything one cell puts on the axis: bar ends, model dots, per-row CIs,
+// the unconditional's band and (loss cells) each model's own unconditional.
+// Kept apart from the chart so a question's axis can span all its horizons.
+function condAxisValues(cell) {
+  const loss = (cell.valueKind || "probability") === "loss";
+  const base = cell.baselineMedian;
+  const zero = loss ? base : 1;
+  const vals = cell.bars.flatMap(b => [
+    loss ? (b.ratio == null ? null : base * b.ratio) : b.ratio,
+    ...b.models.map(m => (loss ? m.p : m.ratio)),
+    ...(b.ci ? (loss ? [base * b.ci[0], base * b.ci[1]] : b.ci) : []),
+  ]);
+  if (loss) cell.baselines.forEach(b => vals.push(b.p));
+  if (cell.baselineCi) vals.push(zero * cell.baselineCi[0], zero * cell.baselineCi[1]);
+  return vals;
+}
+
+// The axis is fixed per question, not per horizon: switching 2030 → 2050
+// moves the marks, never the ticks, so a policy's effect at two horizons
+// can be compared by eye. For a probability cell `axisValues` is the union
+// over the question's horizons; for a loss cell it is the union over EVERY
+// loss row and horizon (condSeverityAxis crops the rung axis to it). A cell
+// shown alone falls back to its own values.
+// `ctx` is the blob the chart reads its conditions, rungs and method text
+// from: the policy blob (default) or one Capability-tab variant, which has
+// the same shape. One component, two tabs (Nick, 2026-08-28: the capability
+// chart "should be IDENTICAL to the Policy Levers graph").
+function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
+  const C = ctx || COND;
+  const M = COND_MEASURE;
+  const kind = cell.valueKind || "probability";
+  const loss = kind === "loss";
+  const rows = cell.bars;
+  // Width is measured (web/shared/responsive.jsx). Under 640px the policy
+  // name and value sit ABOVE each bar instead of flanking it, the rows grow
+  // taller, and the axis thins its ticks — the same rows at readable size
+  // rather than a desktop chart scaled to 40%.
+  const box = React.useRef(null);
+  const cw = useContainerWidth(box, 900);
+  const narrow = cw < 640;
+  const W = Math.max(320, cw), rowH = narrow ? 66 : 44;
+  const pad = narrow ? { l: 14, r: 14, t: 26, b: loss ? 46 : 34 } : { l: 250, r: 150, t: 26, b: loss ? 46 : 34 };
+  const barY = cy => (narrow ? cy + 6 : cy);            // where the bar, whisker and dots sit within a row
+  const maxChars = narrow ? Math.max(18, Math.floor((W - pad.l - pad.r - 96) / 6.6)) : 40;
+  const clip = s => (s.length > maxChars ? s.slice(0, maxChars - 2) + "…" : s);
+  // Phone rows: the texts sit over the baseline band and the unconditional
+  // line, so each rides a panel-coloured chip (estimated width, as graph 2's
+  // end labels do). Right-aligned texts pass their left edge.
+  const chip = (xLeft, yTop, text, perChar) => <rect x={xLeft - 3} y={yTop} width={text.length * perChar + 6} height={15} rx="2" fill="var(--panel)" opacity="0.92" />;
+  const baseRow = loss ? 1 : 0;                       // the unconditional row, loss cells only
+  const H = pad.t + pad.b + rowH * (rows.length + baseRow);
+  const base = cell.baselineMedian;
+  // Position value for the ensemble bar end and for a model's dot.
+  const barVal = b => (loss ? (b.ratio == null ? null : base * b.ratio) : b.ratio);
+  const dotVal = m => (loss ? m.p : m.ratio);
+  const zero = loss ? base : 1;
+  // Each row carries its own 95% interval (as ratios); on a loss axis it is
+  // placed on the ensemble-median baseline like the bar.
+  const ciOf = b => (b.ci ? (loss ? [base * b.ci[0], base * b.ci[1]] : b.ci) : null);
+  // No intervals on the page (Nick, 2026-09-02: dots + the median change, no CIs).
+  // The blob still carries the bootstrap (b.ci, cell.baselineCi) for the CSV and
+  // the paper; the chart draws the model dots, the bar to the median and a
+  // line at it.
+  const vals = axisValues || condAxisValues(cell);
+  const { ticks, lo, hi, marks = [] } = loss ? condSeverityAxis(vals, C) : condSymmetricTicks(vals);
+  const x = v => {
+    const t = (Math.log(Math.max(v, 1e-9)) - Math.log(lo)) / (Math.log(hi) - Math.log(lo));
+    return pad.l + Math.min(1, Math.max(0, t)) * (W - pad.l - pad.r);
+  };
+  const x0 = x(zero);
+  // Match the deaths ladder: the rung's death count.
+  const tickLabel = t => (loss ? cFmtBig(t) : (t >= 1 ? t.toFixed(t === Math.round(t) ? 0 : 1) + "×" : "1/" + (1 / t).toFixed(1 / t === Math.round(1 / t) ? 0 : 1)));
+  const tickSub = () => null;
+  const rowY = i => pad.t + rowH * (i + baseRow) + rowH / 2;
+  const [hv, setHv] = useState(null);      // hovered condition: shows its policy text
+
+  return (
+    <div ref={box} style={{ position: "relative", minWidth: 0 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} onMouseLeave={() => setHv(null)}>
+        {thinTicks(ticks, x, narrow ? 38 : 0).map(t => (
+          <g key={t}>
+            <line x1={x(t)} x2={x(t)} y1={pad.t - 4} y2={H - pad.b} stroke="var(--line-soft)" />
+            <text x={x(t)} y={H - pad.b + 16} textAnchor="middle" fontSize="11" fill="var(--ink-faint)" className="mono">{tickLabel(t)}</text>
+            {tickSub(t) && <text x={x(t)} y={H - pad.b + 28} textAnchor="middle" fontSize="10" fill="var(--ink-faint)" className="mono">{tickSub(t)}</text>}
+          </g>
+        ))}
+        {marks.map(m => (
+          <g key={m.label}>
+            <line x1={x(m.v)} x2={x(m.v)} y1={pad.t - 4} y2={H - pad.b} stroke="var(--ink-faint)" strokeWidth="1" strokeDasharray="4 3" opacity="0.7" />
+            <text x={x(m.v)} y={H - pad.b + 16} textAnchor="middle" fontSize="10" fill="var(--ink-soft)">{m.label}</text>
+          </g>
+        ))}
+        <line x1={x0} x2={x0} y1={pad.t - 10} y2={H - pad.b} stroke="var(--ink)" strokeWidth="1.5" />
+        <text x={x0} y={pad.t - 14} textAnchor={narrow ? (x0 < W * 0.3 ? "start" : x0 > W * 0.7 ? "end" : "middle") : "middle"} fontSize="11" fill="var(--ink-soft)" fontWeight="600">{loss ? "unconditional, ensemble median" : "unconditional"}</text>
+        <text x={narrow ? pad.l : pad.l - 8} y={H - pad.b + (loss ? 42 : 30)} textAnchor={narrow ? "start" : "end"} fontSize="11" fill="var(--ink-faint)">◀ lower</text>
+        <text x={narrow ? W - pad.r : W - pad.r + 8} y={H - pad.b + (loss ? 42 : 30)} textAnchor={narrow ? "end" : "start"} fontSize="11" fill="var(--ink-faint)">higher ▶</text>
+        {loss && (() => {
+          // The unconditional row: each model's own same-session baseline.
+          const cy = pad.t + rowH / 2;
+          return (
+            <g>
+              <rect x={0} y={cy - rowH / 2} width={W} height={rowH} fill="var(--line-soft)" opacity="0.35" />
+              {narrow ? <>
+                {chip(pad.l, cy - 30, "Unconditional", 6.8)}
+                <text x={pad.l} y={cy - 19} textAnchor="start" fontSize="12.5" fill="var(--ink)" fontWeight={600}>Unconditional</text>
+                {chip(W - pad.r - cFmtBig(base).length * 7.2, cy - 30, cFmtBig(base), 7.2)}
+                <text x={W - pad.r} y={cy - 19} textAnchor="end" fontSize="12" fill="var(--ink)" className="mono" fontWeight="600">{cFmtBig(base)}</text>
+                {chip(pad.l, cy + 16, "each model, same session", 6.3)}
+                <text x={pad.l} y={cy + 27} textAnchor="start" fontSize="10.5" fill="var(--ink-faint)" className="mono">each model, same session</text>
+                {chip(W - pad.r - ("median of " + cell.baselines.length).length * 6.3, cy + 16, "median of " + cell.baselines.length, 6.3)}
+                <text x={W - pad.r} y={cy + 27} textAnchor="end" fontSize="10.5" fill="var(--ink-faint)" className="mono">median of {cell.baselines.length}</text>
+              </> : <>
+                <text x={pad.l - 14} y={cy + 4} textAnchor="end" fontSize="12.5" fill="var(--ink)" fontWeight={600}>Unconditional</text>
+                <text x={pad.l - 14} y={cy + 17} textAnchor="end" fontSize="10.5" fill="var(--ink-faint)" className="mono">each model, same session</text>
+                <text x={W - pad.r + 12} y={cy + 4} fontSize="12" fill="var(--ink)" className="mono" fontWeight="600">{cFmtBig(base)}</text>
+                <text x={W - pad.r + 12} y={cy + 17} fontSize="10.5" fill="var(--ink-faint)" className="mono">median of {cell.baselines.length}</text>
+              </>}
+              {cell.baselines.map(b => b.p == null ? null : (
+                <circle key={b.label} cx={x(b.p)} cy={barY(cy)} r="4.5" fill={b.color || "var(--ink)"} stroke="var(--panel)" strokeWidth="2" />
+              ))}
+            </g>
+          );
+        })()}
+        {rows.map((b, i) => {
+          const cy = rowY(i);
+          const v = barVal(b);
+          const xe = v == null ? x0 : x(v);
+          const isPicked = picked === b.id;
+          const by = barY(cy);
+          const valueText = loss ? cFmtBig(v) + " · " + M.fmt(b.ratio) : M.fmt(b.ratio);
+          return (
+            <g key={b.id} onMouseEnter={() => setHv(b.id)} onClick={() => onPick && onPick(b.id)} style={{ cursor: "pointer" }}>
+              <rect x={0} y={cy - rowH / 2} width={W} height={rowH} fill={isPicked || hv === b.id ? "var(--line-soft)" : "transparent"} opacity="0.6" />
+              {narrow ? <>
+                {chip(pad.l, cy - 30, clip(b.label), 6.6)}
+                <text x={pad.l} y={cy - 19} textAnchor="start" fontSize="12.5" fill="var(--ink)" fontWeight={isPicked ? 600 : 500}>{clip(b.label)}</text>
+                {chip(W - pad.r - valueText.length * 7.2, cy - 30, valueText, 7.2)}
+                <text x={W - pad.r} y={cy - 19} textAnchor="end" fontSize="12" fill="var(--ink)" className="mono" fontWeight="600">{valueText}</text>
+                {chip(pad.l, cy + 16, b.leapId, 6.3)}
+                <text x={pad.l} y={cy + 27} textAnchor="start" fontSize="10.5" fill="var(--ink-faint)" className="mono">{b.leapId}</text>
+              </> : <>
+                <text x={pad.l - 14} y={cy + 4} textAnchor="end" fontSize="12.5" fill="var(--ink)" fontWeight={isPicked ? 600 : 500}>{clip(b.label)}</text>
+                <text x={pad.l - 14} y={cy + 17} textAnchor="end" fontSize="10.5" fill="var(--ink-faint)" className="mono">{b.leapId}</text>
+                <text x={W - pad.r + 12} y={cy + 4} fontSize="12" fill="var(--ink)" className="mono" fontWeight="600">{valueText}</text>
+              </>}
+              {v != null && (
+                <rect x={Math.min(x0, xe)} y={by - 9} width={Math.max(1.5, Math.abs(xe - x0))} height={18}
+                  fill="var(--ink-soft)" opacity="0.38" rx={3} />
+              )}
+              {/* the median change itself, as a line */}
+              {v != null && <line x1={xe} x2={xe} y1={by - 11} y2={by + 11} stroke="var(--ink)" strokeWidth="2.5" />}
+              {/* A hollow dot is a call that ran with no search evidence
+                  (grounded=false): it answered from memory, not the news. */}
+              {b.models.map(m => dotVal(m) == null ? null : (
+                <circle key={m.label} cx={x(dotVal(m))} cy={by} r="4.5"
+                  fill={m.grounded === false ? "var(--panel)" : (m.color || "var(--ink)")}
+                  stroke={m.grounded === false ? (m.color || "var(--ink)") : "var(--panel)"} strokeWidth="2" />
+              ))}
+            </g>
+          );
+        })}
+      </svg>
+      {hv != null && (() => {
+        const b = rows.find(r => r.id === hv);
+        const i = rows.indexOf(b);
+        const cond = (C.conditions || []).find(c => c.id === b.id) || {};
+        const top = ((pad.t + rowH * (i + baseRow)) / H) * 100;
+        const desc = cond.description || "";
+        const cut = desc.length > 900 ? desc.slice(0, 900).replace(/\s+\S*$/, "") + " …" : desc;
+        return (
+          <div style={{ position: "absolute", top: `${top}%`, right: 8, transform: "translateY(-100%)", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 12px", boxShadow: "var(--shadow)", pointerEvents: "none", width: 460, maxWidth: narrow ? "calc(100% - 16px)" : "60%", zIndex: 5 }}>
+            <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 3 }}>What the model was told{b.leapId ? <> · <span className="mono">{b.leapId}</span></> : null}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 6 }}>{b.label}</div>
+            {cond.assume && <div style={{ fontSize: 12.5, color: "var(--ink)", marginBottom: 6 }}><strong>Condition.</strong> {cond.assume}</div>}
+            {cut && <div style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>{cut}</div>}
+            {desc.length > 900 && <div style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 6 }}>click the row for the full text</div>}
+          </div>
+        );
+      })()}
+      {loss && <ExpectedLossNote />}
+    </div>
+  );
+}
+
+/* ============================ the table view ============================ */
+function CondDeltaTable({ cell, ctx }) {
+  const C = ctx || COND;
+  const M = COND_MEASURE;
+  const kind = cell.valueKind || "probability";
+  const models = cell.baselines.map(b => b.label);
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table className="tv">
+        <thead>
+          <tr><th>condition</th>{models.map(m => <th key={m}>{m}</th>)}<th>ensemble</th></tr>
+        </thead>
+        <tbody>
+          <tr style={{ fontWeight: 600 }}>
+            <td>unconditional (same session)</td>
+            {cell.baselines.map(b => <td key={b.label} className="mono" title={b.values.map(v => cFmtV(kind, v)).join(" · ")}>{cFmtV(kind, b.p)}{b.n > 1 ? <span style={{ color: "var(--ink-faint)" }}> ×{b.n}</span> : null}</td>)}
+            <td className="mono">{cFmtV(kind, cell.baselineMedian)}</td>
+          </tr>
+          {cell.bars.map(b => (
+            <tr key={b.id}>
+              <td>{b.label} <span className="mono" style={{ color: "var(--ink-faint)" }}>{b.leapId}</span></td>
+              {models.map(m => {
+                const r = b.models.find(x => x.label === m);
+                return <td key={m} className="mono">{r ? <>{cFmtV(kind, r.p)} <span style={{ color: "var(--ink-soft)" }}>({M.fmt(r[M.key])})</span>{r.grounded === false ? " †" : ""}</> : "—"}</td>;
+              })}
+              <td className="mono">{cFmtV(kind, b.pMedian)} <span style={{ color: "var(--ink-soft)" }}>({M.fmt(b[M.key])})</span></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {kind === "loss" && <ExpectedLossNote />}
+    </div>
+  );
+}
+
+/* ============================ CONDITIONAL ON: panel ============================ */
+function CondText({ cond, conditioning, labels }) {
+  if (!cond) return null;
+  const L = Object.assign({ instruction: "Conditioning instruction (LEAP's, verbatim).",
+                            description: "Policy, as shown to the model (LEAP's text, verbatim).",
+                            assumption: "Also assumed (ours, in the single instrument)." }, labels || {});
+  return (
+    <Panel style={{ padding: "16px 20px", marginTop: 14 }}>
+      <Eyebrow>What the model was told{cond.leapId ? " · " + cond.leapId : ""}</Eyebrow>
+      <h3 style={{ fontSize: 18, marginTop: 6, marginBottom: 8 }}>{cond.label}</h3>
+      <p style={{ margin: "0 0 10px", fontSize: 13.5, color: "var(--ink-soft)" }}>
+        <strong style={{ color: "var(--ink)" }}>Condition.</strong> {cond.assume}
+      </p>
+      <p style={{ margin: 0, fontSize: 13.5, color: "var(--ink-soft)" }}>
+        <strong style={{ color: "var(--ink)" }}>{L.instruction}</strong> {conditioning.instruction}
+      </p>
+      {/* The combined instrument (policies and capability conditions in one
+          call) adds one sentence per section saying what it holds the other
+          quantity at; the standalone sets have none, and print nothing. */}
+      {conditioning.assumption && (
+        <p style={{ margin: "8px 0 0", fontSize: 13.5, color: "var(--ink-soft)" }}>
+          <strong style={{ color: "var(--ink)" }}>{L.assumption}</strong> {conditioning.assumption}
+        </p>
+      )}
+      {cond.description && (
+        <div style={{ margin: "12px 0 0", fontSize: 12.5, color: "var(--ink-soft)", whiteSpace: "pre-wrap", lineHeight: 1.5, borderTop: "1px solid var(--line-soft)", paddingTop: 10 }}>
+          <strong style={{ color: "var(--ink)" }}>{L.description}</strong>{"\n"}{cond.description}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+
+function ConditionalPanel() {
+  if (!COND || !COND.questions.length) {
+    return <ForecastUnavailable title="Forecasts conditional on policies" />;
+  }
+  // ?q=<question id>&h=<horizon> deep-links a chart.
+  const params = new URLSearchParams(typeof location !== "undefined" ? location.search : "");
+  const [qid, setQid] = useState(COND.questions.some(x => x.id === params.get("q")) ? params.get("q") : COND.questions[0].id);
+  const [horizon, setHorizon] = useState(COND.horizons.includes(params.get("h")) ? params.get("h") : COND.defaultHorizon);
+  const [picked, setPicked] = useState(null);
+  const [showTable, setShowTable] = useState(false);
+  const Q = COND.questions;
+
+  const q = Q.find(x => x.id === qid) || Q[0];
+  const hz = q.horizons.includes(horizon) ? horizon : q.horizons[0];
+  const cell = q.byHorizon[hz];
+  const cond = COND.conditions.find(c => c.id === picked);
+
+  return (
+    <React.Fragment>
+      <Panel style={{ padding: "16px 22px", marginBottom: 18 }}>
+        <h2 style={{ fontSize: 22, marginTop: 0, marginBottom: 6 }}>How would policies change the forecast?</h2>
+        <p style={{ color: "var(--ink-soft)", fontSize: 13.5, maxWidth: 820, margin: "0 0 6px" }}>
+          How would these forecasts change if certain policies were enacted, effective immediately? (These questions come from the {COND.source.panel} {COND.source.wave} survey, currently underway with human respondents.)
+        </p>
+        <p style={{ color: "var(--ink-faint)", fontSize: 12.5, margin: 0 }}>
+          Run {COND.runs.join(", ")} · {COND.rows} rows · {Object.keys(COND.repeats || {}).length} models × {Object.values(COND.repeats || {})[0] || "?"} repeats
+          {COND.instrument && COND.instrument.group ? " · elicited in one call with the capability conditions (" + COND.protocol + ")" : ""}
+        </p>
+      </Panel>
+
+      <div className="rail-grid" style={{ gap: 18 }}>
+        <Panel style={{ padding: 14 }}>
+          {/* The same rail as Graph 1's (QuestionRail, 60-atoms.jsx): labels
+              and colours come from the blob (railLabel, color), which takes
+              them from the same rail module and ladder spec Graph 1 uses. */}
+          <QuestionRail title="Question" value={q.id} onChange={setQid}
+            items={Q.map(x => ({ key: x.id, label: x.railLabel || x.short, color: x.color, group: x.group }))} />
+        </Panel>
+
+        <div style={{ minWidth: 0 }}>
+          <Panel style={{ padding: "18px 22px" }}>
+            {/* The horizon toggle always sits top-right; nothing else shares
+                its row — until the row is too narrow for both, when it wraps
+                beneath the title. */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ fontSize: 22, marginTop: 0 }}>{q.heading || q.short} — by {hz}</h2>
+              </div>
+              <div style={{ flexShrink: 0 }}>
+                <Toggle options={q.horizons.map(h => ({ key: h, label: "by " + h }))} value={hz} onChange={setHorizon} />
+              </div>
+            </div>
+
+            {cell.note && <div style={{ fontSize: 12.5, color: "var(--warn-ink)", background: "var(--warn-bg)", border: "1px solid var(--warn-line)", borderRadius: 8, padding: "6px 10px", margin: "12px 0 0" }}>{cell.note}.</div>}
+
+            <div style={{ marginTop: 14 }}>
+              <CondDeltaChart cell={cell} picked={picked} onPick={id => setPicked(picked === id ? null : id)}
+                axisValues={q.valueKind === "loss"
+                  ? Q.filter(x => x.valueKind === "loss").flatMap(x => x.horizons.flatMap(h => condAxisValues(x.byHorizon[h])))
+                  : q.horizons.flatMap(h => condAxisValues(q.byHorizon[h]))} />
+            </div>
+
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+              {COND.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
+              <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="2" width="16" height="10" rx="2" fill="var(--ink-soft)" opacity="0.38" /><line x1="17" x2="17" y1="0" y2="14" stroke="var(--ink)" strokeWidth="2.5" /></svg>median conditional change</span>
+              <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 10, height: 10, borderRadius: 5, border: "2px solid var(--ink-soft)", background: "var(--panel)" }}></span>no search evidence</span>
+              <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={() => setShowTable(!showTable)}>{showTable ? "hide table" : "show table"}</button>
+            </div>
+            {showTable && <div style={{ marginTop: 12 }}><CondDeltaTable cell={cell} /></div>}
+            {q.valueKind === "loss" && <CountingWindow info={COND.instrumentInfo} horizon={hz} />}
+          </Panel>
+
+          <CondText cond={cond} conditioning={COND.conditioning} />
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+/* ============================ CAPABILITY: the frontier ECI and the forecast conditional on it ============================ */
+// Nick, 2026-08-28: a "Capability" tab with two graphs -- the ECI history
+// plus the models' own forecast of it (p25 / p50 / p75), and the questions
+// conditional on progress, drawn by the SAME component as the Policy-levers
+// chart with the model's three percentile worlds as the rows. The blob is
+// redlines/views/capability.py; each variant (six months out; the end-of-2030
+// set is off the tab for now) carries the same fields the policy blob does, so CondDeltaChart,
+// CondDeltaTable and CondText render it unchanged through their `ctx`.
+const CAP = (typeof window !== "undefined" && window.__CAPABILITY__) || null;
+
+const capDate = s => new Date(s + (s.length === 10 ? "T00:00:00Z" : ""));
+const capFmtDate = s => { const d = capDate(s); return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }); };
+const capFmtEci = v => (v == null ? "—" : Number(v).toFixed(0));
+
+/* ============================ the ECI chart ============================ */
+// x is time (2023 -> just past the far target); y is the ECI score. The
+// history is a step: the frontier stays where it is until a release beats
+// it. The trend is metr_graph's p25-p75 band and p50 line, faint, from the
+// anchor on -- the last frontier point, where the projection starts (its
+// fitted value there sits on the point), so the cone grows out of the
+// history. A forecast is one box plot at its target date -- the ENSEMBLE's
+// (the median across models of each percentile): box from p25 to p75, a
+// line at the median. One mark, not a whisker per model side by side --
+// Nick, 2026-08-28: stacked whiskers "make it look like they're about
+// different times". The
+// active variant is drawn solid, the other faint, and clicking one
+// switches the variant below. Per-model numbers are not on the page
+// (Nick, 2026-08-28: no table under the chart); they are in the blob
+// (forecast.models) and docs/conditional-forecasts.md.
+function EciTrendChart({ eci, variants, active, onPick }) {
+  const box = React.useRef(null);
+  const cw = useContainerWidth(box, 900);
+  const narrow = cw < 640;
+  const W = Math.max(320, cw), H = narrow ? 300 : 360;
+  const pad = { l: 60, r: narrow ? 14 : 24, t: 18, b: 32 };
+  const hist = eci.history || [];
+  const fc = variants.filter(v => v.forecast && v.forecast.models.length);
+  const t0 = capDate("2023-01-01").getTime();
+  const lastTarget = fc.reduce((m, v) => Math.max(m, capDate(v.targetDate).getTime()), 0);
+  // The window ends eight months past the farthest target -- room for its
+  // label on the right; the trend (the file runs to end-2030) is clipped to it.
+  const t1 = Math.max(capDate("2027-06-30").getTime(), lastTarget + 240 * 86400e3);
+  const curve = ((eci.trend && eci.trend.curve) || []).filter(c => capDate(c.date).getTime() <= t1);
+  // The LEAP superforecasters' forecast of the same quantity (Wave 5: the top
+  // US system's ECI at end-2026/2030/2040, p25/p50/p75), at the dates inside
+  // the window -- end-2026, two months before the models' date (2026-09-03).
+  const lp = CAP && CAP.leap;
+  const lpPts = lp ? Object.keys(lp.dates).filter(d => capDate(d).getTime() <= t1).sort()
+    .map(d => ({ date: d, ...((lp.dates[d] || {})[lp.shown || "superforecaster"] || {}) }))
+    .filter(p => p.p50 != null) : [];
+  const ys = [...hist.map(h => h.score), ...curve.flatMap(c => [c.p25, c.p75]),
+              ...fc.flatMap(v => [v.forecast.ensemble.p25, v.forecast.ensemble.p75,
+                                  v.forecast.ensemble.p10, v.forecast.ensemble.p90]),
+              ...lpPts.flatMap(p => [p.p25, p.p75])].filter(v => v != null);
+  const yLo = Math.floor((Math.min(...ys) - 4) / 10) * 10, yHi = Math.ceil((Math.max(...ys) + 4) / 10) * 10;
+  const x = t => pad.l + ((typeof t === "number" ? t : capDate(t).getTime()) - t0) / (t1 - t0) * (W - pad.l - pad.r);
+  const y = v => pad.t + (1 - (v - yLo) / (yHi - yLo)) * (H - pad.t - pad.b);
+  const years = [];
+  for (let yr = 2023; capDate(yr + "-01-01").getTime() <= t1; yr++) years.push(yr);
+  const yTicks = [];
+  for (let v = yLo; v <= yHi; v += (yHi - yLo) > 120 ? 20 : 10) yTicks.push(v);
+  const [hv, setHv] = useState(null);
+  // The step path: hold each score until the next new high.
+  const step = hist.map((h, i) => {
+    const xa = x(h.date), ya = y(h.score);
+    const xb = i + 1 < hist.length ? x(hist[i + 1].date) : x(eci.trend && eci.trend.fit ? eci.trend.fit.anchor.date : h.date);
+    return (i === 0 ? `M${xa},${ya}` : `L${xa},${ya}`) + `L${xb},${ya}`;
+  }).join("");
+  const band = curve.length ? "M" + curve.map(c => `${x(c.date)},${y(c.p75)}`).join("L") + "L" + [...curve].reverse().map(c => `${x(c.date)},${y(c.p25)}`).join("L") + "Z" : "";
+  const p50 = curve.length ? "M" + curve.map(c => `${x(c.date)},${y(c.p50)}`).join("L") : "";
+  const runDay = CAP && CAP.generatedAt ? CAP.generatedAt.slice(0, 10) : null;
+  // Every label is its head alone -- the model or ensemble and its median,
+  // centred under the lowest mark; the LEAP label is its head, left of its
+  // box. The ranges and the dates live in the hover tooltip (Nick,
+  // 2026-09-03: left of the boxes the three-line labels ran into each other
+  // on a small screen; 2026-09-11: the narrow treatment at every width).
+  const labels = fc.map(v => {
+    const e = v.forecast.ensemble, ms = v.forecast.models;
+    const who = ms.length === 1 ? ms[0].label : "ensemble";
+    const head = (fc.length > 1 ? v.label + " · " : "") + (narrow ? "" : who + " ") + capFmtEci(e.p50);
+    return { who, head };
+  });
+  // The lowest mark near the forecasts: the heads sit under it.
+  const floor = Math.min(...fc.map(v => v.forecast.ensemble.p10 != null ? v.forecast.ensemble.p10 : v.forecast.ensemble.p25), ...lpPts.map(p => p.p25));
+  return (
+    <div ref={box} style={{ position: "relative", minWidth: 0 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} onMouseLeave={() => setHv(null)}>
+        {yTicks.map(v => (
+          <g key={v}>
+            <line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke="var(--line-soft)" />
+            <text x={pad.l - 8} y={y(v) + 4} textAnchor="end" fontSize="11" fill="var(--ink-faint)" className="mono">{v}</text>
+          </g>
+        ))}
+        {/* y-axis label (Nick, 2026-09-02) */}
+        <text transform={`translate(12, ${(pad.t + H - pad.b) / 2}) rotate(-90)`} textAnchor="middle" fontSize="11" fill="var(--ink-soft)">Epoch Capabilities Index</text>
+        {thinTicks(years, yr => x(yr + "-01-01"), narrow ? 40 : 0).map(yr => (
+          <text key={yr} x={x(yr + "-01-01")} y={H - pad.b + 16} textAnchor="middle" fontSize="11" fill="var(--ink-faint)" className="mono">{yr}</text>
+        ))}
+        {runDay && <g>
+          <line x1={x(runDay)} x2={x(runDay)} y1={pad.t} y2={H - pad.b} stroke="var(--ink-faint)" strokeDasharray="2 3" opacity="0.6" />
+          <text x={x(runDay) + 4} y={pad.t + 10} fontSize="10.5" fill="var(--ink-faint)">forecast date</text>
+        </g>}
+        {band && <path d={band} fill="var(--ink-faint)" opacity="0.12" />}
+        {p50 && <path d={p50} fill="none" stroke="var(--ink-faint)" strokeWidth="1.5" strokeDasharray="5 4" opacity="0.8" />}
+        {curve.length > 0 && !narrow && (
+          <text x={x(curve[curve.length - 1].date) - 4} y={y(curve[curve.length - 1].p50) - 6} textAnchor="end" fontSize="10.5" fill="var(--ink-faint)">ECI trend, median</text>
+        )}
+        <path d={step} fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinejoin="round" />
+        {hist.map(h => (
+          <circle key={h.date + h.model} cx={x(h.date)} cy={y(h.score)} r={hv && hv.model === h.model ? 5 : 3.5}
+            fill="var(--ink)" stroke="var(--panel)" strokeWidth="1.5" onMouseEnter={() => setHv({ x: x(h.date), y: y(h.score), model: h.model, title: h.model, lines: ["ECI " + h.score.toFixed(1) + " · " + capFmtDate(h.date)] })} style={{ cursor: "default" }} />
+        ))}
+        {fc.map((v, i) => {
+          const on = v.key === active;
+          const n = v.forecast.models.length;
+          const xc = x(v.targetDate);
+          // The ensemble: with one model, that model's own numbers.
+          const e = v.forecast.ensemble;
+          const { who, head } = labels[i];
+          // The head alone, centred under the lowest mark; the quartiles,
+          // the 10th–90th and the date are in the tooltip.
+          const bw = narrow ? 12 : 16;
+          const half = bw / 2;
+          const lx = xc, ly = y(floor) + 16;
+          const tip = { x: xc, y: y(e.p75), title: (fc.length > 1 ? v.label + " · " : "") + who + ": median " + capFmtEci(e.p50),
+            lines: ["25–75th " + capFmtEci(e.p25) + "–" + capFmtEci(e.p75),
+                    ...(e.p10 != null && e.p90 != null ? ["10–90th " + capFmtEci(e.p10) + "–" + capFmtEci(e.p90)] : []),
+                    capFmtDate(v.targetDate) + (n > 1 ? " · " + n + " models" : "")] };
+          return (
+            <g key={v.key} opacity={on ? 1 : 0.4} onClick={() => onPick && onPick(v.key)} onMouseEnter={() => setHv(tip)} style={{ cursor: "pointer" }}>
+              {/* Whiskers to the 10th and 90th percentiles (A4, asked since
+                  2026-09-02); a day whose rows carry only the quartiles draws
+                  the box alone. */}
+              {e.p10 != null && e.p90 != null && <g stroke="var(--ink)" strokeOpacity="0.75" strokeWidth="1.5">
+                <line x1={xc} x2={xc} y1={y(e.p90)} y2={y(e.p75)} />
+                <line x1={xc} x2={xc} y1={y(e.p25)} y2={y(e.p10)} />
+                <line x1={xc - half * 0.6} x2={xc + half * 0.6} y1={y(e.p90)} y2={y(e.p90)} />
+                <line x1={xc - half * 0.6} x2={xc + half * 0.6} y1={y(e.p10)} y2={y(e.p10)} />
+              </g>}
+              <rect x={xc - half} y={y(e.p75)} width={bw} height={Math.max(2, y(e.p25) - y(e.p75))} rx="2" fill="var(--ink)" fillOpacity="0.14" stroke="var(--ink)" strokeOpacity="0.75" strokeWidth="1.5" />
+              <line x1={xc - half} x2={xc + half} y1={y(e.p50)} y2={y(e.p50)} stroke="var(--ink)" strokeWidth="2.5" />
+              <text x={lx} y={ly} textAnchor="middle" fontSize="12" fontWeight="600" fill="var(--ink)" paintOrder="stroke" stroke="var(--panel)" strokeWidth="3" strokeLinejoin="round">{head}</text>
+            </g>
+          );
+        })}
+        {lpPts.map(p => {
+          const xc = x(p.date);
+          const bw = narrow ? 12 : 16, half = bw / 2;
+          // Label to the LEFT of the box, its top line at the p75 cap: the
+          // models' box and label sit to the right, two months on, and the
+          // frontier's last step runs below.
+          const lx = xc - half - 8, ly = y(p.p75) + 4;
+          const tip = { x: xc, y: y(p.p75), title: "LEAP superforecasters: median " + capFmtEci(p.p50),
+            lines: ["25–75th " + capFmtEci(p.p25) + "–" + capFmtEci(p.p75), capFmtDate(p.date) + " · n=" + p.n] };
+          return (
+            <g key={"leap" + p.date} onMouseEnter={() => setHv(tip)}>
+              <rect x={xc - half} y={y(p.p75)} width={bw} height={Math.max(2, y(p.p25) - y(p.p75))} rx="2" fill="var(--panel)" stroke="var(--ink)" strokeOpacity="0.75" strokeWidth="1.5" strokeDasharray="3 2" />
+              <path d={`M${xc},${y(p.p50) - 6}L${xc + 6},${y(p.p50)}L${xc},${y(p.p50) + 6}L${xc - 6},${y(p.p50)}Z`} fill="var(--ink)" />
+              <text x={lx} y={ly} textAnchor="end" fontSize="12" fontWeight="600" fill="var(--ink)" paintOrder="stroke" stroke="var(--panel)" strokeWidth="3" strokeLinejoin="round">{(narrow ? "LEAP " : "LEAP supers ") + capFmtEci(p.p50)}</text>
+            </g>
+          );
+        })}
+      </svg>
+      {hv && (
+        <div style={{ position: "absolute", left: Math.min(hv.x / W * 100, 65) + "%", top: Math.max(0, (hv.y / H) * 100 - 18) + "%", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 9px", boxShadow: "var(--shadow)", pointerEvents: "none", fontSize: 12, zIndex: 5, whiteSpace: "nowrap" }}>
+          <div style={{ fontWeight: 600 }}>{hv.title}</div>
+          {hv.lines.map(t => <div key={t} className="mono" style={{ color: "var(--ink-soft)" }}>{t}</div>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================ the panel ============================ */
+function CapabilityPanel({ onDefinitions }) {
+  const variants = (CAP && CAP.variants || []).filter(v => v.questions && v.questions.length);
+  if (!CAP || !variants.length) {
+    return <ForecastUnavailable title="Forecasts conditional on AI capability" onDefinitions={onDefinitions} />;
+  }
+  // ?cap=<variant>&q=<question id>&h=<horizon> deep-links a chart.
+  const params = new URLSearchParams(typeof location !== "undefined" ? location.search : "");
+  const [vkey, setVkey] = useState(variants.some(v => v.key === params.get("cap")) ? params.get("cap") : (CAP.defaultVariant || variants[0].key));
+  const V = variants.find(v => v.key === vkey) || variants[0];
+  const Q = V.questions;
+  const [qid, setQid] = useState(Q.some(x => x.id === params.get("q")) ? params.get("q") : Q[0].id);
+  const [horizon, setHorizon] = useState(V.horizons.includes(params.get("h")) ? params.get("h") : V.defaultHorizon);
+  const [picked, setPicked] = useState(null);
+  const [showTable, setShowTable] = useState(false);
+  const q = Q.find(x => x.id === qid) || Q[0];
+  const hz = q.horizons.includes(horizon) ? horizon : q.horizons[0];
+  const cell = q.byHorizon[hz];
+  const eci = CAP.eci;
+
+  return (
+    <React.Fragment>
+      <Panel style={{ padding: "16px 22px", marginBottom: 18 }}>
+        <h2 style={{ fontSize: 22, marginTop: 0, marginBottom: 6 }}>How does the forecast depend on the pace of AI progress?</h2>
+        <p style={{ color: "var(--ink-soft)", fontSize: 13.5, maxWidth: 820, margin: 0 }}>
+          Models' forecasts of frontier <a href="https://epoch.ai/benchmarks/eci" target="_blank" rel="noopener"
+          style={{ color: "var(--link)" }}>Epoch Capabilities Index</a>, along with risks conditional on those ECI scores.
+        </p>
+      </Panel>
+
+      <Panel style={{ padding: "18px 22px", marginBottom: 18 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ fontSize: 22, marginTop: 0 }}>How models forecast frontier capability</h2>
+          </div>
+          {variants.length > 1 && <div style={{ flexShrink: 0 }}>
+            <Toggle options={variants.map(v => ({ key: v.key, label: v.label }))} value={vkey} onChange={k => { setVkey(k); setPicked(null); }} />
+          </div>}
+        </div>
+        <div style={{ marginTop: 14 }}>
+          <EciTrendChart eci={eci} variants={variants} active={vkey} onPick={k => { setVkey(k); setPicked(null); }} />
+        </div>
+        <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+          <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 18, height: 2, background: "var(--ink)" }}></span>Frontier ECI</span>
+          <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="14" height="18" viewBox="0 0 14 18"><rect x="1.5" y="2" width="11" height="14" rx="2" fill="var(--ink)" fillOpacity="0.14" stroke="var(--ink)" strokeOpacity="0.75" strokeWidth="1.5" /><line x1="1.5" x2="12.5" y1="9" y2="9" stroke="var(--ink)" strokeWidth="2.5" /></svg>Ensemble's ECI percentiles</span>
+          {CAP && CAP.leap && <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="14" height="18" viewBox="0 0 14 18"><rect x="1.5" y="2" width="11" height="14" rx="2" fill="var(--panel)" stroke="var(--ink)" strokeOpacity="0.75" strokeWidth="1.5" strokeDasharray="3 2" /><path d="M7,5L11,9L7,13L3,9Z" fill="var(--ink)" /></svg><span>LEAP supers (<a href={CAP.leap.url}>Wave 5</a>)</span></span>}
+          <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 18, height: 10, background: "var(--ink-faint)", opacity: 0.25 }}></span><span>ECI trend (<a href={eci.trend.url}>Peter Wildeford</a>)</span></span>
+        </div>
+      </Panel>
+
+      <div className="rail-grid" style={{ gap: 18 }}>
+        <Panel style={{ padding: 14 }}>
+          <QuestionRail title="Question" value={q.id} onChange={setQid}
+            items={Q.map(x => ({ key: x.id, label: x.railLabel || x.short, color: x.color, group: x.group }))} />
+        </Panel>
+
+        <div style={{ minWidth: 0 }}>
+          <Panel style={{ padding: "18px 22px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ fontSize: 22, marginTop: 0, marginBottom: 4 }}>{q.heading || q.short} — by {hz}</h2>
+                <div style={{ fontSize: 12.5, color: "var(--ink-soft)" }}>Risk conditional on each model's own estimates for frontier ECI on {capFmtDate(V.targetDate)}.</div>
+              </div>
+              <div style={{ flexShrink: 0 }}>
+                <Toggle options={q.horizons.map(h => ({ key: h, label: "by " + h }))} value={hz} onChange={setHorizon} />
+              </div>
+            </div>
+
+            {cell.note && <div style={{ fontSize: 12.5, color: "var(--warn-ink)", background: "var(--warn-bg)", border: "1px solid var(--warn-line)", borderRadius: 8, padding: "6px 10px", margin: "12px 0 0" }}>{cell.note}.</div>}
+
+            <div style={{ marginTop: 14 }}>
+              <CondDeltaChart cell={cell} ctx={V} picked={picked} onPick={id => setPicked(picked === id ? null : id)}
+                axisValues={q.valueKind === "loss"
+                  ? Q.filter(x => x.valueKind === "loss").flatMap(x => x.horizons.flatMap(h => condAxisValues(x.byHorizon[h])))
+                  : q.horizons.flatMap(h => condAxisValues(q.byHorizon[h]))} />
+            </div>
+
+            <QuestionBox q={q} />
+
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+              {V.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
+              <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="22" height="14" viewBox="0 0 22 14"><rect x="1" y="2" width="16" height="10" rx="2" fill="var(--ink-soft)" opacity="0.38" /><line x1="17" x2="17" y1="0" y2="14" stroke="var(--ink)" strokeWidth="2.5" /></svg>median conditional change</span>
+              <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 10, height: 10, borderRadius: 5, border: "2px solid var(--ink-soft)", background: "var(--panel)" }}></span>no search evidence</span>
+              <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={() => setShowTable(!showTable)}>{showTable ? "hide table" : "show table"}</button>
+            </div>
+            {showTable && <div style={{ marginTop: 12 }}><CondDeltaTable cell={cell} ctx={V} /></div>}
+            {q.valueKind === "loss" && <CountingWindow info={V.instrumentInfo} horizon={hz} />}
+            {onDefinitions && <button className="linkbtn" onClick={onDefinitions} style={{ fontSize: 12, marginTop: 10 }}>Definitions →</button>}
+          </Panel>
+
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+/* ============================ WELFARE ============================ */
+// The welfare instrument's page (redlines/views/welfare.py): life expectancy
+// and GDP growth as five percentiles, unconditional and under the combined
+// set's conditions. Built from the dashboard's own atoms, rail, CondText and
+// EciTrendChart; the one new mark is a percentile box per row, laid out as
+// CondDeltaChart lays out its rows. These are the welfare pilot's own
+// components (welfare.html of 2026-10-01, protocol welfare-v1-pilot), as
+// published; since 2026-10-22 the header shows the run date where the pilot
+// said PILOT, and names the five prompts each number is the mean of.
+const WF = (typeof window !== "undefined" && window.__WELFARE__) || null;
+
+const wFmt = (v, unit) => (v == null ? "—" : unit === "years" ? v.toFixed(1) : v.toFixed(2) + "%");
+const wFmtShift = (v, unit) => {
+  if (v == null) return "—";
+  const r = Number(wFmt(Math.abs(v), "years" === unit ? unit : null).replace("%", ""));
+  return (r === 0 ? "±" : v > 0 ? "+" : "−") + wFmt(Math.abs(v), unit);
+};
+const wTick = (t, unit) => (unit === "years" ? String(Number(t.toPrecision(4))) : Number(t.toPrecision(3)) + "%");
+
+function wTicks(values) {
+  const v = values.filter(x => x != null && isFinite(x));
+  let lo = Math.min(...v), hi = Math.max(...v);
+  if (!(hi > lo)) { lo -= 1; hi += 1; }
+  const raw = (hi - lo) / 6;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw);
+  const a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step;
+  const ticks = [];
+  for (let t = a; t <= b + step * 1e-6; t += step) ticks.push(Number(t.toFixed(10)));
+  return { ticks, lo: a, hi: b };
+}
+
+const wQs = rows => rows.flatMap(r => r.models.map(m => m.q)).filter(Boolean);
+const wAxisValues = rows => wQs(rows).flatMap(q => [q.p10, q.p90]);
+const wMedian = xs => { const s = xs.filter(x => x != null).sort((a, b) => a - b); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
+
+// The cell's rows: the same-session unconditional first, then each condition
+// of the tab's group.
+function wCellRows(cell, group) {
+  return [{ id: "unconditional", label: "Unconditional", sub: "each model, same session", models: cell.baselines },
+          ...cell.bars.filter(b => !group || b.group === group).map(b => ({ id: b.id, label: b.label, sub: b.leapId, models: b.models }))];
+}
+
+/* ============================ the percentile chart ============================ */
+// One row per condition, as in CondDeltaChart: label left, value right, the
+// unconditional median as the vertical line. The mark is each model's
+// percentiles: whisker p10–p90, box p25–p75, a heavy line at p50, in the
+// model's colour.
+function WelfareChart({ rows, unit, axisValues, picked, onPick, zero, valueText, conditions }) {
+  const box = React.useRef(null);
+  const cw = useContainerWidth(box, 900);
+  const narrow = cw < 640;
+  const W = Math.max(320, cw), rowH = narrow ? 66 : 44;
+  const pad = narrow ? { l: 14, r: 14, t: 26, b: 34 } : { l: 250, r: 150, t: 26, b: 34 };
+  const barY = cy => (narrow ? cy + 6 : cy);
+  const maxChars = narrow ? Math.max(18, Math.floor((W - pad.l - pad.r - 96) / 6.6)) : 36;
+  const clip = s => (s && s.length > maxChars ? s.slice(0, maxChars - 2) + "…" : s);
+  const chip = (xLeft, yTop, text, perChar) => <rect x={xLeft - 3} y={yTop} width={(text || "").length * perChar + 6} height={15} rx="2" fill="var(--panel)" opacity="0.92" />;
+  const H = pad.t + pad.b + rowH * rows.length;
+  const { ticks, lo, hi } = wTicks(axisValues || wAxisValues(rows));
+  const x = v => pad.l + Math.min(1, Math.max(0, (v - lo) / (hi - lo))) * (W - pad.l - pad.r);
+  const rowY = i => pad.t + rowH * i + rowH / 2;
+  const [hv, setHv] = useState(null);
+  // The hovered box: its model's five percentiles, in EciTrendChart's
+  // tooltip format. While it shows, the condition-text tooltip does not.
+  const [bx, setBx] = useState(null);
+  const x0 = zero == null ? null : x(zero);
+
+  return (
+    <div ref={box} style={{ position: "relative", minWidth: 0 }}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} onMouseLeave={() => { setHv(null); setBx(null); }}>
+        {thinTicks(ticks, x, narrow ? 38 : 0).map(t => (
+          <g key={t}>
+            <line x1={x(t)} x2={x(t)} y1={pad.t - 4} y2={H - pad.b} stroke="var(--line-soft)" />
+            <text x={x(t)} y={H - pad.b + 16} textAnchor="middle" fontSize="11" fill="var(--ink-faint)" className="mono">{wTick(t, unit)}</text>
+          </g>
+        ))}
+        {x0 != null && <>
+          <line x1={x0} x2={x0} y1={pad.t - 10} y2={H - pad.b} stroke="var(--ink)" strokeWidth="1.5" />
+          <text x={x0} y={pad.t - 14} textAnchor={narrow ? (x0 < W * 0.3 ? "start" : x0 > W * 0.7 ? "end" : "middle") : "middle"} fontSize="11" fill="var(--ink-soft)" fontWeight="600">unconditional</text>
+          <text x={narrow ? pad.l : pad.l - 8} y={H - pad.b + 30} textAnchor={narrow ? "start" : "end"} fontSize="11" fill="var(--ink-faint)">◀ lower</text>
+          <text x={narrow ? W - pad.r : W - pad.r + 8} y={H - pad.b + 30} textAnchor={narrow ? "end" : "start"} fontSize="11" fill="var(--ink-faint)">higher ▶</text>
+        </>}
+        {rows.map((r, i) => {
+          const cy = rowY(i), by = barY(cy);
+          const isPicked = picked === r.id;
+          const base = r.id === "unconditional";
+          const vt = valueText(r);
+          const n = r.models.length;
+          const bh = n > 1 ? Math.max(6, 16 / n) : 14;
+          return (
+            <g key={r.id} onMouseEnter={() => setHv(r.id)} onClick={() => onPick && !base && onPick(r.id)} style={{ cursor: base ? "default" : "pointer" }}>
+              <rect x={0} y={cy - rowH / 2} width={W} height={rowH} fill={base ? "var(--line-soft)" : (isPicked || hv === r.id ? "var(--line-soft)" : "transparent")} opacity={base ? 0.35 : 0.6} />
+              {narrow ? <>
+                {chip(pad.l, cy - 30, clip(r.label), 6.6)}
+                <text x={pad.l} y={cy - 19} textAnchor="start" fontSize="12.5" fill="var(--ink)" fontWeight={isPicked || base ? 600 : 500}>{clip(r.label)}</text>
+                {chip(W - pad.r - vt.length * 7.2, cy - 30, vt, 7.2)}
+                <text x={W - pad.r} y={cy - 19} textAnchor="end" fontSize="12" fill="var(--ink)" className="mono" fontWeight="600">{vt}</text>
+                {r.sub && chip(pad.l, cy + 16, r.sub, 6.3)}
+                {r.sub && <text x={pad.l} y={cy + 27} textAnchor="start" fontSize="10.5" fill="var(--ink-faint)" className="mono">{r.sub}</text>}
+              </> : <>
+                <text x={pad.l - 14} y={cy + 4} textAnchor="end" fontSize="12.5" fill="var(--ink)" fontWeight={isPicked || base ? 600 : 500}>{clip(r.label)}</text>
+                {r.sub && <text x={pad.l - 14} y={cy + 17} textAnchor="end" fontSize="10.5" fill="var(--ink-faint)" className="mono">{r.sub}</text>}
+                <text x={W - pad.r + 12} y={cy + 4} fontSize="12" fill="var(--ink)" className="mono" fontWeight="600">{vt}</text>
+              </>}
+              {r.models.map((m, j) => {
+                const q = m.q;
+                if (!q) return null;
+                const yy = by + (j - (n - 1) / 2) * (bh + 3);
+                const c = m.color || "var(--ink)";
+                const hollow = m.grounded === false;
+                const tip = { x: x(q.p50), y: yy - bh / 2, title: m.label + (r.sub && r.id !== "unconditional" ? " · " + r.label : "") + ": median " + wFmt(q.p50, unit),
+                  lines: ["25–75th " + wFmt(q.p25, unit) + "–" + wFmt(q.p75, unit), "10–90th " + wFmt(q.p10, unit) + "–" + wFmt(q.p90, unit)] };
+                return (
+                  <g key={m.label} onMouseEnter={() => setBx(tip)} onMouseLeave={() => setBx(null)}>
+                    <rect x={x(q.p10) - 4} y={yy - bh / 2 - 4} width={x(q.p90) - x(q.p10) + 8} height={bh + 8} fill="transparent" />
+                    <line x1={x(q.p10)} x2={x(q.p90)} y1={yy} y2={yy} stroke={c} strokeWidth="1.5" />
+                    <line x1={x(q.p10)} x2={x(q.p10)} y1={yy - bh * 0.3} y2={yy + bh * 0.3} stroke={c} strokeWidth="1.5" />
+                    <line x1={x(q.p90)} x2={x(q.p90)} y1={yy - bh * 0.3} y2={yy + bh * 0.3} stroke={c} strokeWidth="1.5" />
+                    <rect x={x(q.p25)} y={yy - bh / 2} width={Math.max(2, x(q.p75) - x(q.p25))} height={bh} rx="2"
+                      fill={hollow ? "var(--panel)" : c} fillOpacity={hollow ? 1 : 0.18} stroke={c} strokeWidth="1.5" />
+                    <line x1={x(q.p50)} x2={x(q.p50)} y1={yy - bh / 2 - 2} y2={yy + bh / 2 + 2} stroke={c} strokeWidth="2.5" />
+                  </g>
+                );
+              })}
+            </g>
+          );
+        })}
+      </svg>
+      {bx && (
+        <div style={{ position: "absolute", left: Math.min(bx.x / W * 100, 65) + "%", top: (bx.y / H) * 100 + "%", transform: "translate(-50%, calc(-100% - 6px))", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 9px", boxShadow: "var(--shadow)", pointerEvents: "none", fontSize: 12, zIndex: 6, whiteSpace: "nowrap" }}>
+          <div style={{ fontWeight: 600 }}>{bx.title}</div>
+          {bx.lines.map(t => <div key={t} className="mono" style={{ color: "var(--ink-soft)" }}>{t}</div>)}
+        </div>
+      )}
+      {!bx && hv != null && hv !== "unconditional" && conditions && (() => {
+        const i = rows.findIndex(r => r.id === hv);
+        const cond = conditions.find(c => c.id === hv);
+        if (!cond) return null;
+        const top = ((pad.t + rowH * i) / H) * 100;
+        const desc = cond.description || "";
+        const cut = desc.length > 900 ? desc.slice(0, 900).replace(/\s+\S*$/, "") + " …" : desc;
+        return (
+          <div style={{ position: "absolute", top: `${top}%`, right: 8, transform: "translateY(-100%)", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 12px", boxShadow: "var(--shadow)", pointerEvents: "none", width: 460, maxWidth: narrow ? "calc(100% - 16px)" : "60%", zIndex: 5 }}>
+            <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 3 }}>What the model was told{cond.leapId ? <> · <span className="mono">{cond.leapId}</span></> : null}</div>
+            <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 6 }}>{cond.label}</div>
+            {cond.assume && <div style={{ fontSize: 12.5, color: "var(--ink)", marginBottom: 6 }}><strong>Condition.</strong> {cond.assume}</div>}
+            {cut && <div style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>{cut}</div>}
+            {desc.length > 900 && <div style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 6 }}>click the row for the full text</div>}
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+function WelfareTable({ rows, unit, zeroOf }) {
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table className="tv">
+        <thead>
+          <tr><th>condition</th><th>model</th>{["p10", "p25", "p50", "p75", "p90"].map(k => <th key={k}>{k}</th>)}<th>Δ p50</th></tr>
+        </thead>
+        <tbody>
+          {rows.flatMap(r => r.models.map((m, j) => (
+            <tr key={r.id + m.label} style={r.id === "unconditional" ? { fontWeight: 600 } : null}>
+              <td>{j === 0 ? <>{r.label} {r.sub && r.id !== "unconditional" ? <span className="mono" style={{ color: "var(--ink-faint)" }}>{r.sub}</span> : null}</> : ""}</td>
+              <td>{m.label}</td>
+              {["p10", "p25", "p50", "p75", "p90"].map(k => <td key={k} className="mono">{m.q ? wFmt(m.q[k], unit) : "—"}</td>)}
+              <td className="mono">{r.id === "unconditional" ? "" : wFmtShift(m.shift, unit)}</td>
+            </tr>
+          )))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const WBoxSwatch = ({ label }) => (
+  <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}>
+    <svg width="34" height="14" viewBox="0 0 34 14"><line x1="1" x2="33" y1="7" y2="7" stroke="var(--ink-soft)" strokeWidth="1.5" /><line x1="1" x2="1" y1="3" y2="11" stroke="var(--ink-soft)" strokeWidth="1.5" /><line x1="33" x2="33" y1="3" y2="11" stroke="var(--ink-soft)" strokeWidth="1.5" /><rect x="9" y="1.5" width="16" height="11" rx="2" fill="var(--ink-soft)" fillOpacity="0.18" stroke="var(--ink-soft)" strokeWidth="1.5" /><line x1="17" x2="17" y1="0" y2="14" stroke="var(--ink)" strokeWidth="2.5" /></svg>
+    {label}
+  </span>
+);
+
+/* ============================ a conditional tab ============================ */
+function WelfareCondPanel({ group }) {
+  const params = new URLSearchParams(typeof location !== "undefined" ? location.search : "");
+  const Q = WF.questions;
+  const [qid, setQid] = useState(Q.some(x => x.id === params.get("q")) ? params.get("q") : Q[0].id);
+  const [horizon, setHorizon] = useState(params.get("h"));
+  const [picked, setPicked] = useState(null);
+  const [showTable, setShowTable] = useState(false);
+  const q = Q.find(x => x.id === qid) || Q[0];
+  const hz = q.horizons.includes(horizon) ? horizon : q.horizons[0];
+  const rows = wCellRows(q.byHorizon[hz], group);
+  const axis = q.horizons.flatMap(h => wAxisValues(wCellRows(q.byHorizon[h], group)));
+  const zero = wMedian(rows[0].models.map(m => m.q && m.q.p50));
+  const cond = WF.conditions.find(c => c.id === picked);
+  const valueText = r => {
+    const p = wMedian(r.models.map(m => m.q && m.q.p50));
+    return r.id === "unconditional" ? wFmt(p, q.unit) : wFmt(p, q.unit) + " · " + wFmtShift(wMedian(r.models.map(m => m.shift)), q.unit);
+  };
+  const variants = Object.keys(WF.eciForecast || {}).length ? [{ key: "6mo", label: "6 months", targetDate: WF.targetDate,
+    forecast: { models: WF.models, ensemble: Object.fromEntries(["p10", "p25", "p50", "p75", "p90"].map(k => [k, wMedian(Object.values(WF.eciForecast).map(e => e && e[k]))])) } }] : [];
+
+  return (
+    <React.Fragment>
+      {group === "capability" && CAP && variants.length > 0 && (
+        <Panel style={{ padding: "18px 22px", marginBottom: 18 }}>
+          <h2 style={{ fontSize: 22, marginTop: 0 }}>How models forecast frontier capability</h2>
+          <div style={{ marginTop: 14 }}>
+            <EciTrendChart eci={CAP.eci} variants={variants} active="6mo" />
+          </div>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><span style={{ width: 18, height: 2, background: "var(--ink)" }}></span>Frontier ECI</span>
+            <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="14" height="18" viewBox="0 0 14 18"><rect x="1.5" y="2" width="11" height="14" rx="2" fill="var(--ink)" fillOpacity="0.14" stroke="var(--ink)" strokeOpacity="0.75" strokeWidth="1.5" /><line x1="1.5" x2="12.5" y1="9" y2="9" stroke="var(--ink)" strokeWidth="2.5" /></svg>{WF.models.length === 1 ? WF.models[0].label : "Ensemble"}'s ECI percentiles</span>
+            {CAP.leap && <span style={{ fontSize: 12.5, color: "var(--ink-soft)", display: "inline-flex", alignItems: "center", gap: 7 }}><svg width="14" height="18" viewBox="0 0 14 18"><rect x="1.5" y="2" width="11" height="14" rx="2" fill="var(--panel)" stroke="var(--ink)" strokeOpacity="0.75" strokeWidth="1.5" strokeDasharray="3 2" /><path d="M7,5L11,9L7,13L3,9Z" fill="var(--ink)" /></svg><span>LEAP supers (<a href={CAP.leap.url}>Wave 5</a>)</span></span>}
+          </div>
+        </Panel>
+      )}
+
+      <div className="rail-grid" style={{ gap: 18 }}>
+        <Panel style={{ padding: 14 }}>
+          <QuestionRail title="Question" value={q.id} onChange={setQid}
+            items={Q.map(x => ({ key: x.id, label: x.railLabel || x.short, color: x.color, group: x.group }))} />
+        </Panel>
+
+        <div style={{ minWidth: 0 }}>
+          <Panel style={{ padding: "18px 22px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0 }}>
+                <h2 style={{ fontSize: 22, marginTop: 0 }}>{q.heading} — {hz}</h2>
+              </div>
+              <div style={{ flexShrink: 0 }}>
+                <Toggle options={q.horizons.map(h => ({ key: h, label: h }))} value={hz} onChange={setHorizon} />
+              </div>
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              <WelfareChart rows={rows} unit={q.unit} axisValues={axis} zero={zero} valueText={valueText}
+                conditions={WF.conditions} picked={picked} onPick={id => setPicked(picked === id ? null : id)} />
+            </div>
+
+            <QuestionBox q={q} />
+
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+              {WF.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
+              <WBoxSwatch label="10th · 25th–75th · 90th, median" />
+              <button className="linkbtn" style={{ marginLeft: "auto" }} onClick={() => setShowTable(!showTable)}>{showTable ? "hide table" : "show table"}</button>
+            </div>
+            {showTable && <div style={{ marginTop: 12 }}><WelfareTable rows={rows} unit={q.unit} /></div>}
+            <WelfareRationales q={q} context={q.heading} />
+          </Panel>
+
+          {group === "policy" && cond && <CondText cond={cond} conditioning={WF.conditioning.policy} />}
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+
+/* ============================ rationales ============================ */
+// ForecastRationales (65-rationales.jsx), for percentile forecasts: the same
+// collapsible, model buttons, explanation, weakest assumption, sources and
+// provenance; the table holds the model's unconditional percentiles on
+// every horizon.
+function WelfareRationales({ q, context, controls }) {
+  const R = WF.rationales || { calls: {}, questions: {} };
+  const [selected, setSelected] = useState("");
+  const entries = R.questions[q.id] || {};
+  const models = Object.keys(entries);
+  const model = models.includes(selected) ? selected : models[0];
+  const calls = (entries[model] || []).map(id => [id, R.calls[id]]).filter(([, c]) => c);
+  const rows = q.horizons.map(h => [h, ((q.byHorizon[h].baselines || []).find(b => b.label === model) || {}).q]).filter(([, v]) => v);
+  return <details style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-soft)", fontSize: 13, lineHeight: 1.6 }}>
+    <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--ink)" }}>Model rationale for its forecasts</summary>
+    {controls}
+    <p style={{ margin: "10px 0", fontWeight: 600 }}>{context}</p>
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+      {models.map(m => <button key={m} aria-pressed={model === m} onClick={() => setSelected(m)}
+        style={{ padding: "7px 10px", border: "1px solid var(--line)", borderRadius: 8, cursor: "pointer", background: model === m ? "var(--ink)" : "var(--panel)", color: model === m ? "white" : "var(--ink)" }}>
+        {m}
+      </button>)}
+    </div>
+    {rows.length > 0 && <div style={{ overflowX: "auto", marginTop: 12 }}>
+      <table className="tv" style={{ width: "auto", minWidth: 260 }}>
+        <thead><tr><th>Horizon</th>{["p10", "p25", "p50", "p75", "p90"].map(k => <th key={k}>{k}</th>)}</tr></thead>
+        <tbody>{rows.map(([h, v]) => <tr key={h}>
+          <td>{h}</td>
+          {["p10", "p25", "p50", "p75", "p90"].map(k => <td key={k} className="mono">{wFmt(v[k], q.unit)}</td>)}
+        </tr>)}</tbody>
+      </table>
+    </div>}
+    {!calls.length && <p>No explanation recorded for this forecast.</p>}
+    {calls.map(([id, c]) => {
+      const explanation = (c.debriefs || {})[q.id];
+      return <div key={id} style={{ marginTop: 14 }}>
+        <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>{explanation ? "Model’s explanation for this question, recorded after its forecasts. Covers all horizons." : "Model’s original explanation for its full forecast batch; not specific to this question or horizon."}</p>
+        <p style={{ whiteSpace: "pre-wrap" }}>{(explanation && explanation.rationale) || c.rationale || "No written rationale recorded."}</p>
+        {explanation && explanation.weakest_link && <p><strong>Weakest assumption: </strong>{explanation.weakest_link}</p>}
+        <details><summary style={{ cursor: "pointer" }}>Sources cited by this model</summary>
+          <RationaleSources sources={(explanation && explanation.key_sources) || c.sources} />
+        </details>
+        <details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer" }}>Original batch explanation and provenance</summary>
+          {explanation && <p style={{ whiteSpace: "pre-wrap" }}>{c.rationale}</p>}
+          <p style={{ overflowWrap: "anywhere", color: "var(--ink-soft)" }}>Model: {c.modelId}<br />Elicited: {c.elicitedAt}<br />Run: {c.run}<br />Call: {id}<br />Protocol: {c.protocol}</p>
+        </details>
+      </div>;
+    })}
+  </details>;
+}
+
+/* ============================ the forecasts tab ============================ */
+// Every question x horizon, unconditional, one chart per unit.
+function WelfareForecastsPanel() {
+  const units = [...new Set(WF.questions.map(q => q.unit))];
+  const [pick, setPick] = useState({});
+  return (
+    <React.Fragment>
+      {units.map(u => {
+        const qs = WF.questions.filter(q => q.unit === u);
+        const rows = qs.flatMap(q => q.horizons.map(h => ({ id: q.id + "@" + h, label: q.short, sub: h, models: q.byHorizon[h].baselines })));
+        return (
+          <Panel key={u} style={{ padding: "18px 22px", marginBottom: 18 }}>
+            <h2 style={{ fontSize: 22, marginTop: 0 }}>{qs[0].group}</h2>
+            <div style={{ marginTop: 14 }}>
+              <WelfareChart rows={rows} unit={u} zero={null}
+                valueText={r => wFmt(wMedian(r.models.map(m => m.q && m.q.p50)), u)} />
+            </div>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 8, alignItems: "center" }}>
+              {WF.models.map(m => <LegendDot key={m.label} color={m.color} label={m.label} />)}
+              <WBoxSwatch label="10th · 25th–75th · 90th, median" />
+            </div>
+            {(() => {
+              const sel = qs.find(x => x.id === pick[u]) || qs[0];
+              const controls = <div className="rationale-controls">
+                <label>Question <select value={sel.id} onChange={e => setPick({ ...pick, [u]: e.target.value })}>{qs.map(x => <option key={x.id} value={x.id}>{x.short}</option>)}</select></label>
+              </div>;
+              return <WelfareRationales q={sel} context={sel.heading} controls={controls} />;
+            })()}
+          </Panel>
+        );
+      })}
+    </React.Fragment>
+  );
+}
+
+/* ============================ app ============================ */
+function App() {
+  const tabParam = new URLSearchParams(typeof location !== "undefined" ? location.search : "").get("tab");
+  const [mainTab, setMainTab] = useState(["forecasts", "capability", "conditional"].includes(tabParam) ? tabParam : "forecasts");
+  if (!WF) return <ForecastUnavailable title="Welfare" />;
+  return (
+    <React.Fragment>
+      <header style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 24, flexWrap: "wrap" }}>
+        <div style={{ minWidth: 0, flex: "1 1 520px" }}>
+          <a href="https://forecastingresearch.org" title="Forecasting Research Institute"><img className="brand-logo" src="web/img/fri-logo.svg" alt="Forecasting Research Institute" width="231" height="37" /></a>
+          <h1 style={{ fontSize: "clamp(25px, 7.5vw, 33px)", marginTop: 8, marginBottom: 6 }}>AIRO (Automated AI Risk Outlook)</h1>
+        </div>
+      </header>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10, fontSize: 13, color: "var(--ink-soft)" }}>
+        <span style={{ background: "var(--warn-bg)", border: "1px solid var(--warn-line)", borderRadius: 999, color: "var(--warn-ink)", fontWeight: 700, letterSpacing: "0.04em", padding: "3px 8px" }}>{WF.day}</span>
+        <span className="mono">{WF.run} · {WF.protocol} · {WF.models.map(m => m.label + (WF.usage[m.label] && WF.usage[m.label].cost_usd != null ? " $" + WF.usage[m.label].cost_usd.toFixed(2) : "")).join(", ")}</span>
+      </div>
+      <details style={{ marginBottom: 14, fontSize: 13, color: "var(--ink-soft)" }}>
+        <summary style={{ cursor: "pointer" }}>Each model's number is the mean of its forecasts under {WF.prompts.length} prompts</summary>
+        <ol style={{ margin: "8px 0 0", paddingLeft: 22 }}>
+          {WF.prompts.map(p => <li key={p.condition} style={{ marginBottom: 4 }}><span className="mono">{p.condition}</span>: {p.text || "the instrument as it stands, with no added instruction."}</li>)}
+        </ol>
+      </details>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
+        <Toggle options={[{ key: "forecasts", label: "Forecasts" }, { key: "capability", label: "Capability" }, { key: "conditional", label: "Policy levers" }]}
+          value={mainTab} onChange={setMainTab} />
+      </div>
+      {mainTab === "forecasts" && <WelfareForecastsPanel />}
+      {mainTab === "capability" && <WelfareCondPanel group="capability" />}
+      {mainTab === "conditional" && <WelfareCondPanel group="policy" />}
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

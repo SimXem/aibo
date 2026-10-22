@@ -1,0 +1,20 @@
+{
+  "target": "welfare.html",
+  "blobs": [
+    "WELFARE",
+    "CAPABILITY"
+  ],
+  "chunks": [
+    "../demo/00-head.html",
+    "00-welfare-data.html",
+    "../demo/01-shell-open.html",
+    "../demo/60-atoms.jsx",
+    "../demo/65-rationales.jsx",
+    "../shared/responsive.jsx",
+    "../shared/question-rail.jsx",
+    "../demo/75-conditional.jsx",
+    "../demo/77-capability.jsx",
+    "85-welfare.jsx",
+    "../demo/90-shell-close.html"
+  ]
+}
