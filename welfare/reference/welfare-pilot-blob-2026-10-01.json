@@ -1,0 +1,3325 @@
+{
+ "run": "2026-10-01T1816Z",
+ "runs": [
+  "2026-10-01T1816Z"
+ ],
+ "protocol": "welfare-v1-pilot",
+ "rows": 70,
+ "models": [
+  {
+   "label": "Opus 5.5",
+   "color": "#4f5bd5"
+  }
+ ],
+ "conditions": [
+  {
+   "id": "sq",
+   "label": "Status quo (no new substantial AI policy)",
+   "group": "policy",
+   "leapId": "Status Quo",
+   "assume": "Assume no new, substantial AI policy is adopted in China, the US, or any other jurisdiction hosting a frontier model from today through December 31, 2050. Existing measures remain in force as they stand today, but nothing substantial is added. By \"substantial AI policy\u201d we mean reflecting similar or greater stringency compared to those listed in this survey.",
+   "description": "Note that this is conceptually distinct from Unconditional, for which you should forecast the world as you expect it to unfold, including AI policies you expect to be implemented.\n\nThe policies listed in this survey, for the stringency comparison:\n- P1: A US federal statute or action barring states from regulating AI more strictly than the federal government.\n- P2: Unilateral decision by US policymakers or a bilateral/multilateral decision made jointly by policymakers in China and the United States to slow the development of frontier AI systems.\n- P3: A binding requirement that frontier models be vetted and authorized before release, imposed by a US federal body or by an international body.\n- P4: A US federal statute treating frontier model training and deployment as an abnormally dangerous activity subject to strict liability (i.e., a regime under which a developer is liable for harms its models cause without the injured party having to prove the developer was careless or the model defective). The statute permits damages reflecting the expected magnitude of unrealized harm the conduct made more likely and requires developers to be insured for their liability.\n- P5: Assume all three policies are in force: a binding US\u2013China measure slowing frontier AI development, an international body (with member jurisdictions including the US and China) holding pre-release authorization power over frontier models, and federal strict liability for frontier AI harms.",
+   "levels": {
+    "Opus 5.5": null
+   }
+  },
+  {
+   "id": "p1",
+   "label": "Federal preemption of state AI laws",
+   "group": "policy",
+   "leapId": "P1",
+   "assume": "A US federal statute or action barring states from regulating AI more strictly than the federal government.",
+   "description": "P1. Federal Preemption on State AI Laws\n\nSummary: A US federal statute or action barring states from regulating AI more strictly than the federal government.\n\nBackground:\nFederal preemption of state AI laws has been pursued through several channels, but no cross-cutting federal AI statute or order has barred states from imposing stricter AI requirements than federal law. In Congress, a proposed 10-year moratorium on state AI laws was [stripped](https://www.americanprogress.org/article/moratoriums-and-federal-preemption-of-state-artificial-intelligence-laws-pose-serious-risks/) from both a 2025 Senate reconciliation bill and the [Big Beautiful Bill](https://en.wikipedia.org/wiki/One_Big_Beautiful_Bill_Act). In March 2026, the White House\u2019s National Policy Framework for Artificial Intelligence [included](https://www.ropesgray.com/en/insights/alerts/2026/03/the-white-house-legislative-recommendations-national-policy-framework-for-artificial-intelligence-an) an assertion of broad federal authority over AI laws, and an executive order passed shortly before the Framework created a task force to \u201cchallenge state laws on constitutional grounds, including preemption and the Dormant Commerce Clause.\u201d In April 2026, the Department of Justice [intervened](https://www.nortonrosefulbright.com/en/knowledge/publications/de3ad9de/xai-sues-doj-intervenes-enforcement-of-colorado-ai-act-suspended) in a lawsuit xAI filed against a Colorado law prohibiting \u201calgorithmic discrimination,\u201d resulting in a federal court temporarily suspending enforcement of the law; the law was later [repealed and replaced](https://www.skadden.com/insights/publications/2026/06/colorado-repeals-and-replaces-its-ai-act). In June 2026, Representatives Jay Obernolte (R-CA) and Lori Trahan (D-MA) [released](https://www.dlapiper.com/en/insights/publications/2026/06/unpacking-the-great-american-ai-act) draft legislation entitled the \u201cGreat American AI Act,\u201d which would \u201cpreempt state laws and rules \u2018specifically regulating the development of any AI model.\u201d This legislation has not been formally introduced in Congress.\n\nMany of the efforts described above have drawn [criticism](https://rollcall.com/2026/06/04/bipartisan-ai-draft-proposes-three-year-preemption-of-state-laws/) from commentators focused on AI safety; Brad Carson, the president of Americans for Responsible Innovation, wrote that the Great American AI Act\u2019s preemption of state laws would be \u201ca generational mistake,\u201d; Brendan Steinhauser, the CEO of the Alliance for Secure AI, wrote that the draft Act fell \u201cshort of the framework necessary to keep Americans safe from the dangers of advanced AI.\u201d\n\nHistorical baseline:\nAs of August 2026, no federal statute or regulation bars states from establishing stricter AI requirements than federal law, and no final court ruling has displaced a substantive category of state AI regulation.\n\nResolution criteria:\n* This question resolves positively at the first documented instance after August 26, 2026 in which the U.S. federal government, by binding statute, regulation, or final federal court order, preempts or invalidates state AI laws, thereby legally barring states from enforcing a substantive category of AI regulation.\n* This question concerns ceiling preemption only (i.e., preemption setting a federal maximum that states may not exceed, as opposed to a floor they remain free to exceed with stricter policies of their own). A statute or regulation or federal court order which preempts or invalidates state AI laws will not resolve this question if states retain authority to impose stricter or additional AI requirements than the federal baseline. Minimum standards set at the federal level only count toward the resolution of this question if they bar a state or states from adding to or exceeding federal standards.\n* The preempted category must extend across application domains (e.g., barring states from imposing obligations on general-purpose AI models or AI systems generally). Federal preemption confined to a single regulated sector (motor vehicles, medical devices, credit reporting, aviation, communications platforms) does not resolve this question, regardless of how large that sector is or how much AI activity it covers.\n* Actions that assert preemption authority or direct litigation toward it do not count unless and until they produce binding displacement of state law.\n* Preliminary injunctions in individual cases do not count; the displacing action must be operative law.\n* The action must prevent state authority over a substantive category of AI development or deployment regulation. Narrow state carve-outs in laws otherwise preventing state authority would not prevent the resolution of this question; likewise, measures limited to narrow areas of regulation would not resolve the question.\n* A temporary statutory freeze or moratorium on state AI regulation would count toward the resolution of this question while in force, even if it is not reauthorized later.\n* Instances in which federal funding is conditioned on state compliance with federal authority on regulation would not resolve this question unless the other criteria listed above are satisfied.\n* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.",
+   "levels": {
+    "Opus 5.5": null
+   }
+  },
+  {
+   "id": "p2a",
+   "label": "Compute cap on frontier R&D: US alone",
+   "group": "policy",
+   "leapId": "P2 (a)",
+   "assume": "Unilateral decision by US policymakers or a bilateral/multilateral decision made jointly by policymakers in China and the United States to slow the development of frontier AI systems. Part (a): US enacts a policy to slow AI development, with no qualifying measure binding US and China in force",
+   "description": "P2. AI Capability Slowdown\n\nSummary: Unilateral decision by US policymakers or a bilateral/multilateral decision made jointly by policymakers in China and the United States to slow the development of frontier AI systems.\n\nPart (a) is assumed: US enacts a policy to slow AI development, with no qualifying measure binding US and China in force (Note that these parts are mutually exclusive.)\n\nBackground:\nCalls to slow frontier AI development have grown prominent over the past few years, though none has produced binding policy. Anthropic in June 2026 [suggested that](https://www.anthropic.com/institute/recursive-self-improvement) creating options to slow or temporarily pause AI development via verifiable mechanisms would be good for the world. A July 2026 [open letter](https://www.pacingthefrontier.com/) from over 1,300 employees of frontier AI companies called for \u201cthe U.S. government [to] support an international effort to develop the technical and governance tools needed to deliberately pace the frontier of automated AI development.\u201d\n\nHistorical baseline:\nAs of August 2026, no binding domestic or international measure constrains how frontier AI developers allocate compute between capability research and safety work.\n\nResolution criteria:\n* This question will resolve positively when the first documented, binding measure takes effect after August 26, 2026 which satisfies the following criteria, as well as the below bullets covering part (a) and (b) of this question separately:\n  * The instrument in question must be a treaty, statute, regulation or other legally binding government measure. Voluntary developer or industry commitments, and non-binding governmental declarations do not count even if widely adopted.\n  * The instrument must bind all frontier AI developers in the relevant jurisdiction(s), rather than a specific named party or set of named parties. Thresholds based on compute, capability, or revenue are acceptable.\n  * The instrument must cap the share of a developer\u2019s total compute allocated to frontier AI research & development activities (including training frontier models and large research experiments) at a level materially below prevailing practice. The policy may require developers to redirect remaining compute to AI safety-oriented activities.\n    * For reference, this policy is partially modeled on [this proposal](https://ai-2040.com/#wishlist-limit-ai-randd-budgets), which suggests a cap on  AI R&D at 25% of compute against an assumed current share of 50%; To resolve this question, a measure does not need to match this figure but should be comparable in stringency.* Assume the measure meaningfully constrains developers.\n  * Compliance must be verified through compute accounting and reporting that is not solely self-attested by the constrained developers.\n* Part (a) resolves positively if a qualifying measure binds the United States and no qualifying measure binds both the United States and China. Part (b) resolves positively if a qualifying measure binds both the United States and China, whether bilaterally or through a multilateral single instrument. Both parts are assessed as of the resolution date, and at most one can resolve positively.\n* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.",
+   "levels": {
+    "Opus 5.5": null
+   }
+  },
+  {
+   "id": "p2b",
+   "label": "Compute cap on frontier R&D: US + China",
+   "group": "policy",
+   "leapId": "P2 (b)",
+   "assume": "Unilateral decision by US policymakers or a bilateral/multilateral decision made jointly by policymakers in China and the United States to slow the development of frontier AI systems. Part (b): US and China agree to a single bilateral or multilateral measure to slow AI development",
+   "description": "P2. AI Capability Slowdown\n\nSummary: Unilateral decision by US policymakers or a bilateral/multilateral decision made jointly by policymakers in China and the United States to slow the development of frontier AI systems.\n\nPart (b) is assumed: US and China agree to a single bilateral or multilateral measure to slow AI development (Note that these parts are mutually exclusive.)\n\nBackground:\nCalls to slow frontier AI development have grown prominent over the past few years, though none has produced binding policy. Anthropic in June 2026 [suggested that](https://www.anthropic.com/institute/recursive-self-improvement) creating options to slow or temporarily pause AI development via verifiable mechanisms would be good for the world. A July 2026 [open letter](https://www.pacingthefrontier.com/) from over 1,300 employees of frontier AI companies called for \u201cthe U.S. government [to] support an international effort to develop the technical and governance tools needed to deliberately pace the frontier of automated AI development.\u201d\n\nHistorical baseline:\nAs of August 2026, no binding domestic or international measure constrains how frontier AI developers allocate compute between capability research and safety work.\n\nResolution criteria:\n* This question will resolve positively when the first documented, binding measure takes effect after August 26, 2026 which satisfies the following criteria, as well as the below bullets covering part (a) and (b) of this question separately:\n  * The instrument in question must be a treaty, statute, regulation or other legally binding government measure. Voluntary developer or industry commitments, and non-binding governmental declarations do not count even if widely adopted.\n  * The instrument must bind all frontier AI developers in the relevant jurisdiction(s), rather than a specific named party or set of named parties. Thresholds based on compute, capability, or revenue are acceptable.\n  * The instrument must cap the share of a developer\u2019s total compute allocated to frontier AI research & development activities (including training frontier models and large research experiments) at a level materially below prevailing practice. The policy may require developers to redirect remaining compute to AI safety-oriented activities.\n    * For reference, this policy is partially modeled on [this proposal](https://ai-2040.com/#wishlist-limit-ai-randd-budgets), which suggests a cap on  AI R&D at 25% of compute against an assumed current share of 50%; To resolve this question, a measure does not need to match this figure but should be comparable in stringency.* Assume the measure meaningfully constrains developers.\n  * Compliance must be verified through compute accounting and reporting that is not solely self-attested by the constrained developers.\n* Part (a) resolves positively if a qualifying measure binds the United States and no qualifying measure binds both the United States and China. Part (b) resolves positively if a qualifying measure binds both the United States and China, whether bilaterally or through a multilateral single instrument. Both parts are assessed as of the resolution date, and at most one can resolve positively.\n* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.",
+   "levels": {
+    "Opus 5.5": null
+   }
+  },
+  {
+   "id": "p3a",
+   "label": "Pre-release authorization: US federal body",
+   "group": "policy",
+   "leapId": "P3 (a)",
+   "assume": "A binding requirement that frontier models be vetted and authorized before release, imposed by a US federal body or by an international body. Part (a): A US federal body holds pre-release authorization power",
+   "description": "P3. Pre-Release Authorization for Frontier Models\n\nSummary: A binding requirement that frontier models be vetted and authorized before release, imposed by a US federal body or by an international body.\n\nPart (a) is assumed: A US federal body holds pre-release authorization power\n\nBackground:\nA federal pre-deployment licensing gate for frontier AI has been pursued through several channels but has not been enacted. In Congress, Senators Blumenthal and Hawley's 2023 [Bipartisan Framework for a U.S. AI Act](https://www.blumenthal.senate.gov/newsroom/press/release/blumenthal-and-hawley-announce-bipartisan-framework-on-artificial-intelligence-legislation) called for a licensing regime administered by an independent oversight body with authority to audit applicants, but was never introduced as a bill. In September 2025, the same senators introduced the [Artificial Intelligence Risk Evaluation Act](https://www.congress.gov/bill/119th-congress/senate-bill/2938/text), which would require developers to submit advanced AI systems to the Department of Energy before deployment, mandatory disclosure rather than a licensing decision, but it has not passed. In June 2026, the White House's [Executive Order 14409](https://www.whitehouse.gov/presidential-actions/2026/06/promoting-advanced-artificial-intelligence-innovation-and-security/) created a voluntary pre-release review framework for \"covered frontier models\" while explicitly disclaiming any \"mandatory governmental licensing, preclearance, or permitting requirement.\" That same month, the Commerce Department [required a license](https://fortune.com/2026/06/16/trump-administration-licensing-regime-for-frontier-ai-models-ad-hoc-and-opaque-eye-on-ai/) for the export or transfer of two Anthropic frontier models on national-security grounds, functioning as a de facto deployment gate through export-control authority rather than an AI-specific licensing statute.\n\nInternationally, proposals have centered on inspection and verification rather than authorization. In May 2023, OpenAI leaders [argued](https://openai.com/index/governance-of-superintelligence/) that efforts above a capability or compute threshold should be subject to an international authority able to inspect systems, require audits, test for compliance with safety standards, and place restrictions on degrees of deployment; UN Secretary-General Ant\u00f3nio Guterres subsequently [backed](https://www.reuters.com/technology/un-chief-backs-idea-global-ai-watchdog-like-nuclear-agency-2023-06-12/) an International Atomic Energy Agency-style body.\n\nHistorical baseline:\nAs of August 2026, no enacted federal statute, regulation, or executive order requires a license, approval, or other affirmative government authorization before a frontier model may be deployed in the United States. A voluntary pre-release review framework (EO 14409) is in operation and expressly disclaims mandatory licensing, and export-control action has restricted deployment of individual models on a case-by-case basis, but neither establishes pre-deployment licensing as operative law. The only enacted US laws directed at frontier model safety are state transparency and incident-reporting regimes, which impose no approval requirement.\n\nNo international body holds authorization power over frontier model release; existing multilateral AI bodies are advisory.\n\nResolution criteria:\n* This question resolves positively at the first documented instance after August 26, 2026 in which a documented, binding measure requires developers of frontier models, as a class, to obtain affirmative authorization from a US federal or intergovernmental body before any such model may be released, deployed, or otherwise made externally available, and that requirement has taken effect. It must satisfy the following criteria, as well as the below bullets covering part (a) and (b) of this question separately:\n  * Enactment alone does not resolve the question. The administering body must also be open to receive license applications, evidenced by a published rule or notice stating that the body is accepting them. It need not have decided any application yet.\n  * A regime resolves the question if the authorization requirement is legally binding and the body holds the power to deny, condition, or revoke. Assume the requirement is implemented in a form that could meaningfully constrain developers: authorization is genuinely contingent on the body's assessment, and the body has the technical capacity to evaluate the models it reviews.\n  * A requirement to notify, register, or submit information to a federal or intergovernmental body before deployment does not resolve the question where the body makes no decision on whether deployment may proceed. A regime under which deployment is permitted after review unless the body objects and can thereby prevent deployment does resolve the question.\n  * The authorizing body must hold power to require evaluation of the model itself as a condition of authorization, including model access, testing, or independent third-party evaluation, rather than only reviewing documentation the developer chooses to submit. The body need not exercise this power in every case.\n  * A voluntary framework does not resolve the question, however many developers participate. A framework is not voluntary for these purposes if non-participation is legally prohibited or penalized; ineligibility for government contracts, funding, or access programs does not amount to a penalty.\n  * Restrictions on the export, re-export, or transfer of models to foreign persons or jurisdictions do not resolve the question, however framed. The authorization requirement must govern deployment within the jurisdiction(s) in question.\n  * A licensing regime with a sunset provision, or one later repealed or allowed to lapse, would count toward the resolution of this question while in force, even if it is not reauthorized later.\n* Part (a) resolves positively if a US federal body holds qualifying authorization power.\n* Part (b) resolves positively if the authorizing body is established by treaty, multilateral convention, or UN Security Council or General Assembly resolution, and its authorization decisions legally bind developers in member jurisdictions \u2014 whether enforced directly or through mandatory domestic implementation. Member jurisdictions must include the United States and China. Regional bodies whose membership does not include the United States or China (e.g., the European Union) do not qualify, however binding their authorization decisions are on developers operating in their territory. An advisory or standard-setting body whose determinations member states may disregard does not qualify.\n* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.",
+   "levels": {
+    "Opus 5.5": null
+   }
+  },
+  {
+   "id": "p3b",
+   "label": "Pre-release authorization: international body incl. US + China",
+   "group": "policy",
+   "leapId": "P3 (b)",
+   "assume": "A binding requirement that frontier models be vetted and authorized before release, imposed by a US federal body or by an international body. Part (b): An international body whose member jurisdictions include the United States and China holds pre-release authorization power over frontier models",
+   "description": "P3. Pre-Release Authorization for Frontier Models\n\nSummary: A binding requirement that frontier models be vetted and authorized before release, imposed by a US federal body or by an international body.\n\nPart (b) is assumed: An international body whose member jurisdictions include the United States and China holds pre-release authorization power over frontier models\n\nBackground:\nA federal pre-deployment licensing gate for frontier AI has been pursued through several channels but has not been enacted. In Congress, Senators Blumenthal and Hawley's 2023 [Bipartisan Framework for a U.S. AI Act](https://www.blumenthal.senate.gov/newsroom/press/release/blumenthal-and-hawley-announce-bipartisan-framework-on-artificial-intelligence-legislation) called for a licensing regime administered by an independent oversight body with authority to audit applicants, but was never introduced as a bill. In September 2025, the same senators introduced the [Artificial Intelligence Risk Evaluation Act](https://www.congress.gov/bill/119th-congress/senate-bill/2938/text), which would require developers to submit advanced AI systems to the Department of Energy before deployment, mandatory disclosure rather than a licensing decision, but it has not passed. In June 2026, the White House's [Executive Order 14409](https://www.whitehouse.gov/presidential-actions/2026/06/promoting-advanced-artificial-intelligence-innovation-and-security/) created a voluntary pre-release review framework for \"covered frontier models\" while explicitly disclaiming any \"mandatory governmental licensing, preclearance, or permitting requirement.\" That same month, the Commerce Department [required a license](https://fortune.com/2026/06/16/trump-administration-licensing-regime-for-frontier-ai-models-ad-hoc-and-opaque-eye-on-ai/) for the export or transfer of two Anthropic frontier models on national-security grounds, functioning as a de facto deployment gate through export-control authority rather than an AI-specific licensing statute.\n\nInternationally, proposals have centered on inspection and verification rather than authorization. In May 2023, OpenAI leaders [argued](https://openai.com/index/governance-of-superintelligence/) that efforts above a capability or compute threshold should be subject to an international authority able to inspect systems, require audits, test for compliance with safety standards, and place restrictions on degrees of deployment; UN Secretary-General Ant\u00f3nio Guterres subsequently [backed](https://www.reuters.com/technology/un-chief-backs-idea-global-ai-watchdog-like-nuclear-agency-2023-06-12/) an International Atomic Energy Agency-style body.\n\nHistorical baseline:\nAs of August 2026, no enacted federal statute, regulation, or executive order requires a license, approval, or other affirmative government authorization before a frontier model may be deployed in the United States. A voluntary pre-release review framework (EO 14409) is in operation and expressly disclaims mandatory licensing, and export-control action has restricted deployment of individual models on a case-by-case basis, but neither establishes pre-deployment licensing as operative law. The only enacted US laws directed at frontier model safety are state transparency and incident-reporting regimes, which impose no approval requirement.\n\nNo international body holds authorization power over frontier model release; existing multilateral AI bodies are advisory.\n\nResolution criteria:\n* This question resolves positively at the first documented instance after August 26, 2026 in which a documented, binding measure requires developers of frontier models, as a class, to obtain affirmative authorization from a US federal or intergovernmental body before any such model may be released, deployed, or otherwise made externally available, and that requirement has taken effect. It must satisfy the following criteria, as well as the below bullets covering part (a) and (b) of this question separately:\n  * Enactment alone does not resolve the question. The administering body must also be open to receive license applications, evidenced by a published rule or notice stating that the body is accepting them. It need not have decided any application yet.\n  * A regime resolves the question if the authorization requirement is legally binding and the body holds the power to deny, condition, or revoke. Assume the requirement is implemented in a form that could meaningfully constrain developers: authorization is genuinely contingent on the body's assessment, and the body has the technical capacity to evaluate the models it reviews.\n  * A requirement to notify, register, or submit information to a federal or intergovernmental body before deployment does not resolve the question where the body makes no decision on whether deployment may proceed. A regime under which deployment is permitted after review unless the body objects and can thereby prevent deployment does resolve the question.\n  * The authorizing body must hold power to require evaluation of the model itself as a condition of authorization, including model access, testing, or independent third-party evaluation, rather than only reviewing documentation the developer chooses to submit. The body need not exercise this power in every case.\n  * A voluntary framework does not resolve the question, however many developers participate. A framework is not voluntary for these purposes if non-participation is legally prohibited or penalized; ineligibility for government contracts, funding, or access programs does not amount to a penalty.\n  * Restrictions on the export, re-export, or transfer of models to foreign persons or jurisdictions do not resolve the question, however framed. The authorization requirement must govern deployment within the jurisdiction(s) in question.\n  * A licensing regime with a sunset provision, or one later repealed or allowed to lapse, would count toward the resolution of this question while in force, even if it is not reauthorized later.\n* Part (a) resolves positively if a US federal body holds qualifying authorization power.\n* Part (b) resolves positively if the authorizing body is established by treaty, multilateral convention, or UN Security Council or General Assembly resolution, and its authorization decisions legally bind developers in member jurisdictions \u2014 whether enforced directly or through mandatory domestic implementation. Member jurisdictions must include the United States and China. Regional bodies whose membership does not include the United States or China (e.g., the European Union) do not qualify, however binding their authorization decisions are on developers operating in their territory. An advisory or standard-setting body whose determinations member states may disregard does not qualify.\n* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.",
+   "levels": {
+    "Opus 5.5": null
+   }
+  },
+  {
+   "id": "p4",
+   "label": "Federal strict liability, scaled insurance, punitive damages",
+   "group": "policy",
+   "leapId": "P4",
+   "assume": "A US federal statute treating frontier model training and deployment as an abnormally dangerous activity subject to strict liability (i.e., a regime under which a developer is liable for harms its models cause without the injured party having to prove the developer was careless or the model defective). The statute permits damages reflecting the expected magnitude of unrealized harm the conduct made more likely and requires developers to be insured for their liability.",
+   "description": "P4. Strict Liability\n\nSummary: A US federal statute treating frontier model training and deployment as an abnormally dangerous activity subject to strict liability (i.e., a regime under which a developer is liable for harms its models cause without the injured party having to prove the developer was careless or the model defective). The statute permits damages reflecting the expected magnitude of unrealized harm the conduct made more likely and requires developers to be insured for their liability.\n\nBackground:\n[Strict liability](https://en.wikipedia.org/wiki/Strict_liability) is an exception to the ordinary rule that a plaintiff must prove the defendant was at fault. For a narrow set of activities courts classify as \"abnormally dangerous\" (e.g., storing hazardous chemicals, keeping wild animals), a plaintiff need only show the activity caused the harm, and reasonable care is no defense. Congress has enacted comparable regimes by statute for hazardous industries, including [CERCLA](https://en.wikipedia.org/wiki/Superfund), the [Oil Pollution Act of 1990](https://en.wikipedia.org/wiki/Oil_Pollution_Act_of_1990), and the [Price-Anderson Act](https://en.wikipedia.org/wiki/Price%E2%80%93Anderson_Nuclear_Industries_Indemnity_Act), which pair strict liability with mandatory financial responsibility scaled to the risk. No US jurisdiction has extended this category to AI; existing AI litigation proceeds on products liability and negligence theories, which retain a defect or fault element. A [leading articulation](https://www.lesswrong.com/posts/5e7TrmH7mBwqpZ6ek/tort-law-can-play-an-important-role-in-mitigating-ai-risk) of this policy is Gabriel Weil's, which pairs strict liability with insurance requirements that scale with dangerous model capabilities and punitive damages addressing uninsurable risks.\n\nHistorical baseline:\nAs of August 2026, no US jurisdiction has classified frontier AI training or deployment as an abnormally dangerous activity by statute or controlling judicial holding, no US law requires AI developers to carry liability insurance, and no US jurisdiction authorizes punitive damages against AI developers absent a showing of malice or recklessness.\n\nResolution criteria:\n* This question resolves positively at the first documented instance after August 26, 2026 in which all three of the following are simultaneously operative federally across the United States and applicable to all frontier developers:\n  * strict liability for harms caused by frontier AI models\n  * a liability insurance requirement scaled to assessed model capabilities\n  * punitive damages available without proof of malice or recklessness in cases where realized harm is correlated with a larger unrealized catastrophic outcome.\n* Only federal law resolves this question. A qualifying instrument is a federal statute in force, or a regulation promulgated under a federal statute that authorizes it.\n  * State statutes, state common law developments, and state regulatory action do not count toward any element, whether individually or in combination. Federal court decisions applying state tort law do not count, including a federal court's characterization of frontier AI training or deployment as an abnormally dangerous activity where that characterization rests on state law.\n* The strict liability element requires that a plaintiff be able to recover for harms caused by a frontier model without proving negligence, defect, or unreasonable design. Physical harm to persons or property must be within the scope of recoverable harm; a regime that also reaches economic loss, or that reaches economic loss in addition to physical harm, still counts. A regime confined to economic loss, privacy, discrimination, or reputational harm does not count.\n  * A regime in which the developer may escape liability by demonstrating compliance with a standard of care, an approved safety framework, or industry best practice does not count.\n  * A federal products liability standard that requires a design defect or failure to warn does not count.\n* The insurance element requires that federal law condition training or deployment on demonstrating liability insurance, self-insurance, surety, or equivalent financial assurance, in an amount that varies as a function of model capability, training compute, or evaluation results. A flat, uniform, or de minimis requirement does not count, nor does a requirement scaled solely to developer revenue, valuation, or headcount. Voluntary coverage, insurer underwriting practices, and industry commitments do not count.\n* The punitive damages element requires both of the following.\n  * Punitive damages must be available even in the absence of malice, fraud, oppression, or reckless disregard.\n  * The regime must permit awards to reflect the expected magnitude of harm the conduct made more likely, including catastrophic harm that did not in fact occur.\n* A regime whose covered model definition, exemptions, or carve-outs exclude one or more of the largest US frontier developers by training compute does not resolve this question.\n* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in tort law or AI governance to reach a resolution by majority vote.",
+   "levels": {
+    "Opus 5.5": null
+   }
+  },
+  {
+   "id": "p5",
+   "label": "Bundle: P2b + P3b + P4",
+   "group": "policy",
+   "leapId": "P5",
+   "assume": "Assume all three policies are in force: a binding US\u2013China measure slowing frontier AI development, an international body (with member jurisdictions including the US and China) holding pre-release authorization power over frontier models, and federal strict liability for frontier AI harms.",
+   "description": "P2. AI Capability Slowdown\n\nSummary: Unilateral decision by US policymakers or a bilateral/multilateral decision made jointly by policymakers in China and the United States to slow the development of frontier AI systems.\n\nPart (b) is assumed: US and China agree to a single bilateral or multilateral measure to slow AI development (Note that these parts are mutually exclusive.)\n\nBackground:\nCalls to slow frontier AI development have grown prominent over the past few years, though none has produced binding policy. Anthropic in June 2026 [suggested that](https://www.anthropic.com/institute/recursive-self-improvement) creating options to slow or temporarily pause AI development via verifiable mechanisms would be good for the world. A July 2026 [open letter](https://www.pacingthefrontier.com/) from over 1,300 employees of frontier AI companies called for \u201cthe U.S. government [to] support an international effort to develop the technical and governance tools needed to deliberately pace the frontier of automated AI development.\u201d\n\nHistorical baseline:\nAs of August 2026, no binding domestic or international measure constrains how frontier AI developers allocate compute between capability research and safety work.\n\nResolution criteria:\n* This question will resolve positively when the first documented, binding measure takes effect after August 26, 2026 which satisfies the following criteria, as well as the below bullets covering part (a) and (b) of this question separately:\n  * The instrument in question must be a treaty, statute, regulation or other legally binding government measure. Voluntary developer or industry commitments, and non-binding governmental declarations do not count even if widely adopted.\n  * The instrument must bind all frontier AI developers in the relevant jurisdiction(s), rather than a specific named party or set of named parties. Thresholds based on compute, capability, or revenue are acceptable.\n  * The instrument must cap the share of a developer\u2019s total compute allocated to frontier AI research & development activities (including training frontier models and large research experiments) at a level materially below prevailing practice. The policy may require developers to redirect remaining compute to AI safety-oriented activities.\n    * For reference, this policy is partially modeled on [this proposal](https://ai-2040.com/#wishlist-limit-ai-randd-budgets), which suggests a cap on  AI R&D at 25% of compute against an assumed current share of 50%; To resolve this question, a measure does not need to match this figure but should be comparable in stringency.* Assume the measure meaningfully constrains developers.\n  * Compliance must be verified through compute accounting and reporting that is not solely self-attested by the constrained developers.\n* Part (a) resolves positively if a qualifying measure binds the United States and no qualifying measure binds both the United States and China. Part (b) resolves positively if a qualifying measure binds both the United States and China, whether bilaterally or through a multilateral single instrument. Both parts are assessed as of the resolution date, and at most one can resolve positively.\n* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.\n\n---\n\nP3. Pre-Release Authorization for Frontier Models\n\nSummary: A binding requirement that frontier models be vetted and authorized before release, imposed by a US federal body or by an international body.\n\nPart (b) is assumed: An international body whose member jurisdictions include the United States and China holds pre-release authorization power over frontier models\n\nBackground:\nA federal pre-deployment licensing gate for frontier AI has been pursued through several channels but has not been enacted. In Congress, Senators Blumenthal and Hawley's 2023 [Bipartisan Framework for a U.S. AI Act](https://www.blumenthal.senate.gov/newsroom/press/release/blumenthal-and-hawley-announce-bipartisan-framework-on-artificial-intelligence-legislation) called for a licensing regime administered by an independent oversight body with authority to audit applicants, but was never introduced as a bill. In September 2025, the same senators introduced the [Artificial Intelligence Risk Evaluation Act](https://www.congress.gov/bill/119th-congress/senate-bill/2938/text), which would require developers to submit advanced AI systems to the Department of Energy before deployment, mandatory disclosure rather than a licensing decision, but it has not passed. In June 2026, the White House's [Executive Order 14409](https://www.whitehouse.gov/presidential-actions/2026/06/promoting-advanced-artificial-intelligence-innovation-and-security/) created a voluntary pre-release review framework for \"covered frontier models\" while explicitly disclaiming any \"mandatory governmental licensing, preclearance, or permitting requirement.\" That same month, the Commerce Department [required a license](https://fortune.com/2026/06/16/trump-administration-licensing-regime-for-frontier-ai-models-ad-hoc-and-opaque-eye-on-ai/) for the export or transfer of two Anthropic frontier models on national-security grounds, functioning as a de facto deployment gate through export-control authority rather than an AI-specific licensing statute.\n\nInternationally, proposals have centered on inspection and verification rather than authorization. In May 2023, OpenAI leaders [argued](https://openai.com/index/governance-of-superintelligence/) that efforts above a capability or compute threshold should be subject to an international authority able to inspect systems, require audits, test for compliance with safety standards, and place restrictions on degrees of deployment; UN Secretary-General Ant\u00f3nio Guterres subsequently [backed](https://www.reuters.com/technology/un-chief-backs-idea-global-ai-watchdog-like-nuclear-agency-2023-06-12/) an International Atomic Energy Agency-style body.\n\nHistorical baseline:\nAs of August 2026, no enacted federal statute, regulation, or executive order requires a license, approval, or other affirmative government authorization before a frontier model may be deployed in the United States. A voluntary pre-release review framework (EO 14409) is in operation and expressly disclaims mandatory licensing, and export-control action has restricted deployment of individual models on a case-by-case basis, but neither establishes pre-deployment licensing as operative law. The only enacted US laws directed at frontier model safety are state transparency and incident-reporting regimes, which impose no approval requirement.\n\nNo international body holds authorization power over frontier model release; existing multilateral AI bodies are advisory.\n\nResolution criteria:\n* This question resolves positively at the first documented instance after August 26, 2026 in which a documented, binding measure requires developers of frontier models, as a class, to obtain affirmative authorization from a US federal or intergovernmental body before any such model may be released, deployed, or otherwise made externally available, and that requirement has taken effect. It must satisfy the following criteria, as well as the below bullets covering part (a) and (b) of this question separately:\n  * Enactment alone does not resolve the question. The administering body must also be open to receive license applications, evidenced by a published rule or notice stating that the body is accepting them. It need not have decided any application yet.\n  * A regime resolves the question if the authorization requirement is legally binding and the body holds the power to deny, condition, or revoke. Assume the requirement is implemented in a form that could meaningfully constrain developers: authorization is genuinely contingent on the body's assessment, and the body has the technical capacity to evaluate the models it reviews.\n  * A requirement to notify, register, or submit information to a federal or intergovernmental body before deployment does not resolve the question where the body makes no decision on whether deployment may proceed. A regime under which deployment is permitted after review unless the body objects and can thereby prevent deployment does resolve the question.\n  * The authorizing body must hold power to require evaluation of the model itself as a condition of authorization, including model access, testing, or independent third-party evaluation, rather than only reviewing documentation the developer chooses to submit. The body need not exercise this power in every case.\n  * A voluntary framework does not resolve the question, however many developers participate. A framework is not voluntary for these purposes if non-participation is legally prohibited or penalized; ineligibility for government contracts, funding, or access programs does not amount to a penalty.\n  * Restrictions on the export, re-export, or transfer of models to foreign persons or jurisdictions do not resolve the question, however framed. The authorization requirement must govern deployment within the jurisdiction(s) in question.\n  * A licensing regime with a sunset provision, or one later repealed or allowed to lapse, would count toward the resolution of this question while in force, even if it is not reauthorized later.\n* Part (a) resolves positively if a US federal body holds qualifying authorization power.\n* Part (b) resolves positively if the authorizing body is established by treaty, multilateral convention, or UN Security Council or General Assembly resolution, and its authorization decisions legally bind developers in member jurisdictions \u2014 whether enforced directly or through mandatory domestic implementation. Member jurisdictions must include the United States and China. Regional bodies whose membership does not include the United States or China (e.g., the European Union) do not qualify, however binding their authorization decisions are on developers operating in their territory. An advisory or standard-setting body whose determinations member states may disregard does not qualify.\n* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.\n\n---\n\nP4. Strict Liability\n\nSummary: A US federal statute treating frontier model training and deployment as an abnormally dangerous activity subject to strict liability (i.e., a regime under which a developer is liable for harms its models cause without the injured party having to prove the developer was careless or the model defective). The statute permits damages reflecting the expected magnitude of unrealized harm the conduct made more likely and requires developers to be insured for their liability.\n\nBackground:\n[Strict liability](https://en.wikipedia.org/wiki/Strict_liability) is an exception to the ordinary rule that a plaintiff must prove the defendant was at fault. For a narrow set of activities courts classify as \"abnormally dangerous\" (e.g., storing hazardous chemicals, keeping wild animals), a plaintiff need only show the activity caused the harm, and reasonable care is no defense. Congress has enacted comparable regimes by statute for hazardous industries, including [CERCLA](https://en.wikipedia.org/wiki/Superfund), the [Oil Pollution Act of 1990](https://en.wikipedia.org/wiki/Oil_Pollution_Act_of_1990), and the [Price-Anderson Act](https://en.wikipedia.org/wiki/Price%E2%80%93Anderson_Nuclear_Industries_Indemnity_Act), which pair strict liability with mandatory financial responsibility scaled to the risk. No US jurisdiction has extended this category to AI; existing AI litigation proceeds on products liability and negligence theories, which retain a defect or fault element. A [leading articulation](https://www.lesswrong.com/posts/5e7TrmH7mBwqpZ6ek/tort-law-can-play-an-important-role-in-mitigating-ai-risk) of this policy is Gabriel Weil's, which pairs strict liability with insurance requirements that scale with dangerous model capabilities and punitive damages addressing uninsurable risks.\n\nHistorical baseline:\nAs of August 2026, no US jurisdiction has classified frontier AI training or deployment as an abnormally dangerous activity by statute or controlling judicial holding, no US law requires AI developers to carry liability insurance, and no US jurisdiction authorizes punitive damages against AI developers absent a showing of malice or recklessness.\n\nResolution criteria:\n* This question resolves positively at the first documented instance after August 26, 2026 in which all three of the following are simultaneously operative federally across the United States and applicable to all frontier developers:\n  * strict liability for harms caused by frontier AI models\n  * a liability insurance requirement scaled to assessed model capabilities\n  * punitive damages available without proof of malice or recklessness in cases where realized harm is correlated with a larger unrealized catastrophic outcome.\n* Only federal law resolves this question. A qualifying instrument is a federal statute in force, or a regulation promulgated under a federal statute that authorizes it.\n  * State statutes, state common law developments, and state regulatory action do not count toward any element, whether individually or in combination. Federal court decisions applying state tort law do not count, including a federal court's characterization of frontier AI training or deployment as an abnormally dangerous activity where that characterization rests on state law.\n* The strict liability element requires that a plaintiff be able to recover for harms caused by a frontier model without proving negligence, defect, or unreasonable design. Physical harm to persons or property must be within the scope of recoverable harm; a regime that also reaches economic loss, or that reaches economic loss in addition to physical harm, still counts. A regime confined to economic loss, privacy, discrimination, or reputational harm does not count.\n  * A regime in which the developer may escape liability by demonstrating compliance with a standard of care, an approved safety framework, or industry best practice does not count.\n  * A federal products liability standard that requires a design defect or failure to warn does not count.\n* The insurance element requires that federal law condition training or deployment on demonstrating liability insurance, self-insurance, surety, or equivalent financial assurance, in an amount that varies as a function of model capability, training compute, or evaluation results. A flat, uniform, or de minimis requirement does not count, nor does a requirement scaled solely to developer revenue, valuation, or headcount. Voluntary coverage, insurer underwriting practices, and industry commitments do not count.\n* The punitive damages element requires both of the following.\n  * Punitive damages must be available even in the absence of malice, fraud, oppression, or reckless disregard.\n  * The regime must permit awards to reflect the expected magnitude of harm the conduct made more likely, including catastrophic harm that did not in fact occur.\n* A regime whose covered model definition, exemptions, or carve-outs exclude one or more of the largest US frontier developers by training compute does not resolve this question.\n* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in tort law or AI governance to reach a resolution by majority vote.",
+   "levels": {
+    "Opus 5.5": null
+   }
+  },
+  {
+   "id": "eci_p10",
+   "label": "Own 10th percentile",
+   "group": "capability",
+   "leapId": "ECI \u2248 170",
+   "assume": "Assume that on {target_date} the frontier ECI is approximately your 10th-percentile value from eci_forecast (within about two points of it).",
+   "description": "",
+   "levels": {
+    "Opus 5.5": 169.5
+   }
+  },
+  {
+   "id": "eci_p25",
+   "label": "Own 25th percentile",
+   "group": "capability",
+   "leapId": "ECI \u2248 172",
+   "assume": "Assume that on {target_date} the frontier ECI is approximately your 25th-percentile value from eci_forecast (within about two points of it).",
+   "description": "",
+   "levels": {
+    "Opus 5.5": 171.5
+   }
+  },
+  {
+   "id": "eci_p50",
+   "label": "Own median (50th)",
+   "group": "capability",
+   "leapId": "ECI \u2248 174",
+   "assume": "Assume that on {target_date} the frontier ECI is approximately your 50th-percentile value from eci_forecast (within about two points of it).",
+   "description": "",
+   "levels": {
+    "Opus 5.5": 173.8
+   }
+  },
+  {
+   "id": "eci_p75",
+   "label": "Own 75th percentile",
+   "group": "capability",
+   "leapId": "ECI \u2248 176",
+   "assume": "Assume that on {target_date} the frontier ECI is approximately your 75th-percentile value from eci_forecast (within about two points of it).",
+   "description": "",
+   "levels": {
+    "Opus 5.5": 176.2
+   }
+  },
+  {
+   "id": "eci_p90",
+   "label": "Own 90th percentile",
+   "group": "capability",
+   "leapId": "ECI \u2248 179",
+   "assume": "Assume that on {target_date} the frontier ECI is approximately your 90th-percentile value from eci_forecast (within about two points of it).",
+   "description": "",
+   "levels": {
+    "Opus 5.5": 178.8
+   }
+  }
+ ],
+ "conditioning": {
+  "policy": {
+   "instruction": "For each condition below, assume that the relevant governing body implements the policy immediately and that it remains in effect through December 31, 2050. In making this assumption, try to hold other factors constant and treat the policy implementation as exogenous. In other words, do not assume that implementation of a more stringent policy implies that the world is \u2014 in fact \u2014 more risky. We want your forecast of how risk changes as a result of the policy's implementation, not vice versa.",
+   "assumption": "In every policy condition, assume that AI capability progresses along your median trajectory -- in particular, that the frontier ECI on {target_date} is approximately your 50th-percentile value from eci_forecast (within about two points of it), the same level as condition eci_p50 in the CAPABILITY CONDITIONS section."
+  },
+  "capability": {
+   "instruction": "For each condition below, assume that the frontier ECI on {target_date} is approximately the value you gave for that percentile in eci_forecast (within about two points of it). Treat it as a fact you have learned about the world, not as an intervention: update your expectations about everything that would ordinarily accompany that level of capability -- investment, compute, algorithmic progress, deployment, and how governments and developers respond -- as you would upon learning it, and then forecast each question in that world. Do not hold other factors fixed where the stated level would change them.",
+   "assumption": "No policy condition applies here. As in the unconditional forecast, assume whatever AI policies you expect to be implemented -- not any of the conditions in the POLICY CONDITIONS section."
+  }
+ },
+ "groups": [
+  {
+   "key": "policy",
+   "heading": "POLICY CONDITIONS"
+  },
+  {
+   "key": "capability",
+   "heading": "CAPABILITY CONDITIONS"
+  }
+ ],
+ "questions": [
+  {
+   "id": "le:us",
+   "short": "U.S.",
+   "heading": "Life expectancy: U.S.",
+   "railLabel": "U.S.",
+   "group": "Life expectancy",
+   "color": "#2f7d4f",
+   "unit": "years",
+   "horizons": [
+    "2050",
+    "2100"
+   ],
+   "text": "What will the period life expectancy at birth in the U.S. be in each of the following years: 2050; 2100?",
+   "criteria": "This question will be resolved using the period life expectancy at birth for the U.S. for the years 2050 and 2100 as reported by Our World in Data. If Our World in Data discontinues this series, FRI will use the underlying UN World Population Prospects estimates, or the Human Mortality Database, in that order of preference. If the population of the U.S. is below 5,000 in either resolution year, the question resolves as ambiguous; give your percentiles for the world in which the question resolves. This question refers exclusively to the period life expectancy of biological human beings. Digital minds, AI systems, brain emulations, and other potential non-biological entities do not count. If a biological human's death coincides with the uploading or transfer of their mind to a non-biological substrate, the cessation of biological life counts as death. If a resolution source modifies its methodology to include such non-biological entities, this question will be resolved via a panel of at least three medical experts convened by FRI.",
+   "byHorizon": {
+    "2050": {
+     "baselines": [
+      {
+       "label": "Opus 5.5",
+       "color": "#4f5bd5",
+       "q": {
+        "p10": 80.6,
+        "p25": 82.0,
+        "p50": 83.4,
+        "p75": 84.9,
+        "p90": 87.0
+       }
+      }
+     ],
+     "bars": [
+      {
+       "id": "sq",
+       "group": "policy",
+       "label": "Status quo (no new substantial AI policy)",
+       "leapId": "Status Quo",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 80.4,
+          "p25": 82.0,
+          "p50": 83.45,
+          "p75": 85.0,
+          "p90": 87.4
+         },
+         "shift": 0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p1",
+       "group": "policy",
+       "label": "Federal preemption of state AI laws",
+       "leapId": "P1",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 80.6,
+          "p25": 82.0,
+          "p50": 83.4,
+          "p75": 84.95,
+          "p90": 87.1
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2a",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US alone",
+       "leapId": "P2 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 80.6,
+          "p25": 81.95,
+          "p50": 83.3,
+          "p75": 84.65,
+          "p90": 86.4
+         },
+         "shift": -0.1,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2b",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US + China",
+       "leapId": "P2 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 80.7,
+          "p25": 81.95,
+          "p50": 83.25,
+          "p75": 84.55,
+          "p90": 86.1
+         },
+         "shift": -0.15,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3a",
+       "group": "policy",
+       "label": "Pre-release authorization: US federal body",
+       "leapId": "P3 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 80.65,
+          "p25": 82.0,
+          "p50": 83.38,
+          "p75": 84.85,
+          "p90": 86.8
+         },
+         "shift": -0.02,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3b",
+       "group": "policy",
+       "label": "Pre-release authorization: international body incl. US + China",
+       "leapId": "P3 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 80.7,
+          "p25": 82.0,
+          "p50": 83.36,
+          "p75": 84.8,
+          "p90": 86.6
+         },
+         "shift": -0.04,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p4",
+       "group": "policy",
+       "label": "Federal strict liability, scaled insurance, punitive damages",
+       "leapId": "P4",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 80.65,
+          "p25": 81.98,
+          "p50": 83.35,
+          "p75": 84.8,
+          "p90": 86.7
+         },
+         "shift": -0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p5",
+       "group": "policy",
+       "label": "Bundle: P2b + P3b + P4",
+       "leapId": "P5",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 80.75,
+          "p25": 81.95,
+          "p50": 83.2,
+          "p75": 84.45,
+          "p90": 85.8
+         },
+         "shift": -0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p10",
+       "group": "capability",
+       "label": "Own 10th percentile",
+       "leapId": "ECI \u2248 170",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 80.65,
+          "p25": 81.95,
+          "p50": 83.27,
+          "p75": 84.6,
+          "p90": 86.3
+         },
+         "shift": -0.13,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p25",
+       "group": "capability",
+       "label": "Own 25th percentile",
+       "leapId": "ECI \u2248 172",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 80.62,
+          "p25": 81.98,
+          "p50": 83.34,
+          "p75": 84.78,
+          "p90": 86.7
+         },
+         "shift": -0.06,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p50",
+       "group": "capability",
+       "label": "Own median (50th)",
+       "leapId": "ECI \u2248 174",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 80.6,
+          "p25": 82.0,
+          "p50": 83.4,
+          "p75": 84.9,
+          "p90": 87.0
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p75",
+       "group": "capability",
+       "label": "Own 75th percentile",
+       "leapId": "ECI \u2248 176",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 80.55,
+          "p25": 82.02,
+          "p50": 83.5,
+          "p75": 85.15,
+          "p90": 87.6
+         },
+         "shift": 0.1,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p90",
+       "group": "capability",
+       "label": "Own 90th percentile",
+       "leapId": "ECI \u2248 179",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 80.4,
+          "p25": 82.0,
+          "p50": 83.6,
+          "p75": 85.5,
+          "p90": 88.5
+         },
+         "shift": 0.2,
+         "grounded": true
+        }
+       ]
+      }
+     ]
+    },
+    "2100": {
+     "baselines": [
+      {
+       "label": "Opus 5.5",
+       "color": "#4f5bd5",
+       "q": {
+        "p10": 84.0,
+        "p25": 88.0,
+        "p50": 91.5,
+        "p75": 99.0,
+        "p90": 118.0
+       }
+      }
+     ],
+     "bars": [
+      {
+       "id": "sq",
+       "group": "policy",
+       "label": "Status quo (no new substantial AI policy)",
+       "leapId": "Status Quo",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 83.2,
+          "p25": 87.8,
+          "p50": 91.7,
+          "p75": 99.8,
+          "p90": 122.0
+         },
+         "shift": 0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p1",
+       "group": "policy",
+       "label": "Federal preemption of state AI laws",
+       "leapId": "P1",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 84.0,
+          "p25": 88.0,
+          "p50": 91.55,
+          "p75": 99.2,
+          "p90": 119.0
+         },
+         "shift": 0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2a",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US alone",
+       "leapId": "P2 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 84.1,
+          "p25": 87.9,
+          "p50": 91.3,
+          "p75": 98.0,
+          "p90": 115.0
+         },
+         "shift": -0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2b",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US + China",
+       "leapId": "P2 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 84.5,
+          "p25": 88.0,
+          "p50": 91.3,
+          "p75": 97.8,
+          "p90": 114.0
+         },
+         "shift": -0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3a",
+       "group": "policy",
+       "label": "Pre-release authorization: US federal body",
+       "leapId": "P3 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 84.3,
+          "p25": 88.0,
+          "p50": 91.5,
+          "p75": 98.8,
+          "p90": 117.0
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3b",
+       "group": "policy",
+       "label": "Pre-release authorization: international body incl. US + China",
+       "leapId": "P3 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 84.6,
+          "p25": 88.1,
+          "p50": 91.5,
+          "p75": 98.8,
+          "p90": 117.0
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p4",
+       "group": "policy",
+       "label": "Federal strict liability, scaled insurance, punitive damages",
+       "leapId": "P4",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 84.2,
+          "p25": 88.0,
+          "p50": 91.4,
+          "p75": 98.6,
+          "p90": 116.0
+         },
+         "shift": -0.1,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p5",
+       "group": "policy",
+       "label": "Bundle: P2b + P3b + P4",
+       "leapId": "P5",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 84.8,
+          "p25": 88.1,
+          "p50": 91.3,
+          "p75": 97.5,
+          "p90": 113.0
+         },
+         "shift": -0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p10",
+       "group": "capability",
+       "label": "Own 10th percentile",
+       "leapId": "ECI \u2248 170",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 84.3,
+          "p25": 87.9,
+          "p50": 91.1,
+          "p75": 97.0,
+          "p90": 112.0
+         },
+         "shift": -0.4,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p25",
+       "group": "capability",
+       "label": "Own 25th percentile",
+       "leapId": "ECI \u2248 172",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 84.2,
+          "p25": 87.95,
+          "p50": 91.3,
+          "p75": 98.0,
+          "p90": 115.0
+         },
+         "shift": -0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p50",
+       "group": "capability",
+       "label": "Own median (50th)",
+       "leapId": "ECI \u2248 174",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 84.0,
+          "p25": 88.0,
+          "p50": 91.5,
+          "p75": 99.0,
+          "p90": 118.0
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p75",
+       "group": "capability",
+       "label": "Own 75th percentile",
+       "leapId": "ECI \u2248 176",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 83.7,
+          "p25": 88.0,
+          "p50": 91.9,
+          "p75": 100.5,
+          "p90": 123.0
+         },
+         "shift": 0.4,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p90",
+       "group": "capability",
+       "label": "Own 90th percentile",
+       "leapId": "ECI \u2248 179",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 83.0,
+          "p25": 88.0,
+          "p50": 92.4,
+          "p75": 102.5,
+          "p90": 130.0
+         },
+         "shift": 0.9,
+         "grounded": true
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "le:high",
+   "short": "High-income countries",
+   "heading": "Life expectancy: High-income countries",
+   "railLabel": "High-income countries",
+   "group": "Life expectancy",
+   "color": "#2f7d4f",
+   "unit": "years",
+   "horizons": [
+    "2050",
+    "2100"
+   ],
+   "text": "What will the period life expectancy at birth in high-income countries be in each of the following years: 2050; 2100?",
+   "criteria": "This question will be resolved using the period life expectancy at birth for countries in the World Bank's \"high income\" group for the years 2050 and 2100 as reported by Our World in Data. The relevant countries are those in the high-income group on the World Bank's FY2026 classification, held fixed through resolution. If Our World in Data discontinues this series, FRI will use the underlying UN World Population Prospects estimates, or the Human Mortality Database, in that order of preference. If the population of these countries is below 5,000 in either resolution year, the question resolves as ambiguous; give your percentiles for the world in which the question resolves. This question refers exclusively to the period life expectancy of biological human beings. Digital minds, AI systems, brain emulations, and other potential non-biological entities do not count. If a biological human's death coincides with the uploading or transfer of their mind to a non-biological substrate, the cessation of biological life counts as death. If a resolution source modifies its methodology to include such non-biological entities, this question will be resolved via a panel of at least three medical experts convened by FRI.",
+   "byHorizon": {
+    "2050": {
+     "baselines": [
+      {
+       "label": "Opus 5.5",
+       "color": "#4f5bd5",
+       "q": {
+        "p10": 82.7,
+        "p25": 83.8,
+        "p50": 84.9,
+        "p75": 86.05,
+        "p90": 87.7
+       }
+      }
+     ],
+     "bars": [
+      {
+       "id": "sq",
+       "group": "policy",
+       "label": "Status quo (no new substantial AI policy)",
+       "leapId": "Status Quo",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 82.5,
+          "p25": 83.8,
+          "p50": 84.95,
+          "p75": 86.15,
+          "p90": 88.1
+         },
+         "shift": 0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p1",
+       "group": "policy",
+       "label": "Federal preemption of state AI laws",
+       "leapId": "P1",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 82.7,
+          "p25": 83.8,
+          "p50": 84.9,
+          "p75": 86.1,
+          "p90": 87.8
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2a",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US alone",
+       "leapId": "P2 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 82.7,
+          "p25": 83.75,
+          "p50": 84.8,
+          "p75": 85.85,
+          "p90": 87.2
+         },
+         "shift": -0.1,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2b",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US + China",
+       "leapId": "P2 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 82.8,
+          "p25": 83.75,
+          "p50": 84.75,
+          "p75": 85.75,
+          "p90": 86.9
+         },
+         "shift": -0.15,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3a",
+       "group": "policy",
+       "label": "Pre-release authorization: US federal body",
+       "leapId": "P3 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 82.75,
+          "p25": 83.8,
+          "p50": 84.88,
+          "p75": 86.0,
+          "p90": 87.5
+         },
+         "shift": -0.02,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3b",
+       "group": "policy",
+       "label": "Pre-release authorization: international body incl. US + China",
+       "leapId": "P3 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 82.8,
+          "p25": 83.8,
+          "p50": 84.86,
+          "p75": 85.95,
+          "p90": 87.4
+         },
+         "shift": -0.04,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p4",
+       "group": "policy",
+       "label": "Federal strict liability, scaled insurance, punitive damages",
+       "leapId": "P4",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 82.75,
+          "p25": 83.78,
+          "p50": 84.85,
+          "p75": 85.95,
+          "p90": 87.4
+         },
+         "shift": -0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p5",
+       "group": "policy",
+       "label": "Bundle: P2b + P3b + P4",
+       "leapId": "P5",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 82.85,
+          "p25": 83.75,
+          "p50": 84.7,
+          "p75": 85.6,
+          "p90": 86.6
+         },
+         "shift": -0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p10",
+       "group": "capability",
+       "label": "Own 10th percentile",
+       "leapId": "ECI \u2248 170",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 82.75,
+          "p25": 83.75,
+          "p50": 84.77,
+          "p75": 85.8,
+          "p90": 87.1
+         },
+         "shift": -0.13,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p25",
+       "group": "capability",
+       "label": "Own 25th percentile",
+       "leapId": "ECI \u2248 172",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 82.72,
+          "p25": 83.78,
+          "p50": 84.84,
+          "p75": 85.93,
+          "p90": 87.4
+         },
+         "shift": -0.06,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p50",
+       "group": "capability",
+       "label": "Own median (50th)",
+       "leapId": "ECI \u2248 174",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 82.7,
+          "p25": 83.8,
+          "p50": 84.9,
+          "p75": 86.05,
+          "p90": 87.7
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p75",
+       "group": "capability",
+       "label": "Own 75th percentile",
+       "leapId": "ECI \u2248 176",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 82.65,
+          "p25": 83.82,
+          "p50": 85.0,
+          "p75": 86.3,
+          "p90": 88.3
+         },
+         "shift": 0.1,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p90",
+       "group": "capability",
+       "label": "Own 90th percentile",
+       "leapId": "ECI \u2248 179",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 82.5,
+          "p25": 83.8,
+          "p50": 85.1,
+          "p75": 86.65,
+          "p90": 89.2
+         },
+         "shift": 0.2,
+         "grounded": true
+        }
+       ]
+      }
+     ]
+    },
+    "2100": {
+     "baselines": [
+      {
+       "label": "Opus 5.5",
+       "color": "#4f5bd5",
+       "q": {
+        "p10": 85.5,
+        "p25": 89.0,
+        "p50": 92.7,
+        "p75": 100.0,
+        "p90": 119.0
+       }
+      }
+     ],
+     "bars": [
+      {
+       "id": "sq",
+       "group": "policy",
+       "label": "Status quo (no new substantial AI policy)",
+       "leapId": "Status Quo",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 84.7,
+          "p25": 88.8,
+          "p50": 92.9,
+          "p75": 100.8,
+          "p90": 123.0
+         },
+         "shift": 0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p1",
+       "group": "policy",
+       "label": "Federal preemption of state AI laws",
+       "leapId": "P1",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 85.5,
+          "p25": 89.0,
+          "p50": 92.75,
+          "p75": 100.2,
+          "p90": 120.0
+         },
+         "shift": 0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2a",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US alone",
+       "leapId": "P2 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 85.6,
+          "p25": 88.9,
+          "p50": 92.5,
+          "p75": 99.0,
+          "p90": 116.0
+         },
+         "shift": -0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2b",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US + China",
+       "leapId": "P2 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 86.0,
+          "p25": 89.0,
+          "p50": 92.5,
+          "p75": 98.8,
+          "p90": 115.0
+         },
+         "shift": -0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3a",
+       "group": "policy",
+       "label": "Pre-release authorization: US federal body",
+       "leapId": "P3 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 85.8,
+          "p25": 89.0,
+          "p50": 92.7,
+          "p75": 99.8,
+          "p90": 118.0
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3b",
+       "group": "policy",
+       "label": "Pre-release authorization: international body incl. US + China",
+       "leapId": "P3 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 86.1,
+          "p25": 89.1,
+          "p50": 92.7,
+          "p75": 99.8,
+          "p90": 118.0
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p4",
+       "group": "policy",
+       "label": "Federal strict liability, scaled insurance, punitive damages",
+       "leapId": "P4",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 85.7,
+          "p25": 89.0,
+          "p50": 92.6,
+          "p75": 99.6,
+          "p90": 117.0
+         },
+         "shift": -0.1,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p5",
+       "group": "policy",
+       "label": "Bundle: P2b + P3b + P4",
+       "leapId": "P5",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 86.3,
+          "p25": 89.1,
+          "p50": 92.5,
+          "p75": 98.5,
+          "p90": 114.0
+         },
+         "shift": -0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p10",
+       "group": "capability",
+       "label": "Own 10th percentile",
+       "leapId": "ECI \u2248 170",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 85.8,
+          "p25": 88.9,
+          "p50": 92.3,
+          "p75": 98.0,
+          "p90": 113.0
+         },
+         "shift": -0.4,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p25",
+       "group": "capability",
+       "label": "Own 25th percentile",
+       "leapId": "ECI \u2248 172",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 85.7,
+          "p25": 88.95,
+          "p50": 92.5,
+          "p75": 99.0,
+          "p90": 116.0
+         },
+         "shift": -0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p50",
+       "group": "capability",
+       "label": "Own median (50th)",
+       "leapId": "ECI \u2248 174",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 85.5,
+          "p25": 89.0,
+          "p50": 92.7,
+          "p75": 100.0,
+          "p90": 119.0
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p75",
+       "group": "capability",
+       "label": "Own 75th percentile",
+       "leapId": "ECI \u2248 176",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 85.2,
+          "p25": 89.0,
+          "p50": 93.1,
+          "p75": 101.5,
+          "p90": 124.0
+         },
+         "shift": 0.4,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p90",
+       "group": "capability",
+       "label": "Own 90th percentile",
+       "leapId": "ECI \u2248 179",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 84.5,
+          "p25": 89.0,
+          "p50": 93.6,
+          "p75": 103.5,
+          "p90": 131.0
+         },
+         "shift": 0.9,
+         "grounded": true
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "le:low",
+   "short": "Low-income countries",
+   "heading": "Life expectancy: Low-income countries",
+   "railLabel": "Low-income countries",
+   "group": "Life expectancy",
+   "color": "#2f7d4f",
+   "unit": "years",
+   "horizons": [
+    "2050",
+    "2100"
+   ],
+   "text": "What will the period life expectancy at birth in low-income countries be in each of the following years: 2050; 2100?",
+   "criteria": "This question will be resolved using the period life expectancy at birth for countries in the World Bank's \"low income\" group for the years 2050 and 2100 as reported by Our World in Data. The relevant countries are those in the low-income group on the World Bank's FY2026 classification, held fixed through resolution. If Our World in Data discontinues this series, FRI will use the underlying UN World Population Prospects estimates, or the Human Mortality Database, in that order of preference. If the population of these countries is below 5,000 in either resolution year, the question resolves as ambiguous; give your percentiles for the world in which the question resolves. This question refers exclusively to the period life expectancy of biological human beings. Digital minds, AI systems, brain emulations, and other potential non-biological entities do not count. If a biological human's death coincides with the uploading or transfer of their mind to a non-biological substrate, the cessation of biological life counts as death. If a resolution source modifies its methodology to include such non-biological entities, this question will be resolved via a panel of at least three medical experts convened by FRI.",
+   "byHorizon": {
+    "2050": {
+     "baselines": [
+      {
+       "label": "Opus 5.5",
+       "color": "#4f5bd5",
+       "q": {
+        "p10": 65.8,
+        "p25": 67.9,
+        "p50": 69.7,
+        "p75": 71.7,
+        "p90": 74.0
+       }
+      }
+     ],
+     "bars": [
+      {
+       "id": "sq",
+       "group": "policy",
+       "label": "Status quo (no new substantial AI policy)",
+       "leapId": "Status Quo",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 65.6,
+          "p25": 67.9,
+          "p50": 69.75,
+          "p75": 71.8,
+          "p90": 74.3
+         },
+         "shift": 0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p1",
+       "group": "policy",
+       "label": "Federal preemption of state AI laws",
+       "leapId": "P1",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 65.8,
+          "p25": 67.9,
+          "p50": 69.7,
+          "p75": 71.72,
+          "p90": 74.1
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2a",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US alone",
+       "leapId": "P2 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 65.8,
+          "p25": 67.88,
+          "p50": 69.65,
+          "p75": 71.55,
+          "p90": 73.6
+         },
+         "shift": -0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2b",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US + China",
+       "leapId": "P2 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 65.9,
+          "p25": 67.88,
+          "p50": 69.6,
+          "p75": 71.45,
+          "p90": 73.4
+         },
+         "shift": -0.1,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3a",
+       "group": "policy",
+       "label": "Pre-release authorization: US federal body",
+       "leapId": "P3 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 65.85,
+          "p25": 67.9,
+          "p50": 69.68,
+          "p75": 71.65,
+          "p90": 73.8
+         },
+         "shift": -0.02,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3b",
+       "group": "policy",
+       "label": "Pre-release authorization: international body incl. US + China",
+       "leapId": "P3 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 65.9,
+          "p25": 67.92,
+          "p50": 69.68,
+          "p75": 71.62,
+          "p90": 73.7
+         },
+         "shift": -0.02,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p4",
+       "group": "policy",
+       "label": "Federal strict liability, scaled insurance, punitive damages",
+       "leapId": "P4",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 65.85,
+          "p25": 67.9,
+          "p50": 69.67,
+          "p75": 71.62,
+          "p90": 73.7
+         },
+         "shift": -0.03,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p5",
+       "group": "policy",
+       "label": "Bundle: P2b + P3b + P4",
+       "leapId": "P5",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 65.95,
+          "p25": 67.88,
+          "p50": 69.55,
+          "p75": 71.3,
+          "p90": 73.0
+         },
+         "shift": -0.15,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p10",
+       "group": "capability",
+       "label": "Own 10th percentile",
+       "leapId": "ECI \u2248 170",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 65.85,
+          "p25": 67.88,
+          "p50": 69.6,
+          "p75": 71.45,
+          "p90": 73.4
+         },
+         "shift": -0.1,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p25",
+       "group": "capability",
+       "label": "Own 25th percentile",
+       "leapId": "ECI \u2248 172",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 65.82,
+          "p25": 67.9,
+          "p50": 69.65,
+          "p75": 71.6,
+          "p90": 73.8
+         },
+         "shift": -0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p50",
+       "group": "capability",
+       "label": "Own median (50th)",
+       "leapId": "ECI \u2248 174",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 65.8,
+          "p25": 67.9,
+          "p50": 69.7,
+          "p75": 71.7,
+          "p90": 74.0
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p75",
+       "group": "capability",
+       "label": "Own 75th percentile",
+       "leapId": "ECI \u2248 176",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 65.75,
+          "p25": 67.92,
+          "p50": 69.78,
+          "p75": 71.85,
+          "p90": 74.5
+         },
+         "shift": 0.08,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p90",
+       "group": "capability",
+       "label": "Own 90th percentile",
+       "leapId": "ECI \u2248 179",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 65.6,
+          "p25": 67.9,
+          "p50": 69.85,
+          "p75": 72.1,
+          "p90": 75.2
+         },
+         "shift": 0.15,
+         "grounded": true
+        }
+       ]
+      }
+     ]
+    },
+    "2100": {
+     "baselines": [
+      {
+       "label": "Opus 5.5",
+       "color": "#4f5bd5",
+       "q": {
+        "p10": 69.5,
+        "p25": 73.8,
+        "p50": 78.3,
+        "p75": 84.5,
+        "p90": 94.0
+       }
+      }
+     ],
+     "bars": [
+      {
+       "id": "sq",
+       "group": "policy",
+       "label": "Status quo (no new substantial AI policy)",
+       "leapId": "Status Quo",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 68.7,
+          "p25": 73.6,
+          "p50": 78.5,
+          "p75": 85.2,
+          "p90": 96.5
+         },
+         "shift": 0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p1",
+       "group": "policy",
+       "label": "Federal preemption of state AI laws",
+       "leapId": "P1",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 69.5,
+          "p25": 73.8,
+          "p50": 78.35,
+          "p75": 84.7,
+          "p90": 94.5
+         },
+         "shift": 0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2a",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US alone",
+       "leapId": "P2 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 69.6,
+          "p25": 73.75,
+          "p50": 78.1,
+          "p75": 83.8,
+          "p90": 92.0
+         },
+         "shift": -0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2b",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US + China",
+       "leapId": "P2 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 70.0,
+          "p25": 73.85,
+          "p50": 78.0,
+          "p75": 83.5,
+          "p90": 91.0
+         },
+         "shift": -0.3,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3a",
+       "group": "policy",
+       "label": "Pre-release authorization: US federal body",
+       "leapId": "P3 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 69.8,
+          "p25": 73.8,
+          "p50": 78.25,
+          "p75": 84.3,
+          "p90": 93.0
+         },
+         "shift": -0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3b",
+       "group": "policy",
+       "label": "Pre-release authorization: international body incl. US + China",
+       "leapId": "P3 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 70.1,
+          "p25": 73.9,
+          "p50": 78.3,
+          "p75": 84.3,
+          "p90": 93.0
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p4",
+       "group": "policy",
+       "label": "Federal strict liability, scaled insurance, punitive damages",
+       "leapId": "P4",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 69.7,
+          "p25": 73.8,
+          "p50": 78.2,
+          "p75": 84.1,
+          "p90": 92.5
+         },
+         "shift": -0.1,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p5",
+       "group": "policy",
+       "label": "Bundle: P2b + P3b + P4",
+       "leapId": "P5",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 70.3,
+          "p25": 73.9,
+          "p50": 78.0,
+          "p75": 83.2,
+          "p90": 90.0
+         },
+         "shift": -0.3,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p10",
+       "group": "capability",
+       "label": "Own 10th percentile",
+       "leapId": "ECI \u2248 170",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 69.8,
+          "p25": 73.7,
+          "p50": 77.9,
+          "p75": 83.2,
+          "p90": 90.0
+         },
+         "shift": -0.4,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p25",
+       "group": "capability",
+       "label": "Own 25th percentile",
+       "leapId": "ECI \u2248 172",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 69.7,
+          "p25": 73.75,
+          "p50": 78.1,
+          "p75": 83.9,
+          "p90": 92.0
+         },
+         "shift": -0.2,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p50",
+       "group": "capability",
+       "label": "Own median (50th)",
+       "leapId": "ECI \u2248 174",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 69.5,
+          "p25": 73.8,
+          "p50": 78.3,
+          "p75": 84.5,
+          "p90": 94.0
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p75",
+       "group": "capability",
+       "label": "Own 75th percentile",
+       "leapId": "ECI \u2248 176",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 69.2,
+          "p25": 73.8,
+          "p50": 78.7,
+          "p75": 85.4,
+          "p90": 96.5
+         },
+         "shift": 0.4,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p90",
+       "group": "capability",
+       "label": "Own 90th percentile",
+       "leapId": "ECI \u2248 179",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 68.5,
+          "p25": 73.8,
+          "p50": 79.2,
+          "p75": 86.8,
+          "p90": 101.0
+         },
+         "shift": 0.9,
+         "grounded": true
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "gdp:ae",
+   "short": "Advanced economies",
+   "heading": "Global economic growth: Advanced economies",
+   "railLabel": "Advanced economies",
+   "group": "Global economic growth",
+   "color": "#b5651d",
+   "unit": "% per year",
+   "horizons": [
+    "2030",
+    "2050"
+   ],
+   "text": "What will be the annualized change, in percent, in real gross domestic product (GDP) for advanced economies over each of the following five-year periods: 2026 through 2030 (horizon 2030); 2046 through 2050 (horizon 2050)?",
+   "criteria": "This question will be resolved using annual real GDP growth figures for advanced economies reported in the IMF World Economic Outlook, with the annualized change for each period calculated as ((1+g1)(1+g2)(1+g3)(1+g4)(1+g5))^(1/5) - 1 over the period's five calendar years. Each period will resolve using the IMF WEO edition published in October of the calendar year following the period's end year (e.g., the 2026-2030 period resolves using the October 2031 WEO). If that edition is unavailable, FRI will use the next available WEO. Resolution uses IMF's PPP-weighted group aggregates (the default in the WEO database). If the IMF World Economic Outlook is discontinued, FRI will use the World Bank's World Development Indicators or the closest available equivalent; World Bank WDI uses USD-weighted aggregation, which historically yields growth figures approximately 0.3-0.5 percentage points lower than IMF's PPP-weighted figures. Give your percentiles for the world in which the question resolves.",
+   "byHorizon": {
+    "2030": {
+     "baselines": [
+      {
+       "label": "Opus 5.5",
+       "color": "#4f5bd5",
+       "q": {
+        "p10": 0.78,
+        "p25": 1.18,
+        "p50": 1.55,
+        "p75": 1.88,
+        "p90": 2.28
+       }
+      }
+     ],
+     "bars": [
+      {
+       "id": "sq",
+       "group": "policy",
+       "label": "Status quo (no new substantial AI policy)",
+       "leapId": "Status Quo",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.78,
+          "p25": 1.19,
+          "p50": 1.56,
+          "p75": 1.9,
+          "p90": 2.31
+         },
+         "shift": 0.01,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p1",
+       "group": "policy",
+       "label": "Federal preemption of state AI laws",
+       "leapId": "P1",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.78,
+          "p25": 1.18,
+          "p50": 1.56,
+          "p75": 1.89,
+          "p90": 2.3
+         },
+         "shift": 0.01,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2a",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US alone",
+       "leapId": "P2 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.74,
+          "p25": 1.14,
+          "p50": 1.51,
+          "p75": 1.84,
+          "p90": 2.22
+         },
+         "shift": -0.04,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2b",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US + China",
+       "leapId": "P2 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.72,
+          "p25": 1.12,
+          "p50": 1.48,
+          "p75": 1.81,
+          "p90": 2.18
+         },
+         "shift": -0.07,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3a",
+       "group": "policy",
+       "label": "Pre-release authorization: US federal body",
+       "leapId": "P3 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.77,
+          "p25": 1.17,
+          "p50": 1.53,
+          "p75": 1.86,
+          "p90": 2.25
+         },
+         "shift": -0.02,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3b",
+       "group": "policy",
+       "label": "Pre-release authorization: international body incl. US + China",
+       "leapId": "P3 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.76,
+          "p25": 1.16,
+          "p50": 1.52,
+          "p75": 1.85,
+          "p90": 2.23
+         },
+         "shift": -0.03,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p4",
+       "group": "policy",
+       "label": "Federal strict liability, scaled insurance, punitive damages",
+       "leapId": "P4",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.75,
+          "p25": 1.15,
+          "p50": 1.51,
+          "p75": 1.84,
+          "p90": 2.22
+         },
+         "shift": -0.04,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p5",
+       "group": "policy",
+       "label": "Bundle: P2b + P3b + P4",
+       "leapId": "P5",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.68,
+          "p25": 1.08,
+          "p50": 1.44,
+          "p75": 1.77,
+          "p90": 2.12
+         },
+         "shift": -0.11,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p10",
+       "group": "capability",
+       "label": "Own 10th percentile",
+       "leapId": "ECI \u2248 170",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.7,
+          "p25": 1.1,
+          "p50": 1.47,
+          "p75": 1.79,
+          "p90": 2.15
+         },
+         "shift": -0.08,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p25",
+       "group": "capability",
+       "label": "Own 25th percentile",
+       "leapId": "ECI \u2248 172",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.74,
+          "p25": 1.14,
+          "p50": 1.51,
+          "p75": 1.84,
+          "p90": 2.22
+         },
+         "shift": -0.04,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p50",
+       "group": "capability",
+       "label": "Own median (50th)",
+       "leapId": "ECI \u2248 174",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.78,
+          "p25": 1.18,
+          "p50": 1.55,
+          "p75": 1.88,
+          "p90": 2.28
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p75",
+       "group": "capability",
+       "label": "Own 75th percentile",
+       "leapId": "ECI \u2248 176",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.78,
+          "p25": 1.2,
+          "p50": 1.58,
+          "p75": 1.93,
+          "p90": 2.36
+         },
+         "shift": 0.03,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p90",
+       "group": "capability",
+       "label": "Own 90th percentile",
+       "leapId": "ECI \u2248 179",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.74,
+          "p25": 1.2,
+          "p50": 1.61,
+          "p75": 1.98,
+          "p90": 2.46
+         },
+         "shift": 0.06,
+         "grounded": true
+        }
+       ]
+      }
+     ]
+    },
+    "2050": {
+     "baselines": [
+      {
+       "label": "Opus 5.5",
+       "color": "#4f5bd5",
+       "q": {
+        "p10": 0.55,
+        "p25": 1.12,
+        "p50": 1.78,
+        "p75": 2.6,
+        "p90": 4.6
+       }
+      }
+     ],
+     "bars": [
+      {
+       "id": "sq",
+       "group": "policy",
+       "label": "Status quo (no new substantial AI policy)",
+       "leapId": "Status Quo",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.45,
+          "p25": 1.12,
+          "p50": 1.83,
+          "p75": 2.75,
+          "p90": 5.1
+         },
+         "shift": 0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p1",
+       "group": "policy",
+       "label": "Federal preemption of state AI laws",
+       "leapId": "P1",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.55,
+          "p25": 1.12,
+          "p50": 1.8,
+          "p75": 2.65,
+          "p90": 4.7
+         },
+         "shift": 0.02,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2a",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US alone",
+       "leapId": "P2 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.55,
+          "p25": 1.1,
+          "p50": 1.67,
+          "p75": 2.4,
+          "p90": 3.9
+         },
+         "shift": -0.11,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2b",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US + China",
+       "leapId": "P2 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.62,
+          "p25": 1.12,
+          "p50": 1.64,
+          "p75": 2.3,
+          "p90": 3.5
+         },
+         "shift": -0.14,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3a",
+       "group": "policy",
+       "label": "Pre-release authorization: US federal body",
+       "leapId": "P3 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.6,
+          "p25": 1.13,
+          "p50": 1.75,
+          "p75": 2.5,
+          "p90": 4.2
+         },
+         "shift": -0.03,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3b",
+       "group": "policy",
+       "label": "Pre-release authorization: international body incl. US + China",
+       "leapId": "P3 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.63,
+          "p25": 1.14,
+          "p50": 1.73,
+          "p75": 2.45,
+          "p90": 4.0
+         },
+         "shift": -0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p4",
+       "group": "policy",
+       "label": "Federal strict liability, scaled insurance, punitive damages",
+       "leapId": "P4",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.58,
+          "p25": 1.11,
+          "p50": 1.7,
+          "p75": 2.45,
+          "p90": 4.1
+         },
+         "shift": -0.08,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p5",
+       "group": "policy",
+       "label": "Bundle: P2b + P3b + P4",
+       "leapId": "P5",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.68,
+          "p25": 1.13,
+          "p50": 1.6,
+          "p75": 2.2,
+          "p90": 3.2
+         },
+         "shift": -0.18,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p10",
+       "group": "capability",
+       "label": "Own 10th percentile",
+       "leapId": "ECI \u2248 170",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.6,
+          "p25": 1.1,
+          "p50": 1.64,
+          "p75": 2.35,
+          "p90": 3.7
+         },
+         "shift": -0.14,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p25",
+       "group": "capability",
+       "label": "Own 25th percentile",
+       "leapId": "ECI \u2248 172",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.57,
+          "p25": 1.11,
+          "p50": 1.71,
+          "p75": 2.48,
+          "p90": 4.2
+         },
+         "shift": -0.07,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p50",
+       "group": "capability",
+       "label": "Own median (50th)",
+       "leapId": "ECI \u2248 174",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.55,
+          "p25": 1.12,
+          "p50": 1.78,
+          "p75": 2.6,
+          "p90": 4.6
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p75",
+       "group": "capability",
+       "label": "Own 75th percentile",
+       "leapId": "ECI \u2248 176",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.5,
+          "p25": 1.12,
+          "p50": 1.85,
+          "p75": 2.8,
+          "p90": 5.3
+         },
+         "shift": 0.07,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p90",
+       "group": "capability",
+       "label": "Own 90th percentile",
+       "leapId": "ECI \u2248 179",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 0.4,
+          "p25": 1.1,
+          "p50": 1.95,
+          "p75": 3.05,
+          "p90": 6.4
+         },
+         "shift": 0.17,
+         "grounded": true
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "id": "gdp:emde",
+   "short": "Emerging market and developing economies",
+   "heading": "Global economic growth: Emerging market and developing economies",
+   "railLabel": "Emerging market and developing economies",
+   "group": "Global economic growth",
+   "color": "#b5651d",
+   "unit": "% per year",
+   "horizons": [
+    "2030",
+    "2050"
+   ],
+   "text": "What will be the annualized change, in percent, in real gross domestic product (GDP) for emerging market and developing economies over each of the following five-year periods: 2026 through 2030 (horizon 2030); 2046 through 2050 (horizon 2050)?",
+   "criteria": "This question will be resolved using annual real GDP growth figures for emerging market and developing economies reported in the IMF World Economic Outlook, with the annualized change for each period calculated as ((1+g1)(1+g2)(1+g3)(1+g4)(1+g5))^(1/5) - 1 over the period's five calendar years. Each period will resolve using the IMF WEO edition published in October of the calendar year following the period's end year (e.g., the 2026-2030 period resolves using the October 2031 WEO). If that edition is unavailable, FRI will use the next available WEO. Resolution uses IMF's PPP-weighted group aggregates (the default in the WEO database). If the IMF World Economic Outlook is discontinued, FRI will use the World Bank's World Development Indicators or the closest available equivalent; World Bank WDI uses USD-weighted aggregation, which historically yields growth figures approximately 0.3-0.5 percentage points lower than IMF's PPP-weighted figures. Give your percentiles for the world in which the question resolves.",
+   "byHorizon": {
+    "2030": {
+     "baselines": [
+      {
+       "label": "Opus 5.5",
+       "color": "#4f5bd5",
+       "q": {
+        "p10": 3.0,
+        "p25": 3.48,
+        "p50": 3.92,
+        "p75": 4.3,
+        "p90": 4.64
+       }
+      }
+     ],
+     "bars": [
+      {
+       "id": "sq",
+       "group": "policy",
+       "label": "Status quo (no new substantial AI policy)",
+       "leapId": "Status Quo",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 3.0,
+          "p25": 3.48,
+          "p50": 3.92,
+          "p75": 4.31,
+          "p90": 4.66
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p1",
+       "group": "policy",
+       "label": "Federal preemption of state AI laws",
+       "leapId": "P1",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 3.0,
+          "p25": 3.48,
+          "p50": 3.92,
+          "p75": 4.3,
+          "p90": 4.65
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2a",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US alone",
+       "leapId": "P2 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 2.99,
+          "p25": 3.47,
+          "p50": 3.91,
+          "p75": 4.29,
+          "p90": 4.62
+         },
+         "shift": -0.01,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2b",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US + China",
+       "leapId": "P2 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 2.97,
+          "p25": 3.45,
+          "p50": 3.89,
+          "p75": 4.27,
+          "p90": 4.59
+         },
+         "shift": -0.03,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3a",
+       "group": "policy",
+       "label": "Pre-release authorization: US federal body",
+       "leapId": "P3 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 3.0,
+          "p25": 3.47,
+          "p50": 3.91,
+          "p75": 4.29,
+          "p90": 4.63
+         },
+         "shift": -0.01,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3b",
+       "group": "policy",
+       "label": "Pre-release authorization: international body incl. US + China",
+       "leapId": "P3 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 2.99,
+          "p25": 3.46,
+          "p50": 3.9,
+          "p75": 4.28,
+          "p90": 4.61
+         },
+         "shift": -0.02,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p4",
+       "group": "policy",
+       "label": "Federal strict liability, scaled insurance, punitive damages",
+       "leapId": "P4",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 2.99,
+          "p25": 3.47,
+          "p50": 3.91,
+          "p75": 4.29,
+          "p90": 4.62
+         },
+         "shift": -0.01,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p5",
+       "group": "policy",
+       "label": "Bundle: P2b + P3b + P4",
+       "leapId": "P5",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 2.94,
+          "p25": 3.42,
+          "p50": 3.86,
+          "p75": 4.24,
+          "p90": 4.56
+         },
+         "shift": -0.06,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p10",
+       "group": "capability",
+       "label": "Own 10th percentile",
+       "leapId": "ECI \u2248 170",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 2.95,
+          "p25": 3.44,
+          "p50": 3.88,
+          "p75": 4.26,
+          "p90": 4.59
+         },
+         "shift": -0.04,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p25",
+       "group": "capability",
+       "label": "Own 25th percentile",
+       "leapId": "ECI \u2248 172",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 2.98,
+          "p25": 3.46,
+          "p50": 3.9,
+          "p75": 4.28,
+          "p90": 4.62
+         },
+         "shift": -0.02,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p50",
+       "group": "capability",
+       "label": "Own median (50th)",
+       "leapId": "ECI \u2248 174",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 3.0,
+          "p25": 3.48,
+          "p50": 3.92,
+          "p75": 4.3,
+          "p90": 4.64
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p75",
+       "group": "capability",
+       "label": "Own 75th percentile",
+       "leapId": "ECI \u2248 176",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 3.0,
+          "p25": 3.49,
+          "p50": 3.94,
+          "p75": 4.33,
+          "p90": 4.69
+         },
+         "shift": 0.02,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p90",
+       "group": "capability",
+       "label": "Own 90th percentile",
+       "leapId": "ECI \u2248 179",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 2.97,
+          "p25": 3.49,
+          "p50": 3.96,
+          "p75": 4.37,
+          "p90": 4.76
+         },
+         "shift": 0.04,
+         "grounded": true
+        }
+       ]
+      }
+     ]
+    },
+    "2050": {
+     "baselines": [
+      {
+       "label": "Opus 5.5",
+       "color": "#4f5bd5",
+       "q": {
+        "p10": 1.5,
+        "p25": 2.35,
+        "p50": 3.08,
+        "p75": 3.85,
+        "p90": 5.4
+       }
+      }
+     ],
+     "bars": [
+      {
+       "id": "sq",
+       "group": "policy",
+       "label": "Status quo (no new substantial AI policy)",
+       "leapId": "Status Quo",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 1.4,
+          "p25": 2.35,
+          "p50": 3.12,
+          "p75": 3.95,
+          "p90": 5.8
+         },
+         "shift": 0.04,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p1",
+       "group": "policy",
+       "label": "Federal preemption of state AI laws",
+       "leapId": "P1",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 1.5,
+          "p25": 2.35,
+          "p50": 3.09,
+          "p75": 3.87,
+          "p90": 5.5
+         },
+         "shift": 0.01,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2a",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US alone",
+       "leapId": "P2 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 1.5,
+          "p25": 2.34,
+          "p50": 3.06,
+          "p75": 3.8,
+          "p90": 5.2
+         },
+         "shift": -0.02,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p2b",
+       "group": "policy",
+       "label": "Compute cap on frontier R&D: US + China",
+       "leapId": "P2 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 1.6,
+          "p25": 2.36,
+          "p50": 3.0,
+          "p75": 3.7,
+          "p90": 4.7
+         },
+         "shift": -0.08,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3a",
+       "group": "policy",
+       "label": "Pre-release authorization: US federal body",
+       "leapId": "P3 (a)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 1.52,
+          "p25": 2.35,
+          "p50": 3.07,
+          "p75": 3.82,
+          "p90": 5.2
+         },
+         "shift": -0.01,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p3b",
+       "group": "policy",
+       "label": "Pre-release authorization: international body incl. US + China",
+       "leapId": "P3 (b)",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 1.6,
+          "p25": 2.37,
+          "p50": 3.05,
+          "p75": 3.77,
+          "p90": 5.0
+         },
+         "shift": -0.03,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p4",
+       "group": "policy",
+       "label": "Federal strict liability, scaled insurance, punitive damages",
+       "leapId": "P4",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 1.52,
+          "p25": 2.34,
+          "p50": 3.05,
+          "p75": 3.8,
+          "p90": 5.1
+         },
+         "shift": -0.03,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "p5",
+       "group": "policy",
+       "label": "Bundle: P2b + P3b + P4",
+       "leapId": "P5",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 1.65,
+          "p25": 2.37,
+          "p50": 2.98,
+          "p75": 3.62,
+          "p90": 4.4
+         },
+         "shift": -0.1,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p10",
+       "group": "capability",
+       "label": "Own 10th percentile",
+       "leapId": "ECI \u2248 170",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 1.55,
+          "p25": 2.33,
+          "p50": 3.0,
+          "p75": 3.7,
+          "p90": 4.8
+         },
+         "shift": -0.08,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p25",
+       "group": "capability",
+       "label": "Own 25th percentile",
+       "leapId": "ECI \u2248 172",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 1.52,
+          "p25": 2.34,
+          "p50": 3.04,
+          "p75": 3.78,
+          "p90": 5.1
+         },
+         "shift": -0.04,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p50",
+       "group": "capability",
+       "label": "Own median (50th)",
+       "leapId": "ECI \u2248 174",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 1.5,
+          "p25": 2.35,
+          "p50": 3.08,
+          "p75": 3.85,
+          "p90": 5.4
+         },
+         "shift": 0.0,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p75",
+       "group": "capability",
+       "label": "Own 75th percentile",
+       "leapId": "ECI \u2248 176",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 1.45,
+          "p25": 2.35,
+          "p50": 3.13,
+          "p75": 3.97,
+          "p90": 6.0
+         },
+         "shift": 0.05,
+         "grounded": true
+        }
+       ]
+      },
+      {
+       "id": "eci_p90",
+       "group": "capability",
+       "label": "Own 90th percentile",
+       "leapId": "ECI \u2248 179",
+       "models": [
+        {
+         "label": "Opus 5.5",
+         "color": "#4f5bd5",
+         "q": {
+          "p10": 1.35,
+          "p25": 2.32,
+          "p50": 3.18,
+          "p75": 4.1,
+          "p90": 7.0
+         },
+         "shift": 0.1,
+         "grounded": true
+        }
+       ]
+      }
+     ]
+    }
+   }
+  }
+ ],
+ "targetDate": "2027-04-01",
+ "eciForecast": {
+  "Opus 5.5": {
+   "p10": 169.5,
+   "p25": 171.5,
+   "p50": 173.8,
+   "p75": 176.2,
+   "p90": 178.8
+  }
+ },
+ "usage": {
+  "Opus 5.5": {
+   "turns": 31,
+   "cost_usd": 16.854212
+  }
+ },
+ "searchHits": {
+  "Opus 5.5": 105
+ },
+ "rationales": {
+  "calls": {
+   "2026-10-01T1816Z:welfare:Opus 5.5": {
+    "model": "Opus 5.5",
+    "modelId": "anthropic/claude-opus-5-5",
+    "run": "2026-10-01T1816Z",
+    "elicitedAt": "2026-10-01T18:34:52+00:00",
+    "date": "2026-10-01",
+    "protocol": "welfare-v1-pilot",
+    "rationale": "ECI: since late 2024 the frontier has risen about 6\u20139 points every six months (+8.2 from April to October 2026). I trimmed the median gain to about +6.5 (173.8) for three reasons: the leading labs' September 2026 \"pace the frontier\" commitments, OpenAI's pauses on training and tool use, and White House holds on model sharing. Gemini 4, due in Q4 2026, keeps the upper tail open. Growth 2026\u201330 starts from IMF paths: April 2026 WEO Table A1, plus the July update (EMDE 3.8% in 2026, 4.5% in 2027; AE about 1.7\u20131.8). I shaded both down slightly for the IMF's history of over-optimistic medium-term forecasts, $100 oil, the wars, and the risk of an AI-capex bust, and gave some upside to the AI boom. For 2046\u201350, the no-AI baseline comes from OECD's 2025 long-run scenarios (global potential growth near 2% by the 2040s, which implies AE about 1.3% and EMDE about 2.7\u20133%). On top of that I added AI scenarios anchored on FRI's own economist/superforecaster survey (US median about 2.5%, rapid-AI scenario 3.5\u20135%), which gives right-skewed tails. Life expectancy is anchored on UN WPP 2024 medium projections via OWID: US 83.2/89.2, high-income 85.2/90.8, low-income 69.3/75.7. I lowered high-income slightly because Russia is in the FY2026 high-income group but not in the UN aggregate, and because the UN's 2023 nowcasts ran high; low-income gets only modest upside given slowing child-mortality progress and aid cuts. I added fat right tails for AI-driven medicine by 2100 and modest left tails for catastrophe. The policy and capability conditions mostly change the tails rather than the medians. Slowdown packages (P2b, P5) trim upside growth and longevity and slightly lift the lower percentiles. Status quo and a high ECI fatten both tails.",
+    "sources": [
+     "https://www.imf.org/-/media/files/publications/weo/2026/april/english/tablea.pdf",
+     "https://www.reuters.com/world/china/imf-edges-2026-global-growth-forecast-lower-3-sees-rebound-2027-2026-07-08",
+     "https://ourworldindata.org/grapher/life-expectancy-at-birth-including-the-un-projections.csv?v=1&csvType=filtered&useColumnShortNames=false&country=USA~High-income+countries~Low-income+countries&time=2023..2100",
+     "https://ourworldindata.org/grapher/life-expectancy-at-birth-including-the-un-projections.csv?v=1&csvType=filtered&useColumnShortNames=false&country=USA~High-income+countries~Low-income+countries~JPN~RUS&time=2010..2026",
+     "https://www.oecd.org/content/dam/oecd/en/publications/reports/2025/09/oecd-global-long-run-economic-scenarios_d58550c4/00353678-en.pdf",
+     "https://forecastingresearch.org/research/economic-effects-of-ai"
+    ],
+    "debriefs": {
+     "le:us": {
+      "rationale": "My median follows the United Nations World Population Prospects 2024 medium projection, as published by Our World in Data. Before relying on it, I checked that official United States mortality data for 2025 has caught up with that projection: the 2025 death rate was a record low, which implies a record life expectancy. That projection had run ahead of the official figures for 2022 and 2023. I nudged the median up a little for medicine sped up by artificial intelligence and for new obesity drugs, and that is roughly cancelled out by drags specific to the United States: cuts to health coverage, and the flat 2010s, when overdoses and chronic disease stalled progress. The lower percentiles allow for that stagnation repeating, or for a pandemic-style shock in the resolution year itself; the very wide upper tail for 2100 comes from a minority of worlds where advanced artificial intelligence substantially slows aging, which would push period life expectancy far beyond any trend line.",
+      "key_sources": [
+       {
+        "url": "https://ourworldindata.org/grapher/life-expectancy-at-birth-including-the-un-projections.csv?v=1&csvType=filtered&useColumnShortNames=false&country=USA~High-income+countries~Low-income+countries&time=2023..2100",
+        "contribution": "gave the United Nations medium projection for the United States year by year through 2100, which anchors the median"
+       },
+       {
+        "url": "https://ourworldindata.org/grapher/life-expectancy-at-birth-including-the-un-projections.csv?v=1&csvType=filtered&useColumnShortNames=false&country=USA~High-income+countries~Low-income+countries~JPN~RUS&time=2010..2026",
+        "contribution": "showed the United Nations estimates matching official United States figures through 2021 but running high for 2022 and 2023"
+       },
+       {
+        "url": "https://www.cnn.com/2026/07/02/health/us-death-rate-record-low-cdc-report-longevity",
+        "contribution": "reported the record-low 2025 death rate, which implies another record life expectancy and confirms the starting level"
+       }
+      ],
+      "weakest_link": "The top percentile depends on whether advanced artificial intelligence slows aging dramatically by 2100 and reaches the whole United States population, and that rests on my judgment about future technology, not on demographic evidence."
+     },
+     "le:high": {
+      "rationale": "My median starts from the United Nations medium projection for the World Bank high-income group, as published by Our World in Data, and I shaded it down a little for two technical reasons. First, that series appears to leave out Russia, whose much lower life expectancy would pull the average down; the World Bank has classed Russia as high income since mid-2024, and it is in the fixed fiscal-year-2026 list. Second, the United Nations 2023 values were provisional estimates that ran above official national figures, for example for Japan. A small upward nudge for medicine helped by artificial intelligence partly offsets those adjustments. In 2050 the spread is a bit narrower than for the United States alone, because an average over many countries is less exposed to one country's shocks; the very wide 2100 upper tail again reflects possible radical life extension from advanced artificial intelligence.",
+      "key_sources": [
+       {
+        "url": "https://ourworldindata.org/grapher/life-expectancy-at-birth-including-the-un-projections.csv?v=1&csvType=filtered&useColumnShortNames=false&country=USA~High-income+countries~Low-income+countries&time=2023..2100",
+        "contribution": "gave the United Nations medium projection for the high-income group average through 2100"
+       },
+       {
+        "url": "https://ourworldindata.org/grapher/life-expectancy-at-birth-including-the-un-projections.csv?v=1&csvType=filtered&useColumnShortNames=false&country=USA~High-income+countries~Low-income+countries~JPN~RUS&time=2010..2026",
+        "contribution": "showed how far below the group Russia sits, and that the 2023 estimates ran above Japan's official figures"
+       },
+       {
+        "url": "https://blogs.worldbank.org/en/opendata/understanding-country-income--world-bank-group-income-classifica",
+        "contribution": "described the fiscal-year-2026 reclassifications, which did not move Russia out of the high-income group"
+       }
+      ],
+      "weakest_link": "It is unclear which country list the resolution series will actually use; including or leaving out Russia shifts the group average by more than half a year, and I simply split the difference."
+     },
+     "le:low": {
+      "rationale": "My median sits a little above the United Nations medium projection for the low-income group. That projection assumes far slower gains than the surge from 2000 to 2019, which came from antiretroviral treatment for the human immunodeficiency virus, malaria control and vaccines. I stayed close to it for two reasons: the 2026 United Nations child-mortality report shows progress slowing sharply since 2015 as aid cuts strain funding, and the fastest-growing populations in the group have the highest death rates, which pulls the group average down. The lower percentiles cover conflict, collapsing aid and climate stress in countries such as Sudan, the Democratic Republic of the Congo and Afghanistan; the wide upper tail for 2100 allows cheap medicine and growth driven by artificial intelligence to reach today's poorest countries, though later than rich ones.",
+      "key_sources": [
+       {
+        "url": "https://ourworldindata.org/grapher/life-expectancy-at-birth-including-the-un-projections.csv?v=1&csvType=filtered&useColumnShortNames=false&country=USA~High-income+countries~Low-income+countries&time=2023..2100",
+        "contribution": "gave the United Nations medium projection for the low-income group average through 2100"
+       },
+       {
+        "url": "https://ourworldindata.org/grapher/life-expectancy-at-birth-including-the-un-projections.csv?v=1&csvType=filtered&useColumnShortNames=false&country=USA~High-income+countries~Low-income+countries~JPN~RUS&time=2010..2026",
+        "contribution": "showed how fast the group's life expectancy has risen since 2010, for comparison with the slower projected pace"
+       },
+       {
+        "url": "https://www.who.int/news/item/18-03-2026-progress-in-reducing-child-deaths-slows-as-4.9-million-children-die-before-age-five",
+        "contribution": "documented that progress against child deaths has slowed sharply since 2015 amid pressure on development funding"
+       }
+      ],
+      "weakest_link": "The shakiest piece is whether the slow pace of improvement the United Nations projects is right: it under-predicted the rapid gains of the 2000s, but aid cuts and stalled progress on child deaths could now make it too optimistic."
+     },
+     "gdp:ae": {
+      "rationale": "For 2026 through 2030, my median comes from the International Monetary Fund's April 2026 World Economic Outlook path and its July 2026 update. I shaded it slightly down because the Fund's five-year-ahead forecasts have usually proved too optimistic, and because oil near one hundred dollars a barrel, two wars and a possible bust in data-center spending for artificial intelligence are live risks; the upper percentiles reflect that investment and productivity boom continuing. For 2046 through 2050, I started from a slow baseline of shrinking workforces and modest productivity growth, taken from the long-run scenarios of the Organisation for Economic Co-operation and Development. I raised it partway toward the Forecasting Research Institute's survey of economists and expert forecasters, whose median United States growth is above official projections because of artificial intelligence. The very wide upper tail for the later period comes from a minority of worlds where transformative artificial intelligence produces unusually fast, possibly explosive, measured growth; the lower tail covers five-year windows hit by recession, long stagnation, or catastrophe.",
+      "key_sources": [
+       {
+        "url": "https://www.imf.org/-/media/files/publications/weo/2026/april/english/tablea.pdf",
+        "contribution": "gave the Fund's year-by-year growth path for advanced economies through 2031, which anchors the near-term median"
+       },
+       {
+        "url": "https://www.oecd.org/content/dam/oecd/en/publications/reports/2025/09/oecd-global-long-run-economic-scenarios_d58550c4/00353678-en.pdf",
+        "contribution": "supplied a long-run baseline without artificial intelligence, in which potential growth keeps slowing into the 2040s"
+       },
+       {
+        "url": "https://forecastingresearch.org/research/economic-effects-of-ai",
+        "contribution": "gave the median forecasts from economists, artificial intelligence specialists and expert forecasters, plus their ranges under rapid progress, for growth in the late 2040s; these set how much artificial intelligence adds and how wide the upper tail is"
+       }
+      ],
+      "weakest_link": "The top percentile for the later period depends on how likely transformative artificial intelligence is to show up in measured advanced-economy growth by the late 2040s, and that rests on judgment about an unprecedented technology rather than on historical data."
+     },
+     "gdp:emde": {
+      "rationale": "For 2026 through 2030, my median follows the International Monetary Fund path: a 2026 weakened by the Middle East war, a rebound in 2027, then steady growth. I shaded it slightly down for the Fund's record of over-predicting emerging-economy growth and for China's slowdown as its population ages. For 2046 through 2050 the baseline is lower: China's shrinking workforce slows its growth while India and Africa gain weight in the group. That is consistent with the long-run scenarios of the Organisation for Economic Co-operation and Development, once I allow for the Fund's growth figures running somewhat higher because of how it weights countries. Artificial intelligence widens both tails for the later period: China, as a leading artificial intelligence power, could share in very rapid growth, while automation could undercut the cheap-labor development path elsewhere, and conflict or catastrophe drive the lowest outcomes.",
+      "key_sources": [
+       {
+        "url": "https://www.imf.org/-/media/files/publications/weo/2026/april/english/tablea.pdf",
+        "contribution": "gave the Fund's growth path for emerging market and developing economies through 2031, which anchors the near-term median"
+       },
+       {
+        "url": "https://www.reuters.com/world/china/imf-edges-2026-global-growth-forecast-lower-3-sees-rebound-2027-2026-07-08",
+        "contribution": "reported that the July 2026 update cut emerging-economy growth for 2026 and raised it for 2027, with revisions for China and India"
+       },
+       {
+        "url": "https://www.oecd.org/content/dam/oecd/en/publications/reports/2025/09/oecd-global-long-run-economic-scenarios_d58550c4/00353678-en.pdf",
+        "contribution": "showed long-run global growth slowing mainly because emerging markets' populations age and their catch-up slows, which is the basis for the 2050 baseline"
+       }
+      ],
+      "weakest_link": "The paths of China and India from 2030 to 2050 dominate the group average, and they rest on demographic and catch-up assumptions of the kind that past long-range forecasts, for example for Brazil and Russia, have often got badly wrong."
+     }
+    }
+   }
+  },
+  "questions": {
+   "le:us": {
+    "Opus 5.5": [
+     "2026-10-01T1816Z:welfare:Opus 5.5"
+    ]
+   },
+   "le:high": {
+    "Opus 5.5": [
+     "2026-10-01T1816Z:welfare:Opus 5.5"
+    ]
+   },
+   "le:low": {
+    "Opus 5.5": [
+     "2026-10-01T1816Z:welfare:Opus 5.5"
+    ]
+   },
+   "gdp:ae": {
+    "Opus 5.5": [
+     "2026-10-01T1816Z:welfare:Opus 5.5"
+    ]
+   },
+   "gdp:emde": {
+    "Opus 5.5": [
+     "2026-10-01T1816Z:welfare:Opus 5.5"
+    ]
+   }
+  }
+ }
+}

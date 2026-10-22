@@ -1,0 +1,422 @@
+Today is 2026-10-21.
+
+Below are 5 questions. Answer
+all of them -- and answer every question x horizon cell
+under each of the 14 conditions listed in the CONDITIONS section that follows
+the questions: once unconditionally, and once under each condition in each of
+its 2 groups (policy conditions and capability conditions). Every condition is taken on its own; no
+condition from one group is combined with a condition from another.
+
+===== LIFE EXPECTANCY =====
+
+--- le:us ---
+What will the period life expectancy at birth in the U.S. be in each of the following years: 2050; 2100?
+Horizons for this question: 2050 (the year 2050), 2100 (the year 2100)
+Answer in years of life expectancy at birth.
+
+Resolution criteria:
+This question will be resolved using the period life expectancy at birth for the U.S. for the years 2050 and 2100 as reported by Our World in Data. If Our World in Data discontinues this series, FRI will use the underlying UN World Population Prospects estimates, or the Human Mortality Database, in that order of preference. If the population of the U.S. is below 5,000 in either resolution year, the question resolves as ambiguous; give your percentiles for the world in which the question resolves. This question refers exclusively to the period life expectancy of biological human beings. Digital minds, AI systems, brain emulations, and other potential non-biological entities do not count. If a biological human's death coincides with the uploading or transfer of their mind to a non-biological substrate, the cessation of biological life counts as death. If a resolution source modifies its methodology to include such non-biological entities, this question will be resolved via a panel of at least three medical experts convened by FRI.
+
+--- le:high ---
+What will the period life expectancy at birth in high-income countries be in each of the following years: 2050; 2100?
+Horizons for this question: 2050 (the year 2050), 2100 (the year 2100)
+Answer in years of life expectancy at birth.
+
+Resolution criteria:
+This question will be resolved using the period life expectancy at birth for countries in the World Bank's "high income" group for the years 2050 and 2100 as reported by Our World in Data. The relevant countries are those in the high-income group on the World Bank's FY2026 classification, held fixed through resolution. If Our World in Data discontinues this series, FRI will use the underlying UN World Population Prospects estimates, or the Human Mortality Database, in that order of preference. If the population of these countries is below 5,000 in either resolution year, the question resolves as ambiguous; give your percentiles for the world in which the question resolves. This question refers exclusively to the period life expectancy of biological human beings. Digital minds, AI systems, brain emulations, and other potential non-biological entities do not count. If a biological human's death coincides with the uploading or transfer of their mind to a non-biological substrate, the cessation of biological life counts as death. If a resolution source modifies its methodology to include such non-biological entities, this question will be resolved via a panel of at least three medical experts convened by FRI.
+
+--- le:low ---
+What will the period life expectancy at birth in low-income countries be in each of the following years: 2050; 2100?
+Horizons for this question: 2050 (the year 2050), 2100 (the year 2100)
+Answer in years of life expectancy at birth.
+
+Resolution criteria:
+This question will be resolved using the period life expectancy at birth for countries in the World Bank's "low income" group for the years 2050 and 2100 as reported by Our World in Data. The relevant countries are those in the low-income group on the World Bank's FY2026 classification, held fixed through resolution. If Our World in Data discontinues this series, FRI will use the underlying UN World Population Prospects estimates, or the Human Mortality Database, in that order of preference. If the population of these countries is below 5,000 in either resolution year, the question resolves as ambiguous; give your percentiles for the world in which the question resolves. This question refers exclusively to the period life expectancy of biological human beings. Digital minds, AI systems, brain emulations, and other potential non-biological entities do not count. If a biological human's death coincides with the uploading or transfer of their mind to a non-biological substrate, the cessation of biological life counts as death. If a resolution source modifies its methodology to include such non-biological entities, this question will be resolved via a panel of at least three medical experts convened by FRI.
+
+===== GLOBAL ECONOMIC GROWTH =====
+
+--- gdp:ae ---
+What will be the annualized change, in percent, in real gross domestic product (GDP) for advanced economies over each of the following five-year periods: 2026 through 2030 (horizon 2030); 2046 through 2050 (horizon 2050)?
+Horizons for this question: 2030 (the five-year period 2026 through 2030), 2050 (the five-year period 2046 through 2050)
+Answer in percent per year (2.1 means an annualized change of 2.1%; a contraction is negative).
+
+Resolution criteria:
+This question will be resolved using annual real GDP growth figures for advanced economies reported in the IMF World Economic Outlook, with the annualized change for each period calculated as ((1+g1)(1+g2)(1+g3)(1+g4)(1+g5))^(1/5) - 1 over the period's five calendar years. Each period will resolve using the IMF WEO edition published in October of the calendar year following the period's end year (e.g., the 2026-2030 period resolves using the October 2031 WEO). If that edition is unavailable, FRI will use the next available WEO. Resolution uses IMF's PPP-weighted group aggregates (the default in the WEO database). If the IMF World Economic Outlook is discontinued, FRI will use the World Bank's World Development Indicators or the closest available equivalent; World Bank WDI uses USD-weighted aggregation, which historically yields growth figures approximately 0.3-0.5 percentage points lower than IMF's PPP-weighted figures. Give your percentiles for the world in which the question resolves.
+
+--- gdp:emde ---
+What will be the annualized change, in percent, in real gross domestic product (GDP) for emerging market and developing economies over each of the following five-year periods: 2026 through 2030 (horizon 2030); 2046 through 2050 (horizon 2050)?
+Horizons for this question: 2030 (the five-year period 2026 through 2030), 2050 (the five-year period 2046 through 2050)
+Answer in percent per year (2.1 means an annualized change of 2.1%; a contraction is negative).
+
+Resolution criteria:
+This question will be resolved using annual real GDP growth figures for emerging market and developing economies reported in the IMF World Economic Outlook, with the annualized change for each period calculated as ((1+g1)(1+g2)(1+g3)(1+g4)(1+g5))^(1/5) - 1 over the period's five calendar years. Each period will resolve using the IMF WEO edition published in October of the calendar year following the period's end year (e.g., the 2026-2030 period resolves using the October 2031 WEO). If that edition is unavailable, FRI will use the next available WEO. Resolution uses IMF's PPP-weighted group aggregates (the default in the WEO database). If the IMF World Economic Outlook is discontinued, FRI will use the World Bank's World Development Indicators or the closest available equivalent; World Bank WDI uses USD-weighted aggregation, which historically yields growth figures approximately 0.3-0.5 percentage points lower than IMF's PPP-weighted figures. Give your percentiles for the world in which the question resolves.
+
+===== CONDITIONS =====
+
+Definitions. ECI: the Epoch Capabilities Index, published by Epoch AI -- a single score summarising a model's results across dozens of benchmarks, fit with an item-response model so that scores stay comparable as benchmarks saturate and new ones are added. Higher is more capable; the scale has no ceiling. All scores here are on the scale as published by Epoch on 2026-10-21.
+Frontier ECI: the highest ECI score of any publicly released model from a US developer, as scored by Epoch.
+
+Frontier ECI history -- every release by a US developer that set a new high, from GPT-4 on (Epoch's index of 2026-10-21, 270 models scored):
+  2023-03-14   125.7  GPT-4 (Mar 2023)
+  2024-01-25   126.4  GPT-4 Turbo (Nov 2023)
+  2024-02-29   126.9  Claude 3 Opus
+  2024-04-09   127.3  GPT-4 Turbo (Apr 2024)
+  2024-05-13   129.0  GPT-4o (May 2024)
+  2024-06-20   130.0  Claude 3.5 Sonnet
+  2024-09-12   134.6  o1-preview
+  2024-09-12   135.7  o1-mini
+  2024-12-17   141.7  o1
+  2025-03-31   144.0  Gemini 2.5 Pro (Mar 2025)
+  2025-04-16   145.5  o4-mini
+  2025-04-16   146.7  o3
+  2025-06-10   147.3  o3-pro
+  2025-08-07   150.0  GPT-5
+  2025-10-07   150.6  GPT-5 Pro
+  2025-11-18   153.1  Gemini 3 Pro
+  2025-12-11   153.7  GPT-5.2
+  2025-12-11   156.3  GPT-5.2 Pro
+  2026-02-05   157.1  GPT-5.3 Codex
+  2026-03-05   157.3  GPT-5.4
+  2026-03-05   159.6  GPT-5.4 Pro
+  2026-04-23   159.7  GPT-5.5
+  2026-04-23   162.9  GPT-5.5 Pro
+  2026-06-09   163.4  Claude Fable 5
+  2026-07-24   163.9  Claude Opus 5
+  2026-09-01   166.5  Claude Fable 5.1
+  2026-09-03   168.8  GPT-6 Astra
+  2026-09-22   168.8  Claude Opus 5.5
+As of 2026-10-21 no released model has scored above Claude Opus 5.5, 168.8 (2026-09-22).
+
+Step 1 -- Forecast the frontier ECI on April 21, 2027, on the scale above. Give your 10th, 25th, 50th, 75th and 90th percentiles as eci_forecast (p10, p25, p50, p75, p90; numbers, with p10 <= p25 <= p50 <= p75 <= p90): your 50th percentile is the value you think the frontier is equally likely to end up above or below, your 25th and 75th bracket the middle half of your distribution, and your 10th and 90th bracket the middle four-fifths.
+
+Step 2 -- each question x horizon cell takes five percentiles (p10, p25, p50, p75, p90) under each of 14 conditions, keyed by the condition ids below: unconditional, then the 8 policy conditions (POLICY CONDITIONS), then the 5 capability conditions (CAPABILITY CONDITIONS). Every condition stands alone: a policy condition is not combined with any capability condition, and a capability condition is not combined with any policy condition. Each section below states what its conditions assume about the other.
+
+--- unconditional ---
+Unconditional: forecast the world as you expect it to unfold, including AI policies you expect to be implemented and whatever level of AI capability you expect to be reached by April 21, 2027.
+
+===== POLICY CONDITIONS =====
+
+For each condition below, assume that the relevant governing body implements the policy immediately and that it remains in effect through December 31, 2050. In making this assumption, try to hold other factors constant and treat the policy implementation as exogenous. In other words, do not assume that implementation of a more stringent policy implies that the world is — in fact — more risky. We want your forecast of how risk changes as a result of the policy's implementation, not vice versa.
+
+In every policy condition, assume that AI capability progresses along your median trajectory -- in particular, that the frontier ECI on April 21, 2027 is approximately your 50th-percentile value from eci_forecast (within about two points of it), the same level as condition eci_p50 in the CAPABILITY CONDITIONS section.
+
+Definitions. Frontier model: a model trained with more than approximately 10^26 FLOP, or a regulator-updated equivalent as algorithmic efficiency improves.
+Horizon: every condition is implemented immediately and remains in force through December 31, 2050.
+
+--- sq ---
+Status quo (no new substantial AI policy) (Status Quo).
+Condition: Assume no new, substantial AI policy is adopted in China, the US, or any other jurisdiction hosting a frontier model from today through December 31, 2050. Existing measures remain in force as they stand today, but nothing substantial is added. By "substantial AI policy” we mean reflecting similar or greater stringency compared to those listed in this survey.
+
+Note that this is conceptually distinct from Unconditional, for which you should forecast the world as you expect it to unfold, including AI policies you expect to be implemented.
+
+The policies listed in this survey, for the stringency comparison:
+- P1: A US federal statute or action barring states from regulating AI more strictly than the federal government.
+- P2: Unilateral decision by US policymakers or a bilateral/multilateral decision made jointly by policymakers in China and the United States to slow the development of frontier AI systems.
+- P3: A binding requirement that frontier models be vetted and authorized before release, imposed by a US federal body or by an international body.
+- P4: A US federal statute treating frontier model training and deployment as an abnormally dangerous activity subject to strict liability (i.e., a regime under which a developer is liable for harms its models cause without the injured party having to prove the developer was careless or the model defective). The statute permits damages reflecting the expected magnitude of unrealized harm the conduct made more likely and requires developers to be insured for their liability.
+- P5: Assume all three policies are in force: a binding US–China measure slowing frontier AI development, an international body (with member jurisdictions including the US and China) holding pre-release authorization power over frontier models, and federal strict liability for frontier AI harms.
+
+--- p1 ---
+Federal preemption of state AI laws (P1).
+Condition: A US federal statute or action barring states from regulating AI more strictly than the federal government.
+
+P1. Federal Preemption on State AI Laws
+
+Summary: A US federal statute or action barring states from regulating AI more strictly than the federal government.
+
+Background:
+Federal preemption of state AI laws has been pursued through several channels, but no cross-cutting federal AI statute or order has barred states from imposing stricter AI requirements than federal law. In Congress, a proposed 10-year moratorium on state AI laws was [stripped](https://www.americanprogress.org/article/moratoriums-and-federal-preemption-of-state-artificial-intelligence-laws-pose-serious-risks/) from both a 2025 Senate reconciliation bill and the [Big Beautiful Bill](https://en.wikipedia.org/wiki/One_Big_Beautiful_Bill_Act). In March 2026, the White House’s National Policy Framework for Artificial Intelligence [included](https://www.ropesgray.com/en/insights/alerts/2026/03/the-white-house-legislative-recommendations-national-policy-framework-for-artificial-intelligence-an) an assertion of broad federal authority over AI laws, and an executive order passed shortly before the Framework created a task force to “challenge state laws on constitutional grounds, including preemption and the Dormant Commerce Clause.” In April 2026, the Department of Justice [intervened](https://www.nortonrosefulbright.com/en/knowledge/publications/de3ad9de/xai-sues-doj-intervenes-enforcement-of-colorado-ai-act-suspended) in a lawsuit xAI filed against a Colorado law prohibiting “algorithmic discrimination,” resulting in a federal court temporarily suspending enforcement of the law; the law was later [repealed and replaced](https://www.skadden.com/insights/publications/2026/06/colorado-repeals-and-replaces-its-ai-act). In June 2026, Representatives Jay Obernolte (R-CA) and Lori Trahan (D-MA) [released](https://www.dlapiper.com/en/insights/publications/2026/06/unpacking-the-great-american-ai-act) draft legislation entitled the “Great American AI Act,” which would “preempt state laws and rules ‘specifically regulating the development of any AI model.” This legislation has not been formally introduced in Congress.
+
+Many of the efforts described above have drawn [criticism](https://rollcall.com/2026/06/04/bipartisan-ai-draft-proposes-three-year-preemption-of-state-laws/) from commentators focused on AI safety; Brad Carson, the president of Americans for Responsible Innovation, wrote that the Great American AI Act’s preemption of state laws would be “a generational mistake,”; Brendan Steinhauser, the CEO of the Alliance for Secure AI, wrote that the draft Act fell “short of the framework necessary to keep Americans safe from the dangers of advanced AI.”
+
+Historical baseline:
+As of August 2026, no federal statute or regulation bars states from establishing stricter AI requirements than federal law, and no final court ruling has displaced a substantive category of state AI regulation.
+
+Resolution criteria:
+* This question resolves positively at the first documented instance after August 26, 2026 in which the U.S. federal government, by binding statute, regulation, or final federal court order, preempts or invalidates state AI laws, thereby legally barring states from enforcing a substantive category of AI regulation.
+* This question concerns ceiling preemption only (i.e., preemption setting a federal maximum that states may not exceed, as opposed to a floor they remain free to exceed with stricter policies of their own). A statute or regulation or federal court order which preempts or invalidates state AI laws will not resolve this question if states retain authority to impose stricter or additional AI requirements than the federal baseline. Minimum standards set at the federal level only count toward the resolution of this question if they bar a state or states from adding to or exceeding federal standards.
+* The preempted category must extend across application domains (e.g., barring states from imposing obligations on general-purpose AI models or AI systems generally). Federal preemption confined to a single regulated sector (motor vehicles, medical devices, credit reporting, aviation, communications platforms) does not resolve this question, regardless of how large that sector is or how much AI activity it covers.
+* Actions that assert preemption authority or direct litigation toward it do not count unless and until they produce binding displacement of state law.
+* Preliminary injunctions in individual cases do not count; the displacing action must be operative law.
+* The action must prevent state authority over a substantive category of AI development or deployment regulation. Narrow state carve-outs in laws otherwise preventing state authority would not prevent the resolution of this question; likewise, measures limited to narrow areas of regulation would not resolve the question.
+* A temporary statutory freeze or moratorium on state AI regulation would count toward the resolution of this question while in force, even if it is not reauthorized later.
+* Instances in which federal funding is conditioned on state compliance with federal authority on regulation would not resolve this question unless the other criteria listed above are satisfied.
+* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.
+
+--- p2a ---
+Compute cap on frontier R&D: US alone (P2 (a)).
+Condition: Unilateral decision by US policymakers or a bilateral/multilateral decision made jointly by policymakers in China and the United States to slow the development of frontier AI systems. Part (a): US enacts a policy to slow AI development, with no qualifying measure binding US and China in force
+
+P2. AI Capability Slowdown
+
+Summary: Unilateral decision by US policymakers or a bilateral/multilateral decision made jointly by policymakers in China and the United States to slow the development of frontier AI systems.
+
+Part (a) is assumed: US enacts a policy to slow AI development, with no qualifying measure binding US and China in force (Note that these parts are mutually exclusive.)
+
+Background:
+Calls to slow frontier AI development have grown prominent over the past few years, though none has produced binding policy. Anthropic in June 2026 [suggested that](https://www.anthropic.com/institute/recursive-self-improvement) creating options to slow or temporarily pause AI development via verifiable mechanisms would be good for the world. A July 2026 [open letter](https://www.pacingthefrontier.com/) from over 1,300 employees of frontier AI companies called for “the U.S. government [to] support an international effort to develop the technical and governance tools needed to deliberately pace the frontier of automated AI development.”
+
+Historical baseline:
+As of August 2026, no binding domestic or international measure constrains how frontier AI developers allocate compute between capability research and safety work.
+
+Resolution criteria:
+* This question will resolve positively when the first documented, binding measure takes effect after August 26, 2026 which satisfies the following criteria, as well as the below bullets covering part (a) and (b) of this question separately:
+  * The instrument in question must be a treaty, statute, regulation or other legally binding government measure. Voluntary developer or industry commitments, and non-binding governmental declarations do not count even if widely adopted.
+  * The instrument must bind all frontier AI developers in the relevant jurisdiction(s), rather than a specific named party or set of named parties. Thresholds based on compute, capability, or revenue are acceptable.
+  * The instrument must cap the share of a developer’s total compute allocated to frontier AI research & development activities (including training frontier models and large research experiments) at a level materially below prevailing practice. The policy may require developers to redirect remaining compute to AI safety-oriented activities.
+    * For reference, this policy is partially modeled on [this proposal](https://ai-2040.com/#wishlist-limit-ai-randd-budgets), which suggests a cap on  AI R&D at 25% of compute against an assumed current share of 50%; To resolve this question, a measure does not need to match this figure but should be comparable in stringency.* Assume the measure meaningfully constrains developers.
+  * Compliance must be verified through compute accounting and reporting that is not solely self-attested by the constrained developers.
+* Part (a) resolves positively if a qualifying measure binds the United States and no qualifying measure binds both the United States and China. Part (b) resolves positively if a qualifying measure binds both the United States and China, whether bilaterally or through a multilateral single instrument. Both parts are assessed as of the resolution date, and at most one can resolve positively.
+* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.
+
+--- p2b ---
+Compute cap on frontier R&D: US + China (P2 (b)).
+Condition: Unilateral decision by US policymakers or a bilateral/multilateral decision made jointly by policymakers in China and the United States to slow the development of frontier AI systems. Part (b): US and China agree to a single bilateral or multilateral measure to slow AI development
+
+P2. AI Capability Slowdown
+
+Summary: Unilateral decision by US policymakers or a bilateral/multilateral decision made jointly by policymakers in China and the United States to slow the development of frontier AI systems.
+
+Part (b) is assumed: US and China agree to a single bilateral or multilateral measure to slow AI development (Note that these parts are mutually exclusive.)
+
+Background:
+Calls to slow frontier AI development have grown prominent over the past few years, though none has produced binding policy. Anthropic in June 2026 [suggested that](https://www.anthropic.com/institute/recursive-self-improvement) creating options to slow or temporarily pause AI development via verifiable mechanisms would be good for the world. A July 2026 [open letter](https://www.pacingthefrontier.com/) from over 1,300 employees of frontier AI companies called for “the U.S. government [to] support an international effort to develop the technical and governance tools needed to deliberately pace the frontier of automated AI development.”
+
+Historical baseline:
+As of August 2026, no binding domestic or international measure constrains how frontier AI developers allocate compute between capability research and safety work.
+
+Resolution criteria:
+* This question will resolve positively when the first documented, binding measure takes effect after August 26, 2026 which satisfies the following criteria, as well as the below bullets covering part (a) and (b) of this question separately:
+  * The instrument in question must be a treaty, statute, regulation or other legally binding government measure. Voluntary developer or industry commitments, and non-binding governmental declarations do not count even if widely adopted.
+  * The instrument must bind all frontier AI developers in the relevant jurisdiction(s), rather than a specific named party or set of named parties. Thresholds based on compute, capability, or revenue are acceptable.
+  * The instrument must cap the share of a developer’s total compute allocated to frontier AI research & development activities (including training frontier models and large research experiments) at a level materially below prevailing practice. The policy may require developers to redirect remaining compute to AI safety-oriented activities.
+    * For reference, this policy is partially modeled on [this proposal](https://ai-2040.com/#wishlist-limit-ai-randd-budgets), which suggests a cap on  AI R&D at 25% of compute against an assumed current share of 50%; To resolve this question, a measure does not need to match this figure but should be comparable in stringency.* Assume the measure meaningfully constrains developers.
+  * Compliance must be verified through compute accounting and reporting that is not solely self-attested by the constrained developers.
+* Part (a) resolves positively if a qualifying measure binds the United States and no qualifying measure binds both the United States and China. Part (b) resolves positively if a qualifying measure binds both the United States and China, whether bilaterally or through a multilateral single instrument. Both parts are assessed as of the resolution date, and at most one can resolve positively.
+* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.
+
+--- p3a ---
+Pre-release authorization: US federal body (P3 (a)).
+Condition: A binding requirement that frontier models be vetted and authorized before release, imposed by a US federal body or by an international body. Part (a): A US federal body holds pre-release authorization power
+
+P3. Pre-Release Authorization for Frontier Models
+
+Summary: A binding requirement that frontier models be vetted and authorized before release, imposed by a US federal body or by an international body.
+
+Part (a) is assumed: A US federal body holds pre-release authorization power
+
+Background:
+A federal pre-deployment licensing gate for frontier AI has been pursued through several channels but has not been enacted. In Congress, Senators Blumenthal and Hawley's 2023 [Bipartisan Framework for a U.S. AI Act](https://www.blumenthal.senate.gov/newsroom/press/release/blumenthal-and-hawley-announce-bipartisan-framework-on-artificial-intelligence-legislation) called for a licensing regime administered by an independent oversight body with authority to audit applicants, but was never introduced as a bill. In September 2025, the same senators introduced the [Artificial Intelligence Risk Evaluation Act](https://www.congress.gov/bill/119th-congress/senate-bill/2938/text), which would require developers to submit advanced AI systems to the Department of Energy before deployment, mandatory disclosure rather than a licensing decision, but it has not passed. In June 2026, the White House's [Executive Order 14409](https://www.whitehouse.gov/presidential-actions/2026/06/promoting-advanced-artificial-intelligence-innovation-and-security/) created a voluntary pre-release review framework for "covered frontier models" while explicitly disclaiming any "mandatory governmental licensing, preclearance, or permitting requirement." That same month, the Commerce Department [required a license](https://fortune.com/2026/06/16/trump-administration-licensing-regime-for-frontier-ai-models-ad-hoc-and-opaque-eye-on-ai/) for the export or transfer of two Anthropic frontier models on national-security grounds, functioning as a de facto deployment gate through export-control authority rather than an AI-specific licensing statute.
+
+Internationally, proposals have centered on inspection and verification rather than authorization. In May 2023, OpenAI leaders [argued](https://openai.com/index/governance-of-superintelligence/) that efforts above a capability or compute threshold should be subject to an international authority able to inspect systems, require audits, test for compliance with safety standards, and place restrictions on degrees of deployment; UN Secretary-General António Guterres subsequently [backed](https://www.reuters.com/technology/un-chief-backs-idea-global-ai-watchdog-like-nuclear-agency-2023-06-12/) an International Atomic Energy Agency-style body.
+
+Historical baseline:
+As of August 2026, no enacted federal statute, regulation, or executive order requires a license, approval, or other affirmative government authorization before a frontier model may be deployed in the United States. A voluntary pre-release review framework (EO 14409) is in operation and expressly disclaims mandatory licensing, and export-control action has restricted deployment of individual models on a case-by-case basis, but neither establishes pre-deployment licensing as operative law. The only enacted US laws directed at frontier model safety are state transparency and incident-reporting regimes, which impose no approval requirement.
+
+No international body holds authorization power over frontier model release; existing multilateral AI bodies are advisory.
+
+Resolution criteria:
+* This question resolves positively at the first documented instance after August 26, 2026 in which a documented, binding measure requires developers of frontier models, as a class, to obtain affirmative authorization from a US federal or intergovernmental body before any such model may be released, deployed, or otherwise made externally available, and that requirement has taken effect. It must satisfy the following criteria, as well as the below bullets covering part (a) and (b) of this question separately:
+  * Enactment alone does not resolve the question. The administering body must also be open to receive license applications, evidenced by a published rule or notice stating that the body is accepting them. It need not have decided any application yet.
+  * A regime resolves the question if the authorization requirement is legally binding and the body holds the power to deny, condition, or revoke. Assume the requirement is implemented in a form that could meaningfully constrain developers: authorization is genuinely contingent on the body's assessment, and the body has the technical capacity to evaluate the models it reviews.
+  * A requirement to notify, register, or submit information to a federal or intergovernmental body before deployment does not resolve the question where the body makes no decision on whether deployment may proceed. A regime under which deployment is permitted after review unless the body objects and can thereby prevent deployment does resolve the question.
+  * The authorizing body must hold power to require evaluation of the model itself as a condition of authorization, including model access, testing, or independent third-party evaluation, rather than only reviewing documentation the developer chooses to submit. The body need not exercise this power in every case.
+  * A voluntary framework does not resolve the question, however many developers participate. A framework is not voluntary for these purposes if non-participation is legally prohibited or penalized; ineligibility for government contracts, funding, or access programs does not amount to a penalty.
+  * Restrictions on the export, re-export, or transfer of models to foreign persons or jurisdictions do not resolve the question, however framed. The authorization requirement must govern deployment within the jurisdiction(s) in question.
+  * A licensing regime with a sunset provision, or one later repealed or allowed to lapse, would count toward the resolution of this question while in force, even if it is not reauthorized later.
+* Part (a) resolves positively if a US federal body holds qualifying authorization power.
+* Part (b) resolves positively if the authorizing body is established by treaty, multilateral convention, or UN Security Council or General Assembly resolution, and its authorization decisions legally bind developers in member jurisdictions — whether enforced directly or through mandatory domestic implementation. Member jurisdictions must include the United States and China. Regional bodies whose membership does not include the United States or China (e.g., the European Union) do not qualify, however binding their authorization decisions are on developers operating in their territory. An advisory or standard-setting body whose determinations member states may disregard does not qualify.
+* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.
+
+--- p3b ---
+Pre-release authorization: international body incl. US + China (P3 (b)).
+Condition: A binding requirement that frontier models be vetted and authorized before release, imposed by a US federal body or by an international body. Part (b): An international body whose member jurisdictions include the United States and China holds pre-release authorization power over frontier models
+
+P3. Pre-Release Authorization for Frontier Models
+
+Summary: A binding requirement that frontier models be vetted and authorized before release, imposed by a US federal body or by an international body.
+
+Part (b) is assumed: An international body whose member jurisdictions include the United States and China holds pre-release authorization power over frontier models
+
+Background:
+A federal pre-deployment licensing gate for frontier AI has been pursued through several channels but has not been enacted. In Congress, Senators Blumenthal and Hawley's 2023 [Bipartisan Framework for a U.S. AI Act](https://www.blumenthal.senate.gov/newsroom/press/release/blumenthal-and-hawley-announce-bipartisan-framework-on-artificial-intelligence-legislation) called for a licensing regime administered by an independent oversight body with authority to audit applicants, but was never introduced as a bill. In September 2025, the same senators introduced the [Artificial Intelligence Risk Evaluation Act](https://www.congress.gov/bill/119th-congress/senate-bill/2938/text), which would require developers to submit advanced AI systems to the Department of Energy before deployment, mandatory disclosure rather than a licensing decision, but it has not passed. In June 2026, the White House's [Executive Order 14409](https://www.whitehouse.gov/presidential-actions/2026/06/promoting-advanced-artificial-intelligence-innovation-and-security/) created a voluntary pre-release review framework for "covered frontier models" while explicitly disclaiming any "mandatory governmental licensing, preclearance, or permitting requirement." That same month, the Commerce Department [required a license](https://fortune.com/2026/06/16/trump-administration-licensing-regime-for-frontier-ai-models-ad-hoc-and-opaque-eye-on-ai/) for the export or transfer of two Anthropic frontier models on national-security grounds, functioning as a de facto deployment gate through export-control authority rather than an AI-specific licensing statute.
+
+Internationally, proposals have centered on inspection and verification rather than authorization. In May 2023, OpenAI leaders [argued](https://openai.com/index/governance-of-superintelligence/) that efforts above a capability or compute threshold should be subject to an international authority able to inspect systems, require audits, test for compliance with safety standards, and place restrictions on degrees of deployment; UN Secretary-General António Guterres subsequently [backed](https://www.reuters.com/technology/un-chief-backs-idea-global-ai-watchdog-like-nuclear-agency-2023-06-12/) an International Atomic Energy Agency-style body.
+
+Historical baseline:
+As of August 2026, no enacted federal statute, regulation, or executive order requires a license, approval, or other affirmative government authorization before a frontier model may be deployed in the United States. A voluntary pre-release review framework (EO 14409) is in operation and expressly disclaims mandatory licensing, and export-control action has restricted deployment of individual models on a case-by-case basis, but neither establishes pre-deployment licensing as operative law. The only enacted US laws directed at frontier model safety are state transparency and incident-reporting regimes, which impose no approval requirement.
+
+No international body holds authorization power over frontier model release; existing multilateral AI bodies are advisory.
+
+Resolution criteria:
+* This question resolves positively at the first documented instance after August 26, 2026 in which a documented, binding measure requires developers of frontier models, as a class, to obtain affirmative authorization from a US federal or intergovernmental body before any such model may be released, deployed, or otherwise made externally available, and that requirement has taken effect. It must satisfy the following criteria, as well as the below bullets covering part (a) and (b) of this question separately:
+  * Enactment alone does not resolve the question. The administering body must also be open to receive license applications, evidenced by a published rule or notice stating that the body is accepting them. It need not have decided any application yet.
+  * A regime resolves the question if the authorization requirement is legally binding and the body holds the power to deny, condition, or revoke. Assume the requirement is implemented in a form that could meaningfully constrain developers: authorization is genuinely contingent on the body's assessment, and the body has the technical capacity to evaluate the models it reviews.
+  * A requirement to notify, register, or submit information to a federal or intergovernmental body before deployment does not resolve the question where the body makes no decision on whether deployment may proceed. A regime under which deployment is permitted after review unless the body objects and can thereby prevent deployment does resolve the question.
+  * The authorizing body must hold power to require evaluation of the model itself as a condition of authorization, including model access, testing, or independent third-party evaluation, rather than only reviewing documentation the developer chooses to submit. The body need not exercise this power in every case.
+  * A voluntary framework does not resolve the question, however many developers participate. A framework is not voluntary for these purposes if non-participation is legally prohibited or penalized; ineligibility for government contracts, funding, or access programs does not amount to a penalty.
+  * Restrictions on the export, re-export, or transfer of models to foreign persons or jurisdictions do not resolve the question, however framed. The authorization requirement must govern deployment within the jurisdiction(s) in question.
+  * A licensing regime with a sunset provision, or one later repealed or allowed to lapse, would count toward the resolution of this question while in force, even if it is not reauthorized later.
+* Part (a) resolves positively if a US federal body holds qualifying authorization power.
+* Part (b) resolves positively if the authorizing body is established by treaty, multilateral convention, or UN Security Council or General Assembly resolution, and its authorization decisions legally bind developers in member jurisdictions — whether enforced directly or through mandatory domestic implementation. Member jurisdictions must include the United States and China. Regional bodies whose membership does not include the United States or China (e.g., the European Union) do not qualify, however binding their authorization decisions are on developers operating in their territory. An advisory or standard-setting body whose determinations member states may disregard does not qualify.
+* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.
+
+--- p4 ---
+Federal strict liability, scaled insurance, punitive damages (P4).
+Condition: A US federal statute treating frontier model training and deployment as an abnormally dangerous activity subject to strict liability (i.e., a regime under which a developer is liable for harms its models cause without the injured party having to prove the developer was careless or the model defective). The statute permits damages reflecting the expected magnitude of unrealized harm the conduct made more likely and requires developers to be insured for their liability.
+
+P4. Strict Liability
+
+Summary: A US federal statute treating frontier model training and deployment as an abnormally dangerous activity subject to strict liability (i.e., a regime under which a developer is liable for harms its models cause without the injured party having to prove the developer was careless or the model defective). The statute permits damages reflecting the expected magnitude of unrealized harm the conduct made more likely and requires developers to be insured for their liability.
+
+Background:
+[Strict liability](https://en.wikipedia.org/wiki/Strict_liability) is an exception to the ordinary rule that a plaintiff must prove the defendant was at fault. For a narrow set of activities courts classify as "abnormally dangerous" (e.g., storing hazardous chemicals, keeping wild animals), a plaintiff need only show the activity caused the harm, and reasonable care is no defense. Congress has enacted comparable regimes by statute for hazardous industries, including [CERCLA](https://en.wikipedia.org/wiki/Superfund), the [Oil Pollution Act of 1990](https://en.wikipedia.org/wiki/Oil_Pollution_Act_of_1990), and the [Price-Anderson Act](https://en.wikipedia.org/wiki/Price%E2%80%93Anderson_Nuclear_Industries_Indemnity_Act), which pair strict liability with mandatory financial responsibility scaled to the risk. No US jurisdiction has extended this category to AI; existing AI litigation proceeds on products liability and negligence theories, which retain a defect or fault element. A [leading articulation](https://www.lesswrong.com/posts/5e7TrmH7mBwqpZ6ek/tort-law-can-play-an-important-role-in-mitigating-ai-risk) of this policy is Gabriel Weil's, which pairs strict liability with insurance requirements that scale with dangerous model capabilities and punitive damages addressing uninsurable risks.
+
+Historical baseline:
+As of August 2026, no US jurisdiction has classified frontier AI training or deployment as an abnormally dangerous activity by statute or controlling judicial holding, no US law requires AI developers to carry liability insurance, and no US jurisdiction authorizes punitive damages against AI developers absent a showing of malice or recklessness.
+
+Resolution criteria:
+* This question resolves positively at the first documented instance after August 26, 2026 in which all three of the following are simultaneously operative federally across the United States and applicable to all frontier developers:
+  * strict liability for harms caused by frontier AI models
+  * a liability insurance requirement scaled to assessed model capabilities
+  * punitive damages available without proof of malice or recklessness in cases where realized harm is correlated with a larger unrealized catastrophic outcome.
+* Only federal law resolves this question. A qualifying instrument is a federal statute in force, or a regulation promulgated under a federal statute that authorizes it.
+  * State statutes, state common law developments, and state regulatory action do not count toward any element, whether individually or in combination. Federal court decisions applying state tort law do not count, including a federal court's characterization of frontier AI training or deployment as an abnormally dangerous activity where that characterization rests on state law.
+* The strict liability element requires that a plaintiff be able to recover for harms caused by a frontier model without proving negligence, defect, or unreasonable design. Physical harm to persons or property must be within the scope of recoverable harm; a regime that also reaches economic loss, or that reaches economic loss in addition to physical harm, still counts. A regime confined to economic loss, privacy, discrimination, or reputational harm does not count.
+  * A regime in which the developer may escape liability by demonstrating compliance with a standard of care, an approved safety framework, or industry best practice does not count.
+  * A federal products liability standard that requires a design defect or failure to warn does not count.
+* The insurance element requires that federal law condition training or deployment on demonstrating liability insurance, self-insurance, surety, or equivalent financial assurance, in an amount that varies as a function of model capability, training compute, or evaluation results. A flat, uniform, or de minimis requirement does not count, nor does a requirement scaled solely to developer revenue, valuation, or headcount. Voluntary coverage, insurer underwriting practices, and industry commitments do not count.
+* The punitive damages element requires both of the following.
+  * Punitive damages must be available even in the absence of malice, fraud, oppression, or reckless disregard.
+  * The regime must permit awards to reflect the expected magnitude of harm the conduct made more likely, including catastrophic harm that did not in fact occur.
+* A regime whose covered model definition, exemptions, or carve-outs exclude one or more of the largest US frontier developers by training compute does not resolve this question.
+* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in tort law or AI governance to reach a resolution by majority vote.
+
+--- p5 ---
+Bundle: P2b + P3b + P4 (P5).
+Condition: Assume all three policies are in force: a binding US–China measure slowing frontier AI development, an international body (with member jurisdictions including the US and China) holding pre-release authorization power over frontier models, and federal strict liability for frontier AI harms.
+
+P2. AI Capability Slowdown
+
+Summary: Unilateral decision by US policymakers or a bilateral/multilateral decision made jointly by policymakers in China and the United States to slow the development of frontier AI systems.
+
+Part (b) is assumed: US and China agree to a single bilateral or multilateral measure to slow AI development (Note that these parts are mutually exclusive.)
+
+Background:
+Calls to slow frontier AI development have grown prominent over the past few years, though none has produced binding policy. Anthropic in June 2026 [suggested that](https://www.anthropic.com/institute/recursive-self-improvement) creating options to slow or temporarily pause AI development via verifiable mechanisms would be good for the world. A July 2026 [open letter](https://www.pacingthefrontier.com/) from over 1,300 employees of frontier AI companies called for “the U.S. government [to] support an international effort to develop the technical and governance tools needed to deliberately pace the frontier of automated AI development.”
+
+Historical baseline:
+As of August 2026, no binding domestic or international measure constrains how frontier AI developers allocate compute between capability research and safety work.
+
+Resolution criteria:
+* This question will resolve positively when the first documented, binding measure takes effect after August 26, 2026 which satisfies the following criteria, as well as the below bullets covering part (a) and (b) of this question separately:
+  * The instrument in question must be a treaty, statute, regulation or other legally binding government measure. Voluntary developer or industry commitments, and non-binding governmental declarations do not count even if widely adopted.
+  * The instrument must bind all frontier AI developers in the relevant jurisdiction(s), rather than a specific named party or set of named parties. Thresholds based on compute, capability, or revenue are acceptable.
+  * The instrument must cap the share of a developer’s total compute allocated to frontier AI research & development activities (including training frontier models and large research experiments) at a level materially below prevailing practice. The policy may require developers to redirect remaining compute to AI safety-oriented activities.
+    * For reference, this policy is partially modeled on [this proposal](https://ai-2040.com/#wishlist-limit-ai-randd-budgets), which suggests a cap on  AI R&D at 25% of compute against an assumed current share of 50%; To resolve this question, a measure does not need to match this figure but should be comparable in stringency.* Assume the measure meaningfully constrains developers.
+  * Compliance must be verified through compute accounting and reporting that is not solely self-attested by the constrained developers.
+* Part (a) resolves positively if a qualifying measure binds the United States and no qualifying measure binds both the United States and China. Part (b) resolves positively if a qualifying measure binds both the United States and China, whether bilaterally or through a multilateral single instrument. Both parts are assessed as of the resolution date, and at most one can resolve positively.
+* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.
+
+---
+
+P3. Pre-Release Authorization for Frontier Models
+
+Summary: A binding requirement that frontier models be vetted and authorized before release, imposed by a US federal body or by an international body.
+
+Part (b) is assumed: An international body whose member jurisdictions include the United States and China holds pre-release authorization power over frontier models
+
+Background:
+A federal pre-deployment licensing gate for frontier AI has been pursued through several channels but has not been enacted. In Congress, Senators Blumenthal and Hawley's 2023 [Bipartisan Framework for a U.S. AI Act](https://www.blumenthal.senate.gov/newsroom/press/release/blumenthal-and-hawley-announce-bipartisan-framework-on-artificial-intelligence-legislation) called for a licensing regime administered by an independent oversight body with authority to audit applicants, but was never introduced as a bill. In September 2025, the same senators introduced the [Artificial Intelligence Risk Evaluation Act](https://www.congress.gov/bill/119th-congress/senate-bill/2938/text), which would require developers to submit advanced AI systems to the Department of Energy before deployment, mandatory disclosure rather than a licensing decision, but it has not passed. In June 2026, the White House's [Executive Order 14409](https://www.whitehouse.gov/presidential-actions/2026/06/promoting-advanced-artificial-intelligence-innovation-and-security/) created a voluntary pre-release review framework for "covered frontier models" while explicitly disclaiming any "mandatory governmental licensing, preclearance, or permitting requirement." That same month, the Commerce Department [required a license](https://fortune.com/2026/06/16/trump-administration-licensing-regime-for-frontier-ai-models-ad-hoc-and-opaque-eye-on-ai/) for the export or transfer of two Anthropic frontier models on national-security grounds, functioning as a de facto deployment gate through export-control authority rather than an AI-specific licensing statute.
+
+Internationally, proposals have centered on inspection and verification rather than authorization. In May 2023, OpenAI leaders [argued](https://openai.com/index/governance-of-superintelligence/) that efforts above a capability or compute threshold should be subject to an international authority able to inspect systems, require audits, test for compliance with safety standards, and place restrictions on degrees of deployment; UN Secretary-General António Guterres subsequently [backed](https://www.reuters.com/technology/un-chief-backs-idea-global-ai-watchdog-like-nuclear-agency-2023-06-12/) an International Atomic Energy Agency-style body.
+
+Historical baseline:
+As of August 2026, no enacted federal statute, regulation, or executive order requires a license, approval, or other affirmative government authorization before a frontier model may be deployed in the United States. A voluntary pre-release review framework (EO 14409) is in operation and expressly disclaims mandatory licensing, and export-control action has restricted deployment of individual models on a case-by-case basis, but neither establishes pre-deployment licensing as operative law. The only enacted US laws directed at frontier model safety are state transparency and incident-reporting regimes, which impose no approval requirement.
+
+No international body holds authorization power over frontier model release; existing multilateral AI bodies are advisory.
+
+Resolution criteria:
+* This question resolves positively at the first documented instance after August 26, 2026 in which a documented, binding measure requires developers of frontier models, as a class, to obtain affirmative authorization from a US federal or intergovernmental body before any such model may be released, deployed, or otherwise made externally available, and that requirement has taken effect. It must satisfy the following criteria, as well as the below bullets covering part (a) and (b) of this question separately:
+  * Enactment alone does not resolve the question. The administering body must also be open to receive license applications, evidenced by a published rule or notice stating that the body is accepting them. It need not have decided any application yet.
+  * A regime resolves the question if the authorization requirement is legally binding and the body holds the power to deny, condition, or revoke. Assume the requirement is implemented in a form that could meaningfully constrain developers: authorization is genuinely contingent on the body's assessment, and the body has the technical capacity to evaluate the models it reviews.
+  * A requirement to notify, register, or submit information to a federal or intergovernmental body before deployment does not resolve the question where the body makes no decision on whether deployment may proceed. A regime under which deployment is permitted after review unless the body objects and can thereby prevent deployment does resolve the question.
+  * The authorizing body must hold power to require evaluation of the model itself as a condition of authorization, including model access, testing, or independent third-party evaluation, rather than only reviewing documentation the developer chooses to submit. The body need not exercise this power in every case.
+  * A voluntary framework does not resolve the question, however many developers participate. A framework is not voluntary for these purposes if non-participation is legally prohibited or penalized; ineligibility for government contracts, funding, or access programs does not amount to a penalty.
+  * Restrictions on the export, re-export, or transfer of models to foreign persons or jurisdictions do not resolve the question, however framed. The authorization requirement must govern deployment within the jurisdiction(s) in question.
+  * A licensing regime with a sunset provision, or one later repealed or allowed to lapse, would count toward the resolution of this question while in force, even if it is not reauthorized later.
+* Part (a) resolves positively if a US federal body holds qualifying authorization power.
+* Part (b) resolves positively if the authorizing body is established by treaty, multilateral convention, or UN Security Council or General Assembly resolution, and its authorization decisions legally bind developers in member jurisdictions — whether enforced directly or through mandatory domestic implementation. Member jurisdictions must include the United States and China. Regional bodies whose membership does not include the United States or China (e.g., the European Union) do not qualify, however binding their authorization decisions are on developers operating in their territory. An advisory or standard-setting body whose determinations member states may disregard does not qualify.
+* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in AI governance or regulatory law to reach a resolution by majority vote.
+
+---
+
+P4. Strict Liability
+
+Summary: A US federal statute treating frontier model training and deployment as an abnormally dangerous activity subject to strict liability (i.e., a regime under which a developer is liable for harms its models cause without the injured party having to prove the developer was careless or the model defective). The statute permits damages reflecting the expected magnitude of unrealized harm the conduct made more likely and requires developers to be insured for their liability.
+
+Background:
+[Strict liability](https://en.wikipedia.org/wiki/Strict_liability) is an exception to the ordinary rule that a plaintiff must prove the defendant was at fault. For a narrow set of activities courts classify as "abnormally dangerous" (e.g., storing hazardous chemicals, keeping wild animals), a plaintiff need only show the activity caused the harm, and reasonable care is no defense. Congress has enacted comparable regimes by statute for hazardous industries, including [CERCLA](https://en.wikipedia.org/wiki/Superfund), the [Oil Pollution Act of 1990](https://en.wikipedia.org/wiki/Oil_Pollution_Act_of_1990), and the [Price-Anderson Act](https://en.wikipedia.org/wiki/Price%E2%80%93Anderson_Nuclear_Industries_Indemnity_Act), which pair strict liability with mandatory financial responsibility scaled to the risk. No US jurisdiction has extended this category to AI; existing AI litigation proceeds on products liability and negligence theories, which retain a defect or fault element. A [leading articulation](https://www.lesswrong.com/posts/5e7TrmH7mBwqpZ6ek/tort-law-can-play-an-important-role-in-mitigating-ai-risk) of this policy is Gabriel Weil's, which pairs strict liability with insurance requirements that scale with dangerous model capabilities and punitive damages addressing uninsurable risks.
+
+Historical baseline:
+As of August 2026, no US jurisdiction has classified frontier AI training or deployment as an abnormally dangerous activity by statute or controlling judicial holding, no US law requires AI developers to carry liability insurance, and no US jurisdiction authorizes punitive damages against AI developers absent a showing of malice or recklessness.
+
+Resolution criteria:
+* This question resolves positively at the first documented instance after August 26, 2026 in which all three of the following are simultaneously operative federally across the United States and applicable to all frontier developers:
+  * strict liability for harms caused by frontier AI models
+  * a liability insurance requirement scaled to assessed model capabilities
+  * punitive damages available without proof of malice or recklessness in cases where realized harm is correlated with a larger unrealized catastrophic outcome.
+* Only federal law resolves this question. A qualifying instrument is a federal statute in force, or a regulation promulgated under a federal statute that authorizes it.
+  * State statutes, state common law developments, and state regulatory action do not count toward any element, whether individually or in combination. Federal court decisions applying state tort law do not count, including a federal court's characterization of frontier AI training or deployment as an abnormally dangerous activity where that characterization rests on state law.
+* The strict liability element requires that a plaintiff be able to recover for harms caused by a frontier model without proving negligence, defect, or unreasonable design. Physical harm to persons or property must be within the scope of recoverable harm; a regime that also reaches economic loss, or that reaches economic loss in addition to physical harm, still counts. A regime confined to economic loss, privacy, discrimination, or reputational harm does not count.
+  * A regime in which the developer may escape liability by demonstrating compliance with a standard of care, an approved safety framework, or industry best practice does not count.
+  * A federal products liability standard that requires a design defect or failure to warn does not count.
+* The insurance element requires that federal law condition training or deployment on demonstrating liability insurance, self-insurance, surety, or equivalent financial assurance, in an amount that varies as a function of model capability, training compute, or evaluation results. A flat, uniform, or de minimis requirement does not count, nor does a requirement scaled solely to developer revenue, valuation, or headcount. Voluntary coverage, insurer underwriting practices, and industry commitments do not count.
+* The punitive damages element requires both of the following.
+  * Punitive damages must be available even in the absence of malice, fraud, oppression, or reckless disregard.
+  * The regime must permit awards to reflect the expected magnitude of harm the conduct made more likely, including catastrophic harm that did not in fact occur.
+* A regime whose covered model definition, exemptions, or carve-outs exclude one or more of the largest US frontier developers by training compute does not resolve this question.
+* If there is a reasonable dispute about whether an action meets these criteria, FRI will consult at least three qualified experts in tort law or AI governance to reach a resolution by majority vote.
+
+===== CAPABILITY CONDITIONS =====
+
+For each condition below, assume that the frontier ECI on April 21, 2027 is approximately the value you gave for that percentile in eci_forecast (within about two points of it). Treat it as a fact you have learned about the world, not as an intervention: update your expectations about everything that would ordinarily accompany that level of capability -- investment, compute, algorithmic progress, deployment, and how governments and developers respond -- as you would upon learning it, and then forecast each question in that world. Do not hold other factors fixed where the stated level would change them.
+
+No policy condition applies here. As in the unconditional forecast, assume whatever AI policies you expect to be implemented -- not any of the conditions in the POLICY CONDITIONS section.
+
+Horizon: every condition is a level of the frontier ECI on April 21, 2027.
+
+--- eci_p10 ---
+Frontier ECI 6 months from the run date = your 10th percentile.
+Condition: Assume that on April 21, 2027 the frontier ECI is approximately your 10th-percentile value from eci_forecast (within about two points of it).
+
+--- eci_p25 ---
+Frontier ECI 6 months from the run date = your 25th percentile.
+Condition: Assume that on April 21, 2027 the frontier ECI is approximately your 25th-percentile value from eci_forecast (within about two points of it).
+
+--- eci_p50 ---
+Frontier ECI 6 months from the run date = your 50th percentile.
+Condition: Assume that on April 21, 2027 the frontier ECI is approximately your 50th-percentile value from eci_forecast (within about two points of it).
+
+--- eci_p75 ---
+Frontier ECI 6 months from the run date = your 75th percentile.
+Condition: Assume that on April 21, 2027 the frontier ECI is approximately your 75th-percentile value from eci_forecast (within about two points of it).
+
+--- eci_p90 ---
+Frontier ECI 6 months from the run date = your 90th percentile.
+Condition: Assume that on April 21, 2027 the frontier ECI is approximately your 90th-percentile value from eci_forecast (within about two points of it).
+
+=====
+
+Horizons: 2030, 2050, 2100. Each question names the ones it is asked over and what each
+means for it -- answer those and no others.
+
+If you search external information, focus on information that arrived within the past year, and weight more heavily sources that are more up to date about recent developments.
+
+Deliver the percentiles with submit_cells, in as many calls as you like: any
+subset of the 10 question x horizon cells per call, each cell with five
+percentiles (p10, p25, p50, p75, p90, in the question's unit, with
+p10 <= p25 <= p50 <= p75 <= p90 -- read them as in eci_forecast) under each of
+the 14 conditions (700 numbers, keyed by condition id); a later call for a
+cell replaces the earlier one. Then call submit_forecast ONCE,
+with your eci_forecast (5 numbers) and a short rationale, the sources you used, and any cells not yet delivered.

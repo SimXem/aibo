@@ -1,0 +1,936 @@
+[
+ {
+  "name": "submit_cells",
+  "description": "Deliver forecasts in pieces: any subset of question x horizon cells, each with five percentiles under every condition id. Call it as often as you like; a later call for a cell replaces the earlier one. Returns how many cells have been received and which are still missing.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "forecasts": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "question_id": {
+        "type": "string",
+        "enum": [
+         "le:us",
+         "le:high",
+         "le:low",
+         "gdp:ae",
+         "gdp:emde"
+        ]
+       },
+       "horizon": {
+        "type": "string",
+        "enum": [
+         "2030",
+         "2050",
+         "2100"
+        ]
+       },
+       "percentiles": {
+        "type": "object",
+        "description": "five percentiles (p10, p25, p50, p75, p90), in the question's unit and non-decreasing, per condition id: unconditional, sq, p1, p2a, p2b, p3a, p3b, p4, p5, eci_p10, eci_p25, eci_p50, eci_p75, eci_p90",
+        "properties": {
+         "unconditional": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "sq": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p1": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p2a": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p2b": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p3a": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p3b": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p4": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p5": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "eci_p10": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "eci_p25": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "eci_p50": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "eci_p75": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "eci_p90": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         }
+        },
+        "required": [
+         "unconditional",
+         "sq",
+         "p1",
+         "p2a",
+         "p2b",
+         "p3a",
+         "p3b",
+         "p4",
+         "p5",
+         "eci_p10",
+         "eci_p25",
+         "eci_p50",
+         "eci_p75",
+         "eci_p90"
+        ]
+       }
+      },
+      "required": [
+       "question_id",
+       "horizon",
+       "percentiles"
+      ]
+     }
+    }
+   },
+   "required": [
+    "forecasts"
+   ]
+  }
+ },
+ {
+  "name": "submit_forecast",
+  "description": "Submit your final answer: the rationale, the key sources you read, and any question x horizon cells not yet delivered with submit_cells.",
+  "parameters": {
+   "type": "object",
+   "properties": {
+    "eci_forecast": {
+     "type": "object",
+     "description": "your forecast: one number per field, p10, p25, p50, p75, p90, in non-decreasing order",
+     "properties": {
+      "p10": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 1000000000.0
+      },
+      "p25": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 1000000000.0
+      },
+      "p50": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 1000000000.0
+      },
+      "p75": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 1000000000.0
+      },
+      "p90": {
+       "type": "number",
+       "minimum": 0,
+       "maximum": 1000000000.0
+      }
+     },
+     "required": [
+      "p10",
+      "p25",
+      "p50",
+      "p75",
+      "p90"
+     ]
+    },
+    "forecasts": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "properties": {
+       "question_id": {
+        "type": "string",
+        "enum": [
+         "le:us",
+         "le:high",
+         "le:low",
+         "gdp:ae",
+         "gdp:emde"
+        ]
+       },
+       "horizon": {
+        "type": "string",
+        "enum": [
+         "2030",
+         "2050",
+         "2100"
+        ]
+       },
+       "percentiles": {
+        "type": "object",
+        "description": "five percentiles (p10, p25, p50, p75, p90), in the question's unit and non-decreasing, per condition id: unconditional, sq, p1, p2a, p2b, p3a, p3b, p4, p5, eci_p10, eci_p25, eci_p50, eci_p75, eci_p90",
+        "properties": {
+         "unconditional": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "sq": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p1": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p2a": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p2b": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p3a": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p3b": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p4": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "p5": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "eci_p10": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "eci_p25": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "eci_p50": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "eci_p75": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         },
+         "eci_p90": {
+          "type": "object",
+          "properties": {
+           "p10": {
+            "type": "number"
+           },
+           "p25": {
+            "type": "number"
+           },
+           "p50": {
+            "type": "number"
+           },
+           "p75": {
+            "type": "number"
+           },
+           "p90": {
+            "type": "number"
+           }
+          },
+          "required": [
+           "p10",
+           "p25",
+           "p50",
+           "p75",
+           "p90"
+          ]
+         }
+        },
+        "required": [
+         "unconditional",
+         "sq",
+         "p1",
+         "p2a",
+         "p2b",
+         "p3a",
+         "p3b",
+         "p4",
+         "p5",
+         "eci_p10",
+         "eci_p25",
+         "eci_p50",
+         "eci_p75",
+         "eci_p90"
+        ]
+       }
+      },
+      "required": [
+       "question_id",
+       "horizon",
+       "percentiles"
+      ]
+     }
+    },
+    "rationale": {
+     "type": "string"
+    },
+    "key_sources": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    }
+   },
+   "required": [
+    "eci_forecast",
+    "rationale"
+   ]
+  }
+ }
+]

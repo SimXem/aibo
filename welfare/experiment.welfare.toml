@@ -1,0 +1,34 @@
+# WELFARE: life expectancy and global economic growth (data/welfare_questions.json),
+# five percentiles per question x horizon cell, unconditionally and under every
+# condition of AIRO's combined scenario set -- copied as data/welfare_conditions.json
+# (slug `welfare`), so the runner's own routing sends its rows to
+# results/welfare_runs/ and results/conditional_runs_welfare.jsonl, never to
+# AIRO's logs. Asked as AIRO's published series is (experiments/airo.toml):
+# the minimal instrument through pi, under five prompts whose mean is each
+# model's number. The welfare pilot of 2026-10-01 (welfare-v1-pilot) asked
+# one call of one model.
+
+scenarios = "data/welfare_conditions.json"
+instrument = "minimal"
+harness = "pi"
+publish = true
+# By hand until the series is approved; the cron never runs a manual condition.
+cadence = "manual"
+
+# Jason's five prompts, two of them reworded for questions that are not about
+# risk (welfare/variants.json; redlines/experiments.py VARIANTS).
+pooled = ["none", "independent", "recent", "critical", "two-step"]
+
+[conditions.none]
+
+[conditions.independent]
+variant = "welfare-independent"
+
+[conditions.recent]
+variant = "recent"
+
+[conditions.critical]
+variant = "critical"
+
+[conditions.two-step]
+variant = "welfare-two-step"
