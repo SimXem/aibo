@@ -17,7 +17,6 @@ def call_rows(condition, variant, model="Example model"):
         "label": model, "model": model, "elicited_at": "2026-10-22T12:00:00Z",
         "question_id": "first", "condition": condition, "variant": variant,
         "prompt": prompt, "system_prompt": "Recorded system instruction.",
-        "prompt_sha256": "recorded-user-prompt-hash",
         "rationale": "Original batch rationale.",
         "key_sources": ["https://example.org/source"],
         "debrief": {"second": {"rationale": "Original question explanation."}},
@@ -66,7 +65,6 @@ class TestRationalePrompts(unittest.TestCase):
         call = data["calls"][rows[1]["call_id"]]
         self.assertEqual(data["prompts"][call["promptId"]],
                          {"system": rows[0]["system_prompt"], "user": rows[0]["prompt"]})
-        self.assertEqual(call["promptSha256"], rows[0]["prompt_sha256"])
         self.assertEqual(call["debriefs"], rows[0]["debrief"])
 
     def test_shares_identical_prompts_but_keeps_different_system_instructions(self):

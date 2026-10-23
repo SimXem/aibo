@@ -39,7 +39,6 @@ def _prompt_metadata(row, recorded, prompts):
         'promptVariant': variant, 'promptLabel': label,
         'promptInstruction': instruction if instruction and full_prompt and instruction in full_prompt else None,
         'promptId': prompt_id,
-        'promptSha256': recorded.get('prompt_sha256') if recorded else None,
     }
 
 

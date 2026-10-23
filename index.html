@@ -2565,19 +2565,14 @@ function RationaleSources({ sources }) {
   })}</ul>;
 }
 const rationaleConditionKey = c => c.condition || c.promptVariant || "unrecorded";
-// One condition only. Raw call probabilities are fractions; convert to percent
-// once, after averaging any repeat calls that answered this question/horizon.
-function rationaleConditionForecasts(qid, horizons, models, calls) {
+// Calls are already filtered to the selected model, condition, and date.
+// Average repeat calls for each question/horizon, then convert to percent.
+function rationaleConditionForecasts(qid, horizons, calls) {
   return horizons.map(key => {
-    const values = {}, counts = {};
-    models.forEach(model => {
-      const ps = calls.filter(([, c]) => c.model === model)
-        .map(([, c]) => (((c.forecasts || {})[qid] || {})[key]))
-        .filter(p => typeof p === "number" && Number.isFinite(p));
-      counts[model] = ps.length;
-      values[model] = ps.length ? 100 * ps.reduce((sum, p) => sum + p, 0) / ps.length : null;
-    });
-    return { key, values, counts };
+    const probabilities = calls.map(([, c]) => (((c.forecasts || {})[qid] || {})[key]))
+      .filter(p => typeof p === "number" && Number.isFinite(p));
+    const count = probabilities.length;
+    return { key, count, value: count ? 100 * probabilities.reduce((sum, p) => sum + p, 0) / count : null };
   });
 }
 function RationaleToggle({ label, options, value, onChange }) {
@@ -2588,7 +2583,7 @@ function RationaleToggle({ label, options, value, onChange }) {
 }
 function RationaleForecastTable({ rows, model, conditionLabel }) {
   if (!rows.length || !model) return null;
-  const repeated = rows.some(row => row.counts[model] > 1);
+  const repeated = rows.some(row => row.count > 1);
   return <div style={{ overflowX: "auto", marginTop: 12 }}>
     <table className="tv" style={{ width: "auto", minWidth: 260 }}>
       <caption style={{ textAlign: "left", fontWeight: 600, paddingBottom: 6 }}>
@@ -2600,8 +2595,8 @@ function RationaleForecastTable({ rows, model, conditionLabel }) {
       <tbody><tr>
         <th scope="row" style={{ fontWeight: 500 }}>{model}</th>
         {rows.map(row => <td key={row.key} className="mono"
-          title={row.counts[model] > 1 ? `Mean of ${row.counts[model]} recorded calls` : undefined}>
-          {rationalePct(row.values[model])}
+          title={row.count > 1 ? `Mean of ${row.count} recorded calls` : undefined}>
+          {rationalePct(row.value)}
         </td>)}
       </tr></tbody>
     </table>
@@ -2655,7 +2650,7 @@ function ForecastRationales({ qid, context, forecasts = [], date, controls }) {
   const current = calls.find(([id]) => id === selectedCall) || calls[0];
   const chosen = current && current[1];
   const label = c => c.promptLabel || "Unrecorded";
-  const rows = rationaleConditionForecasts(qid, forecasts.map(f => f.key), model ? [model] : [], conditionCalls);
+  const rows = rationaleConditionForecasts(qid, forecasts.map(f => f.key), calls);
   return <details style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-soft)", fontSize: 13, lineHeight: 1.6 }}>
     <summary style={{ cursor: "pointer", fontWeight: 600, color: "var(--ink)" }}>Model rationale for its forecasts</summary>
     {controls}
