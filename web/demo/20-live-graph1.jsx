@@ -56,7 +56,7 @@ function HorizonChart({ q, models, scale, G = G1 }) {
   // question's unit around every plotted value, and the ensemble's 10th-90th
   // (`band`) where a probability row draws its interval.
   const pct = q.valueKind === "percentiles";
-  const pAxis = pct ? unitTicks([...q.series.flatMap(s => hs.map(h => s.ps[h])), ...hs.map(h => q.median[h]),
+  const pAxis = pct ? unitTicks([...q.series.flatMap(s => hs.map(h => s.ps[h])), ...hs.map(h => q.median[h]), ...(q.marks || []).map(m => m.v),
                                  ...hs.flatMap(h => ((q.band || {})[h] ? [q.band[h].p10, q.band[h].p90] : []))]) : null;
   const LO = loss ? SEVERITY_AXIS.lo : 0.01, HIY = loss ? SEVERITY_AXIS.hi : 100;
   const linear = !loss && !pct && scale === "linear";
@@ -88,7 +88,7 @@ function HorizonChart({ q, models, scale, G = G1 }) {
   const tickSub = () => null;
   const marks = loss && typeof HIST !== "undefined" && HIST
     ? HIST.events.filter(e => e.kind === "reference" && /extinction/i.test(e.label)).map(e => ({ v: e.central, label: e.short || e.label }))
-    : (loss ? [{ v: 8.2e9, label: "Extinction" }] : []);
+    : (loss ? [{ v: 8.2e9, label: "Extinction" }] : (q.marks || []));     // a row's own (welfare's latest value, 2026-10-23)
   // right-margin direct labels (models + median + any human panel), staggered apart when they collide
   const ends = q.series.map(s => {
     const last = hs.filter(h => s.ps[h] != null).slice(-1)[0];
@@ -119,7 +119,7 @@ function HorizonChart({ q, models, scale, G = G1 }) {
         {marks.map(m => (
           <g key={m.label}>
             <line x1={pad.l} x2={W - pad.r} y1={y(m.v)} y2={y(m.v)} stroke="var(--ink-faint)" strokeWidth="1" strokeDasharray="4 3" opacity="0.7" />
-            <text x={pad.l - 9} y={y(m.v) + 4} textAnchor="end" fontSize="10" fill="var(--ink-soft)">{m.label}</text>
+            <text x={m.inside ? mid : pad.l - 9} y={y(m.v) + (m.inside ? -5 : 4)} textAnchor={m.inside ? "middle" : "end"} fontSize="10" fill="var(--ink-soft)">{m.label}</text>
           </g>
         ))}
         {hs.map(h => (

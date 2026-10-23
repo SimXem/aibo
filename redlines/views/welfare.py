@@ -97,7 +97,17 @@ def _meta(q):
     return {"id": q["id"], "name": q["heading"], "short": q["short"], "heading": q["heading"],
             "railLabel": q["rail_label"], "group": q["group"], "groupKey": q["group"], "color": q["color"],
             "severity": None, "text": q["text"], "criteria": q["criteria"], "valueKind": KIND,
-            "unit": q["unit"], "horizons": q["horizons"]}
+            "unit": q["unit"], "horizons": q["horizons"], "marks": _today(q)}
+
+
+def _today(q):
+    """The question's latest reported value, a faint dashed line on the
+    Timeline and Graph 1 (their `marks`, labelled inside the plot; 2026-10-23)."""
+    t = q.get("today")
+    if not t:
+        return []
+    v = f"{t['value']:.1f}" + ("" if q["unit"] == "years" else "%")
+    return [{"v": t["value"], "label": f"Today ({t['year']}): {v}", "source": t["source"], "inside": True}]
 
 
 def _cells(questions, pooled, labels, colors, conditions):

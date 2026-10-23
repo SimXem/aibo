@@ -26,6 +26,7 @@ Checks: the full `pytest` suite passes (441 passed, 26 skipped). AIRO is byte-id
 | 4f4aee5 | Welfare page: a prompt toggle (mean of five, or one prompt) on Forecasts, Capability and Policy levers |
 | 8f65826 | Prompt colours on Policy levers and Capability, an axis per horizon for percentile cells, the "Benefit" title, no cost in the header |
 | 52b9c36 | The welfare page is titled AIBO (Automated AI Benefit Outlook) |
+| (2026-10-23) | Today's value: a faint dashed line on the Timeline and the horizon chart, per question |
 
 ## New files
 
@@ -56,8 +57,8 @@ Checks: the full `pytest` suite passes (441 passed, 26 skipped). AIRO is byte-id
 | `web/demo/60-atoms.jsx` | +37 | `unitFmt`, `unitShift`, `unitTick`, `unitTicks` (a linear axis that need not start at 0), `PctBar` (25th–75th thick, 10th–90th thin) and `PctLegend`. |
 | `web/demo/75-conditional.jsx` | +47 / −26 | `percentiles` cells plot levels as expected-deaths cells do (unconditional row on top, line at its ensemble median), on a linear unit axis, each model's dot with its bar, a few pixels apart. The table shows the p50, the 10th–90th and the shift. |
 | `web/demo/77-capability.jsx` | +3 / −2 | "risks"/"Risk" come from `CAP.subject` when set; the percentile legend. |
-| `web/demo/19-live-timeline.jsx` | +26 / −8 | `percentiles` rows: unit axis, the ensemble's bar at each date, unit formatting, no log switch. |
-| `web/demo/20-live-graph1.jsx` | +20 / −10 | Same for the horizon chart, with the ensemble's bar where AIRO draws its interval. The title and rail heading come from the blob when set. |
+| `web/demo/19-live-timeline.jsx` | +26 / −8 | `percentiles` rows: unit axis, the ensemble's bar at each date, unit formatting, no log switch. Since 2026-10-23 a row that is not a loss row draws its own `q.marks` (dashed lines, included in a percentiles axis; `inside` puts the label at the plot's right edge). AIRO's rows have none. |
+| `web/demo/20-live-graph1.jsx` | +20 / −10 | Same for the horizon chart, with the ensemble's bar where AIRO draws its interval. The title and rail heading come from the blob when set. Since 2026-10-23 it draws `q.marks` as the Timeline does (`inside`: label centred above the line). |
 | `web/demo/65-rationales.jsx` | +6 / −5 | The rationale's forecast table takes a number format (default: AIRO's percent). |
 | `index.html` | +139 / −51 | Reassembled because the chunks above changed. No blob changed, and the page renders the same. |
 | `redlines/export.py` | +18 / −4 | `OTHER_PAGES` and `airo_file()` keep the welfare set, logs, run folder and smoke files out of AIRO's CSVs and bundle. Without this the first welfare run would have crashed `build --views csv` and changed AIRO's download. |
@@ -101,6 +102,20 @@ Checks: the full `pytest` suite passes (441 passed, 26 skipped). AIRO is byte-id
 - The ECI history is the repo's snapshot (2026-10-01), not 2026-10-21. Re-copy the combined set if the server has a newer one.
 - The horizons sentence wraps at a different point.
 - `eci_forecast`'s maximum is the set's own 1000, as AIRO sends, rather than 1e9.
+
+## Today's value (2026-10-23)
+
+Each question in `data/welfare_questions.json` has a `today` entry (`value`, `year`, `source`; listed under `provenance.added_here`). The view passes it as the question's `marks`, and the Timeline and the horizon chart draw it as a faint dashed line labelled "Today (year): value". The models never see it: the welfare dry-run prompt is byte-identical with and without it.
+
+| Question | Value | Year | Source |
+|---|---|---|---|
+| U.S. life expectancy | 78.4 | 2023 | CDC NCHS, final data |
+| High-income life expectancy | 80.7 | 2023 | World Bank WDI aggregate |
+| Low-income life expectancy | 63.7 | 2023 | World Bank WDI aggregate |
+| Advanced economies growth | 1.8% | 2024 | IMF WEO, April 2025 |
+| EMDE growth | 4.3% | 2024 | IMF WEO, April 2025 |
+
+**These were entered from memory, not fetched.** Check them against the sources before publishing. The questions resolve on Our World in Data (UN WPP), whose life expectancy figures can differ from these by up to a year.
 
 ## The preview
 

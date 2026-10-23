@@ -351,6 +351,11 @@ class TestView(unittest.TestCase):
         g = next(q for q in b["GRAPH1"]["questions"] if q["id"] == "gdp:emde")
         self.assertEqual(g["horizonLabels"]["2030"], "2030 (the five-year period 2026 through 2030)")
         self.assertAlmostEqual(g["band"]["2050"]["p90"], 4.5 + mean_prompt, places=3)
+        # Every question's latest reported value, a dashed line on both charts.
+        self.assertEqual(t["marks"], [{"v": 78.4, "label": "Today (2023): 78.4", "inside": True,
+                                       "source": "CDC NCHS, final 2023 data"}])
+        self.assertEqual(g["marks"][0]["label"], "Today (2024): 4.3%")
+        self.assertTrue(all(q["marks"] for q in b["GRAPH1"]["questions"]))
         # The FAQ's prompt is the welfare baseline's, and the rationales are each call's.
         self.assertIn("Deliver the percentiles", b["METHOD"]["prompt"])
         self.assertEqual(b["METHOD"]["k"], 14)

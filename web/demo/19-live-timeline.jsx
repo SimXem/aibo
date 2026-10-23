@@ -139,9 +139,13 @@ function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
   // plotted value, the ensemble's 10th-90th at each date included.
   const pct = q.value_kind === "percentiles";
   const band = (q.band || {})[h] || [];
+  // Dashed reference lines: the severity ladder's on a loss row; a row's own
+  // `marks` otherwise (the welfare page's latest reported value, 2026-10-23),
+  // inside the axis and labelled at the plot's right edge.
+  const marks = loss ? (TL.marks || []) : (q.marks || []);
   let y, yticks, tickText, tickSub;
   if (pct) {
-    const { ticks, lo, hi } = unitTicks([...med, ...variants.flatMap(v => v.vals), ...series.flatMap(s => s.vals),
+    const { ticks, lo, hi } = unitTicks([...med, ...variants.flatMap(v => v.vals), ...series.flatMap(s => s.vals), ...marks.map(m => m.v),
                                          ...[band, ...variants.map(v => v.bands)].flatMap(bs => bs.flatMap(b => (b ? [b.p10, b.p90] : [])))]);
     y = v => pad.t + (1 - Math.min(1, Math.max(0, (v - lo) / (hi - lo)))) * (H - pad.t - pad.b);
     yticks = ticks;
@@ -177,7 +181,6 @@ function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
     tickText = t => fmtTick(t) + "%";
     tickSub = () => null;
   }
-  const marks = loss ? (TL.marks || []) : [];
 
   // Nearby answers can otherwise cover each other's color and hit target.
   // Dodge only colliding condition dots a few pixels sideways, keeping
@@ -218,7 +221,7 @@ function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
         {marks.map(m => (
           <g key={m.label}>
             <line x1={pad.l} x2={W - pad.r} y1={y(m.v)} y2={y(m.v)} stroke="var(--ink-faint)" strokeWidth="1" strokeDasharray="4 3" opacity="0.7" />
-            <text x={pad.l - 9} y={y(m.v) + 4} textAnchor="end" fontSize="10" fill="var(--ink-soft)">{m.label}</text>
+            <text x={m.inside ? W - pad.r - 6 : pad.l - 9} y={y(m.v) + (m.inside ? -5 : 4)} textAnchor="end" fontSize="10" fill="var(--ink-soft)">{m.label}</text>
           </g>
         ))}
 
