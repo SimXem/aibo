@@ -231,13 +231,13 @@ function AxisScatter({ axis, q, hz, models, yDomain, trailing }) {
         {trailing}
       </div>
       {hv && (
-        <div style={{ position: "absolute", left: Math.min(x(hv.x) / W * 100, 70) + "%", top: Math.max(0, (y(hv.p) / H) * 100 - 16) + "%", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 9px", boxShadow: "var(--shadow)", pointerEvents: "none", fontSize: 12, zIndex: 5, whiteSpace: "nowrap" }}>
+        <PointTooltip box={box} x={x(hv.x)} y={y(hv.p)}>
           <div style={{ fontWeight: 600 }}>{hv.label}</div>
           <div className="mono" style={{ color: "var(--ink-soft)" }}>
             {hv.kind === "human" ? `unconditional ${axFmtY(kind, hv.p)} · their own median ${fx(hv.x)}`
               : `${fx(hv.x)} → ${axFmtY(kind, hv.p)}`}
           </div>
-        </div>
+        </PointTooltip>
       )}
     </div>
   );

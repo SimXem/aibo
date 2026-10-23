@@ -195,10 +195,7 @@ function SeverityChart({ leg, d, h, showModels, scale }) {
       {hist && (() => {
         const b = histBand(leg, hist);
         return (
-        <div style={{ position: "absolute", top: 8, left: `${(x(b.central) / W) * 100}%`,
-          transform: x(b.central) > W * 0.55 ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
-          background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "9px 11px",
-          boxShadow: "var(--shadow)", pointerEvents: "none", minWidth: 210, maxWidth: "min(300px, calc(100% - 16px))" }}>
+        <PointTooltip box={box} x={x(b.central)} y={pad.t}>
           <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 1 }}>{hist.label}</div>
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>{hist.span} · {hist.basis}</div>
           <div style={{ fontSize: 12, marginBottom: 6 }}>
@@ -215,14 +212,11 @@ function SeverityChart({ leg, d, h, showModels, scale }) {
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 6, paddingTop: 5, borderTop: "1px solid var(--line-soft)" }}>
             {hist.source}
           </div>
-        </div>
+        </PointTooltip>
         );
       })()}
       {hov && (
-        <div style={{ position: "absolute", top: 8, left: `${(x(hov.value) / W) * 100}%`,
-          transform: x(hov.value) > W * 0.55 ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
-          background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "9px 11px",
-          boxShadow: "var(--shadow)", pointerEvents: "none", minWidth: 195, maxWidth: "min(265px, calc(100% - 16px))" }}>
+        <PointTooltip box={box} x={x(hov.value)} y={y(hov.median)}>
           <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 1 }}>{hov.cause}</div>
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>
             {hov.label} · <strong>{(G2.horizonLabels || {})[h] || "by " + h}</strong>
@@ -246,7 +240,7 @@ function SeverityChart({ leg, d, h, showModels, scale }) {
               ⚠ incoherent: {hov.bad.map(v => v.model).join(", ")} rate this above the weaker “{hov.bad[0].broaderLabel}” event.
             </div>
           )}
-        </div>
+        </PointTooltip>
       )}
     </div>
   );

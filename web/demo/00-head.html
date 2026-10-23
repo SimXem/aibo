@@ -115,9 +115,15 @@
   @media (max-width: 760px) { .rail-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; } }
   .modal-grid { display: grid; grid-template-columns: 180px 1fr; gap: 12px; }
   @media (max-width: 560px) { .modal-grid { grid-template-columns: 1fr; gap: 4px; } }
+  .tippy-box[data-theme~="airo"] {
+    background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; box-shadow: var(--shadow); font-family: inherit;
+    font-size: 12px; line-height: 1.5;
+  }
+  .tippy-box[data-theme~="airo"] > .tippy-content { padding: 8px 10px; }
+  .tippy-box[data-theme~="airo"] > .tippy-arrow { color: var(--panel); }
 </style>
 <link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/dist/tippy.css" />
-<link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/themes/light-border.css" />
 <!-- Visitor analytics (2026-09-11): who reaches the page, where from, which
      country. Plausible rather than GA because it sets no cookies and stores
      no personal data, so the page needs no consent banner and no privacy

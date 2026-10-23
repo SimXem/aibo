@@ -46,8 +46,7 @@ function BenchScatter({ points, yKey, yDomain, yTicks, yLabel, yFmt, band, refs,
   React.useEffect(() => {
     if (!window.tippy || !ref.current) return;
     const nodes = ref.current.querySelectorAll("[data-tippy-content]");
-    const inst = window.tippy(nodes, { allowHTML: true, theme: "light-border", arrow: true,
-      maxWidth: 280, offset: [0, 8], placement: "top" });
+    const inst = appTooltip(nodes, { allowHTML: true });
     return () => inst.forEach(i => i.destroy());
   }, [points]);
   const box = React.useRef(null);

@@ -18,6 +18,7 @@
   "chunks": [
     "00-head.html",
     "01-shell-open.html",
+    "../shared/tooltips.jsx",
     "10-mock-graph1.jsx",
     "15-graph3-graph4-mock.jsx",
     "19-live-timeline.jsx",

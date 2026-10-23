@@ -115,9 +115,15 @@
   @media (max-width: 760px) { .rail-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; } }
   .modal-grid { display: grid; grid-template-columns: 180px 1fr; gap: 12px; }
   @media (max-width: 560px) { .modal-grid { grid-template-columns: 1fr; gap: 4px; } }
+  .tippy-box[data-theme~="airo"] {
+    background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; box-shadow: var(--shadow); font-family: inherit;
+    font-size: 12px; line-height: 1.5;
+  }
+  .tippy-box[data-theme~="airo"] > .tippy-content { padding: 8px 10px; }
+  .tippy-box[data-theme~="airo"] > .tippy-arrow { color: var(--panel); }
 </style>
 <link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/dist/tippy.css" />
-<link rel="stylesheet" href="https://unpkg.com/tippy.js@6.3.7/themes/light-border.css" />
 <!-- Visitor analytics (2026-09-11): who reaches the page, where from, which
      country. Plausible rather than GA because it sets no cookies and stores
      no personal data, so the page needs no consent banner and no privacy
@@ -192,6 +198,48 @@
 <script type="text/babel">
 const { useState, useMemo } = React;
 
+// One app-wide surface and placement policy for text, HTML and React tooltips.
+function appTooltip(target, options = {}) {
+  return window.tippy(target, {
+    theme: "airo", arrow: true, maxWidth: 360, offset: [0, 8],
+    placement: "right", appendTo: () => document.body, animation: false,
+    ...options,
+  });
+}
+
+// React owns content; Popper owns viewport-aware placement. Coordinates are SVG
+// user units, transformed through the actual screen matrix (including resize).
+function PointTooltip({ anchor, box, x, y, children }) {
+  const [content] = useState(() => document.createElement("div"));
+  const tooltip = React.useRef(null);
+  const position = React.useRef(null);
+  position.current = { anchor, box, x, y };
+  React.useLayoutEffect(() => {
+    const p = position.current;
+    const target = p.anchor || (p.box && p.box.current);
+    if (!target || !window.tippy) return;
+    const instance = appTooltip(target, {
+      content, trigger: "manual",
+      getReferenceClientRect: () => {
+        const p = position.current;
+        if (p.anchor) return p.anchor.getBoundingClientRect();
+        const svg = p.box.current.querySelector("svg");
+        const point = svg.createSVGPoint();
+        point.x = p.x; point.y = p.y;
+        const screen = point.matrixTransform(svg.getScreenCTM());
+        return { x: screen.x, y: screen.y, left: screen.x, right: screen.x,
+          top: screen.y, bottom: screen.y, width: 0, height: 0 };
+      },
+    });
+    tooltip.current = instance;
+    instance.show();
+    return () => { instance.destroy(); tooltip.current = null; };
+  }, [anchor, box, content]);
+  React.useLayoutEffect(() => {
+    if (tooltip.current && tooltip.current.popperInstance) tooltip.current.popperInstance.update();
+  });
+  return ReactDOM.createPortal(children, content);
+}
 /* ============================ mock data ============================ */
 function mulberry32(a) {
   return function () {
@@ -283,6 +331,7 @@ function TimeSeriesChart({ panel, active }) {
   const ymax = niceMax(Math.max(...allV, bandTop, 0.5) * 1.05);
   const y = v => pad.t + (1 - v / ymax) * (H - pad.t - pad.b);
   const yticks = Array.from({ length: 6 }, (_, i) => (ymax / 5) * i);
+  const box = React.useRef(null);
   const [hv, setHv] = useState(null);
 
   const linePath = pts => pts.map((p, k) => (k === 0 ? "M" : "L") + x(p.i).toFixed(1) + " " + y(p.v).toFixed(1)).join(" ");
@@ -295,7 +344,7 @@ function TimeSeriesChart({ panel, active }) {
   }
 
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={box} style={{ position: "relative" }}>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }} onMouseLeave={() => setHv(null)}>
         {yticks.map((t, i) => (
           <g key={i}>
@@ -335,9 +384,7 @@ function TimeSeriesChart({ panel, active }) {
         const rows = lines.map(l => ({ l, p: l.pts.find(p => p.i === hv) })).filter(r => r.p);
         if (!rows.length) return null;
         return (
-          <div style={{ position: "absolute", top: 6, left: `${(x(hv) / W) * 100}%`, transform: "translateX(8px)",
-            background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 10px",
-            boxShadow: "var(--shadow)", pointerEvents: "none", minWidth: 150 }}>
+          <PointTooltip box={box} x={x(hv)} y={y(rows[0].p.v)}>
             <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 5 }}>{MONTHS[hv]}{SURVEY_IDX.includes(hv) ? " · survey" : ""}</div>
             {rows.map(({ l, p }) => (
               <div key={l.key} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12 }}>
@@ -345,7 +392,7 @@ function TimeSeriesChart({ panel, active }) {
                 <span className="mono" style={{ fontWeight: 500 }}>{p.v.toFixed(2)}%</span>
               </div>
             ))}
-          </div>
+          </PointTooltip>
         );
       })()}
     </div>
@@ -489,28 +536,6 @@ const tlVariants = (q, horizon, snapshots) => {
     text: (info[id] || {}).text,
   })).filter(v => v.vals.some(val => val != null));
 };
-
-// React owns the content; Tippy owns placement relative to the actual SVG dot.
-function TimelinePointTooltip({ anchor, children }) {
-  const [content] = useState(() => document.createElement("div"));
-  const tooltip = React.useRef(null);
-  React.useEffect(() => {
-    if (!anchor || !window.tippy) return;
-    const instance = window.tippy(anchor, {
-      content, trigger: "manual", theme: "light-border", arrow: true,
-      maxWidth: 340, offset: [0, 8], placement: "top", appendTo: () => document.body,
-      animation: false,
-    });
-    tooltip.current = instance;
-    instance.show();
-    return () => { instance.destroy(); tooltip.current = null; };
-  }, [anchor, content]);
-  // Scale changes can move a pinned dot without changing its DOM element.
-  React.useLayoutEffect(() => {
-    if (tooltip.current && tooltip.current.popperInstance) tooltip.current.popperInstance.update();
-  });
-  return ReactDOM.createPortal(children, content);
-}
 
 /* ---------------- time-series chart ---------------- */
 // Before Oct 21 only the median is visible until hovered or selected; then
@@ -718,7 +743,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
       </svg>
 
       {hovered && (
-        <TimelinePointTooltip anchor={active.anchor}>
+        <PointTooltip anchor={active.anchor}>
           {hoveredModels.map(([label, val]) => (
             <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -727,10 +752,10 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
               <span className="mono">{fmtV(val)}</span>
             </div>
           ))}
-        </TimelinePointTooltip>
+        </PointTooltip>
       )}
       {hv != null && !hovered && (
-        <TimelinePointTooltip anchor={active.anchor}>
+        <PointTooltip anchor={active.anchor}>
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>
             {snapshots[hv].date} · <span style={{ color: "var(--ink)", fontWeight: 600 }}>by {h}</span>
             {hasVar(hv) ? ` · ${variants.filter(v => v.vals[hv] != null).length} prompts per model · each model = mean of its prompts`
@@ -760,7 +785,7 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
               </span>
             </div>
           ))}
-        </TimelinePointTooltip>
+        </PointTooltip>
       )}
     </div>
   );
@@ -1125,9 +1150,7 @@ function HorizonChart({ q, models, scale }) {
         if ((q.ci || {})[hv]) rows.push({ label: "95% CI", color: "var(--ink-faint)", text: fmtV(q.ci[hv][0]) + "–" + fmtV(q.ci[hv][1]), ci: true });
         (q.human || []).forEach(hm => { if (hm.ps[hv] != null) rows.push({ label: hm.panel + " " + groupShort(hm.group), color: hm.color, v: hm.ps[hv], human: true }); });
         return (
-          <div style={{ position: "absolute", top: 6, left: `${(x(hv) / W) * 100}%`, transform: x(hv) > W * 0.6 ? "translateX(calc(-100% - 8px))" : "translateX(8px)",
-            background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 10px",
-            boxShadow: "var(--shadow)", pointerEvents: "none", minWidth: 170, maxWidth: "calc(100% - 16px)" }}>
+          <PointTooltip box={box} x={x(hv)} y={y(q.median[hv] != null ? q.median[hv] : rows[0].v)}>
             <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 5 }}>by end of {hv}{loss ? " · deaths" : ""}</div>
             {rows.map(r => (
               <div key={r.label} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12, fontWeight: r.bold ? 600 : 400 }}>
@@ -1135,7 +1158,7 @@ function HorizonChart({ q, models, scale }) {
                 <span className="mono" style={{ fontWeight: 500 }}>{r.text != null ? r.text : (r.censored === "upper" ? "<" : r.censored === "lower" ? ">" : "") + fmtV(r.v)}</span>
               </div>
             ))}
-          </div>
+          </PointTooltip>
         );
       })()}
     </div>
@@ -1454,10 +1477,7 @@ function SeverityChart({ leg, d, h, showModels, scale }) {
       {hist && (() => {
         const b = histBand(leg, hist);
         return (
-        <div style={{ position: "absolute", top: 8, left: `${(x(b.central) / W) * 100}%`,
-          transform: x(b.central) > W * 0.55 ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
-          background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "9px 11px",
-          boxShadow: "var(--shadow)", pointerEvents: "none", minWidth: 210, maxWidth: "min(300px, calc(100% - 16px))" }}>
+        <PointTooltip box={box} x={x(b.central)} y={pad.t}>
           <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 1 }}>{hist.label}</div>
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>{hist.span} · {hist.basis}</div>
           <div style={{ fontSize: 12, marginBottom: 6 }}>
@@ -1474,14 +1494,11 @@ function SeverityChart({ leg, d, h, showModels, scale }) {
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 6, paddingTop: 5, borderTop: "1px solid var(--line-soft)" }}>
             {hist.source}
           </div>
-        </div>
+        </PointTooltip>
         );
       })()}
       {hov && (
-        <div style={{ position: "absolute", top: 8, left: `${(x(hov.value) / W) * 100}%`,
-          transform: x(hov.value) > W * 0.55 ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
-          background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "9px 11px",
-          boxShadow: "var(--shadow)", pointerEvents: "none", minWidth: 195, maxWidth: "min(265px, calc(100% - 16px))" }}>
+        <PointTooltip box={box} x={x(hov.value)} y={y(hov.median)}>
           <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 1 }}>{hov.cause}</div>
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>
             {hov.label} · <strong>{(G2.horizonLabels || {})[h] || "by " + h}</strong>
@@ -1505,7 +1522,7 @@ function SeverityChart({ leg, d, h, showModels, scale }) {
               ⚠ incoherent: {hov.bad.map(v => v.model).join(", ")} rate this above the weaker “{hov.bad[0].broaderLabel}” event.
             </div>
           )}
-        </div>
+        </PointTooltip>
       )}
     </div>
   );
@@ -1815,8 +1832,7 @@ function ECIScatter({ points }) {
   React.useEffect(() => {
     if (!window.tippy || !ref.current) return;
     const nodes = ref.current.querySelectorAll("[data-tippy-content]");
-    const inst = window.tippy(nodes, { allowHTML: true, theme: "light-border", arrow: true,
-      maxWidth: 240, offset: [0, 8], placement: "top" });
+    const inst = appTooltip(nodes, { allowHTML: true });
     return () => inst.forEach(i => i.destroy());
   }, []);
   const box = React.useRef(null);
@@ -2042,8 +2058,7 @@ function BenchScatter({ points, yKey, yDomain, yTicks, yLabel, yFmt, band, refs,
   React.useEffect(() => {
     if (!window.tippy || !ref.current) return;
     const nodes = ref.current.querySelectorAll("[data-tippy-content]");
-    const inst = window.tippy(nodes, { allowHTML: true, theme: "light-border", arrow: true,
-      maxWidth: 280, offset: [0, 8], placement: "top" });
+    const inst = appTooltip(nodes, { allowHTML: true });
     return () => inst.forEach(i => i.destroy());
   }, [points]);
   const box = React.useRef(null);
@@ -2430,10 +2445,7 @@ function LegendDot({ color, label, hollow, onClick, dim, title }) {
   const tooltip = React.useRef(null);
   React.useEffect(() => {
     if (!title || !window.tippy || !ref.current) return;
-    const instance = window.tippy(ref.current, {
-      content: title, allowHTML: false, theme: "light-border", arrow: true,
-      maxWidth: 360, offset: [0, 8], placement: "top",
-    });
+    const instance = appTooltip(ref.current, { content: title, allowHTML: false });
     tooltip.current = instance;
     return () => { instance.destroy(); tooltip.current = null; };
   }, [title]);
@@ -3138,17 +3150,16 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
         const b = rows.find(r => r.id === hv);
         const i = rows.indexOf(b);
         const cond = (C.conditions || []).find(c => c.id === b.id) || {};
-        const top = ((pad.t + rowH * (i + baseRow)) / H) * 100;
         const desc = cond.description || "";
         const cut = desc.length > 900 ? desc.slice(0, 900).replace(/\s+\S*$/, "") + " …" : desc;
         return (
-          <div style={{ position: "absolute", top: `${top}%`, right: 8, transform: "translateY(-100%)", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 12px", boxShadow: "var(--shadow)", pointerEvents: "none", width: 460, maxWidth: narrow ? "calc(100% - 16px)" : "60%", zIndex: 5 }}>
+          <PointTooltip box={box} x={barVal(b) == null ? x0 : x(barVal(b))} y={barY(rowY(i))}>
             <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 3 }}>What the model was told{b.leapId ? <> · <span className="mono">{b.leapId}</span></> : null}</div>
             <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 6 }}>{b.label}</div>
             {cond.assume && <div style={{ fontSize: 12.5, color: "var(--ink)", marginBottom: 6 }}><strong>Condition.</strong> {cond.assume}</div>}
             {cut && <div style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>{cut}</div>}
             {desc.length > 900 && <div style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 6 }}>click the row for the full text</div>}
-          </div>
+          </PointTooltip>
         );
       })()}
       {loss && <ExpectedLossNote />}
@@ -3467,10 +3478,10 @@ function EciTrendChart({ eci, variants, active, onPick }) {
         })}
       </svg>
       {hv && (
-        <div style={{ position: "absolute", left: Math.min(hv.x / W * 100, 65) + "%", top: Math.max(0, (hv.y / H) * 100 - 18) + "%", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 9px", boxShadow: "var(--shadow)", pointerEvents: "none", fontSize: 12, zIndex: 5, whiteSpace: "nowrap" }}>
+        <PointTooltip box={box} x={hv.x} y={hv.y}>
           <div style={{ fontWeight: 600 }}>{hv.title}</div>
           {hv.lines.map(t => <div key={t} className="mono" style={{ color: "var(--ink-soft)" }}>{t}</div>)}
-        </div>
+        </PointTooltip>
       )}
     </div>
   );
@@ -3804,13 +3815,13 @@ function AxisScatter({ axis, q, hz, models, yDomain, trailing }) {
         {trailing}
       </div>
       {hv && (
-        <div style={{ position: "absolute", left: Math.min(x(hv.x) / W * 100, 70) + "%", top: Math.max(0, (y(hv.p) / H) * 100 - 16) + "%", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 9px", boxShadow: "var(--shadow)", pointerEvents: "none", fontSize: 12, zIndex: 5, whiteSpace: "nowrap" }}>
+        <PointTooltip box={box} x={x(hv.x)} y={y(hv.p)}>
           <div style={{ fontWeight: 600 }}>{hv.label}</div>
           <div className="mono" style={{ color: "var(--ink-soft)" }}>
             {hv.kind === "human" ? `unconditional ${axFmtY(kind, hv.p)} · their own median ${fx(hv.x)}`
               : `${fx(hv.x)} → ${axFmtY(kind, hv.p)}`}
           </div>
-        </div>
+        </PointTooltip>
       )}
     </div>
   );
