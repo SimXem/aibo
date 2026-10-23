@@ -106,4 +106,6 @@ Checks: the full `pytest` suite passes (441 passed, 26 skipped). AIRO is byte-id
 
 [`welfare-preview.html`](../welfare-preview.html), at the repo root: download it and open it in a browser. The Oct 1 forecasts are the welfare pilot's one real Opus 5.5 call. **Every Oct 22 forecast is invented** to show the layout with five prompts: the Timeline, Policy levers, Capability, the horizon chart and the ECI forecast. No model was run for it. `welfare.html` is the real page and stays empty until the first live run.
 
+`welfare/tools/` regenerates it (`preview.py`, deterministic) and renders pages without a browser (`ssr.js`, `svgpng.py`). [HANDOFF_CONTINUE.md](HANDOFF_CONTINUE.md) is the brief for whoever continues.
+
 Not committed: `.vscode/`.
