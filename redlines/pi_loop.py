@@ -107,7 +107,8 @@ def call_tools(model, prompt, tools, final_tool, *, max_iters=6, system=None,
     if debrief is not None and res.get("debrief") is not None:
         debrief.update({k: res["debrief"].get(k) for k in ("result", "complete", "attempts", "problems", "error")})
     if not res["answer"]:
-        raise RuntimeError(f"{final_tool['name']} not called within {max_iters + 2} turns (pi exit "
+        limit = f"within {max_iters + 2} turns" if max_iters else "before the run ended (no forced-turn cap)"
+        raise RuntimeError(f"{final_tool['name']} not called {limit} (pi exit "
                            f"{res['rc']}); recorded usage={usage}; trace={res.get('trace')}")
     evidence = [{k: e.get(k) for k in ("tool", "args", "result")} for e in res["evidence"]]
     return res["answer"], evidence

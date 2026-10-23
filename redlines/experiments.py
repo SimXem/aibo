@@ -102,6 +102,9 @@ DEFAULTS = {
     "model_set": DEFAULT_MODEL_SET,   # redlines.registry.MODEL_SETS
     "repeats": 1,                     # calls per model per run
     "url_block_patterns": None,       # agent-box's URL guard for these calls alone
+    "news_cache": False,             # frozen weekly news input + AI-forecast ban (unpublished shadow)
+    "max_turns": None,               # None: instrument default; 0: no forced-turn submission
+
     "publish": False,                 # rows go to the scenario set's own logs, which the page reads
     "cadence": "manual",              # when the cron runs it: weekdays (UTC), or "manual"
 }
@@ -153,6 +156,11 @@ def load(name):
 def condition_sha256(settings):
     """A hash of what a condition's calls are asked: every setting but UNHASHED."""
     keep = {k: settings[k] for k in DEFAULTS if k not in UNHASHED}
+    # An opt-in extension must not change existing published condition hashes.
+    if not keep["news_cache"]:
+        del keep["news_cache"]
+    if keep["max_turns"] is None:
+        del keep["max_turns"]
     return hashlib.sha256(json.dumps(keep, sort_keys=True).encode()).hexdigest()
 
 
@@ -205,6 +213,15 @@ def _settings(table, where):
 
 
 def _check(s, pooled, where):
+    if s["max_turns"] is not None and (type(s["max_turns"]) is not int or s["max_turns"] < 0
+                                      or s["harness"] != "pi"):
+        raise ValueError(f"{where}: max_turns must be a nonnegative integer for pi")
+    if not isinstance(s["news_cache"], bool):
+        raise ValueError(f"{where}: news_cache must be boolean")
+    if s["news_cache"] and (s["harness"] != "pi" or s["instrument"] != "minimal"
+                           or s["publish"] or pooled
+                           or s["variant"] != "recent" or not s["url_block_patterns"]):
+        raise ValueError(f"{where}: news_cache requires unpooled unpublished minimal/pi Recent with a URL guard")
     if not s["scenarios"]:
         raise ValueError(f"{where}: no scenario set (`scenarios`)")
     if s["variant"] not in VARIANTS:

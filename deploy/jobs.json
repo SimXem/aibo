@@ -1,4 +1,5 @@
 [
+  {"id": "recent-news-poll", "kind": "news-poll", "daily_utc": "11:45"},
   {"id": "airo", "kind": "forecast", "daily_utc": "12:00"},
   {"id": "forecastbench-2026-10-25", "kind": "forecastbench", "at": "2026-10-25T00:05:00Z", "due": "2026-10-25"},
   {"id": "forecastbench-2026-11-08", "kind": "forecastbench", "at": "2026-11-08T00:05:00Z", "due": "2026-11-08"}

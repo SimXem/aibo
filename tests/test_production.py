@@ -349,6 +349,21 @@ def test_scheduled_publication_records_new_data_snapshot(runtime, monkeypatch):
     assert b'old dot layout' in (saved / 'index.html').read_bytes()
 
 
+def test_news_poll_is_free_standalone_job_with_persistent_private_state(runtime, monkeypatch):
+    r = release(runtime, 'news')
+    p.link(r, runtime.current)
+    calls = []
+    monkeypatch.setattr(p, 'run', lambda *args, **kw: calls.append((args, kw)))
+    jobs = p.validate_jobs([{'id': 'recent-news-poll', 'kind': 'news-poll', 'daily_utc': '11:45'}])
+    assert len(list(p.due_jobs(jobs, datetime(2026, 10, 23, 11, 45, tzinfo=timezone.utc)))) == 1
+    assert not list(p.due_jobs(jobs, datetime(2026, 10, 23, 12, 0, tzinfo=timezone.utc)))
+    assert runtime.execute_job('news-poll-test', jobs[0])
+    args, kw = calls[0]
+    assert [str(x) for x in args[0]][-2:] == [str(r / 'code/code/recent_news.py'), 'poll']
+    assert kw['env']['AIRO_NEWS_DIR'] == str(runtime.state / 'recent-news')
+    assert runtime.current.resolve() == r
+
+
 def test_retention_keeps_rollback_job_site_and_accrued_data(runtime):
     names = [f'20300101T00000{i}-' + 'a' * 12 for i in range(5)]
     versions = [release(runtime, name) for name in names]

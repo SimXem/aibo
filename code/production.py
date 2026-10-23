@@ -101,7 +101,7 @@ def validate_jobs(jobs):
         if not re.fullmatch(r'[a-z0-9][a-z0-9_-]*', job['id']) or job['id'] in ids:
             raise ValueError('Job IDs must be unique safe names')
         ids.add(job['id'])
-        if job['kind'] not in ('forecast', 'forecastbench', 'smoke'):
+        if job['kind'] not in ('forecast', 'forecastbench', 'news-poll', 'smoke'):
             raise ValueError('Unknown job kind')
         if 'at' in job:
             when = datetime.fromisoformat(job['at'].replace('Z', '+00:00'))
@@ -155,6 +155,7 @@ class Runtime:
         env.update(HOME=str(self.home), PATH=str(code / '.venv/bin') + ':' + self.config['path'],
                    REDLINES_PY=str(code / '.venv/bin/python'), PY=str(code / '.venv/bin/python'),
                    AIRO_RELEASE=str(code), REDLINES_REPO=str(code), REDLINES_DOCROOT=str(docroot),
+                   AIRO_NEWS_DIR=str(self.state / 'recent-news'),
                    FORECASTER_PI=str(code / 'packages/fri-forecaster/node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js'),
                    FORECASTER_ENV_FILE=str(self.home / '.config/fri-forecaster/env'),
                    FORECASTER_ROUND_ENV=str(self.home / '.config/fri-forecaster/round.env'),
@@ -445,6 +446,7 @@ class Runtime:
             site.mkdir()
             env = self.environment(code, site)
             argv = {'forecast': ['bash', code / 'code/cron_run.sh'],
+                    'news-poll': [code / '.venv/bin/python', code / 'code/recent_news.py', 'poll'],
                     'forecastbench': ['bash', code / 'packages/fri-forecaster/scripts/fb_cron.sh', job.get('due', '')],
                     'smoke': [code / '.venv/bin/python', '-c', 'import redlines, fri_forecaster; print("scheduled runtime smoke passed")']}[job['kind']]
             try:

@@ -421,6 +421,11 @@ def minimal_joint_prompt(prompt, variant=DEFAULT_VARIANT):
 
 def condition_prompt(prompt, condition):
     """The joint prompt as a condition asks it: its instrument, its variant."""
+    if condition.get("news_cache"):
+        from redlines.news_shadow import NEWS_SENTENCE
+        out = minimal_joint_prompt(prompt, condition["variant"])
+        recent = VARIANTS["recent"]
+        return out.replace(recent, recent + "\n\n" + NEWS_SENTENCE + "\n\n" + VARIANTS["ai-banned"], 1)
     if condition["instrument"] == "minimal":
         return minimal_joint_prompt(prompt, condition["variant"])
     return apply_variant(prompt, condition["variant"])
@@ -1172,6 +1177,14 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
     extra = {**({"url_block_patterns": guard} if guard else {}),
              # Not in the published number: redlines.runlog.pooled_rows.
              **({"pooled": False} if not condition["pooled"] else {})}
+    call_env = {BLOCK_ENV: own_guard} if own_guard else {}
+    if condition.get("news_cache"):
+        from redlines.news_shadow import PATH_ENV, HASH_ENV
+        frozen = condition.get("_news_snapshot")
+        if not frozen:
+            raise ValueError("news_cache requires a pinned --news-snapshot")
+        call_env.update({PATH_ENV: frozen["path"], HASH_ENV: frozen["sha256"]})
+        extra["news_snapshot"] = {k: v for k, v in frozen.items() if k != "path"}
     block = scenarios_block(scenarios, policies)
     sha = hashlib.sha256(block.encode()).hexdigest()
     scenario_ids = [c["id"] for c in scenarios]
@@ -1225,11 +1238,12 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
             answer, evidence = call_tools(
                 model_id, prompt, research, submit_tool_joint(qids, horizons, scenario_ids, elicits),
                 system=MINIMAL_SYSTEM if minimal else SYSTEM,
-                max_iters=MINIMAL_MAX_TURNS if minimal else MAX_ROUNDS,
+                max_iters=(condition["max_turns"] if condition.get("max_turns") is not None
+                           else MINIMAL_MAX_TURNS if minimal else MAX_ROUNDS),
                 min_evidence=0 if minimal else MIN_RESEARCH, usage=usage, partial_tool=partial,
                 coverage=coverage, debrief=debrief,
                 allowed_keys=[f"{q}|{h}" for q, hs in allowed.items() for h in sorted(hs)],
-                **({"env": {BLOCK_ENV: own_guard}} if own_guard else {}))
+                **({"env": call_env} if call_env else {}))
         except Exception as exc:
             # A provider error or a call that never submitted: worth the same
             # retry budget as a short grid, and just as visible in the log.
@@ -1403,6 +1417,7 @@ def main():
                          "(default: airo, the published series; redlines/experiments.py)")
     ap.add_argument("--condition", action="append", default=[],
                     help="run only this condition of the experiment (repeatable; default: all)")
+    ap.add_argument("--news-snapshot", help="private frozen news JSON for news-cache conditions")
     ap.add_argument("--smoke", action="store_true",
                     help="one model only; rows go to results/experiments/")
     ap.add_argument("--models", help="comma-separated label filter")
@@ -1527,6 +1542,12 @@ def run(args, exp, conditions, path, publish):
             print(f"##### URL GUARD ({BLOCK_ENV}): "
                   f"{c['url_block_patterns'] or os.environ.get(BLOCK_ENV) or 'off'} #####")
         return
+    for c in conditions:
+        if c.get("news_cache"):
+            from redlines.news_shadow import pin
+            if not args.news_snapshot:
+                raise ValueError("news-cache condition requires --news-snapshot")
+            c["_news_snapshot"] = pin(args.news_snapshot, c["url_block_patterns"])
     load_keys()
     if not os.environ.get("TAVILY_API_KEY") and not args.allow_ungrounded:
         # Refuse rather than degrade. Without Tavily every model still answers
@@ -1601,7 +1622,9 @@ def run(args, exp, conditions, path, publish):
     print(f"{done} ok, {failed} failed, ${spent:.2f} priced spend -> {out} (unconditional) + {cond_out} (instrument)"
           + (f"; {failed_aside} call(s) outside the pooled conditions failed (not in the published number)"
              if failed_aside else ""))
-    if failed:
+    if failed or (not publish and failed_aside):
+        # A standalone unpublished shadow must report failure to its scheduler;
+        # unpooled failures inside a published group still do not fail the day.
         # An incomplete panel cannot be published (code/validate_launch_run.py
         # needs every model on the date), so the run is a failure, not a
         # partial success, and cron_run.sh does not publish it.
@@ -1612,7 +1635,8 @@ def condition_line(c):
     """What a condition asks, in one line, for the run log."""
     return (f"variant {c['variant']}, {c['instrument']} instrument, {c['harness']} loop, "
             f"{c['model_set']}" + (f" x{c['repeats']}" if c["repeats"] > 1 else "")
-            + ("" if c["pooled"] else ", not pooled") + (", URL guard" if c["url_block_patterns"] else ""))
+            + ("" if c["pooled"] else ", not pooled") + (", URL guard" if c["url_block_patterns"] else "")
+            + (", no forced-turn cap" if c.get("max_turns") == 0 else ""))
 
 
 if __name__ == "__main__":

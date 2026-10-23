@@ -191,6 +191,17 @@ while read -r exp dest conds; do
     args=()
     for c in $conds; do args+=(--condition "$c"); done
     echo "=== $exp ($dest): $conds ==="
+    # Ordinary groups return an empty path without polling or calling Jev.
+    # A news shadow must get a fresh complete poll/reduction, never the old
+    # experimental archive. Its failure does not withhold normal publication.
+    if news_snapshot="$("$PY" code/prepare_recent_news.py --experiment "$exp" "${args[@]}" </dev/null)"; then
+        [ -z "$news_snapshot" ] || args+=(--news-snapshot "$news_snapshot")
+    else
+        echo "ERROR: $exp ($dest) news preparation failed; skipping $conds (no fallback)."
+        notify "AIRO $exp news preparation FAILED" "Skipped $conds; no stale cache used. log: $LOG" high warning
+        [ "$dest" != publish ] || WITHHELD=1
+        continue
+    fi
     if "$PY" code/run_unified.py --experiment "$exp" "${args[@]}" --workers 10 </dev/null; then
         [ "$dest" = publish ] && PUBLISHED=1
     elif [ "$dest" = publish ]; then

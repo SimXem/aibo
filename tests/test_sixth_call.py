@@ -71,6 +71,8 @@ def synthetic_rows():
 
     rows = []
     for c in AIRO["conditions"].values():
+        if not c["publish"]:
+            continue
         for label in labels:
             with patch.object(ru, "call_tools", fake_for(label, c["id"])):
                 rows += ru.run_one_joint(label, "x/" + label, g, b, h, RUN_ID, 0, spec, pol["conditions"], pol,

@@ -1,0 +1,12 @@
+# Manual, private-output shadow. Does not change AIRO's published conditions.
+scenarios = "data/combined_conditions.json"
+instrument = "minimal"
+harness = "pi"
+publish = false
+cadence = "manual"
+
+[conditions.recent-shadow-noairo]
+variant = "recent"
+news_cache = true
+max_turns = 0
+url_block_patterns = 'forecastingresearch\.org/pdf/airo,forecastingresearch\.org/research/airo,airo\.forecastingresearch\.org'

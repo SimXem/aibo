@@ -19,7 +19,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 from fri_forecaster import tools  # noqa: E402
 from fri_forecaster.keys import load_keys  # noqa: E402
 
-FN = {"web_search": tools.web_search, "read_page": tools.read_page}
+def read_page(url, offset=0):
+    from fri_forecaster.news_cache import read_snapshot
+    cached = read_snapshot(url, offset)
+    return cached if cached is not None else tools.read_page(url, offset)
+
+
+FN = {"web_search": tools.web_search, "read_page": read_page}
 # Tavily answers 429 when many agents search at once (2026-10-06 practice
 # run: 32 concurrent calls, ~1,700 failures). Back off and retry here, not in
 # tools.py, which must stay identical to AIRO's copy.

@@ -107,3 +107,77 @@ published data blocks and downloads are unchanged; a data publication must pass
 the full instrument validation. Only then is the release switched. Failed builds leave the selected release alone. Failure to
 observe a new release through the serving socket automatically restores the
 previous release. Forecast jobs retain their raw data even if publication fails.
+
+## Friday recent-news shadow: production handoff
+
+The `recent-shadow-noairo` condition in `experiments/airo.toml` runs on Fridays
+through the existing 12:00 UTC AIRO dispatcher. It inherits the same refreshed
+ECI panel, full instrument, model reasoning settings and harness as the other
+AIRO conditions. It is **unpublished and unpooled**; its rows go to private
+`state/results/experiments/` rather than changing dashboard numbers. The old
+published conditions and their hashes do not change. The manual experiment
+alias remains available, but the scheduler uses the AIRO condition.
+
+There is no forced-turn submission cap (`max_turns = 0`). In particular this
+job does not invoke `code/probe_recent_news.py`, use Haiku/Sonnet-only models,
+truncate the instrument, or inherit the probe's eight-turn/three-minute limits.
+The normal production process timeout (three hours unless configured otherwise)
+and failure/retry policy still apply.
+
+### Prerequisites before enabling the release
+
+1. In the production runtime's private home, provide `TYPESAFE_API_KEY` in
+   `.config/airo-news/env` with mode 0600 (or set it in the private forecasting
+   environment). `AIRO_NEWS_ENV_FILE` may name another private file. Do not copy
+   a coding-provider login; this is the Jev classifier's API key only.
+2. Have the host operator grant the configured feed hosts and `api.typesafe.ai`:
+   `www.ft.com`, `www.nytimes.com`, `rss.nytimes.com`, `news.google.com`,
+   `arstechnica.com`, `www.technologyreview.com`, `www.theverge.com`. Publisher
+   redirects may require additional observed grants such as `www.reuters.com`.
+   Use the configured HTTPS proxy. A repository change cannot grant network
+   access. Check access in the production cell, not just development.
+3. The runtime supplies `AIRO_NEWS_DIR = <runtime root>/state/recent-news`, so
+   items, decisions and frozen inputs survive releases and stay outside git.
+   Start with a clean live collection; do **not** seed it with the old October
+   experiment and present that as current news. RSS history is bounded: the
+   first Friday's seven-day window is not guaranteed to contain every story.
+4. Merge through normal PR/check requirements, then run `airo deploy` in the
+   production cell. Use the normal frontend-with-preserved-data deployment,
+   not `--publish-data`, and verify the retained data hash/new frontend commit,
+   `airo status`, and the configured public URL. `airo smoke` is sufficient
+   for runner testing; do not launch a paid panel just to test deployment.
+
+### Scheduled flow and failure handling
+
+- `deploy/jobs.json` adds `recent-news-poll` at **11:45 UTC daily**. This calls
+  `code/recent_news.py poll` only: no Jev, Tavily or forecasting-model charges.
+  Standard job receipts/logs record failed feeds. It never publishes the site.
+- Before the Friday shadow group, `code/prepare_recent_news.py` polls again,
+  requires every configured feed to return nonempty parseable data, reduces
+  the collection with Jev, and freezes the preceding seven days into one
+  hash-pinned, feed-only snapshot shared by every model. **Jev calls incur
+  charges.** Ordinary conditions return from this preparation step immediately,
+  without accessing feeds or Jev.
+- The model receives precisely the owner-approved addition in
+  `experiments/recent-news/SHADOW.md`, plus the existing no-AIRO instruction.
+  The existing URL guard is applied to web tools and to source URLs included
+  in the snapshot. All cache reads are recorded through `read_page`; each row
+  carries the snapshot hash and window, never its private filesystem path.
+- A missing key, feed error, undecided reduction or empty window skips the
+  shadow group and notifies through the normal cron alerts. There is **no old
+  snapshot fallback** and no forecast without the cache. Other AIRO conditions
+  and normal publication continue. A forecast failure in the standalone
+  unpublished group is likewise reported without withholding the main series.
+
+To inspect the scheduled groups offline (no provider calls):
+
+```sh
+python3 -m redlines.experiments due --date 2026-10-23
+python3 code/run_unified.py --experiment airo \
+  --condition recent-shadow-noairo --dry-run
+```
+
+The Friday listing must contain both the ordinary six-condition published
+group and `airo aside recent-shadow-noairo`. The Wednesday listing must not
+contain the news shadow. These commands do not verify live RSS/Jev access;
+review the first poll receipt and the Friday shadow's snapshot/evidence logs.

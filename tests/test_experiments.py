@@ -40,14 +40,17 @@ def _toml(text):
 
 class TestTheAiroExperiment(unittest.TestCase):
     def test_six_conditions_five_pooled_on_the_combined_set(self):
-        self.assertEqual(list(AIRO["conditions"]), ["none", "independent", "recent", "critical", "two-step", "ai-banned"])
+        self.assertEqual([cid for cid, c in AIRO["conditions"].items() if c["publish"]],
+                         ["none", "independent", "recent", "critical", "two-step", "ai-banned"])
         self.assertEqual(AIRO["pooled"], ["none", "independent", "recent", "critical", "two-step"])
         for c in AIRO["conditions"].values():
+            if not c["publish"]:
+                continue
             self.assertEqual((c["scenarios"], c["instrument"], c["harness"], c["model_set"], c["repeats"], c["publish"]),
                              ("data/combined_conditions.json", "minimal", "pi", "eci_topk", 1, True), c["id"])
             self.assertEqual(c["variant"], c["id"])               # the conditions are named for their prompts
         self.assertEqual(ru.set_protocol(ru.load_policies(ru.COMBINED)), "unified-joint-combined-v12")
-        self.assertEqual(set(AIRO["conditions"]), set(ru.VARIANTS))
+        self.assertEqual({cid for cid, c in AIRO["conditions"].items() if c["publish"]}, set(ru.VARIANTS))
 
     def test_the_sixth_is_unpooled_with_its_guard(self):
         sixth = AIRO["conditions"]["ai-banned"]
@@ -146,7 +149,7 @@ class TestCadence(unittest.TestCase):
     """When the cron runs a condition, and what is due on a day."""
 
     def test_airo_runs_wednesdays_and_fridays_and_the_axes_by_hand(self):
-        self.assertEqual({tuple(c["cadence"]) for c in AIRO["conditions"].values()}, {("wed", "fri")})
+        self.assertEqual({tuple(c["cadence"]) for c in AIRO["conditions"].values() if c["publish"]}, {("wed", "fri")})
         for name in ("axes", "paperaxes"):
             self.assertEqual({c["cadence"] for c in experiments.load(name)["conditions"].values()}, {"manual"})
 
