@@ -105,11 +105,12 @@ function Stat({ label, value, color }) {
     </div>
   );
 }
-function Toggle({ options, value, onChange }) {
+function Toggle({ options, value, onChange, label }) {
   return (
-    <div style={{ display: "flex", gap: 6, background: "var(--bg)", padding: 4, borderRadius: 10, border: "1px solid var(--line)", flexWrap: "wrap" }}>
+    <div role={label ? "group" : undefined} aria-label={label}
+      style={{ display: "flex", gap: 6, background: "var(--bg)", padding: 4, borderRadius: 10, border: "1px solid var(--line)", flexWrap: "wrap" }}>
       {options.map(o => (
-        <button key={o.key} onClick={() => onChange(o.key)} style={{ border: "none", cursor: "pointer", padding: "6px 12px",
+        <button key={o.key} type="button" aria-pressed={value === o.key} onClick={() => onChange(o.key)} style={{ border: "none", cursor: "pointer", padding: "6px 12px",
           borderRadius: 7, fontSize: 13, fontWeight: 500, background: value === o.key ? "var(--ink)" : "transparent",
           color: value === o.key ? "white" : "var(--ink-soft)" }}>{o.label}</button>
       ))}
