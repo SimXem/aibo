@@ -10,8 +10,8 @@ independent domains. On questions that resolve, it also makes the forecasts
 slightly *more* accurate, so it is not buying tidiness at the cost of quality.
 Stating the constraint explicitly adds nothing; the shared context does the work.
 
-Run 2026-08-14. Scripts: `code/run_ladder_joint.py`, `code/analyze_ladder_joint.py`,
-`code/run_chain_eval.py`, `code/analyze_chain_eval.py`. Data under
+Run 2026-08-14. Scripts: `archive/litellm-runners/run_ladder_joint.py`, `code/analyze_ladder_joint.py`,
+`archive/litellm-runners/run_chain_eval.py`, `code/analyze_chain_eval.py`. Data under
 `results/experiments/`.
 
 ---

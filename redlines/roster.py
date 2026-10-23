@@ -2,10 +2,10 @@
 
 Twenty-four models, every one reachable through OpenRouter, ranked by the
 Epoch Capabilities Index as Epoch published it on 2026-08-27 (the `eci`
-column; code/causal/model_scores.csv is the list it was resolved from). It is
+column; archive/causal/model_scores.csv is the list it was resolved from). It is
 the roster of the causal bench's locked dataset (data/causal/README.md) and,
 since 2026-08-28, of the observational bench's roster run
-(code/observational/run_roster.py) -- one x-axis for both "Why trust this?"
+(archive/litellm-runners/run_roster.py) -- one x-axis for both "Why trust this?"
 conditional charts.
 
 ECI VINTAGE. This is a third vintage next to the two redlines.eci manages:
@@ -83,7 +83,7 @@ def load():
     """[{id, label, name, eci, reasoning, inPanel, color}] sorted by ECI ascending.
 
     `inPanel`: the model is in the dashboard's current panel
-    (redlines.registry.panel -- matched on the litellm id, which for the
+    (redlines.registry.panel -- matched on the registry id, which for the
     models in question is the OpenRouter id). `color`: a panel member's
     registry colour, the same on every chart; RETIRED_COLOR for everyone
     else, registry row or not (project lead, 2026-09-08).

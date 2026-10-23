@@ -173,4 +173,4 @@ The Secret Manager copy of the Anthropic key that `fbsim_core`'s
 `load_api_keys_from_gcp` loads was stale on 2026-08-28 (401); the harness
 skips a key already in the environment, so export a working
 `ANTHROPIC_API_KEY` (from `~/.config/redlines/env`) before running
-`code/run_eval.py` or `code/pandemic_smoke.py`.
+`archive/litellm-runners/run_eval.py` or `archive/litellm-runners/pandemic_smoke.py`.

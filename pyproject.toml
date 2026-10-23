@@ -12,16 +12,7 @@ dependencies = []
 paper = [
     "matplotlib>=3.9",
 ]
-# Eliciting NEW forecasts (code/run_unified.py, code/run_ladder_joint.py) needs a
-# provider client; nothing else in the repo does. redlines/llm.py imports litellm
-# inside the call, so this extra is only required to RUN a forecast — importing
-# the module, running the tests, and rebuilding the dashboard all work without it.
-acquire = [
-    # >=1.96: maps reasoning_effort "max" to Anthropic adaptive thinking and
-    # "xhigh" to OpenAI reasoning.effort (redlines/llm.py LITELLM_MIN).
-    "litellm>=1.96",
-]
-# The pi loop (redlines/pi_loop.py; the published loop since combined-v9): the
+# The pi loop (redlines/pi_loop.py; the only loop since 2026-10-22): the
 # FRI Forecaster harness, which drives pi 0.99.2 -- FORECASTER_PI names its
 # cli.js. Since 2026-10-19 it lives in this repository, packages/fri-forecaster
 # (a uv workspace member, [tool.uv.sources]); with plain pip install it from
@@ -40,7 +31,7 @@ test = [
 # Two test suites: AIRO's and the harness's (packages/fri-forecaster/tests,
 # which runs pi_tools.ts through the pinned pi against a scripted model --
 # `npm ci` in that directory first, else those tests skip). archive/ and the
-# vendored code/causal/ carry files pytest would otherwise try to collect.
+# vendored archive/causal/ carry files pytest would otherwise try to collect.
 testpaths = ["tests", "packages/fri-forecaster/tests"]
 
 [tool.setuptools]

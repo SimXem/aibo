@@ -218,7 +218,7 @@ def main():
     control = load_control(rungs)
     arms, ev = load_arms(args.arms)
     if not arms:
-        sys.exit(f"no arm files matched {args.arms} — run code/run_ladder_joint.py first")
+        sys.exit(f"no arm files matched {args.arms} — run archive/litellm-runners/run_ladder_joint.py first")
 
     ctrl_ids = sorted(control)
     ctrl_lads = {rid: ladders(control[rid], rungs, causes, labels, horizons)

@@ -51,3 +51,14 @@ variant = "two-step"
 [conditions.ai-banned]
 variant = "ai-banned"
 url_block_patterns = 'forecastingresearch\.org/pdf/airo,forecastingresearch\.org/research/airo,airo\.forecastingresearch\.org'
+
+# Friday-only news shadow: the same panel, complete instrument and harness.
+# Private output, never pooled. No forced-turn submission; ordinary service
+# timeouts remain. cron prepares one current news snapshot shared by the panel.
+[conditions.recent-shadow-noairo]
+variant = "recent"
+news_cache = true
+publish = false
+cadence = ["fri"]
+max_turns = 0
+url_block_patterns = 'forecastingresearch\.org/pdf/airo,forecastingresearch\.org/research/airo,airo\.forecastingresearch\.org'

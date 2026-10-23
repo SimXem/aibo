@@ -6,7 +6,7 @@ conventions:
   code/eci_scores.py     DEMO_MODEL_SET (9) + GAP_FILLERS (2) + ALT_HIGH_ANCHOR (1)
   archive/legacy-questions/run_forecasts.py  MODELS -- the frontier five
   code/make_demo_graph1.py  MODEL_COLORS      -- frontier-five display colors
-  code/pandemic_smoke.py    SMOKE_MODELS      -- hand-typed ECI integers (!)
+  archive/litellm-runners/pandemic_smoke.py    SMOKE_MODELS      -- hand-typed ECI integers (!)
   code/make_demo_graph3.py  DASH_MODELS       -- ForecastBench display names
 
 MODELS below is the union: one row per distinct model, tagged with every role
@@ -67,7 +67,7 @@ def load_epoch_index(csv_path: Path = EPOCH_CSV, supplement: Path | None = None)
 #                  since 2026-08-27 also GPT-5.5 / Gemini 3.1 Pro / Grok 4.20, so
 #                  every model the dashboard runs sits on Graph 4's ladder)
 #   g4_gapfiller   code/eci_scores.py GAP_FILLERS (the +2 137/143 gap-fillers)
-#   pandemic_smoke code/pandemic_smoke.py SMOKE_MODELS
+#   pandemic_smoke archive/litellm-runners/pandemic_smoke.py SMOKE_MODELS
 #   graph3_dash    code/make_demo_graph3.py DASH_MODELS (ForecastBench display names)
 #
 # architecture: public facts only -- never guessed. One of:
@@ -144,7 +144,8 @@ _ROWS = [
     # claude-sonnet seat of their own; GPT-5.5 Pro leaves the panel. Probed on
     # the box the same day: max (adaptive) reasoning accepted, priced by
     # litellm 1.96.2, and -- like Fable 5.1 -- a forced tool_choice refused
-    # (redlines/llm.py: NO_FORCED_TOOL_CHOICE). Not on Graph 4's ladder.
+    # (the litellm loop's NO_FORCED_TOOL_CHOICE; pi never forces one). Not on
+    # Graph 4's ladder.
     ("claude-opus-5-5",     "claude-opus",   "Opus 5.5",        "anthropic/claude-opus-5-5",                                None,                          "Claude Opus 5.5",           "#4f5bd5",  "undisclosed", []),
     ("claude-sonnet-5-5",   "claude-sonnet", "Sonnet 5.5",      "anthropic/claude-sonnet-5-5",                              None,                          "Claude Sonnet 5.5",         "#d4892a",  "undisclosed", []),
 ]

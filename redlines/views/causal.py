@@ -2,7 +2,7 @@
 
 The StarSim causal bench -- data/causal/, the locked dataset of 2026-08-28
 from the ForecastBench-Sim ICLR work (iclr-2026 repo, tag causal-v4-locked;
-generating code frozen under code/causal/). One SIR population of 5,000
+generating code frozen under archive/causal/). One SIR population of 5,000
 agents (starsim 3.3.4) with its parameters stated and its first twenty days
 shown; a model forecasts the new infections by day 40 and day 60 as five
 quantiles, once with no intervention and once given a day-21 vaccination
@@ -88,7 +88,7 @@ def build(data=DATA):
     return {
         "source": {
             "bench": "StarSim single-region causal bench, locked dataset 2026-08-28 (data/causal/README.md)",
-            "upstream": "iclr-2026 repo, results/causal/data at tag causal-v4-locked; code frozen under code/causal/",
+            "upstream": "iclr-2026 repo, results/causal/data at tag causal-v4-locked; code frozen under archive/causal/",
             "file": "data/causal/results/eci_vs_pooled.csv",
             "eci": "data/causal/models.csv (Epoch Capabilities Index as published 2026-08-27; see redlines/roster.py)",
         },

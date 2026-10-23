@@ -21,7 +21,7 @@ numbers the spec's pass bar was first met on, results_2026-08-20.jsonl); the
 per-pair detail behind each dot is carried for the tooltips.
 
 Which run: RUNS below, newest first that exists -- the roster run
-(code/observational/run_roster.py: the 24-model ECI roster through
+(archive/litellm-runners/run_roster.py: the 24-model ECI roster through
 OpenRouter) when it has been made, else the 2026-08-20 four-Claude run. A
 model's ECI is the roster's (redlines.roster), never the registry's pinned
 vintage -- see that module for why.

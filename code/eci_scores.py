@@ -19,7 +19,7 @@ from redlines.registry import (  # noqa: E402
     MODELS as _MODELS,
 )
 
-# ── Demo model set: (litellm model_id, label, official Epoch name, access) ────
+# ── Demo model set: (model_id, label, official Epoch name, access) ──────────
 # ECI is looked up from the CSV via the Epoch name -- no hand-copied numbers.
 # Reconstructed from redlines.registry.MODELS; order matches the original
 # literal exactly (both are ascending-ECI, and every value here is distinct).

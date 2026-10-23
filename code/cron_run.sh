@@ -73,14 +73,14 @@
 #   file (and never overrides a variable already set), so the run works whether
 #   or not this script sourced it first.
 #
-#   PY just has to be an interpreter with litellm — `pip install -e '.[acquire]'`
-#   in any venv. It points at the xrisk-canaries venv on this box only because
-#   that is where litellm was already installed; override with REDLINES_PY.
+#   PY just has to be an interpreter with fri-forecaster — `pip install -e .
+#   -e ./packages/fri-forecaster` in any venv. Without one it falls back to the
+#   xrisk-canaries venv; override with REDLINES_PY.
 set -euo pipefail
 
-# The repo is wherever this script lives; PY is any interpreter with litellm
-# (`pip install -e '.[acquire]'`): the repo's own venv when there is one, else
-# whatever REDLINES_PY names.
+# The repo is wherever this script lives; PY is any interpreter with
+# fri-forecaster (`pip install -e . -e ./packages/fri-forecaster`): the repo's
+# own venv when there is one, else whatever REDLINES_PY names.
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if [ -z "${REDLINES_PY:-}" ] && [ -x "$REPO/.venv/bin/python" ]; then
     REDLINES_PY="$REPO/.venv/bin/python"
@@ -155,8 +155,7 @@ PANEL="$(sed -n 's/^panel: //p' "$LOG" | tail -1)"
 # six-month capability scenarios in one call, on THE PANEL (the four highest-
 # ECI models; --model-set defaults to it). 2,520 probabilities a call, so two
 # workers (three rate-limit the Anthropic endpoints when anything else runs on
-# this box) and a 30-minute request timeout (GPT-5.5 Pro overran litellm's
-# ten in the pilot).
+# this box).
 # ONE ELICITATION PER MODEL since 2026-09-02 (a project decision): the repeats
 # bought a re-asking spread nobody reads as accuracy, and the budget goes to
 # the agentic harness instead -- every model now searches iteratively and
@@ -164,13 +163,10 @@ PANEL="$(sed -n 's/^panel: //p' "$LOG" | tail -1)"
 # call is longer and dearer than it was. 4 models x 1 = 4 calls. The views
 # draw no interval on a single-draw day; the dots and the median are the
 # reading.
-# THE LOOP is each condition's own (experiments/airo.toml `harness`):
-# agent-box's pi since combined-v9 (2026-10-16; redlines/pi_loop.py, three
-# hours a call, REDLINES_PI_TIMEOUT), so the env file must give FORECASTER_PI
-# (pi 0.99.2's cli.js) and a PATH with node on it (cron's own PATH has none).
-# The request timeout here is the litellm loop's, which the axes experiments
-# run.
-export REDLINES_LLM_TIMEOUT="${REDLINES_LLM_TIMEOUT:-1800}"
+# THE LOOP is agent-box's pi (since combined-v9, 2026-10-16, and the only
+# one since 2026-10-22; redlines/pi_loop.py, three hours a call,
+# REDLINES_PI_TIMEOUT), so the env file must give FORECASTER_PI (pi 0.99.2's
+# cli.js) and a PATH with node on it (cron's own PATH has none).
 # THE RUNS: one run_unified per due group (an experiment's conditions that
 # ask one scenario set and write to one place), ten calls at a time. The
 # runner exits non-zero when a pooled condition's call failed -- the date
@@ -195,6 +191,17 @@ while read -r exp dest conds; do
     args=()
     for c in $conds; do args+=(--condition "$c"); done
     echo "=== $exp ($dest): $conds ==="
+    # Ordinary groups return an empty path without polling or calling Jev.
+    # A news shadow must get a fresh complete poll/reduction, never the old
+    # experimental archive. Its failure does not withhold normal publication.
+    if news_snapshot="$("$PY" code/prepare_recent_news.py --experiment "$exp" "${args[@]}" </dev/null)"; then
+        [ -z "$news_snapshot" ] || args+=(--news-snapshot "$news_snapshot")
+    else
+        echo "ERROR: $exp ($dest) news preparation failed; skipping $conds (no fallback)."
+        notify "AIRO $exp news preparation FAILED" "Skipped $conds; no stale cache used. log: $LOG" high warning
+        [ "$dest" != publish ] || WITHHELD=1
+        continue
+    fi
     if "$PY" code/run_unified.py --experiment "$exp" "${args[@]}" --workers 10 </dev/null; then
         [ "$dest" = publish ] && PUBLISHED=1
     elif [ "$dest" = publish ]; then
@@ -240,9 +247,7 @@ FINISHED=1
 notify "AIRO run $STAMP published" "$(grep -E 'ok, [0-9]+ failed' "$LOG" | tail -1 | sed 's/ -> .*//'). Panel: $PANEL" low white_check_mark
 
 # THE SHADOW (2026-10-14 to 2026-10-21) ran the published instrument a second
-# time through the other loop, after publication, when the env file set
-# REDLINES_SHADOW_HARNESS. It has had no run to make since combined-v10: the
-# minimal instrument runs only through pi, the published loop. A loop
-# comparison is now an experiment of its own (experiments/<name>.toml, a
-# condition with another `harness`, publish = false), compared with
-# code/compare_harness.py.
+# time through the litellm loop, after publication, when the env file set
+# REDLINES_SHADOW_HARNESS. It had no run to make after combined-v10, and the
+# litellm loop left the repo on 2026-10-22 (archive/compare_harness.py
+# compared the two).

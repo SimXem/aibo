@@ -162,10 +162,10 @@ function EciTrendChart({ eci, variants, active, onPick }) {
         })}
       </svg>
       {hv && (
-        <div style={{ position: "absolute", left: Math.min(hv.x / W * 100, 65) + "%", top: Math.max(0, (hv.y / H) * 100 - 18) + "%", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "6px 9px", boxShadow: "var(--shadow)", pointerEvents: "none", fontSize: 12, zIndex: 5, whiteSpace: "nowrap" }}>
+        <PointTooltip box={box} x={hv.x} y={hv.y}>
           <div style={{ fontWeight: 600 }}>{hv.title}</div>
           {hv.lines.map(t => <div key={t} className="mono" style={{ color: "var(--ink-soft)" }}>{t}</div>)}
-        </div>
+        </PointTooltip>
       )}
     </div>
   );
