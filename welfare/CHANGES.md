@@ -105,20 +105,20 @@ Checks: the full `pytest` suite passes (441 passed, 26 skipped). AIRO is byte-id
 
 ## Today's value (2026-10-23)
 
-Each question in `data/welfare_questions.json` has a `today` entry (`value`, `year`, `source`; listed under `provenance.added_here`, explained in `provenance.today_note`). The view passes it as the question's `marks`, and the Timeline and the horizon chart draw it as a faint dashed line labelled "Today (2026): value". The models never see it: the welfare dry-run prompt is byte-identical with and without it.
+Each question in `data/welfare_questions.json` has a `today` entry (`value`, `year`, `source`; listed under `provenance.added_here`, explained in `provenance.today_note`). The view passes it as the question's `marks`, and the Timeline and the horizon chart draw it as a faint dashed line labelled "Today (period): value". The models never see it: the welfare dry-run prompt is byte-identical with and without it.
 
-The values are 2026's, on the series and definitions the questions resolve on, fetched on 2026-10-23:
+The values are on the series and definitions the questions resolve on, fetched on 2026-10-23: life expectancy in 2026, and growth as the questions measure it, annualized over the latest five-year period, 2022–2026:
 
-| Question | 2026 | Kind | Latest actual | Source |
+| Question | Line | Kind | Latest actual | Source |
 |---|---|---|---|---|
 | U.S. life expectancy | 79.8 | UN medium-variant projection | 79.3 (2023) | UN WPP 2024 via [Our World in Data](https://ourworldindata.org/grapher/life-expectancy-unwpp) |
 | High-income life expectancy | 81.9 | UN medium-variant projection | 81.4 (2023) | same |
 | Low-income life expectancy | 65.5 | UN medium-variant projection | 64.9 (2023) | same |
-| Advanced economies growth | 2.1% | IMF projection | 2.0% (2025) | IMF WEO October 2026, Table 1.1 |
-| EMDE growth | 3.7% | IMF projection | 4.5% (2025) | same |
+| Advanced economies growth | 2.16% (2022–2026) | ((1+g1)…(1+g5))^(1/5) − 1 over 3.0, 1.7, 2.0, 2.0, 2.1; 2026 projected | 2.0% (2025) | IMF WEO October 2026, Online Table A1 |
+| EMDE growth | 4.30% (2022–2026) | the same over 4.3, 4.5, 4.5, 4.5, 3.7; 2026 projected | 4.5% (2025) | same |
 
 - Life expectancy is period life expectancy at birth, as the questions define it. OWID's income groups may differ slightly from the World Bank FY2026 list the questions fix; the pilot's rationale names Russia as one difference.
-- Growth is annual real GDP growth on the IMF's PPP-weighted group aggregates, as the questions resolve. The questions ask a five-year annualized rate, and the line shows a single year.
+- Growth uses the questions' formula on the IMF's PPP-weighted group aggregates, from the published one-decimal annual rates. 2022 is the newest start that ends the window in 2026; 2021–2025 would include the pandemic rebound (6.2% and 7.0%).
 - Refresh these when the UN publishes WPP 2026 (OWID expects to update in 2027) or the IMF publishes the April 2027 WEO.
 
 ## The preview

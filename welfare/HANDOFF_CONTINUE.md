@@ -131,7 +131,7 @@ These are candidates for your work. Ask the user before changing AIRO wording.
 - **No per-question rationales:** the minimal instrument has no debrief, so the rationale panel shows each call's batch rationale.
 - **Timeline starts empty:** one point per question until a second welfare run.
 - **Not served anywhere:** `welfare.html` isn't published by any script. Wiring that in is deploying, so it's the user's decision.
-- **Today's values:** the dashed lines' numbers in `data/welfare_questions.json` (`today`) are 2026's from UN WPP 2024 via OWID and the IMF's October 2026 WEO, fetched 2026-10-23 (see CHANGES.md). Refresh them when either source updates.
+- **Today's values:** the dashed lines' numbers in `data/welfare_questions.json` (`today`) are life expectancy in 2026 (UN WPP 2024 via OWID) and growth annualized over 2022–2026 (IMF WEO October 2026), fetched 2026-10-23 (see CHANGES.md). Refresh them when either source updates.
 - **Invented preview data:** `welfare-preview.html` contains invented Oct 22 data, stated in its header and in `CHANGES.md`. Keep it that way.
 
 **First live run.** This is the user's call, and it costs money:

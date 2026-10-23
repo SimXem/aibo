@@ -21,7 +21,7 @@
    "today"
   ],
   "note": "The pilot's generator (code/build_welfare_page.py upstream) is not in this repo; the question text and resolution criteria are copied from the published pilot page.",
-  "today_note": "today: each question's own series in 2026, on the definitions the questions resolve on, drawn as a faint dashed line on the Timeline and the horizon chart (2026-10-23; fetched that day). Not shown to the models. Life expectancy: period life expectancy at birth, UN World Population Prospects 2024 via Our World in Data (life-expectancy-unwpp; its income groups are OWID's, which may differ slightly from the World Bank FY2026 list the questions fix). The UN's estimates end in 2023, so 2026 is its medium-variant projection. Growth: annual real GDP growth, IMF World Economic Outlook October 2026, Table 1.1, PPP-weighted group aggregates; 2026 is the IMF's projection. A question asks a five-year annualized rate; the line is the single year's."
+  "today_note": "today: each question's own series in 2026, on the definitions the questions resolve on, drawn as a faint dashed line on the Timeline and the horizon chart (2026-10-23; fetched that day). Not shown to the models. Life expectancy: period life expectancy at birth, UN World Population Prospects 2024 via Our World in Data (life-expectancy-unwpp; its income groups are OWID's, which may differ slightly from the World Bank FY2026 list the questions fix). The UN's estimates end in 2023, so 2026 is its medium-variant projection. Growth: the questions' own measure, the annualized change over a five-year period, ((1+g1)...(1+g5))^(1/5) - 1, over 2022-2026, from the annual real GDP growth of IMF World Economic Outlook October 2026, Online Table A1 (PPP-weighted group aggregates, as published to one decimal); 2026 is the IMF's projection."
  },
  "groups": [
   {
@@ -152,9 +152,9 @@
    "text": "What will be the annualized change, in percent, in real gross domestic product (GDP) for advanced economies over each of the following five-year periods: 2026 through 2030 (horizon 2030); 2046 through 2050 (horizon 2050)?",
    "criteria": "This question will be resolved using annual real GDP growth figures for advanced economies reported in the IMF World Economic Outlook, with the annualized change for each period calculated as ((1+g1)(1+g2)(1+g3)(1+g4)(1+g5))^(1/5) - 1 over the period's five calendar years. Each period will resolve using the IMF WEO edition published in October of the calendar year following the period's end year (e.g., the 2026-2030 period resolves using the October 2031 WEO). If that edition is unavailable, FRI will use the next available WEO. Resolution uses IMF's PPP-weighted group aggregates (the default in the WEO database). If the IMF World Economic Outlook is discontinued, FRI will use the World Bank's World Development Indicators or the closest available equivalent; World Bank WDI uses USD-weighted aggregation, which historically yields growth figures approximately 0.3-0.5 percentage points lower than IMF's PPP-weighted figures. Give your percentiles for the world in which the question resolves.",
    "today": {
-    "value": 2.1,
-    "year": 2026,
-    "source": "IMF World Economic Outlook, October 2026, Table 1.1: advanced economies, projection for 2026 (2025: 2.0)"
+    "value": 2.159,
+    "year": "2022\u20132026",
+    "source": "IMF World Economic Outlook, October 2026, Online Table A1: advanced economies, annualized over 2022-2026 from 3.0, 1.7, 2.0, 2.0 and 2.1 (2026 projected)"
    }
   },
   {
@@ -181,9 +181,9 @@
    "text": "What will be the annualized change, in percent, in real gross domestic product (GDP) for emerging market and developing economies over each of the following five-year periods: 2026 through 2030 (horizon 2030); 2046 through 2050 (horizon 2050)?",
    "criteria": "This question will be resolved using annual real GDP growth figures for emerging market and developing economies reported in the IMF World Economic Outlook, with the annualized change for each period calculated as ((1+g1)(1+g2)(1+g3)(1+g4)(1+g5))^(1/5) - 1 over the period's five calendar years. Each period will resolve using the IMF WEO edition published in October of the calendar year following the period's end year (e.g., the 2026-2030 period resolves using the October 2031 WEO). If that edition is unavailable, FRI will use the next available WEO. Resolution uses IMF's PPP-weighted group aggregates (the default in the WEO database). If the IMF World Economic Outlook is discontinued, FRI will use the World Bank's World Development Indicators or the closest available equivalent; World Bank WDI uses USD-weighted aggregation, which historically yields growth figures approximately 0.3-0.5 percentage points lower than IMF's PPP-weighted figures. Give your percentiles for the world in which the question resolves.",
    "today": {
-    "value": 3.7,
-    "year": 2026,
-    "source": "IMF World Economic Outlook, October 2026, Table 1.1: emerging market and developing economies, projection for 2026 (2025: 4.5)"
+    "value": 4.3,
+    "year": "2022\u20132026",
+    "source": "IMF World Economic Outlook, October 2026, Online Table A1: emerging market and developing economies, annualized over 2022-2026 from 4.3, 4.5, 4.5, 4.5 and 3.7 (2026 projected)"
    }
   }
  ]

@@ -355,7 +355,7 @@ class TestView(unittest.TestCase):
         self.assertEqual(t["marks"][0]["v"], 79.758)
         self.assertEqual(t["marks"][0]["label"], "Today (2026): 79.8")
         self.assertTrue(t["marks"][0]["inside"])
-        self.assertEqual(g["marks"][0]["label"], "Today (2026): 3.7%")
+        self.assertEqual(g["marks"][0]["label"], "Today (2022–2026): 4.3%")
         self.assertTrue(all(q["marks"] for q in b["GRAPH1"]["questions"]))
         # The FAQ's prompt is the welfare baseline's, and the rationales are each call's.
         self.assertIn("Deliver the percentiles", b["METHOD"]["prompt"])
