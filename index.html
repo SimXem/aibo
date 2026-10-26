@@ -921,10 +921,6 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
         </div>
 
         <TimelineChart key={hz} q={q} snapshots={snapshots} horizon={hz} scale={scale} />
-        <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "6px 0 0" }}>
-          {variants.length > 0 ? "From Oct 21, colors identify prompt conditions; hover the legend to read each prompt. " : ""}
-          Hover or select a point to see model forecasts.
-        </p>
         {loss && <>
           <CountingWindow info={TL.instrumentInfo} horizon={hz} />
           <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>Each run starts its incident window on its own elicitation date. A fixed-year forecast therefore covers a changing interval; movement is not solely a change of belief about the same event.</p>
