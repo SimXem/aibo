@@ -209,9 +209,17 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
         ))}
         {axisEnd > days[n - 1] && W - pad.r - xs[n - 1] >= labelGap && <text x={W - pad.r} y={H - 18} textAnchor="end"
           fontSize="12" fill="var(--ink-faint)" fontWeight="600">Dec 31</text>}
-        {showChange && <line x1={xDay(changeDay)} x2={xDay(changeDay)}
-          y1={pad.t} y2={H - pad.b} stroke="#cf222e" strokeWidth="1.5"
-          strokeDasharray="1 4" strokeLinecap="round" />}
+        {showChange && <g>
+          <line x1={xDay(changeDay)} x2={xDay(changeDay)}
+            y1={pad.t} y2={H - pad.b} stroke="#cf222e" strokeWidth="1.5"
+            strokeDasharray="1 4" strokeLinecap="round" />
+          <text x={xDay(changeDay) + 8} y={H - pad.b - 38}
+            fill="#cf222e" fontSize="11" pointerEvents="none">
+            <tspan x={xDay(changeDay) + 8}>Oct 21, 2026</tspan>
+            <tspan x={xDay(changeDay) + 8} dy="14">Methodology change to add</tspan>
+            <tspan x={xDay(changeDay) + 8} dy="14">more prompting strategies</tspan>
+          </text>
+        </g>}
         {/* Historical model answers are revealed only for the active date. */}
         {series.map(s => (
           <g key={s.label}>
@@ -262,10 +270,6 @@ function TimelineChart({ q, snapshots, horizon, scale }) {
           </g>
         ))}
       </svg>
-
-      {showChange && <div style={{ color: "#cf222e", fontSize: 11, marginTop: 2 }}>
-        Oct 21, 2026: Methodology change to add more prompting strategies
-      </div>}
 
       {hovered && (
         <PointTooltip anchor={active.anchor}>
