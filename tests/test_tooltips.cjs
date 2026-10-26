@@ -71,3 +71,28 @@ test('all app tooltip callers use the shared implementation', () => {
     assert.ok(!source.includes('position: "absolute"'), file);
   }
 });
+
+test('timeline rejects shadow/unknown conditions in retained snapshots and aggregates', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../web/demo/19-live-timeline.jsx'), 'utf8')
+    .split('/* ---------------- time-series chart ---------------- */')[0];
+  const context = vm.createContext({ window: { __TIMELINE__: { variants: [{ id: 'ai-banned' }] } } });
+  vm.runInContext(source, context);
+  const values = v => ({ '2030': [v] });
+  const answers = v => ({ '2030': [{ A: v, B: v + 2 }] });
+  const q = { horizons: ['2030'], median: values(99), rerun: values(null),
+    variants: { none: values(2), independent: values(4), 'ai-banned': values(99), 'future-shadow': values(88) },
+    variantModels: { none: answers(1), independent: answers(3), 'ai-banned': answers(99), 'future-shadow': answers(88) },
+    series: ['A', 'B'].map(label => ({ label, ps: values(99), draws: values([99]), lo: values(99), hi: values(99) })) };
+  context.q = q;
+  context.snapshots = [{ date: '2026-10-21' }];
+  assert.equal(vm.runInContext('tlVariants(q, "2030", snapshots).map(v => v.id).join(",")', context), 'none,independent');
+  const clean = vm.runInContext('tlPublicQuestion(q)', context);
+  assert.equal(clean.median['2030'][0], 3); // median of public-only model means 2,4
+  assert.equal(clean.series[0].ps['2030'][0], 2);
+  assert.equal(clean.series[1].ps['2030'][0], 4);
+  assert.equal(Object.keys(clean.variants).join(','), 'none,independent');
+  assert.equal(Object.keys(clean.variantModels).join(','), 'none,independent');
+  assert.equal(q.median['2030'][0], 99); // do not mutate the stored snapshot
+  context.clean = clean;
+  assert.equal(vm.runInContext('tlPublicQuestion(clean) === clean', context), true);
+});
