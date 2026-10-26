@@ -362,7 +362,29 @@ class TestTimelineConditions(unittest.TestCase):
         self.assertNotIn("ai-banned", pooled)                              # the sixth is never shown
         self.assertEqual(legend[0]["text"], ru.VARIANTS["none"])
         old = condition_legend({"retired": "recent"})
-        self.assertEqual((old[-1]["id"], old[-1]["text"]), ("retired", ru.VARIANTS["recent"]))
+        self.assertEqual([e["id"] for e in old], pooled)  # unknown IDs fail closed
+        self.assertEqual([e["id"] for e in condition_legend({"ai-banned": "ai-banned"})], pooled)
+
+    def test_shadow_rows_never_enter_current_or_legacy_timeline_aggregates(self):
+        from redlines.views.timeline import public_timeline_rows, condition_cells
+        from redlines.runlog import pool
+        mk = lambda c, version, **kw: {
+            "condition": c, "instrument_version": version, "label": "A",
+            "question_id": "catastrophe:ai", "run_date": "2026-10-21",
+            "elicited_at": "2026-10-21T12:00:00+00:00",
+            "forecasts": [{"horizon": "2030", "probability": 0.01}], **kw}
+        for version in ("legacy", "airo-incidents-prospective-v3"):
+            public = [mk("none", version), mk("independent", version)]
+            shadows = [mk("ai-banned", version),  # even without pooled stamp
+                       mk("recent-shadow-noairo", version),
+                       mk("future-shadow", version),
+                       mk("critical", version, pooled=False),
+                       mk("recent", version, publish=False)]
+            kept = public_timeline_rows(public + shadows)
+            self.assertEqual(kept, public)
+            self.assertEqual(pool(kept)["forecasts"][0]["probability"], 0.01)
+            self.assertEqual(set(condition_cells(public + shadows)[("2026-10-21", "catastrophe:ai")]),
+                             {"none", "independent"})
 
 
 class TestPooledRows(unittest.TestCase):

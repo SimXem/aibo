@@ -134,6 +134,18 @@ def noise_floor(by_day, days):
     return None
 
 
+def public_timeline_rows(rows):
+    """Fail closed: only the published experiment's pooled conditions may plot.
+
+    Apply before the current/legacy split: old instruments can contain shadow
+    calls too. Keep raw rows in downloads, never in displayed aggregates.
+    """
+    allowed = set(load_experiment(PUBLISHED)["pooled"])
+    return [r for r in rows
+            if r.get("pooled", True) and r.get("publish", True)
+            and (r.get("condition") or r.get("variant") or "none") in allowed]
+
+
 def condition_cells(rows):
     """{(date, question_id): {condition: {horizon: {model: answer, in %}}}}
     for dates asked under more than one condition (redlines.experiments;
@@ -141,8 +153,8 @@ def condition_cells(rows):
     than once that day gets the mean. An old row's condition is its prompt
     variant (redlines.logs.read_row)."""
     by = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(list))))
-    for r in rows:
-        v = r.get("condition") or "none"
+    for r in public_timeline_rows(rows):
+        v = r.get("condition") or r.get("variant") or "none"
         for f in r["forecasts"]:
             by[(elicitation_date(r), r["question_id"])][v][f["horizon"]][r["label"]].append(100 * f["probability"])
     return {key: {v: {h: {m: round(statistics.mean(ps), 3) for m, ps in ms.items()} for h, ms in hs.items()}
@@ -158,11 +170,11 @@ def condition_variants(rows):
 
 def condition_legend(variants):
     """The variant dots' labels and hover text: the published experiment's
-    pooled conditions in its order, then any other the rows carry. `text` is
+    pooled conditions in its order, never arbitrary IDs from the rows. `text` is
     the instruction its variant adds. An unpooled condition (the sixth call)
     is never shown."""
     config = load_experiment(PUBLISHED)["conditions"]
-    ids = [c for c, cfg in config.items() if cfg["pooled"]] + [c for c in variants if c not in config]
+    ids = [c for c, cfg in config.items() if cfg["pooled"] and cfg["publish"]]
     return [{"id": c, "text": VARIANTS.get(variants.get(c) or config[c]["variant"])} for c in ids]
 
 
@@ -302,7 +314,7 @@ def build():
     # severity legs) re-versions the whole joint call, so the loss rows below
     # use only current-version rows; the headline questions, whose wording did
     # not change, show their earlier readings as explicitly legacy points.
-    all_rows = load_runlog(panel_only=False)
+    all_rows = public_timeline_rows(load_runlog(panel_only=False))
     current_rows_all = instrument_rows(all_rows)
     legacy_probability_ids = {q["id"] for q in qs if not q.get("cause")}
     legacy_rows = [r for r in all_rows

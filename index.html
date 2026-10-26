@@ -518,7 +518,8 @@ const tlFmtRatio = r => (r == null || !isFinite(r) ? "—" : "×" + (r >= 10 ? r
 const tlFmtFor = q => (q && q.value_kind === "loss" ? tlFmtBig : tlFmt);
 
 // Colors belong to prompt conditions, never to models or their array order.
-// New condition IDs stay neutral until explicitly assigned a color here.
+// This is an explicit publication allowlist, not a fallback color registry.
+// Shadow/unknown conditions in retained snapshots must never reach the UI.
 const TL_CONDITION_START = "2026-10-21";
 const TL_CONDITIONS = {
   none: { label: "Baseline", color: "#0969da" },
@@ -529,13 +530,45 @@ const TL_CONDITIONS = {
 };
 const tlVariants = (q, horizon, snapshots) => {
   const info = Object.fromEntries(((TL && TL.variants) || []).map(v => [v.id, v]));
-  return Object.entries(q.variants || {}).map(([id, hs]) => ({
-    id, ...(TL_CONDITIONS[id] || { label: id, color: "var(--ink-soft)" }),
+  return Object.entries(q.variants || {}).filter(([id]) => Object.hasOwn(TL_CONDITIONS, id)).map(([id, hs]) => ({
+    id, ...TL_CONDITIONS[id],
     vals: (hs[horizon] || []).map((v, i) => snapshots[i].date >= TL_CONDITION_START ? v : null),
     models: ((q.variantModels || {})[id] || {})[horizon] || [],
     text: (info[id] || {}).text,
   })).filter(v => v.vals.some(val => val != null));
 };
+
+// Old published snapshots may include a shadow in both condition dots and
+// pooled model means. Repair the displayed aggregates from public condition
+// answers on affected dates only; leave the immutable snapshot/downloads alone.
+function tlPublicQuestion(q) {
+  const hidden = Object.keys(q.variants || {}).filter(id => !Object.hasOwn(TL_CONDITIONS, id));
+  if (!hidden.length) return q;
+  const clean = JSON.parse(JSON.stringify(q));
+  for (const h of q.horizons) {
+    for (let i = 0; i < (q.median[h] || []).length; i++) {
+      if (!hidden.some(id => q.variants[id][h]?.[i] != null)) continue;
+      for (const model of clean.series) {
+        const values = Object.keys(TL_CONDITIONS).map(id =>
+          q.variantModels?.[id]?.[h]?.[i]?.[model.label]).filter(v => v != null);
+        const mean = values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length * 1000) / 1000 : null;
+        model.ps[h][i] = mean;
+        model.draws[h][i] = values.length ? values : null;
+        model.lo[h][i] = values.length ? Math.min(...values) : null;
+        model.hi[h][i] = values.length ? Math.max(...values) : null;
+      }
+      const values = clean.series.map(s => s.ps[h][i]).filter(v => v != null).sort((a, b) => a - b);
+      const mid = Math.floor(values.length / 2);
+      clean.median[h][i] = values.length ? Math.round((values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2) * 1000) / 1000 : null;
+      clean.rerun[h][i] = null;
+    }
+  }
+  for (const id of hidden) {
+    delete clean.variants[id];
+    delete clean.variantModels?.[id];
+  }
+  return clean;
+}
 
 /* ---------------- time-series chart ---------------- */
 // Before Oct 21 the Baseline median is blue until hovered or selected; then
@@ -871,7 +904,7 @@ function TimelinePanel(props = {}) {
 }
 function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI catastrophe", sub = "Forecasts over time" } = {}) {
   const snapshots = TL.snapshots;
-  const q = TL.questions.find(x => x.id === qid) || TL.questions[0];
+  const q = useMemo(() => tlPublicQuestion(TL.questions.find(x => x.id === qid) || TL.questions[0]), [qid]);
   // The horizon picker, Graph 2's toggle: opens on 2030 like every other
   // horizon toggle (Nick, 2026-08-27), and is what the line, the dots, the
   // numbers below and the table all read.
