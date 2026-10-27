@@ -46,7 +46,7 @@ def freeciv_pairs(eval_path, questions_path):
     rows = []
     for r in results:
         q = qm.get((r.get("game_id"), r["question_id"]), {})
-        # The corpus base rate, not the eval row's own: code/run_eval.py
+        # The corpus base rate, not the eval row's own: archive/litellm-runners/run_eval.py
         # stamped r["class_base_rate"] through the same broken join, so the
         # row's copy is wrong on 826 of 1,739 rows.
         br = q.get("class_base_rate", CLIM_FREECIV_COMBINED)

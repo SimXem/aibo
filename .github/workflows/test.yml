@@ -40,6 +40,7 @@ jobs:
         working-directory: packages/fri-forecaster
       - run: pip install -e '.[test]' -e './packages/fri-forecaster[dev]'
       - run: python -m pytest -q -rs
+      - run: node --test tests/test_tooltips.cjs
 
   # README promises that `build` and `assemble` round-trip to the tracked
   # bytes. Rebuild everything on a fresh checkout and fail if anything tracked

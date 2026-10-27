@@ -20,6 +20,12 @@ if [ "$1 $2" = "-m redlines.experiments" ]; then
     exit "${DUE_RC:-0}"
 fi
 if [ "$1" = "-c" ]; then echo "A, B"; exit 0; fi
+if [ "$1" = "code/prepare_recent_news.py" ]; then
+    if [[ "$*" == *"--condition recent-shadow-noairo"* ]]; then
+        [ "${NEWS_FAIL:-0}" = 0 ] || exit 1
+        echo "/private/snapshot.json"
+    fi
+fi
 if [ "$1" = "code/run_unified.py" ]; then
     for e in ${FAIL:-}; do [ "$3" = "$e" ] && exit 1; done
 fi
@@ -90,6 +96,22 @@ class TestCronDispatch(unittest.TestCase):
     def test_a_failed_unpublished_group_does_not(self):
         rc, calls, log = self.run_cron("airo publish none\nside aside a\n", FAIL="side")
         self.assertEqual(rc, 0, log)
+        self.assertEqual(calls[-1], "publish")
+
+    def test_friday_shadow_gets_snapshot_and_failure_does_not_hold_up_publication(self):
+        due = "airo publish recent\nairo aside recent-shadow-noairo\n"
+        rc, calls, log = self.run_cron(due)
+        self.assertEqual(rc, 0, log)
+        self.assertIn("code/run_unified.py --experiment airo --condition recent-shadow-noairo "
+                      "--news-snapshot /private/snapshot.json --workers 10", calls)
+        self.assertEqual(calls[-1], "publish")
+
+    def test_failed_news_preparation_skips_only_shadow(self):
+        rc, calls, log = self.run_cron("airo publish recent\nairo aside recent-shadow-noairo\n", NEWS_FAIL="1")
+        self.assertEqual(rc, 0, log)
+        runs = [c for c in calls if c.startswith("code/run_unified.py")]
+        self.assertEqual(runs, ["code/run_unified.py --experiment airo --condition recent --workers 10"])
+        self.assertIn("no fallback", log)
         self.assertEqual(calls[-1], "publish")
 
     def test_only_unpublished_groups_publish_nothing(self):

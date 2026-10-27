@@ -62,7 +62,7 @@ class PiLoopTest(unittest.TestCase):
         run = FakeRun({"forecasts": [], "rationale": "r"})
         self.call(run)
         kw = run.kw
-        self.assertEqual(kw["model"], "openai/gpt-6-astra")          # pi's id, not litellm's route
+        self.assertEqual(kw["model"], "openai/gpt-6-astra")          # pi's id, not the registry's route
         self.assertEqual(kw["thinking"], "xhigh")                    # redlines.llm.reasoning_for
         self.assertEqual((kw["min_research"], kw["floor_counts"], kw["max_turns"]), (10, "returned", 40))
         self.assertTrue(kw["withhold_final"])
@@ -125,7 +125,7 @@ class HarnessSettingTest(unittest.TestCase):
         self.assertEqual({c["harness"] for c in airo["conditions"].values()}, {"pi"})   # since combined-v9
         none = {k: airo["conditions"]["none"][k] for k in experiments.DEFAULTS}
         self.assertNotEqual(experiments.condition_sha256(none),                         # another loop is
-                            experiments.condition_sha256(dict(none, harness="litellm")))  # another condition
+                            experiments.condition_sha256(dict(none, harness="other")))    # another condition
 
     def test_the_runner_refuses_what_cannot_run(self):
         import tempfile
@@ -136,7 +136,7 @@ class HarnessSettingTest(unittest.TestCase):
             r = subprocess.run([sys.executable, str(REPO / "code" / "run_unified.py"), "--experiment", f.name,
                                 "--dry-run"], capture_output=True, text=True, cwd=REPO)
         self.assertNotEqual(r.returncode, 0)
-        self.assertIn("the minimal instrument runs through pi", r.stderr)
+        self.assertIn("harness 'litellm' is not one of ('pi',)", r.stderr)
 
 
 if __name__ == "__main__":

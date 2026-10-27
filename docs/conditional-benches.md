@@ -23,7 +23,7 @@ re-run without the original repositories.
 | Domain | Météo-France station temperatures, 30-day horizon | One StarSim SIR population, 5,000 agents, parameters stated |
 | Score | Rank ρ, implied vs measured association, 21 pairs | CRPS skill vs climatology, pooled over three coverage rungs |
 | Headline | ρ = +0.78 vs ECI over 32 models; the frontier sits at +0.84–0.88 against a noise ceiling of 0.94 | ρ = +0.68 vs ECI (p = 0.0003, n = 23); no gradient without the intervention (ρ = +0.27) |
-| Where | `code/observational/`, `data/observational/`, `results/observational/` | `code/causal/`, `data/causal/` |
+| Where | `code/observational/`, `data/observational/`, `results/observational/` | `archive/causal/`, `data/causal/` |
 | View | `redlines/views/observational.py` → `results/observational_data.json` | `redlines/views/causal.py` → `results/causal_data.json` |
 | Page | `web/demo/45-conditional-benches.jsx` (`ObservationalPanel`, `CausalPanel`) | same |
 
@@ -102,7 +102,7 @@ cousin. No forecaster can be expected to beat it; the chart shades the band.
   the roster run of 2026-08-28: the same instrument on the 24 causal-roster
   models (3,240 calls, ~$45) and, in a second file, the eight other models on
   Graph 4's ladder (`data/observational/roster_extra.csv`; 1,080 calls, ~$11),
-  all through OpenRouter (`code/observational/run_roster.py`; pilots in
+  all through OpenRouter (`archive/litellm-runners/run_roster.py`; pilots in
   `results_roster*_pilot.jsonl` / `pilot_raw_roster*.txt`, read before each
   full run as the spec requires). 4,320/4,320 replies, none given up. The
   view draws this run — a model only once it has all 5 replies to every
@@ -127,10 +127,10 @@ independent samples; read it as descriptive.
 `data/causal/` is the **locked dataset** of 2026-08-28 from the
 ForecastBench-Sim ICLR work (an internal FRI checkout, `iclr-2026`, not
 published; its `results/causal/data` at tag `causal-v4-locked`; commits in
-`code/causal/UPSTREAM-COMMIT`). Its
+`archive/causal/UPSTREAM-COMMIT`). Its
 `MANIFEST.sha256` verifies in place — `tests/test_conditional_benches.py`
 checks it — and it is never regenerated into: a new run is a new directory.
-The generating code is frozen under `code/causal/` (`starsim_single/` is the
+The generating code is frozen under `archive/causal/` (`starsim_single/` is the
 v4 design that produced the dataset; `starsim_causal/` the runner, client and
 roster it builds on; `DESIGN.md` the record of v1–v3 and why each was
 retired). It depends on `forecastbench-sim` (`pandemic_world`, `fbsim_core`)

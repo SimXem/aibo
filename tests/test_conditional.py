@@ -65,8 +65,8 @@ def _load_runner():
     This used to stub `forecast.cruxgen._llm` and `.tools` into sys.modules,
     because importing the runner reached into the xrisk-canaries checkout. Those
     two modules were vendored here on 2026-08-28 (redlines/llm.py,
-    redlines/tools.py) and neither imports litellm at module scope, so the real
-    imports now resolve offline and the stub is gone.
+    redlines/tools.py) and both are stdlib-only, so the real imports now
+    resolve offline and the stub is gone.
     """
     spec = importlib.util.spec_from_file_location("run_unified", REPO / "code" / "run_unified.py")
     mod = importlib.util.module_from_spec(spec)

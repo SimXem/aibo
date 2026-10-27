@@ -144,7 +144,7 @@ class TestCountingInstrument(unittest.TestCase):
                                 for qs in by_group.values() for q in qs for h in horizons if h in q['horizons']]}
         from redlines import experiments
         condition = {**experiments.DEFAULTS, 'id': 'none', 'scenarios': 'data/combined_conditions.json',
-                     'pooled': True, 'sha256': 'fixture'}     # a standard call through litellm
+                     'pooled': True, 'sha256': 'fixture'}     # a standard call
         with patch.object(runner, 'call_tools', return_value=(answer, [])) as call:
             rows = runner.run_one_joint('fixture', 'fixture', groups, by_group, horizons,
                                        'after-midnight', 0, spec, scenarios, policies,

@@ -40,17 +40,20 @@ def _toml(text):
 
 class TestTheAiroExperiment(unittest.TestCase):
     def test_six_conditions_five_pooled_on_the_combined_set(self):
-        self.assertEqual(list(AIRO["conditions"]), ["none", "independent", "recent", "critical", "two-step", "ai-banned"])
+        self.assertEqual([cid for cid, c in AIRO["conditions"].items() if c["publish"]],
+                         ["none", "independent", "recent", "critical", "two-step", "ai-banned"])
         self.assertEqual(AIRO["pooled"], ["none", "independent", "recent", "critical", "two-step"])
         for c in AIRO["conditions"].values():
+            if not c["publish"]:
+                continue
             self.assertEqual((c["scenarios"], c["instrument"], c["harness"], c["model_set"], c["repeats"], c["publish"]),
                              ("data/combined_conditions.json", "minimal", "pi", "eci_topk", 1, True), c["id"])
             self.assertEqual(c["variant"], c["id"])               # the conditions are named for their prompts
         self.assertEqual(ru.set_protocol(ru.load_policies(ru.COMBINED)), "unified-joint-combined-v12")
-        # Every variant is asked: AIRO's one per condition, and since
+        # Every variant is asked: AIRO's one per published condition, and since
         # 2026-10-22 the two welfare wordings by experiments/welfare.toml.
         welfare = {c["variant"] for c in experiments.load("welfare")["conditions"].values()}
-        self.assertEqual(set(AIRO["conditions"]) | welfare, set(ru.VARIANTS))
+        self.assertEqual({cid for cid, c in AIRO["conditions"].items() if c["publish"]} | welfare, set(ru.VARIANTS))
 
     def test_the_sixth_is_unpooled_with_its_guard(self):
         sixth = AIRO["conditions"]["ai-banned"]
@@ -91,7 +94,7 @@ class TestTheAiroExperiment(unittest.TestCase):
         for name in ("axes", "paperaxes"):                       # the axes instruments: one standard call
             (c,) = experiments.load(name)["conditions"].values()
             self.assertEqual((c["variant"], c["instrument"], c["harness"], c["pooled"], c["publish"]),
-                             ("none", "standard", "litellm", True, True))
+                             ("none", "standard", "pi", True, True))
 
 
 class TestConditions(unittest.TestCase):
@@ -119,7 +122,7 @@ model_set = "frontier5"
         base = dict(experiments.DEFAULTS, scenarios="data/combined_conditions.json")
         h = experiments.condition_sha256(base)
         self.assertEqual(h, experiments.condition_sha256(dict(base, publish=True, repeats=3)))
-        for k, v in (("variant", "recent"), ("harness", "pi"), ("model_set", "frontier5"),
+        for k, v in (("variant", "recent"), ("harness", "other"), ("model_set", "frontier5"),
                      ("url_block_patterns", "x"), ("scenarios", "data/axes_conditions.json")):
             self.assertNotEqual(h, experiments.condition_sha256(dict(base, **{k: v})), k)
         self.assertEqual(AIRO["conditions"]["none"]["sha256"],
@@ -131,9 +134,8 @@ model_set = "frontier5"
                 ('[conditions.a]\nharnes = "pi"\n', "unknown setting"),
                 ('pooled = ["b"]\n[conditions.a]\n', "not conditions"),
                 ('pooled = ["a"]\n[conditions.a]\n', "pooled condition publishes"),
-                ('[conditions.a]\ninstrument = "minimal"\n', "minimal instrument runs through pi"),
-                ('[conditions.a]\nurl_block_patterns = "x"\n', "through pi only"),
-                ('harness = "pi"\n[conditions.a]\nurl_block_patterns = "(x"\n', "bad url_block_patterns"),
+                ('[conditions.a]\nharness = "litellm"\n', "harness 'litellm' is not one of"),
+                ('[conditions.a]\nurl_block_patterns = "(x"\n', "bad url_block_patterns"),
                 ('[conditions.a]\nvariant = "nope"\n', "unknown variant"),
                 ('[conditions.a]\nrepeats = 0\n', "repeats"),
                 ('', "no \\[conditions")):
@@ -150,7 +152,7 @@ class TestCadence(unittest.TestCase):
     """When the cron runs a condition, and what is due on a day."""
 
     def test_airo_runs_wednesdays_and_fridays_and_the_axes_by_hand(self):
-        self.assertEqual({tuple(c["cadence"]) for c in AIRO["conditions"].values()}, {("wed", "fri")})
+        self.assertEqual({tuple(c["cadence"]) for c in AIRO["conditions"].values() if c["publish"]}, {("wed", "fri")})
         for name in ("axes", "paperaxes"):
             self.assertEqual({c["cadence"] for c in experiments.load(name)["conditions"].values()}, {"manual"})
 
@@ -274,14 +276,14 @@ class TestRunOneJoint(unittest.TestCase):
             return {"forecasts": cells, "rationale": "r",
                     "eci_forecast": {"p10": 168, "p25": 170, "p50": 172, "p75": 175, "p90": 178}}, []
 
-        orig = ru.loop_for
-        ru.loop_for = lambda harness: fake
+        orig = ru.call_tools
+        ru.call_tools = fake
         try:
             rows = ru.run_one_joint("M", "anthropic/x", g, b, h, "2026-10-19T0000Z", 0, spec,
                                     pol["conditions"], pol, {**AIRO["conditions"][cid], **settings},
                                     "airo", today=today)
         finally:
-            ru.loop_for = orig
+            ru.call_tools = orig
         return rows, seen
 
     def test_rows_and_loop_settings(self):
@@ -363,7 +365,29 @@ class TestTimelineConditions(unittest.TestCase):
         self.assertNotIn("ai-banned", pooled)                              # the sixth is never shown
         self.assertEqual(legend[0]["text"], ru.VARIANTS["none"])
         old = condition_legend({"retired": "recent"})
-        self.assertEqual((old[-1]["id"], old[-1]["text"]), ("retired", ru.VARIANTS["recent"]))
+        self.assertEqual([e["id"] for e in old], pooled)  # unknown IDs fail closed
+        self.assertEqual([e["id"] for e in condition_legend({"ai-banned": "ai-banned"})], pooled)
+
+    def test_shadow_rows_never_enter_current_or_legacy_timeline_aggregates(self):
+        from redlines.views.timeline import public_timeline_rows, condition_cells
+        from redlines.runlog import pool
+        mk = lambda c, version, **kw: {
+            "condition": c, "instrument_version": version, "label": "A",
+            "question_id": "catastrophe:ai", "run_date": "2026-10-21",
+            "elicited_at": "2026-10-21T12:00:00+00:00",
+            "forecasts": [{"horizon": "2030", "probability": 0.01}], **kw}
+        for version in ("legacy", "airo-incidents-prospective-v3"):
+            public = [mk("none", version), mk("independent", version)]
+            shadows = [mk("ai-banned", version),  # even without pooled stamp
+                       mk("recent-shadow-noairo", version),
+                       mk("future-shadow", version),
+                       mk("critical", version, pooled=False),
+                       mk("recent", version, publish=False)]
+            kept = public_timeline_rows(public + shadows)
+            self.assertEqual(kept, public)
+            self.assertEqual(pool(kept)["forecasts"][0]["probability"], 0.01)
+            self.assertEqual(set(condition_cells(public + shadows)[("2026-10-21", "catastrophe:ai")]),
+                             {"none", "independent"})
 
 
 class TestPooledRows(unittest.TestCase):

@@ -275,17 +275,16 @@ function CondDeltaChart({ cell, onPick, picked, axisValues, ctx }) {
         const b = rows.find(r => r.id === hv);
         const i = rows.indexOf(b);
         const cond = (C.conditions || []).find(c => c.id === b.id) || {};
-        const top = ((pad.t + rowH * (i + baseRow)) / H) * 100;
         const desc = cond.description || "";
         const cut = desc.length > 900 ? desc.slice(0, 900).replace(/\s+\S*$/, "") + " …" : desc;
         return (
-          <div style={{ position: "absolute", top: `${top}%`, right: 8, transform: "translateY(-100%)", background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "10px 12px", boxShadow: "var(--shadow)", pointerEvents: "none", width: 460, maxWidth: narrow ? "calc(100% - 16px)" : "60%", zIndex: 5 }}>
+          <PointTooltip box={box} x={barVal(b) == null ? x0 : x(barVal(b))} y={barY(rowY(i))}>
             <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 3 }}>What the model was told{b.leapId ? <> · <span className="mono">{b.leapId}</span></> : null}</div>
             <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 6 }}>{b.label}</div>
             {cond.assume && <div style={{ fontSize: 12.5, color: "var(--ink)", marginBottom: 6 }}><strong>Condition.</strong> {cond.assume}</div>}
             {cut && <div style={{ fontSize: 12, color: "var(--ink-soft)", whiteSpace: "pre-wrap", lineHeight: 1.45 }}>{cut}</div>}
             {desc.length > 900 && <div style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 6 }}>click the row for the full text</div>}
-          </div>
+          </PointTooltip>
         );
       })()}
       {loss && <ExpectedLossNote />}

@@ -8,7 +8,7 @@ here, and a mislabeled decile method was a real bug in this codebase.
 
 No function here bakes in a climatology constant. The historical scripts
 disagreed on the FreeCiv climatology constant (0.0458 in
-archive/make_demo_data.py and code/run_eval.py vs. 0.045 in
+archive/make_demo_data.py and archive/litellm-runners/run_eval.py vs. 0.045 in
 code/make_demo_combined.py) — that constant belongs in redlines/config.py.
 stats.py stays constant-free; bss() below takes climatology's Brier score as
 an explicit argument.

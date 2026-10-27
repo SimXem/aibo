@@ -3,8 +3,8 @@
 
 Graph 4 (redlines/views/graph4.py) reads one CivBench eval file and one
 Starsim pandemic prediction file for the whole ladder. Adding a model means
-running only it through both simulators (code/run_eval.py --models ...
---out results/eval_<tag>; code/pandemic_smoke.py --models ... --out
+running only it through both simulators (archive/litellm-runners/run_eval.py --models ...
+--out results/eval_<tag>; archive/litellm-runners/pandemic_smoke.py --models ... --out
 results/pandemic/<tag>) and splicing its predictions in -- the same games,
 questions, seed and Starsim runs as everyone else, so the join is exact.
 This was done by hand for GPT-5.5 / Gemini 3.1 Pro / Grok 4.20 on 2026-08-27

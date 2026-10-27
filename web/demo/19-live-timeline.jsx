@@ -31,7 +31,8 @@ const tlFmtRatio = r => (r == null || !isFinite(r) ? "—" : "×" + (r >= 10 ? r
 const tlFmtFor = q => (q && q.value_kind === "loss" ? tlFmtBig : q && q.value_kind === "percentiles" ? v => unitFmt(v, q.unit) : tlFmt);
 
 // Colors belong to prompt conditions, never to models or their array order.
-// New condition IDs stay neutral until explicitly assigned a color here.
+// This is an explicit publication allowlist, not a fallback color registry.
+// Shadow/unknown conditions in retained snapshots must never reach the UI.
 const TL_CONDITION_START = "2026-10-21";
 const TL_CONDITIONS = {
   none: { label: "Baseline", color: "#0969da" },
@@ -42,8 +43,8 @@ const TL_CONDITIONS = {
 };
 const tlVariants = (q, horizon, snapshots) => {
   const info = Object.fromEntries(((TL && TL.variants) || []).map(v => [v.id, v]));
-  return Object.entries(q.variants || {}).map(([id, hs]) => ({
-    id, ...(TL_CONDITIONS[id] || { label: id, color: "var(--ink-soft)" }),
+  return Object.entries(q.variants || {}).filter(([id]) => Object.hasOwn(TL_CONDITIONS, id)).map(([id, hs]) => ({
+    id, ...TL_CONDITIONS[id],
     vals: (hs[horizon] || []).map((v, i) => snapshots[i].date >= TL_CONDITION_START ? v : null),
     models: ((q.variantModels || {})[id] || {})[horizon] || [],
     // A percentiles row's prompt: its own ensemble percentiles, per date.
@@ -52,8 +53,40 @@ const tlVariants = (q, horizon, snapshots) => {
   })).filter(v => v.vals.some(val => val != null));
 };
 
+// Old published snapshots may include a shadow in both condition dots and
+// pooled model means. Repair the displayed aggregates from public condition
+// answers on affected dates only; leave the immutable snapshot/downloads alone.
+function tlPublicQuestion(q) {
+  const hidden = Object.keys(q.variants || {}).filter(id => !Object.hasOwn(TL_CONDITIONS, id));
+  if (!hidden.length) return q;
+  const clean = JSON.parse(JSON.stringify(q));
+  for (const h of q.horizons) {
+    for (let i = 0; i < (q.median[h] || []).length; i++) {
+      if (!hidden.some(id => q.variants[id][h]?.[i] != null)) continue;
+      for (const model of clean.series) {
+        const values = Object.keys(TL_CONDITIONS).map(id =>
+          q.variantModels?.[id]?.[h]?.[i]?.[model.label]).filter(v => v != null);
+        const mean = values.length ? Math.round(values.reduce((a, b) => a + b, 0) / values.length * 1000) / 1000 : null;
+        model.ps[h][i] = mean;
+        model.draws[h][i] = values.length ? values : null;
+        model.lo[h][i] = values.length ? Math.min(...values) : null;
+        model.hi[h][i] = values.length ? Math.max(...values) : null;
+      }
+      const values = clean.series.map(s => s.ps[h][i]).filter(v => v != null).sort((a, b) => a - b);
+      const mid = Math.floor(values.length / 2);
+      clean.median[h][i] = values.length ? Math.round((values.length % 2 ? values[mid] : (values[mid - 1] + values[mid]) / 2) * 1000) / 1000 : null;
+      clean.rerun[h][i] = null;
+    }
+  }
+  for (const id of hidden) {
+    delete clean.variants[id];
+    delete clean.variantModels?.[id];
+  }
+  return clean;
+}
+
 /* ---------------- time-series chart ---------------- */
-// Before Oct 21 only the median is visible until hovered or selected; then
+// Before Oct 21 the Baseline median is blue until hovered or selected; then
 // model answers appear as ink-gray circles. Since Oct 21 each prompt condition
 // has a colored dot, with model answers in its details. No connecting lines.
 // The ensemble median remains an ink mark, for the ONE horizon
@@ -87,6 +120,9 @@ function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
   const axisEnd = n > 1 ? Math.max(days[n - 1], yearEnd) : yearEnd;
   const span = axisEnd > days[0] ? axisEnd - days[0] : 0;
   const xDay = day => (span === 0 ? (pad.l + W - pad.r) / 2 : pad.l + ((day - days[0]) / span) * (W - pad.l - pad.r));
+  const changeDay = Date.parse(TL_CONDITION_START + "T00:00:00Z") / 864e5;
+  const showChange = n > 0 && changeDay >= days[0] && changeDay <= axisEnd;
+  const isBaseline = i => snapshots[i].date < TL_CONDITION_START;
   const x = i => xDay(days[i]);
   const xs = snapshots.map((_, i) => x(i));
   const futureTicks = [];
@@ -107,17 +143,17 @@ function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
   const h = horizon;
   const med = q.median[h] || [];
   const fmtV = tlFmtFor(q);
-  const [active, setActive] = useState(null);         // { i, id }, null id = median
+  const [active, setActive] = useState(null);         // { i, id, anchor }, null id = median
   const [pinned, setPinned] = useState(false);        // click/tap keeps the details open
   const hv = active ? active.i : null;
   const hvar = active && active.id != null ? active : null;
   const clear = () => { setActive(null); setPinned(false); };
-  const hover = (i, id = null) => { if (!pinned) setActive({ i, id }); };
+  const hover = (e, i, id = null) => { if (!pinned) setActive({ i, id, anchor: e.currentTarget.lastElementChild }); };
   const leave = () => { if (!pinned) setActive(null); };
   const select = (e, i, id = null) => {
     e.stopPropagation();
     if (pinned && hv === i && (active && active.id) === id) clear();
-    else { setActive({ i, id }); setPinned(true); }
+    else { setActive({ i, id, anchor: e.currentTarget.lastElementChild }); setPinned(true); }
   };
   const keySelect = (e, i, id = null) => {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(e, i, id); }
@@ -126,8 +162,8 @@ function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
   // Prompt variants (combined-v10): one dot per variant, the panel median of
   // that prompt's calls; the ink mark is the median of the models' means
   // over the five. On a variant date the models' means are not drawn
-  // (project lead, 2026-10-21): hovering a variant dot lists that prompt's
-  // instruction and model answers. The unpooled sixth call is never in the
+  // (project lead, 2026-10-21): hovering a variant dot lists only model
+  // answers; the legend carries the prompt instruction. The unpooled sixth call is never in the
   // blob.
   const variants = tlVariants(q, h, snapshots).filter(v => !prompt || v.id === prompt);
   const hasVar = i => variants.some(v => v.vals[i] != null);
@@ -182,31 +218,18 @@ function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
     tickSub = () => null;
   }
 
-  // Nearby answers can otherwise cover each other's color and hit target.
-  // Dodge only colliding condition dots a few pixels sideways, keeping
-  // their probability unchanged and the median on the date's grid line.
-  const variantDots = snapshots.flatMap((_, i) => {
-    const placed = med[i] == null || !shown(i) ? [] : [{ cx: x(i), cy: y(med[i]) }];
-    return variants.filter(v => v.vals[i] != null).map(v => {
-      const cy = y(v.vals[i]);
-      const dx = [0, -12, 12, -24, 24, -36, 36].find(offset =>
-        placed.every(p => Math.hypot(x(i) + offset - p.cx, cy - p.cy) >= 12)) || 0;
-      const dot = { v, i, cx: x(i) + dx, cy };
-      placed.push(dot);
-      return dot;
-    });
-  });
+  // Condition dots always remain on their date's vertical line. Their vertical
+  // position alone encodes the forecast, even when nearby readings overlap.
+  const variantDots = snapshots.flatMap((_, i) =>
+    variants.filter(v => v.vals[i] != null).map(v => ({
+      v, i, cx: x(i), cy: y(v.vals[i]),
+    }))
+  );
 
   const li = med.map((v, i) => (v != null ? i : -1)).reduce((a, b) => Math.max(a, b), -1);
   // Right-margin label: the latest median, kept above the date labels.
   const endV = li >= 0 && !shown(li) ? variants[0].vals[li] : med[li];     // the chosen prompt's, where it stands in
   const endLabel = li >= 0 ? { v: endV, y: Math.min(y(endV), H - pad.b - 2), xi: li } : null;
-  // A hover card beside date i, flipped left in the right 40%.
-  const tipStyle = i => ({ ...(narrow ? { position: "relative", marginTop: 8 } : {
-    position: "absolute", top: 8, left: `${(x(i) / W) * 100}%`,
-    transform: x(i) > W * 0.6 ? "translateX(calc(-100% - 8px))" : "translateX(10px)" }),
-    background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "9px 11px",
-    boxShadow: "var(--shadow)", pointerEvents: "none", maxWidth: narrow ? "100%" : 340 });
 
   return (
     <div ref={box} style={{ position: "relative", minWidth: 0 }} onKeyDown={e => { if (e.key === "Escape") clear(); }}>
@@ -241,6 +264,17 @@ function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
         ))}
         {axisEnd > days[n - 1] && W - pad.r - xs[n - 1] >= labelGap && <text x={W - pad.r} y={H - 18} textAnchor="end"
           fontSize="12" fill="var(--ink-faint)" fontWeight="600">Dec 31</text>}
+        {showChange && <g>
+          <line x1={xDay(changeDay)} x2={xDay(changeDay)}
+            y1={pad.t} y2={H - pad.b} stroke="#cf222e" strokeWidth="1.5"
+            strokeDasharray="1 4" strokeLinecap="round" />
+          <text x={xDay(changeDay) + 8} y={H - pad.b - 38}
+            fill="#cf222e" fontSize="11" pointerEvents="none">
+            <tspan x={xDay(changeDay) + 8}>Oct 21, 2026</tspan>
+            <tspan x={xDay(changeDay) + 8} dy="14">Methodology change to add</tspan>
+            <tspan x={xDay(changeDay) + 8} dy="14">more prompting strategies</tspan>
+          </text>
+        </g>}
         {/* Historical model answers are revealed only for the active date. */}
         {series.map(s => (
           <g key={s.label}>
@@ -269,12 +303,15 @@ function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
         {/* The median's marks, unjoined. The larger transparent target also works on touchscreens. */}
         {med.map((v, i) => v == null || !shown(i) ? null : (
           <g key={"m" + i} role="button" tabIndex={0} style={{ cursor: "pointer" }}
-            aria-label={`${snapshots[i].date}, ensemble median ${fmtV(v)}; show model forecasts`}
+            aria-label={`${snapshots[i].date}, ${isBaseline(i) ? "Baseline prompt" : "ensemble median"} ${fmtV(v)}; show model forecasts`}
             aria-pressed={pinned && hv === i && !hvar}
-            onMouseEnter={() => hover(i)} onMouseLeave={leave} onFocus={() => hover(i)} onBlur={leave}
+            onMouseEnter={e => hover(e, i)} onMouseLeave={leave} onFocus={e => hover(e, i)} onBlur={leave}
             onClick={e => select(e, i)} onKeyDown={e => keySelect(e, i)}>
             <circle cx={x(i)} cy={y(v)} r="10" fill="transparent" />
-            <circle cx={x(i)} cy={y(v)} r="5" fill="var(--panel)" stroke="var(--ink)" strokeWidth="2.6" />
+            <circle cx={x(i)} cy={y(v)} r={isBaseline(i) ? "4.5" : "5"}
+              fill={isBaseline(i) ? TL_CONDITIONS.none.color : "var(--panel)"}
+              stroke={isBaseline(i) ? "var(--panel)" : "var(--ink)"}
+              strokeWidth={isBaseline(i) ? "1.5" : "2.6"} />
           </g>
         ))}
 
@@ -290,7 +327,7 @@ function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
             role="button" tabIndex={0} style={{ cursor: "pointer" }}
             aria-label={`${snapshots[i].date}, ${v.label} prompt ${fmtV(v.vals[i])}; show model forecasts`}
             aria-pressed={pinned && hv === i && hvar && hvar.id === v.id ? true : false}
-            onMouseEnter={() => hover(i, v.id)} onMouseLeave={leave} onFocus={() => hover(i, v.id)} onBlur={leave}
+            onMouseEnter={e => hover(e, i, v.id)} onMouseLeave={leave} onFocus={e => hover(e, i, v.id)} onBlur={leave}
             onClick={e => select(e, i, v.id)} onKeyDown={e => keySelect(e, i, v.id)}>
             <circle cx={cx} cy={cy} r="10" fill="transparent" />
             <circle cx={cx} cy={cy} r="4.5" fill={v.color} stroke="var(--panel)" strokeWidth="1.5" />
@@ -299,24 +336,12 @@ function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
       </svg>
 
       {hovered && (
-        <div style={tipStyle(hvar.i)}>
-          <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>
-            {snapshots[hvar.i].date} · <span style={{ color: "var(--ink)", fontWeight: 600 }}>by {h}</span>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12.5, fontWeight: 600 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ width: 9, height: 9, borderRadius: "50%", background: hovered.color, flexShrink: 0 }}></span>{hovered.label} prompt
-            </span>
-            <span className="mono">{fmtV(hovered.vals[hvar.i])}</span>
-          </div>
+        <PointTooltip anchor={active.anchor}>
           {pct && hovered.bands[hvar.i] && (
-            <div className="mono" style={{ fontSize: 11.5, color: "var(--ink-soft)", marginTop: 2 }}>
+            <div className="mono" style={{ fontSize: 11.5, color: "var(--ink-soft)", marginBottom: 4 }}>
               25th–75th {fmtV(hovered.bands[hvar.i].p25)}–{fmtV(hovered.bands[hvar.i].p75)} · 10th–90th {fmtV(hovered.bands[hvar.i].p10)}–{fmtV(hovered.bands[hvar.i].p90)}
             </div>
           )}
-          <div style={{ fontSize: 11.5, color: "var(--ink-soft)", margin: "4px 0 6px" }}>
-            {hovered.text || "No added instruction."}
-          </div>
           {hoveredModels.map(([label, val]) => (
             <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -325,17 +350,17 @@ function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
               <span className="mono">{fmtV(val)}</span>
             </div>
           ))}
-        </div>
+        </PointTooltip>
       )}
       {hv != null && !hovered && (
-        <div style={tipStyle(hv)}>
+        <PointTooltip anchor={active.anchor}>
           <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 6 }}>
             {snapshots[hv].date} · <span style={{ color: "var(--ink)", fontWeight: 600 }}>by {h}</span>
             {hasVar(hv) ? ` · ${variants.filter(v => v.vals[hv] != null).length} prompts per model · each model = mean of its prompts`
               : snapshots[hv].draws > 1 ? ` · ${snapshots[hv].draws} draws per model · point = mean` : ""}{loss ? " · deaths" : ""}
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12.5, fontWeight: 600, marginBottom: 4 }}>
-            <span>Ensemble median</span>
+            <span>{isBaseline(hv) ? "Baseline prompt · ensemble median" : "Ensemble median"}</span>
             <span className="mono">
               {fmtV(med[hv])}
             </span>
@@ -358,7 +383,7 @@ function TimelineChart({ q, snapshots, horizon, scale, prompt }) {
               </span>
             </div>
           ))}
-        </div>
+        </PointTooltip>
       )}
     </div>
   );
@@ -427,7 +452,7 @@ function TimelinePanel(props = {}) {
 }
 function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI catastrophe", sub = "Forecasts over time", prompt } = {}) {
   const snapshots = TL.snapshots;
-  const q = TL.questions.find(x => x.id === qid) || TL.questions[0];
+  const q = useMemo(() => tlPublicQuestion(TL.questions.find(x => x.id === qid) || TL.questions[0]), [qid]);
   // The horizon picker, Graph 2's toggle: opens on 2030 like every other
   // horizon toggle (Nick, 2026-08-27), and is what the line, the dots, the
   // numbers below and the table all read.
@@ -474,6 +499,8 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
       <div style={{ marginTop: 16, minWidth: 0 }}>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 6, alignItems: "center" }}>
           <LegendDot color="var(--ink)" label="Ensemble median" hollow />
+          {!variants.some(v => v.id === "none") && snapshots.some((s, i) => s.date < TL_CONDITION_START && med[i] != null) &&
+            <LegendDot color={TL_CONDITIONS.none.color} label="Baseline" />}
           {variants.map(v => <LegendDot key={v.id} color={v.color} label={v.label} title={v.text || "No added instruction."} />)}
           {pct && <PctLegend label="ensemble 25th–75th, 10th–90th percentile" />}
           {/* The scale switch at the legend row's right end, where Graph 2 keeps its own. */}
@@ -481,10 +508,6 @@ function TimelinePanelCurrent({ qid = TL_HEADLINE, title = "Probability of an AI
         </div>
 
         <TimelineChart key={hz} q={q} snapshots={snapshots} horizon={hz} scale={scale} prompt={prompt} />
-        <p style={{ fontSize: 12, color: "var(--ink-soft)", margin: "6px 0 0" }}>
-          {variants.length > 0 ? "From Oct 21, colors identify prompt conditions. " : ""}
-          Hover or select a point to see model forecasts.
-        </p>
         {loss && <>
           <CountingWindow info={TL.instrumentInfo} horizon={hz} />
           <p style={{ fontSize: 12, color: "var(--ink-soft)" }}>Each run starts its incident window on its own elicitation date. A fixed-year forecast therefore covers a changing interval; movement is not solely a change of belief about the same event.</p>

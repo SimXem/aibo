@@ -67,8 +67,9 @@ One page, `index.html`, assembled from the chunks under `web/demo/`. Its panels:
 Two runtime tiers, and the split is deliberate. **Rebuilding** every dashboard
 blob from the committed inputs is stdlib-only, needs no keys and no network,
 and is checked byte-for-byte against the tracked output by the golden tests.
-**Eliciting** new forecasts needs one third-party dependency, litellm, and API
-keys (next section).
+**Eliciting** new forecasts needs the FRI Forecaster harness
+(`packages/fri-forecaster/`: stdlib Python, and pi on node) and API keys (next
+section).
 
 ```bash
 python3 -m redlines build            # rebuild all 14 views and mirror them to results/*.json
@@ -89,17 +90,63 @@ and `results/graph4_combined.json`, so a fresh clone rebuilds and assembles the
 page without sibling checkouts. Re-deriving them needs `FB_DATASETS_ROOT` /
 `FBSIM_ROOT` and `results/eval_full.json` (see "Data provenance").
 
-Tests:
+### Credential-free contributor setup and checks
+
+Use Python 3.11+ and **Node 22.19+ (22.x)** with npm. For example, on
+Debian/Ubuntu x86-64, install the tools with:
 
 ```bash
-pip install -e '.[test]'
-pytest
+sudo apt-get update
+sudo apt-get install -y python3-venv python3-pip curl xz-utils
+curl -fsSL https://nodejs.org/dist/v22.19.0/node-v22.19.0-linux-x64.tar.xz -o /tmp/node.tar.xz
+sudo tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1
+node --version
+npm --version
 ```
+
+On other platforms, use the matching [Node 22 distribution](https://nodejs.org/en/download)
+and install Python with venv/pip support through your package manager. From the
+repository root, in a fresh clone:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -e '.[test,paper]' -e './packages/fri-forecaster[dev]'
+(cd packages/fri-forecaster && npm ci)
+
+# Local-only exclusions for development artifacts (not shared repository changes).
+printf '\n.venv/\nredlines.egg-info/\n' >> .git/info/exclude
+
+# Use disk-backed temporary space: the suite can exceed a small /tmp tmpfs.
+mkdir -p .venv/tmp
+# Isolate tests from any existing Pi coding-provider login; do not remove it.
+TMPDIR="$PWD/.venv/tmp" PI_CODING_AGENT_DIR="$(mktemp -d "$PWD/.venv/tmp/pi.XXXXXX")" \
+    python -m pytest -q -rs
+
+python3 -m redlines build
+python3 -m redlines assemble
+git diff --exit-code   # on a fresh clone, tracked outputs must be byte-identical
+```
+
+The root pytest configuration collects **both** `tests/` and
+`packages/fri-forecaster/tests/`. The latter includes real Pi tool-loop tests
+against a local scripted model: no forecasting keys, provider login, or paid
+calls are needed. Do not omit `npm ci`: it installs Pi 0.99.2 from the committed
+lockfile; without Node and Pi these tests silently skip. Dependency installation
+needs network access, but rebuilding uses committed inputs and tracked Graph 3/4
+mirrors, not new forecasts. The optional `paper` extra above enables matplotlib
+tests too.
+
+Read the `-rs` skip summary: external ForecastBench/simulator inputs, internal
+LEAP sources, missing current-instrument forecasts and the not-yet-plotted human
+timeline can still cause skips. Missing Node/Pi is **not** an expected skip for
+this setup. Do not run acquisition, scheduling or publishing scripts to test or
+rebuild the dashboard.
 
 ## Elicit new forecasts
 
 ```bash
-pip install -e '.[acquire]' -e ./packages/fri-forecaster   # litellm, and the harness (the pi loop)
+pip install -e . -e ./packages/fri-forecaster   # the harness (the pi loop)
 (cd packages/fri-forecaster && npm ci)                       # pi 0.99.2, pinned there
 python code/run_unified.py --dry-run     # print each condition's prompt, call nothing
 python code/run_unified.py --experiment airo --workers 2   # what the cron runs
@@ -119,13 +166,14 @@ into `results/experiments/`. A condition's `cadence` says when the cron runs it
 (weekdays, UTC, "1st wed" for monthly, or "manual"):
 `python -m redlines.experiments due` prints what is due today, one group a line.
 
-Since combined-v9 the calls go through pi (redlines/pi_loop.py) by way of the
-FRI Forecaster harness in `packages/fri-forecaster/` (its README, "Requirements"):
+Every call goes through pi (redlines/pi_loop.py) by way of the FRI
+Forecaster harness in `packages/fri-forecaster/` (its README, "Requirements"):
 node 22 and pi 0.99.2, whose `cli.js` `FORECASTER_PI` names. The harness hands
 pi the prompt on stdin since 2026-10-19; an earlier one passed it as one
 argument, which Linux caps at 128 KiB, and the runner refuses a prompt past
-that rather than let pi fail. A condition with `harness = "litellm"` runs
-through redlines.llm's own loop instead (the axes experiments do).
+that rather than let pi fail. pi has been the published loop since
+combined-v9 and the only one since 2026-10-22, when the litellm loop before it
+left the repo.
 
 Keys go in `~/.config/redlines/env` (mode 600), one `KEY=value` per line:
 `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_API_KEY`,
@@ -215,9 +263,9 @@ Produces `data/lowprob/{lowprob_classes,lowprob_selected_classes,lowprob_questio
 The reference run (1,019 games, snapshot turn 40) yields 425,270 binary
 questions in 564 classes, of which 35 tail classes (1–9%) with 25,919 resolved
 instances feed Graph 4; `data/lowprob_classes.json` records `min_n: 40`. The
-pandemic side is `code/pandemic_build_corpus.py` and `code/pandemic_smoke.py`
-in the same environment; the model eval is `code/run_eval.py` (API keys +
-`FBSIM_ROOT`).
+pandemic side is `code/pandemic_build_corpus.py` in the same environment. The
+model evals that ran on these corpora (`run_eval.py`, `pandemic_smoke.py`; API
+keys + `FBSIM_ROOT`) called litellm and are archived in `archive/litellm-runners/`.
 
 ## Layout
 
@@ -232,7 +280,7 @@ packages/fri-forecaster/    the FRI Forecaster harness -- pi, the research tools
                             driver -- as its own distribution, pip-installable from this repository
                             (its README). It was the agent-box repository from 2026-10-11 to
                             2026-10-19 and rejoined with its history.
-redlines/                   the pipeline package (stdlib only; litellm only inside llm.py at call time)
+redlines/                   the pipeline package (stdlib only)
   __main__.py               CLI: build / assemble / export-fb / paper
   config.py                 paths (env-overridable), round pins, thresholds
   registry.py               the single model table (ids, labels, ECI, colors) + panel()
@@ -263,12 +311,10 @@ code/                       acquisition scripts, generators and thin shims (see 
   make_autoarc_questions.py the question generator: data/auto-arc/* -> data/autoarc_*.json
   make_*_conditions.py      the scenario sets (LEAP policies, ECI levels, self-elicited, axes, combined)
   make_eci_trend*.py, eci_projection_metrgraph.py   the ECI trend / projection inputs
-  validate_launch_run.py, audit_cyber.py, check_counting_comprehension.py   launch-run audits
-  run_eval.py, mine_lowprob_corpus.py, pandemic_*.py   the Graph 4 corpus and eval (need forecastbench-sim)
+  validate_launch_run.py, audit_cyber.py   launch-run audits
+  mine_lowprob_corpus.py, pandemic_build_corpus.py   the Graph 4 corpus (needs forecastbench-sim)
   graph3_comparability.py   the Graph 3 methodology decomposition (needs FB_DATASETS_ROOT)
-  observational/            Graph 5: the observational bench, vendored (spec.md, runners, scoring)
-  causal/                   Graph 6: the Starsim causal bench's generating code, frozen at causal-v4-locked
-  compare_harness.py        a run through the other loop against the cron's, cell by cell
+  observational/            Graph 5: the observational bench, vendored (spec.md, mining, scoring)
 data/
   auto-arc/                 the Auto-ARC question workbook (.xlsx) and definitions (.md) by date
   autoarc_ladder.json, autoarc_crosscutting.json   the generated question sets (never hand-edited)
@@ -297,6 +343,9 @@ paper/                      figures, numbers.tex and dashboard screenshots for t
 tests/                      golden tests for build/assemble/paper, the generators, the runner's guards
 docs/                       see below
 archive/                    dead scripts, retired question sets and forecasts, superseded runs (archive/README.md)
+  causal/                   Graph 6: the Starsim causal bench's generating code, frozen at causal-v4-locked
+  litellm-runners/          the research runners that called litellm (the Graph 4 eval, the coherence
+                            experiment, the observational roster run), archived 2026-10-22
 archive/jason-demo.html     the original mock dashboard the live page grew from (Jason Abaluck)
 ```
 
@@ -360,7 +409,7 @@ archive/jason-demo.html     the original mock dashboard the live page grew from 
 
 Code is MIT; the data, documentation and figures are CC BY 4.0 (cite "AIRO,
 Forecasting Research Institute, https://airo.forecastingresearch.org"). Three
-things are not covered: `code/causal/` (a frozen copy from
+things are not covered: `archive/causal/` (a frozen copy from
 `forecastbench-sim`, GPL-3.0), the Epoch Capabilities Index snapshots (Epoch
 AI's), and the Season Sans web fonts, which are not in the repository (licensed for the live site only).
 See `LICENSE` (MIT) and `LICENSE-DATA` (CC BY 4.0 and the carve-outs).

@@ -24,17 +24,29 @@ function Eyebrow({ children }) {
 // untouched — a legend entry only becomes interactive where a caller says so.
 function LegendDot({ color, label, hollow, onClick, dim, title }) {
   const act = typeof onClick === "function";
+  const ref = React.useRef(null);
+  const tooltip = React.useRef(null);
+  React.useEffect(() => {
+    if (!title || !window.tippy || !ref.current) return;
+    const instance = appTooltip(ref.current, { content: title, allowHTML: false });
+    tooltip.current = instance;
+    return () => { instance.destroy(); tooltip.current = null; };
+  }, [title]);
   return (
     <span
       role={act ? "button" : undefined}
-      tabIndex={act ? 0 : undefined}
-      title={title}
+      tabIndex={act || title ? 0 : undefined}
+      ref={ref}
       onClick={onClick}
-      onKeyDown={act ? (e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }) : undefined}
+      onKeyDown={e => {
+        if (e.key === "Escape" && tooltip.current) tooltip.current.hide();
+        if (act && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onClick(); }
+      }}
       style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, color: "var(--ink-soft)",
-        opacity: dim ? 0.34 : 1, cursor: act ? "pointer" : undefined,
+        opacity: dim ? 0.34 : 1, cursor: act ? "pointer" : title ? "help" : undefined,
         userSelect: act ? "none" : undefined, transition: "opacity .12s" }}>
       <span style={{ width: 11, height: 11, borderRadius: 3, background: hollow ? "var(--panel)" : color, border: hollow ? `2px solid ${color}` : "none" }}></span>{label}
+
     </span>
   );
 }
@@ -93,11 +105,12 @@ function Stat({ label, value, color }) {
     </div>
   );
 }
-function Toggle({ options, value, onChange }) {
+function Toggle({ options, value, onChange, label }) {
   return (
-    <div style={{ display: "flex", gap: 6, background: "var(--bg)", padding: 4, borderRadius: 10, border: "1px solid var(--line)", flexWrap: "wrap" }}>
+    <div role={label ? "group" : undefined} aria-label={label}
+      style={{ display: "flex", gap: 6, background: "var(--bg)", padding: 4, borderRadius: 10, border: "1px solid var(--line)", flexWrap: "wrap" }}>
       {options.map(o => (
-        <button key={o.key} onClick={() => onChange(o.key)} style={{ border: "none", cursor: "pointer", padding: "6px 12px",
+        <button key={o.key} type="button" aria-pressed={value === o.key} onClick={() => onChange(o.key)} style={{ border: "none", cursor: "pointer", padding: "6px 12px",
           borderRadius: 7, fontSize: 13, fontWeight: 500, background: value === o.key ? "var(--ink)" : "transparent",
           color: value === o.key ? "white" : "var(--ink-soft)" }}>{o.label}</button>
       ))}

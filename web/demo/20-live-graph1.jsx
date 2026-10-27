@@ -195,17 +195,15 @@ function HorizonChart({ q, models, scale, G = G1 }) {
         if (pct && (q.band || {})[hv]) rows.push({ label: "Ensemble 10th–90th", color: "var(--ink-faint)", text: fmtV(q.band[hv].p10) + "–" + fmtV(q.band[hv].p90), ci: true });
         (q.human || []).forEach(hm => { if (hm.ps[hv] != null) rows.push({ label: hm.panel + " " + groupShort(hm.group), color: hm.color, v: hm.ps[hv], human: true }); });
         return (
-          <div style={{ position: "absolute", top: 6, left: `${(x(hv) / W) * 100}%`, transform: x(hv) > W * 0.6 ? "translateX(calc(-100% - 8px))" : "translateX(8px)",
-            background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, padding: "8px 10px",
-            boxShadow: "var(--shadow)", pointerEvents: "none", minWidth: 170, maxWidth: "calc(100% - 16px)" }}>
-            <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 5 }}>{pct ? (q.horizonLabels || {})[hv] || hv : "by end of " + hv}{loss ? " · deaths" : ""}</div>
+          <PointTooltip box={box} x={x(hv)} y={y(q.median[hv] != null ? q.median[hv] : rows[0].v)}>
+            <div style={{ fontSize: 11, color: "var(--ink-faint)", marginBottom: 5 }}>{pct ? (q.horizonLabels || {})[hv] || hv : <>by end of {hv}</>}{loss ? " · deaths" : ""}</div>
             {rows.map(r => (
               <div key={r.label} style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: 12, fontWeight: r.bold ? 600 : 400 }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 2, transform: r.human ? "rotate(45deg)" : "none", background: r.human ? "var(--panel)" : r.color, border: r.human ? "1.5px solid " + r.color : "none", opacity: r.ci ? 0.35 : 1 }}></span>{r.label}</span>
                 <span className="mono" style={{ fontWeight: 500 }}>{r.text != null ? r.text : (r.censored === "upper" ? "<" : r.censored === "lower" ? ">" : "") + fmtV(r.v)}</span>
               </div>
             ))}
-          </div>
+          </PointTooltip>
         );
       })()}
     </div>
