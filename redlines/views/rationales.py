@@ -65,8 +65,10 @@ def build(rows=None):
         # Keep the original [0, 1] probabilities by call and question. The
         # rationale table can select one condition without borrowing a mean
         # across prompts from the main chart, or another question's numbers.
+        # A welfare percentile cell (2026-10-27) keeps its median, in its unit.
         calls[cid]['forecasts'][r['question_id']] = {
-            f['horizon']: f['probability'] for f in r.get('forecasts', [])
+            f['horizon']: f['probability'] if 'probability' in f else f['percentiles']['p50']
+            for f in r.get('forecasts', [])
         }
         ids = questions[r['question_id']][r['label']]
         if cid not in ids:

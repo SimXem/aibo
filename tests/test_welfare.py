@@ -92,14 +92,14 @@ def _calls(conditions=None, labels=LABELS, today=TODAY):
                 return {"forecasts": cells[3:], "rationale": f"{label} {cid}", "key_sources": [],
                         "eci_forecast": {"p10": 168 + LABELS.index(label), "p25": 170, "p50": 172,
                                          "p75": 175, "p90": 178 + WELFARE["pooled"].index(cid)}}, []
-            orig = ru.loop_for
-            ru.loop_for = lambda harness: fake
+            orig = ru.call_tools
+            ru.call_tools = fake
             try:
                 rows += ru.run_one_joint(label, "x/" + label, g, b, h, f"{today}T0000Z", 0, spec,
                                          pol["conditions"], pol, WELFARE["conditions"][cid], "welfare",
                                          arm="joint#1", panel={"set": "eci_topk", "k": 4}, today=today)
             finally:
-                ru.loop_for = orig
+                ru.call_tools = orig
     return rows
 
 

@@ -362,6 +362,18 @@ def _panels(rows, spec, qspec, colors, labels, proto, eci_history):
     return graph1, conditional, capability_
 
 
+def _rationales(rows):
+    """AIRO's rationale blob (views/rationales.build) for the welfare rows. Its
+    prompt label comes from the variant; welfare's reworded two
+    (welfare-independent, welfare-two-step) are AIRO's conditions, so they
+    take AIRO's label for the condition (2026-10-27)."""
+    out = rationales.build(rows=rows)
+    for c in out["calls"].values():
+        if c.get("condition") in ("independent", "two-step"):
+            c["promptLabel"] = c["condition"].capitalize()
+    return out
+
+
 def build(log_path=None, set_path=None):
     """{blob name: blob} for welfare.html (web/welfare/manifest.json). GRAPH1,
     CONDITIONAL and CAPABILITY are the five prompts' mean, each with
@@ -414,7 +426,7 @@ def build(log_path=None, set_path=None):
         "CAPABILITY": cap,
         "METHOD": method.build(today=date.fromisoformat(days[-1]) if days else None,
                                experiment=EXPERIMENT, rows=rows),
-        "RATIONALES": rationales.build(rows=[r for r in all_rows if r.get("scenario") is None]),
+        "RATIONALES": _rationales([r for r in all_rows if r.get("scenario") is None]),
         # The day shown and the five prompts each number is the mean of.
         "WELFARE": {"day": days[-1] if days else None, "protocol": proto,
                     "prompts": [{"condition": v["id"], "text": v["text"]} for v in condition_legend(

@@ -104,7 +104,7 @@ def stub(prompt, day):
 rows = []
 for day in ("2026-10-01", "2026-10-22"):
     for cid in exp["pooled"]:
-        ru.loop_for = lambda harness, f=stub(cid, day): f
+        ru.call_tools = stub(cid, day)
         rows += ru.run_one_joint("Opus 5.5", "anthropic/claude-opus-5-5", g, b, h, f"{day}T1800Z", 0, spec,
                                  pol["conditions"], pol, exp["conditions"][cid], "welfare", arm="joint#1",
                                  panel={"set": "eci_topk"}, today=date.fromisoformat(day))
