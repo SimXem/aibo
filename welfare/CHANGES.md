@@ -28,6 +28,7 @@ Checks: the full `pytest` suite passes (441 passed, 26 skipped). AIRO is byte-id
 | 52b9c36 | The welfare page is titled AIBO (Automated AI Benefit Outlook) |
 | (2026-10-23) | Today's value: a faint dashed line on the Timeline and the horizon chart, per question |
 | (2026-10-27) | Two AI-breakthrough questions asked as probabilities in the same call, drawn as AIRO's |
+| 25b8b1e (merge) | forecastingresearch/airo main `64d8429` merged in; AIBO adapted to it |
 
 ## New files
 
@@ -142,6 +143,28 @@ Both use AIRO's criteria clauses (`data/autoarc_crosscutting.json`): the Dafoe d
 | `tests/test_welfare.py` | 7 questions, the mixed prompt and tools, mixed cleaning, rolling horizons, and the AI questions first in AIRO's probability shapes. |
 
 The full panel's run is still 20 calls. Each call asks 168 more numbers (868 instead of 700), so expect a somewhat higher price per call than the pilot's $16.85.
+
+## On upstream AIRO 64d8429 (2026-10-27)
+
+Upstream's 42 commits since the fork point (`2931769`) are merged into `main` (`25b8b1e`; `upstream` remote, a merge since `main` is pushed): shared Tippy tooltips, the Timeline rework, prompt-aware model rationales, pi-only calls, production releases and the recent-news shadow. Nothing was sent to AIRO.
+
+Conflicts were resolved to upstream's code with the fork's opt-in additions re-applied: `code/run_unified.py` (the cell mode through upstream's `call_tools` call and `news_cache` block), `views/timeline.py` (`condition_legend(experiment=)` on upstream's publish filter), `views/rationales.py` (`build(rows=)`), `tests/test_experiments.py`, and the chunks `19-live-timeline.jsx`, `20-live-graph1.jsx` and `65-rationales.jsx` (upstream's `PointTooltip` and rationale panel, with the fork's prompt end label, percentile band line, horizon header and an opt-in `fmt`).
+
+AIBO's adaptations:
+
+- `web/welfare/manifest.json` adds `../shared/tooltips.jsx`.
+- The welfare test and the preview patch `ru.call_tools` (upstream removed `loop_for`).
+- The rationale calls of welfare's two reworded prompts take AIRO's condition labels.
+- Shared, opt-in: `views/rationales.py` keeps a percentile cell's median in a call's forecasts map.
+
+AIRO equals upstream:
+
+- the `airo`, `axes` and `paperaxes` prompts;
+- `index.html`'s data blobs;
+- every tab's server render, and Policy levers and Capability filled with a day of data;
+- upstream's CI reproduce check passes.
+
+Nothing upstream runs or publishes welfare (`cadence = "manual"`; `production.py` publishes only `index.html` and the downloads), and `data/combined_conditions.json` did not change, so the welfare copy needs no re-copy.
 
 ## The preview
 

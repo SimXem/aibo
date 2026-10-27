@@ -77,8 +77,11 @@ In the CLI, `welfare` is in VIEW_ORDER, BUILDERS, PAGE_ORDER and PAGE_BLOB_BUILD
 
 ```
 # tests: there is no pytest on the system python; make a venv in your scratchpad
-python3 -m venv $SCRATCH/venv && $SCRATCH/venv/bin/pip install -q "pytest>=8" "openpyxl>=3.1"
-REDLINES_ENV_FILE=/dev/null $SCRATCH/venv/bin/python -m pytest -q -p no:cacheprovider        # ~3 min; 441 passed, 26 skipped
+# (upstream's README: also -e './packages/fri-forecaster[dev]' and its npm ci, so the pi tests run)
+python3 -m venv $SCRATCH/venv && $SCRATCH/venv/bin/pip install -q -e '.[test]' -e './packages/fri-forecaster[dev]'
+TMPDIR=$SCRATCH/tmp PI_CODING_AGENT_DIR=$SCRATCH/pi REDLINES_ENV_FILE=/dev/null $SCRATCH/venv/bin/python -m pytest -q -rs -p no:cacheprovider
+#   ~3 min; 482 passed, 26 skipped (10 of them pi tests: this machine has node but no npm)
+node --test tests/test_tooltips.cjs
 REDLINES_ENV_FILE=/dev/null $SCRATCH/venv/bin/python -m pytest -q -p no:cacheprovider tests/test_welfare.py
 
 # the welfare prompt, without calling a model (main() returns before load_keys)
@@ -113,13 +116,16 @@ Do look. The prompt dots overlapping and the 2050 rows squeezed against 2100's a
 
 Do this after any change to a shared chunk or to AIRO's Python:
 
-1. Run `assemble --pages demo`. Then `git diff index.html | grep '^[-+]' | grep -v '^+++\|^---' | grep -c 'window.__'` must be `0`.
-2. Server-render `git show <base>:index.html` and the new `index.html` for `forecasts capability conditional faq` with `DUMP`, then `cmp` each pair. Each pair must be identical.
+The base is upstream's main: this fork tracks forecastingresearch/airo as the `upstream` remote, merged up to `64d8429` on 2026-10-27 (`git fetch upstream && git merge upstream/main`; a merge, never a rebase, since `main` is pushed).
+
+1. Run `assemble --pages demo`. Then `git diff upstream/main -- index.html | grep '^[-+]' | grep -v '^+++\|^---' | grep -c 'window.__'` must be `0`.
+2. Server-render upstream's `index.html` (a `git archive upstream/main` export) and the new one for `forecasts capability conditional faq` with `DUMP`, then `cmp` each pair. Each pair must be identical.
 3. AIRO's Policy levers and Capability tabs currently show "awaiting a run", because the current instrument has no complete day yet. Exercise the charts with data too:
    - Build cells with `redlines.views.conditional._variant` on the last day of `results/conditional_runs_combined.jsonl` (2026-09-18), for `group_view(spec, "policy")` and `"capability"`.
-   - Put them into the `_blobs_for_demo()` blobs.
+   - Put them into the `_blobs_for_demo()` blobs, with `instrumentInfo.available` forced on (the rows are an older instrument) and Capability's `targetDate` set from the rows.
    - `hydrate_page` with the old chunks (a `git archive <base>` export's `web/demo`) and with the new ones, render both, and compare.
-4. Also compare the dry-runs of AIRO's experiments (`airo`, `axes`, `paperaxes`) before and after any runner change.
+4. Also compare the dry-runs of AIRO's experiments (`airo`, `axes`, `paperaxes`) with upstream's before and after any runner change.
+5. Upstream's CI `reproduce` job: in a `git archive HEAD` export made a git repo, `python -m redlines build` (every view), `assemble`, then `git status --porcelain` must be empty.
 
 ## Open items and known rough edges
 
@@ -131,6 +137,8 @@ These are candidates for your work. Ask the user before changing AIRO wording.
 - **ECI snapshot:** `data/welfare_conditions.json` carries the ECI history of 2026-10-01. Before a live run, re-copy the combined set if the server has a newer one; the drift test fails until you do.
 - **No per-question rationales:** the minimal instrument has no debrief, so the rationale panel shows each call's batch rationale.
 - **Timeline starts empty:** one point per question until a second welfare run.
+- **Upstream's Timeline marker:** AIRO's Timeline draws a red "Oct 21, 2026 · methodology change" line and blue Baseline dots for dates before it. The welfare preview shows them because of its Oct 1 pilot point; a live welfare series (after Oct 21) never will. Prompt dots no longer dodge sideways (upstream, 2026-10-22).
+- **SVG indexes:** upstream's legend icons are SVGs too, so `svgpng.py`'s index for a chart is no longer 0; find it by its `viewBox="0 0 880…"`.
 - **Mixed answer types:** the welfare call is the runner's only MIXED set (`question_mode`, `value_mode`). Its probability questions are drawn by AIRO's own builders (`conditional._variant`, `timeline._prob_row`, `graph1._ensemble`); keep it that way rather than copying them.
 - **AIRO's Timeline wording:** the horizon picker reads "by 6mo", AIRO's own label.
 - **Not served anywhere:** `welfare.html` isn't published by any script. Wiring that in is deploying, so it's the user's decision.
