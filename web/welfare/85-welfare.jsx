@@ -4,8 +4,9 @@
 // levers tabs, the FAQ's prompt and panel answers -- drawn from the welfare
 // log through the same blobs index.html's read. Every cell is five
 // percentiles in its question's unit (valueKind "percentiles"): a dot is a
-// median, its bar the 25th-75th and 10th-90th. __WELFARE__ carries what only
-// this page shows: the day and the five prompts.
+// median, its bar the 25th-75th and 10th-90th; the AI-breakthrough questions
+// (2026-10-27) are probabilities, drawn as AIRO draws its own. __WELFARE__
+// carries what only this page shows: the day and the five prompts.
 const WF = (typeof window !== "undefined" && window.__WELFARE__) || null;
 // The page's name, in its heading and its tab (the head is index.html's, so
 // the tab title is set here).
@@ -57,8 +58,8 @@ function WelfareFaq() {
       <div className="faq">
         <h2 style={{ fontSize: 22, marginTop: 6, marginBottom: 18 }}>About these forecasts</h2>
         {item("elicit", "How are these forecasts made?", <React.Fragment>
-          <p>With AIRO's instrument, asked of five welfare questions instead of AIRO's catastrophe questions. In one call, each model gives its 10th, 25th, 50th, 75th and 90th percentiles for every question and horizon: once unconditionally, under each of eight LEAP Wave 12 AI policies, and at five levels of frontier AI capability (its own percentiles of the Epoch Capabilities Index six months out).</p>
-          <p>Each model is asked five times a run, once under each prompt below. Its number is the mean of the five, each percentile on its own.</p>
+          <p>With AIRO's instrument, asked of seven benefit questions instead of AIRO's catastrophe questions. In one call, each model gives, for every question and horizon, a probability for the two AI breakthroughs and its 10th, 25th, 50th, 75th and 90th percentiles for life expectancy and growth: once unconditionally, under each of eight LEAP Wave 12 AI policies, and at five levels of frontier AI capability (its own percentiles of the Epoch Capabilities Index six months out).</p>
+          <p>Each model is asked five times a run, once under each prompt below. Its number is the mean of the five (for life expectancy and growth, each percentile on its own).</p>
           <ol>{((WF && WF.prompts) || []).map(p => <li key={p.condition}><span className="mono">{p.condition}</span>: {p.text || "no added instruction."}</li>)}</ol>
           <PromptDisclosure />
         </React.Fragment>)}
@@ -67,7 +68,8 @@ function WelfareFaq() {
           <PanelMembers />
         </React.Fragment>)}
         {item("read", "How do I read the charts?", <React.Fragment>
-          <p>A dot is a median (50th percentile). The thick bar behind it spans the 25th to 75th percentile and the thin one the 10th to 90th. On the Policy levers and Capability tabs the top row is each model's unconditional forecast and the vertical line their median; each condition's row shows each model's forecast under it, and the number at the right is the ensemble median with its change from the unconditional.</p>
+          <p>The AI breakthroughs are probabilities, drawn as on AIRO: on the Policy levers and Capability tabs each condition's row is the ensemble's ratio to the unconditional probability (1× is no change).</p>
+          <p>For life expectancy and growth, a dot is a median (50th percentile). The thick bar behind it spans the 25th to 75th percentile and the thin one the 10th to 90th. On the Policy levers and Capability tabs the top row is each model's unconditional forecast and the vertical line their median; each condition's row shows each model's forecast under it, and the number at the right is the ensemble median with its change from the unconditional.</p>
         </React.Fragment>)}
       </div>
     </Panel>
@@ -86,8 +88,8 @@ function App() {
         <a href="https://forecastingresearch.org" title="Forecasting Research Institute"><img className="brand-logo" src="web/img/fri-logo.svg" alt="Forecasting Research Institute" width="231" height="37" /></a>
         <h1 style={{ fontSize: "clamp(25px, 7.5vw, 33px)", marginTop: 8, marginBottom: 6 }}>{WELFARE_TITLE}</h1>
         <p style={{ color: "var(--ink-soft)", maxWidth: 760, margin: 0 }}>
-          Tracking life expectancy and economic growth at multiple horizons, as forecast by an ensemble of frontier
-          LLMs: unconditionally, under AI policies, and at different levels of AI capability.
+          Tracking AI breakthroughs, life expectancy and economic growth at multiple horizons, as forecast by an
+          ensemble of frontier LLMs: unconditionally, under AI policies, and at different levels of AI capability.
         </p>
       </header>
       {WF && WF.day && (

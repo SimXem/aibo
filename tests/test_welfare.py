@@ -1,6 +1,7 @@
 """The welfare instrument (2026-10-22): AIRO's pipeline asked of the welfare
 questions (data/welfare_questions.json) under the combined set's conditions
-and five prompts, each cell five percentiles, drawn on welfare.html
+and five prompts, each cell five percentiles -- or, for the two AI-benefit
+questions (2026-10-27), one probability -- drawn on welfare.html
 (redlines/views/welfare.py, web/welfare/). Fixtures only: no model is called."""
 import importlib.util
 import json
@@ -34,6 +35,7 @@ SET = os.path.join(ru.ROOT, "data", "welfare_conditions.json")
 # The keys the welfare set owns; every other key is the combined set's.
 OWN = {"title", "slug", "protocol", "questions", "copied_from"}
 LABELS = ("GPT-6 Astra", "Opus 5.5")          # two registry models
+PROB = ("ai:pancreatic", "ai:garments")       # the questions answered as probabilities
 
 
 def _batch():
@@ -60,9 +62,17 @@ def _value(qid, cid, label, condition):
             + 0.1 * WELFARE["pooled"].index(condition))
 
 
+def _pvalue(qid, cid, label, condition):
+    """A call's probability for one cell, stepped as _value is."""
+    ids = ["unconditional"] + [c["id"] for c in ru.load_policies(SET)["conditions"]]
+    return round(0.1 + 0.01 * ids.index(cid) + 0.1 * LABELS.index(label)
+                 + 0.01 * WELFARE["pooled"].index(condition), 4)
+
+
 def _calls(conditions=None, labels=LABELS, today=TODAY):
     """Rows of one call per (model, condition), through run_one_joint and a
-    fake loop that answers every cell with five percentiles around _value."""
+    fake loop that answers every cell with five percentiles around _value, or
+    an AI-benefit cell with _pvalue."""
     pol, g, b, h, spec = _batch()
     rp = ru.resolve_set(pol, today)
     ids = ["unconditional"] + [c["id"] for c in rp["conditions"]]
@@ -71,9 +81,11 @@ def _calls(conditions=None, labels=LABELS, today=TODAY):
         for cid in conditions or WELFARE["pooled"]:
             def fake(model, prompt, tools, final_tool, usage=None, partial_tool=None, **kw):
                 cells = [{"question_id": q["id"], "horizon": hz,
-                          "percentiles": {k: {p: _value(q["id"], k, label, cid) + d
-                                              for p, d in zip(ru.PERCENTILE_FIELDS, (-2, -1, 0, 1, 2))}
-                                          for k in ids}}
+                          **({"probabilities": {k: _pvalue(q["id"], k, label, cid) for k in ids}}
+                             if q["id"] in PROB else
+                             {"percentiles": {k: {p: _value(q["id"], k, label, cid) + d
+                                                  for p, d in zip(ru.PERCENTILE_FIELDS, (-2, -1, 0, 1, 2))}
+                                              for k in ids}})}
                          for gg in g for q in b[gg["key"]] for hz in h if hz in q["horizons"]]
                 partial_tool["fn"](forecasts=cells[:3])           # some cells in pieces
                 usage.update(turns=10, cost_usd=1.5)
@@ -124,26 +136,37 @@ class TestTheCopy(unittest.TestCase):
 class TestPrompt(unittest.TestCase):
     def test_the_questions_render_without_a_severity_and_with_units_and_meanings(self):
         p = _prompt()
-        self.assertTrue(p.startswith(f"Today is {TODAY}.\n\nBelow are 5 questions. Answer\nall of them"))
+        self.assertTrue(p.startswith(f"Today is {TODAY}.\n\nBelow are 7 questions. Answer\nall of them"))
         self.assertNotIn("(severity:", p)
         self.assertIn("--- le:us ---\nWhat will the period life expectancy at birth in the U.S.", p)
         self.assertIn("Horizons for this question: 2050 (the year 2050), 2100 (the year 2100)\n"
                       "Answer in years of life expectancy at birth.\n", p)
         self.assertIn("Horizons for this question: 2030 (the five-year period 2026 through 2030), "
                       "2050 (the five-year period 2046 through 2050)\nAnswer in percent per year", p)
-        self.assertIn("Horizons: 2030, 2050, 2100. Each question names the ones it is asked over "
-                      "and what each means for it -- answer", p)
+        # The rolling horizons keep their dates, as AIRO's do.
+        self.assertIn("Horizons: 6mo (within 6 months (by 2027-04-22)), 12mo (within 12 months "
+                      "(by 2027-10-22)), 2028, 2030, 2050, 2100. Each question names the ones it is asked "
+                      "over and what each means for it -- answer", p)
+        # The AI-benefit questions come first, asked as AIRO asks its own.
+        self.assertLess(p.index("===== AI BREAKTHROUGHS ====="), p.index("===== LIFE EXPECTANCY ====="))
+        self.assertIn("--- ai:pancreatic ---\nWhat is the probability that AI-enabled treatments", p)
+        self.assertIn("within 6 months / within 12 months / by the end of 2028 / by the end of 2030 / "
+                      "by the end of 2050 / by the end of 2100?\nHorizons for this question: 6mo (within 6 "
+                      "months of today), 12mo (within 12 months of today), 2028 (by the end of 2028)", p)
+        self.assertIn("Answer with a probability in [0,1] for each horizon.\n", p)
+        self.assertIn("but for the substantial involvement of AI", p)
 
-    def test_step_2_and_delivery_ask_five_percentiles(self):
+    def test_step_2_and_delivery_ask_each_question_its_own_numbers(self):
         p = _prompt()
-        self.assertIn("Step 2 -- each question x horizon cell takes five percentiles (p10, p25, p50, p75, "
-                      "p90) under each of 14 conditions, keyed by the condition ids below: unconditional", p)
-        self.assertIn("Deliver the percentiles with submit_cells", p)
-        self.assertIn("the 14 conditions (700 numbers, keyed by condition id)", p)
+        self.assertIn("Step 2 -- each question x horizon cell takes 14 probabilities, or five percentiles "
+                      "(p10, p25, p50, p75, p90) under each of 14 conditions, as its question asks, keyed by "
+                      "the condition ids below: unconditional", p)
+        self.assertIn("Deliver the forecasts with submit_cells", p)
+        self.assertIn("any\nsubset of the 22 question x horizon cells per call", p)
+        # 2 x 6 probabilities and 5 x 2 x 5 percentiles, under 14 conditions.
+        self.assertIn("({} numbers, keyed by condition id)".format((12 + 50) * 14), p)
         self.assertIn("with your eci_forecast (5 numbers) and a short rationale, the sources you used, "
                       "and any cells not yet delivered.", p)
-        self.assertNotIn("probabilit", p[p.index("===== CONDITIONS"):].replace(
-            "other probabilities given by prominent figures", ""))
 
     def test_each_variant_lands_before_the_delivery_paragraph(self):
         base = _prompt("none")
@@ -154,20 +177,33 @@ class TestPrompt(unittest.TestCase):
                 self.assertEqual(p, base)
                 continue
             self.assertEqual(p.replace(text + "\n\n", "", 1), base)
-            self.assertLess(p.index(text), p.index("Deliver the percentiles"))
-            self.assertTrue(p[:p.index("Deliver the percentiles")].endswith(text + "\n\n"))
+            self.assertLess(p.index(text), p.index("Deliver the forecasts"))
+            self.assertTrue(p[:p.index("Deliver the forecasts")].endswith(text + "\n\n"))
 
-    def test_the_tools_ask_five_numbers_per_condition(self):
+    def test_the_tools_take_either_key_as_the_question_asks(self):
         pol, g, b, h, spec = _batch()
         ids = [c["id"] for c in pol["conditions"]]
+        self.assertEqual(ru.value_mode(spec), ru.MIXED)
+        self.assertEqual({q["id"]: ru.question_mode(q, spec) for q in spec["questions"]},
+                         {**{q: ru.PROBABILITY for q in PROB},
+                          **{q: ru.PERCENTILES for q in ("le:us", "le:high", "le:low", "gdp:ae", "gdp:emde")}})
         tool = ru.submit_cells_tool([q["id"] for gg in g for q in b[gg["key"]]], h, ids, ru.value_mode(spec))
         cell = tool["parameters"]["properties"]["forecasts"]["items"]
-        self.assertEqual(cell["required"], ["question_id", "horizon", "percentiles"])
+        self.assertEqual(cell["required"], ["question_id", "horizon"])
+        self.assertEqual(cell["properties"]["horizon"]["enum"], ["6mo", "12mo", "2028", "2030", "2050", "2100"])
         per = cell["properties"]["percentiles"]
         self.assertEqual(per["required"], ["unconditional"] + ids)
         self.assertEqual(per["properties"]["sq"]["required"], ["p10", "p25", "p50", "p75", "p90"])
-        self.assertIn("with five percentiles under every condition id", tool["description"])
+        self.assertEqual(cell["properties"]["probabilities"]["properties"]["sq"],
+                         {"type": "number", "minimum": 0, "maximum": 1})
+        self.assertIn("with a probability or five percentiles (as its question asks) under every condition id",
+                      tool["description"])
         self.assertEqual(spec["percentiles"], list(ru.PERCENTILE_FIELDS))
+
+    def test_rolling_horizons_resolve_as_airos_do(self):
+        spec = _batch()[4]
+        self.assertEqual([ru.resolves_on(x, TODAY, spec) for x in ("6mo", "12mo", "2028")],
+                         ["2027-04-22", "2027-10-22", "2028-12-31"])
 
 
 class TestPercentileCleaning(unittest.TestCase):
@@ -213,6 +249,27 @@ class TestPercentileCleaning(unittest.TestCase):
                                         "probabilities": {"unconditional": 0.1}}]))
 
 
+class TestMixedCleaning(unittest.TestCase):
+    def _clean(self, cells):
+        return ru.clean_forecasts_joint(cells, {"le:us": {"2050"}, "ai:garments": {"6mo", "2050"}},
+                                        ["6mo", "2050"], ["sq"], ru.MIXED, {"le:us": [0, 150]},
+                                        {"le:us": ru.PERCENTILES, "ai:garments": ru.PROBABILITY})
+
+    def test_each_question_takes_its_own_key(self):
+        good = {"p10": 78, "p25": 80, "p50": 82, "p75": 83, "p90": 86}
+        g = self._clean([{"question_id": "le:us", "horizon": "2050", "percentiles": {"unconditional": good}},
+                         {"question_id": "ai:garments", "horizon": "6mo",
+                          "probabilities": {"unconditional": 0.02, "sq": 1.2}}])
+        self.assertEqual(g["unconditional"]["ai:garments"], [{"horizon": "6mo", "probability": 0.02}])
+        self.assertEqual(set(g["unconditional"]["le:us"][0]), {"horizon", "percentiles"})
+        self.assertNotIn("sq", g)                                   # 1.2 is not a probability
+        # The other question's key: nothing.
+        self.assertIsNone(self._clean([{"question_id": "ai:garments", "horizon": "2050",
+                                        "percentiles": {"unconditional": good}},
+                                       {"question_id": "le:us", "horizon": "2050",
+                                        "probabilities": {"unconditional": 0.5}}]))
+
+
 class TestProbabilityModeUnchanged(unittest.TestCase):
     def test_cleaning_schema_and_pooling_default_to_one_probability(self):
         g = ru.clean_forecasts_joint([{"question_id": "q", "horizon": "2030",
@@ -243,14 +300,18 @@ class TestProbabilityModeUnchanged(unittest.TestCase):
 
 
 class TestRows(unittest.TestCase):
-    def test_a_call_writes_percentile_forecasts_for_every_question_and_condition(self):
+    def test_a_call_writes_each_questions_forecasts_for_every_condition(self):
         rows = _calls(["two-step"], LABELS[:1])
-        self.assertEqual(len(rows), 5 * 14)
+        self.assertEqual(len(rows), 7 * 14)
         self.assertEqual({r["scenario_set"] for r in rows}, {"welfare"})
         self.assertEqual({r["protocol"] for r in rows}, {"welfare-joint-v1"})
         self.assertEqual({r["instrument_version"] for r in rows}, {"airo-welfare-v1"})
         self.assertEqual({r["variant"] for r in rows}, {"welfare-two-step"})
-        self.assertEqual(rows[0]["delivery"], {"cells_calls": 1, "cells_in_pieces": 3, "cells_in_final": 7})
+        self.assertEqual(rows[0]["delivery"], {"cells_calls": 1, "cells_in_pieces": 3, "cells_in_final": 19})
+        ai = next(r for r in rows if r["question_id"] == "ai:pancreatic" and r["scenario"] is None)
+        self.assertEqual([f["horizon"] for f in ai["forecasts"]], ["12mo", "2028", "2030", "2050", "2100", "6mo"])
+        self.assertEqual(ai["forecasts"][0], {"horizon": "12mo",
+                                              "probability": _pvalue("ai:pancreatic", "unconditional", LABELS[0], "two-step")})
         le = next(r for r in rows if r["question_id"] == "le:us" and r["scenario"] is None)
         self.assertEqual([f["horizon"] for f in le["forecasts"]], ["2050", "2100"])
         self.assertEqual(set(le["forecasts"][0]), {"horizon", "percentiles"})
@@ -304,7 +365,7 @@ class TestView(unittest.TestCase):
         c = b["CONDITIONAL"]
         self.assertEqual([m["label"] for m in c["models"]], list(LABELS))
         self.assertEqual(c["repeats"], {"GPT-6 Astra": 5, "Opus 5.5": 5})
-        self.assertEqual(c["rows"], 2 * 5 * 5 * 14)
+        self.assertEqual(c["rows"], 2 * 5 * 7 * 14)
         q = next(q for q in c["questions"] if q["id"] == "gdp:ae")
         self.assertEqual((q["valueKind"], q["unit"], q["horizons"]), ("percentiles", "% per year", ["2030", "2050"]))
         cell = q["byHorizon"]["2030"]
@@ -337,7 +398,8 @@ class TestView(unittest.TestCase):
         self.assertEqual(v["forecast"]["ensemble"]["p10"], 168.5)
         p90 = next(x for x in v["conditions"] if x["id"] == "eci_p90")
         self.assertEqual((p90["label"], p90["leapId"]), ("Own 90th percentile", "ECI ≈ 180"))
-        self.assertEqual([x["id"] for x in v["questions"][0]["byHorizon"]["2050"]["bars"]],
+        self.assertEqual([x["id"] for x in next(q for q in v["questions"] if q["id"] == "le:us")
+                          ["byHorizon"]["2050"]["bars"]],
                          ["eci_p10", "eci_p25", "eci_p50", "eci_p75", "eci_p90"])
         self.assertTrue(b["CAPABILITY"]["eci"]["history"])        # AIRO's frontier history
         # Timeline and Graph 1: the ensemble's percentiles, each prompt's dot.
@@ -356,11 +418,49 @@ class TestView(unittest.TestCase):
         self.assertEqual(t["marks"][0]["label"], "Today (2026): 79.8")
         self.assertTrue(t["marks"][0]["inside"])
         self.assertEqual(g["marks"][0]["label"], "Today (2022–2026): 4.3%")
-        self.assertTrue(all(q["marks"] for q in b["GRAPH1"]["questions"]))
+        self.assertTrue(all(q["marks"] for q in b["GRAPH1"]["questions"] if q["valueKind"] == "percentiles"))
         # The FAQ's prompt is the welfare baseline's, and the rationales are each call's.
-        self.assertIn("Deliver the percentiles", b["METHOD"]["prompt"])
+        self.assertIn("Deliver the forecasts", b["METHOD"]["prompt"])
         self.assertEqual(b["METHOD"]["k"], 14)
         self.assertEqual(len(b["RATIONALES"]["questions"]["le:us"]["Opus 5.5"]), 5)
+
+    def test_the_ai_questions_come_first_in_airos_probability_shapes(self):
+        b = welfare.build(log_path=_log(_calls()))
+        c, v = b["CONDITIONAL"], b["CAPABILITY"]["variants"][0]
+        for qs in (c["questions"], v["questions"], b["GRAPH1"]["questions"], b["TIMELINE"]["questions"]):
+            self.assertEqual([q["id"] for q in qs[:2]], list(PROB))
+            self.assertEqual((qs[0]["group"], qs[0]["railLabel"]), ("AI breakthroughs", "Pancreatic cancer survival > 50%"))
+        # Policy levers and Capability: AIRO's cells (conditional._variant), tabs 2030, 2050, 2100.
+        q = c["questions"][0]
+        self.assertEqual((q["valueKind"], q["horizons"]), ("probability", ["2030", "2050", "2100"]))
+        cell = q["byHorizon"]["2030"]
+        # Each model's mean of its five prompts, in percent; the ensemble median.
+        mean_prompt = sum(0.01 * i for i in range(5)) / 5
+        self.assertAlmostEqual(cell["baselineMedian"], 100 * (0.15 + mean_prompt), places=3)
+        p3a = cell["bars"][4]
+        self.assertEqual(p3a["id"], "p3a")
+        self.assertAlmostEqual(p3a["pMedian"], 100 * (0.2 + mean_prompt), places=3)
+        self.assertIn("ratio", p3a)
+        self.assertNotIn("baselinePrompts", cell)                   # AIRO's probability rows draw no prompt dots
+        self.assertIsNotNone(q["byHorizon"]["2100"]["note"])        # AIRO's note on the policies' 2050 clause
+        bar = next(x for x in v["questions"][0]["byHorizon"]["2050"]["bars"] if x["id"] == "eci_p90")
+        self.assertEqual((bar["label"], bar["leapId"]), ("Own 90th percentile", "ECI ≈ 180"))
+        # Timeline: AIRO's probability row (timeline._prob_row), each prompt's dot.
+        t = b["TIMELINE"]["questions"][0]
+        self.assertEqual((t["value_kind"], t["horizons"]), ("probability", ["6mo", "12mo", "2028", "2030", "2050", "2100"]))
+        self.assertAlmostEqual(t["median"]["6mo"][0], 100 * (0.15 + mean_prompt), places=3)
+        self.assertEqual(t["variantModels"]["two-step"]["6mo"][0], {"GPT-6 Astra": 14.0, "Opus 5.5": 24.0})
+        # Graph 1: dated rolling horizons, the ensemble median and interval.
+        g = b["GRAPH1"]["questions"][0]
+        self.assertEqual((g["valueKind"], g["horizonLabels"]["6mo"], g["resolvesOn"]["6mo"]),
+                         ("probability", "within 6 months (by 2027-04-22)", "2027-04-22"))
+        self.assertAlmostEqual(g["median"]["2100"], 100 * (0.15 + mean_prompt), places=3)
+        self.assertTrue(g["ci"]["2100"])
+        self.assertEqual(g["marks"], [])
+        self.assertEqual(b["GRAPH1"]["categories"][0]["key"], "AI breakthroughs")
+        # One prompt's calls, for the prompt toggle.
+        one = c["byPrompt"]["two-step"]["questions"][0]["byHorizon"]["2030"]
+        self.assertAlmostEqual(one["baselineMedian"], 100 * 0.19, places=3)
 
     def test_an_incomplete_day_gives_way_to_the_last_complete_one_and_none_is_empty(self):
         old = _calls(today=date(2026, 10, 21))
@@ -382,7 +482,8 @@ class TestPage(unittest.TestCase):
         self.assertEqual(manifest["target"], "welfare.html")
         self.assertEqual(set(manifest["blobs"]), set(welfare.build(log_path=os.devnull)))
         self.assertNotIn("../demo/80-app.jsx", manifest["chunks"])
-        for panel in ("19-live-timeline", "20-live-graph1", "75-conditional", "77-capability", "79-faq"):
+        # 10-mock-graph1 holds niceMax, which a probability row's linear axis reads.
+        for panel in ("10-mock-graph1", "19-live-timeline", "20-live-graph1", "75-conditional", "77-capability", "79-faq"):
             self.assertIn(f"../demo/{panel}.jsx", manifest["chunks"])
         for blobs in (welfare.build(log_path=_log(_calls(labels=LABELS[:1]))), welfare.build(log_path=os.devnull)):
             html = hydrate_page(d, blobs)

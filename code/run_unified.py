@@ -462,9 +462,45 @@ CELL_MODES = {
 }
 
 
-def value_mode(spec):
-    """A question set's cell mode: PERCENTILES when it names them, else PROBABILITY."""
+# A set whose questions say their own mode (`value_kind`) and disagree
+# (2026-10-27: the welfare set's two AI-benefit questions take probabilities,
+# its other five percentiles) is MIXED: each cell carries its question's key,
+# and the Step 2 and delivery sentences name both. A set of one mode keeps
+# that mode's words, tools and hashes unchanged.
+MIXED = "mixed"
+CELL_MODES[MIXED] = {
+    "key": None, "takes": f"{CELL_MODES[PROBABILITY]['takes']}, or {CELL_MODES[PERCENTILES]['takes']}, as its question asks",
+    "tool": "a probability or five percentiles (as its question asks)", "n": None, "count": "numbers",
+    "deliver": ("Deliver the forecasts with submit_cells, in as many calls as you like: any\n"
+                "subset of the {cells} question x horizon cells per call, each cell with what its\n"
+                "question asks under each of the {k} conditions: a probability in [0,1]\n"
+                "(`probabilities`) or five percentiles (`percentiles`: p10, p25, p50, p75, p90,\n"
+                "in the question's unit, with p10 <= p25 <= p50 <= p75 <= p90 -- read them as in\n"
+                "eci_forecast) ({total} numbers, keyed by condition id); a later call for a cell\n"
+                "replaces the earlier one.")}
+
+
+def question_mode(q, spec):
+    """One question's cell mode: its own `value_kind` when that names one, else its set's."""
+    kind = q.get("value_kind")
+    if kind in (PROBABILITY, PERCENTILES):
+        return kind
     return PERCENTILES if spec.get("percentiles") else PROBABILITY
+
+
+def value_mode(spec):
+    """A question set's cell mode: MIXED when its questions' modes differ;
+    else PERCENTILES when it names them, else PROBABILITY."""
+    if len({question_mode(q, spec) for q in spec.get("questions") or []}) > 1:
+        return MIXED
+    return PERCENTILES if spec.get("percentiles") else PROBABILITY
+
+
+def cell_numbers(by_group, horizons, spec):
+    """How many numbers one condition of the grid holds: each question's
+    cells times its mode's numbers per cell."""
+    return sum(len([h for h in horizons if h in q["horizons"]]) * CELL_MODES[question_mode(q, spec)]["n"]
+               for qs in by_group.values() for q in qs)
 
 
 GROUP_BLOCK = """
@@ -827,22 +863,27 @@ def _num_schema(lo, hi):
     return out
 
 
-def _cells_schema(qids, horizons, scenario_ids, mode=PROBABILITY):
-    keys = [UNCONDITIONAL_KEY] + list(scenario_ids)
+def _cell_values(keys, mode):
     if mode == PERCENTILES:
         # No bounds here: they are each question's own (the cleaner holds them).
         one = {"type": "object", "properties": {p: {"type": "number"} for p in PERCENTILE_FIELDS},
                "required": list(PERCENTILE_FIELDS)}
-        values = {"type": "object",
-                  "description": "five percentiles (p10, p25, p50, p75, p90), in the question's unit "
-                                 "and non-decreasing, per condition id: " + ", ".join(keys),
-                  "properties": {k: one for k in keys}, "required": keys}
-    else:
-        values = {"type": "object",
-                  "description": "one probability in [0,1] per condition id: " + ", ".join(keys),
-                  "properties": {k: {"type": "number", "minimum": 0, "maximum": 1} for k in keys},
-                  "required": keys}
-    key = CELL_MODES[mode]["key"]
+        return {"type": "object",
+                "description": "five percentiles (p10, p25, p50, p75, p90), in the question's unit "
+                               "and non-decreasing, per condition id: " + ", ".join(keys),
+                "properties": {k: one for k in keys}, "required": keys}
+    return {"type": "object",
+            "description": "one probability in [0,1] per condition id: " + ", ".join(keys),
+            "properties": {k: {"type": "number", "minimum": 0, "maximum": 1} for k in keys},
+            "required": keys}
+
+
+def _cells_schema(qids, horizons, scenario_ids, mode=PROBABILITY):
+    keys = [UNCONDITIONAL_KEY] + list(scenario_ids)
+    # A MIXED set's cell carries either key, as its question asks (the
+    # prompt says which); the cleaner drops a cell under the wrong one.
+    modes = (PROBABILITY, PERCENTILES) if mode == MIXED else (mode,)
+    values = {CELL_MODES[m]["key"]: _cell_values(keys, m) for m in modes}
     return {
         "type": "array",
         "items": {
@@ -850,9 +891,9 @@ def _cells_schema(qids, horizons, scenario_ids, mode=PROBABILITY):
             "properties": {
                 "question_id": {"type": "string", "enum": qids},
                 "horizon": {"type": "string", "enum": horizons},
-                key: values,
+                **values,
             },
-            "required": ["question_id", "horizon", key],
+            "required": ["question_id", "horizon"] + ([] if mode == MIXED else list(values)),
         },
     }
 
@@ -1136,13 +1177,16 @@ def build_prompt_joint(groups, by_group, horizons, spec, scenarios, policies, to
     # Questions that say what each horizon means for them (the welfare set:
     # 2050 is a year for one, a five-year period for another) get the
     # horizons bare here, and a pointer to their own lines.
+    # A rolling horizon among them keeps its date (2026-10-27: the welfare
+    # set's AI questions are asked within 6 and 12 months).
     meant = any(q.get("horizon_meaning") for qs in by_group.values() for q in qs)
-    hz = ", ".join(h if meant else f"{h} ({horizon_label(h, spec, today)})" for h in horizons)
+    rolling = {r["id"] for r in spec.get("rolling") or []} if meant else set()
+    hz = ", ".join(h if meant and h not in rolling else f"{h} ({horizon_label(h, spec, today)})" for h in horizons)
     k = len(scenarios) + 1
     mode = value_mode(spec)
     shared = dict(meant=" and what each means for it" if meant else "",
                   deliver=CELL_MODES[mode]["deliver"].format(cells=cells, k=k,
-                                                             total=cells * k * CELL_MODES[mode]["n"]))
+                                                             total=cell_numbers(by_group, horizons, spec) * k))
     groups = set_groups(policies)
     if groups:
         present = [g for g in groups if any(c.get("group") == g["key"] for c in scenarios)]
@@ -1169,7 +1213,7 @@ def _as_list(raw):
     return raw if isinstance(raw, list) else []
 
 
-def clean_forecasts_joint(raw, allowed, horizons, scenario_ids, mode=PROBABILITY, bounds=None):
+def clean_forecasts_joint(raw, allowed, horizons, scenario_ids, mode=PROBABILITY, bounds=None, modes=None):
     """-> {scenario key: {question_id: [{horizon, probability}, ...]}}, or None.
 
     A grid handed back as a JSON string is parsed (Fable 5 has done it); a
@@ -1178,7 +1222,9 @@ def clean_forecasts_joint(raw, allowed, horizons, scenario_ids, mode=PROBABILITY
     the scenario ids. In PERCENTILES mode a cell carries `percentiles`, each
     condition's five kept only when clean_percentiles takes them under the
     question's `bounds` ({question_id: [lo, hi]}), and an entry is
-    {horizon, percentiles: {p10..p90}}.
+    {horizon, percentiles: {p10..p90}}. In MIXED mode each question takes
+    its own mode from `modes` ({question_id: mode}), and a probability
+    outside [0,1] is dropped.
     """
     if isinstance(raw, str):
         try:
@@ -1192,7 +1238,11 @@ def clean_forecasts_joint(raw, allowed, horizons, scenario_ids, mode=PROBABILITY
     for f in raw:
         if not isinstance(f, dict):
             continue
-        q, h, ps = f.get("question_id"), f.get("horizon"), f.get(CELL_MODES[mode]["key"])
+        q, h = f.get("question_id"), f.get("horizon")
+        m = (modes or {}).get(q) if mode == MIXED else mode
+        if m is None:
+            continue
+        ps = f.get(CELL_MODES[m]["key"])
         if isinstance(ps, str):
             try:
                 ps = json.loads(ps)
@@ -1202,13 +1252,15 @@ def clean_forecasts_joint(raw, allowed, horizons, scenario_ids, mode=PROBABILITY
             continue
         for k in keys:
             p = ps.get(k)
-            if mode == PERCENTILES:
+            if m == PERCENTILES:
                 p = clean_percentiles(p, (bounds or {}).get(q))
                 if p:
                     out[k].setdefault(q, {})[h] = p
-            elif isinstance(p, (int, float)) and not isinstance(p, bool):
+            elif (isinstance(p, (int, float)) and not isinstance(p, bool)
+                  and (mode != MIXED or 0 <= p <= 1)):
                 out[k].setdefault(q, {})[h] = p
-    out = {k: {q: [{"horizon": h, mode: p} for h, p in sorted(v.items())]
+    mode_of = (lambda q: modes[q]) if mode == MIXED else (lambda q: mode)
+    out = {k: {q: [{"horizon": h, mode_of(q): p} for h, p in sorted(v.items())]
                for q, v in grid.items()}
            for k, grid in out.items() if grid}
     return out or None
@@ -1287,6 +1339,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
     allowed = {q["id"]: {h for h in horizons if h in q["horizons"]}
                for g in groups for q in by_group[g["key"]]}
     bounds = {q["id"]: q.get("bounds") for g in groups for q in by_group[g["key"]]}
+    modes = {q["id"]: question_mode(q, spec) for g in groups for q in by_group[g["key"]]}
     want = want_cells * (len(scenarios) + 1)
     elicits = set_elicits(policies)
     grids, answer, evidence, attempts, elicited = None, {}, [], 0, None
@@ -1303,7 +1356,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
         for f in forecasts:
             if (isinstance(f, dict) and f.get("question_id") in allowed
                     and f.get("horizon") in allowed[f["question_id"]]
-                    and isinstance(f.get(CELL_MODES[mode]["key"]), dict)):
+                    and isinstance(f.get(CELL_MODES[modes[f["question_id"]]]["key"]), dict)):
                 received[(f["question_id"], f["horizon"])] = f
                 n += 1
         missing = [f"{q} @ {h}" for q in qids for h in horizons
@@ -1344,7 +1397,7 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
                 merged[(f["question_id"], f["horizon"])] = f
                 delivery["cells_in_final"] += 1
         answer["forecasts"] = list(merged.values())
-        grids = clean_forecasts_joint(answer.get("forecasts"), allowed, horizons, scenario_ids, mode, bounds)
+        grids = clean_forecasts_joint(answer.get("forecasts"), allowed, horizons, scenario_ids, mode, bounds, modes)
         got = sum(len(v) for g in (grids or {}).values() for v in g.values())
         elicited = ({e["key"]: clean_elicit(answer.get(e["key"]), e) for e in elicits}
                     if elicits else None)
@@ -1616,8 +1669,7 @@ def run(args, exp, conditions, path, publish):
     horizons = set_horizons(policies, horizons)
     prompt, n, cells = build_prompt_joint(groups, by_group, horizons, spec, scenarios,
                                           policies, today)
-    cell = CELL_MODES[value_mode(spec)]
-    values = f"{cells * (len(scenarios) + 1) * cell['n']} {cell['count']}"
+    values = f"{cell_numbers(by_group, horizons, spec) * (len(scenarios) + 1)} {CELL_MODES[value_mode(spec)]['count']}"
     for el in set_elicits(resolve_set(policies, today)):
         print(f"    elicits {el['key']} {el['fields']} for {el.get('target_date')}"
               + (f" (run date + {el['target_months']} months)" if el.get("target_months") else ""))

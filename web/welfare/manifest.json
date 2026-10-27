@@ -13,6 +13,7 @@
     "../demo/00-head.html",
     "00-welfare-data.html",
     "../demo/01-shell-open.html",
+    "../demo/10-mock-graph1.jsx",
     "../demo/19-live-timeline.jsx",
     "../demo/20-live-graph1.jsx",
     "../demo/60-atoms.jsx",

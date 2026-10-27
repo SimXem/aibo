@@ -18,12 +18,20 @@
    "unit_text",
    "bounds",
    "horizon_meaning",
-   "today"
+   "today",
+   "value_kind",
+   "rolling",
+   "the AI breakthroughs group (ai:pancreatic, ai:garments)"
   ],
   "note": "The pilot's generator (code/build_welfare_page.py upstream) is not in this repo; the question text and resolution criteria are copied from the published pilot page.",
-  "today_note": "today: each question's own series in 2026, on the definitions the questions resolve on, drawn as a faint dashed line on the Timeline and the horizon chart (2026-10-23; fetched that day). Not shown to the models. Life expectancy: period life expectancy at birth, UN World Population Prospects 2024 via Our World in Data (life-expectancy-unwpp; its income groups are OWID's, which may differ slightly from the World Bank FY2026 list the questions fix). The UN's estimates end in 2023, so 2026 is its medium-variant projection. Growth: the questions' own measure, the annualized change over a five-year period, ((1+g1)...(1+g5))^(1/5) - 1, over 2022-2026, from the annual real GDP growth of IMF World Economic Outlook October 2026, Online Table A1 (PPP-weighted group aggregates, as published to one decimal); 2026 is the IMF's projection."
+  "today_note": "today: each question's own series in 2026, on the definitions the questions resolve on, drawn as a faint dashed line on the Timeline and the horizon chart (2026-10-23; fetched that day). Not shown to the models. Life expectancy: period life expectancy at birth, UN World Population Prospects 2024 via Our World in Data (life-expectancy-unwpp; its income groups are OWID's, which may differ slightly from the World Bank FY2026 list the questions fix). The UN's estimates end in 2023, so 2026 is its medium-variant projection. Growth: the questions' own measure, the annualized change over a five-year period, ((1+g1)...(1+g5))^(1/5) - 1, over 2022-2026, from the annual real GDP growth of IMF World Economic Outlook October 2026, Online Table A1 (PPP-weighted group aggregates, as published to one decimal); 2026 is the IMF's projection.",
+  "ai_note": "2026-10-27: two AI-benefit questions asked as probabilities (value_kind, read per question by run_unified.question_mode), on AIRO's six horizons with its rolling table (data/autoarc_ladder.json). Their criteria follow AIRO's (data/autoarc_crosscutting.json): the Dafoe definition, the but-for standard, perfect knowledge, the rolling resolution date, an expert panel. Survival figures: SEER 2016-2022 diagnoses, ACS Cancer Statistics 2026."
  },
  "groups": [
+  {
+   "key": "AI breakthroughs",
+   "heading": "AI BREAKTHROUGHS"
+  },
   {
    "key": "Life expectancy",
    "heading": "LIFE EXPECTANCY"
@@ -41,6 +49,64 @@
   "p90"
  ],
  "questions": [
+  {
+   "id": "ai:pancreatic",
+   "group": "AI breakthroughs",
+   "heading": "AI breakthroughs: pancreatic cancer survival above 50%",
+   "short": "Pancreatic cancer survival",
+   "rail_label": "Pancreatic cancer survival > 50%",
+   "color": "#8e3b6e",
+   "value_kind": "probability",
+   "unit": "probability",
+   "unit_text": "Answer with a probability in [0,1] for each horizon.",
+   "horizons": [
+    "6mo",
+    "12mo",
+    "2028",
+    "2030",
+    "2050",
+    "2100"
+   ],
+   "horizon_meaning": {
+    "6mo": "within 6 months of today",
+    "12mo": "within 12 months of today",
+    "2028": "by the end of 2028",
+    "2030": "by the end of 2030",
+    "2050": "by the end of 2050",
+    "2100": "by the end of 2100"
+   },
+   "text": "What is the probability that AI-enabled treatments will have raised the five-year relative survival of people diagnosed with pancreatic cancer in the U.S. above 50% (AI being, per the but-for standard, a substantial cause of the rise) within 6 months / within 12 months / by the end of 2028 / by the end of 2030 / by the end of 2050 / by the end of 2100?",
+   "criteria": "* Survival threshold: The question resolves Yes if the all-stage five-year relative survival of people diagnosed with pancreatic cancer in the U.S. during the 12 months ending on the resolution date exceeds 50%, as eventually measured by the National Cancer Institute's SEER program (or, if SEER is unavailable, the American Cancer Society's Cancer Statistics).  \n* Today's level: SEER's latest five-year relative survival for pancreatic cancer is 13.7% (diagnoses 2016-2022); the American Cancer Society's 2026 figure is 13%. For comparison: ovary 52.0%, colorectal 65.4%, lung 29.5%, liver 21.9%. Published survival lags diagnosis by about five years, so a cohort's survival is known only years after the resolution date; it still counts at the date its patients were diagnosed.  \n* Treatments: Treatments that the cohort's patients receive after diagnosis count, whatever their kind (drugs, vaccines, cell therapies, surgical or radiation planning, treatment selection). Earlier detection alone does not count: the rise must come from how patients are treated, not from finding their cancer at an earlier stage.  \n* Artificial intelligence: Defined as the development of machines capable of sophisticated (intelligent) information processing (Dafoe 2018, AI Governance: A Research Agenda, p. 5 fn. 2).  \n* AI as a substantial cause (but-for standard): The survival would not exceed 50%, or would have been counterfactually extremely unlikely to, but for the substantial involvement of AI in discovering, developing or applying the treatments.  \n  * Examples that count: a drug whose target or molecule was found by an AI system; treatment plans chosen by an AI system that outperform clinicians' choices.  \n  * Examples that do not count: a treatment that would have been developed and used anyway, on the same timeline, with AI only speeding up paperwork.  \n* Perfect knowledge: Assume we have perfect knowledge of the outcome and of the role AI played in it. We want your view on what actually happens by the resolution date, not on the probability that it is measured, published or correctly attributed in time.\n* Resolution date: read it as the date of whichever horizon you are answering: December 31 of the named year, or for a rolling horizon that many months after today's date.  \n* Data and disagreement: Where the named sources disagree in ways that would change resolution, or are unavailable, we will resolve by the majority opinion of a panel of at least five experts in the relevant fields. If reasonable people disagree about whether the event occurred, the question resolves via the same expert panel."
+  },
+  {
+   "id": "ai:garments",
+   "group": "AI breakthroughs",
+   "heading": "AI breakthroughs: automated garment manufacturing at local wages",
+   "short": "Garment automation",
+   "rail_label": "Garment automation at local wages",
+   "color": "#8e3b6e",
+   "value_kind": "probability",
+   "unit": "probability",
+   "unit_text": "Answer with a probability in [0,1] for each horizon.",
+   "horizons": [
+    "6mo",
+    "12mo",
+    "2028",
+    "2030",
+    "2050",
+    "2100"
+   ],
+   "horizon_meaning": {
+    "6mo": "within 6 months of today",
+    "12mo": "within 12 months of today",
+    "2028": "by the end of 2028",
+    "2030": "by the end of 2030",
+    "2050": "by the end of 2050",
+    "2100": "by the end of 2100"
+   },
+   "text": "What is the probability that AI and robotics will make garments at scale in a developing country at a unit cost no higher than manual production at local wages (AI being, per the but-for standard, a substantial cause) within 6 months / within 12 months / by the end of 2028 / by the end of 2030 / by the end of 2050 / by the end of 2100?",
+   "criteria": "* Cost parity at scale: The question resolves Yes if, by the resolution date, at least one commercially operating production line in a low- or lower-middle-income country (World Bank FY2026 classification, held fixed) meets all of these:  \n  * it makes a mainstream garment (a T-shirt, jeans, a shirt or similar), sold commercially;  \n  * its sewing and assembly are done mainly by AI-directed robotic systems, with people only supervising, loading and maintaining;  \n  * it produces at least 1 million units a year;  \n  * its fully loaded unit cost (capital, energy, maintenance, materials handling and labour) is no higher than that of manual production of the same garment in the same country at its prevailing garment-sector wages.  \n* Today's level: automated sewing exists for a few simple products (e.g. T-shirts, in pilots in the U.S.), but no line is known to match manual production costs at the wages of Bangladesh, Ethiopia or Cambodia.  \n* Artificial intelligence: Defined as the development of machines capable of sophisticated (intelligent) information processing (Dafoe 2018, AI Governance: A Research Agenda, p. 5 fn. 2).  \n* AI as a substantial cause (but-for standard): The line would not meet these conditions, or would have been counterfactually extremely unlikely to, but for the substantial involvement of AI (for example in perceiving and handling fabric, or in planning and controlling the robots).  \n* Perfect knowledge: Assume we have perfect knowledge of the outcome and of the role AI played in it. We want your view on what actually happens by the resolution date, not on the probability that it is measured, published or correctly attributed in time.\n* Resolution date: read it as the date of whichever horizon you are answering: December 31 of the named year, or for a rolling horizon that many months after today's date.  \n* Data and disagreement: Where the named sources disagree in ways that would change resolution, or are unavailable, we will resolve by the majority opinion of a panel of at least five experts in the relevant fields. If reasonable people disagree about whether the event occurred, the question resolves via the same expert panel."
+  },
   {
    "id": "le:us",
    "group": "Life expectancy",
@@ -185,6 +251,18 @@
     "year": "2022\u20132026",
     "source": "IMF World Economic Outlook, October 2026, Online Table A1: emerging market and developing economies, annualized over 2022-2026 from 4.3, 4.5, 4.5, 4.5 and 3.7 (2026 projected)"
    }
+  }
+ ],
+ "rolling": [
+  {
+   "id": "6mo",
+   "months": 6,
+   "label": "within 6 months"
+  },
+  {
+   "id": "12mo",
+   "months": 12,
+   "label": "within 12 months"
   }
  ]
 }
