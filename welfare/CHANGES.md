@@ -147,6 +147,6 @@ The full panel's run is still 20 calls. Each call asks 168 more numbers (868 ins
 
 [`welfare-preview.html`](../welfare-preview.html), at the repo root: download it and open it in a browser. The Oct 1 forecasts are the welfare pilot's one real Opus 5.5 call. **Every Oct 22 forecast is invented**, and so is every AI-breakthrough answer, to show the layout with five prompts: the Timeline, Policy levers, Capability, the horizon chart and the ECI forecast. No model was run for it. `welfare.html` is the real page and stays empty until the first live run.
 
-`welfare/tools/` regenerates it (`preview.py`, deterministic) and renders pages without a browser (`ssr.js`, `svgpng.py`). [HANDOFF_CONTINUE.md](HANDOFF_CONTINUE.md) is the brief for whoever continues.
+[`welfare-previews/`](../welfare-previews/) keeps each day's last committed version as `welfare_preview_DDMMYYYY.html` (22, 23 and 27 Oct 2026); each carries its own note on which data is invented. `welfare/tools/` regenerates it (`preview.py`, deterministic) and renders pages without a browser (`ssr.js`, `svgpng.py`). [HANDOFF_CONTINUE.md](HANDOFF_CONTINUE.md) is the brief for whoever continues.
 
 Not committed: `.vscode/`.
