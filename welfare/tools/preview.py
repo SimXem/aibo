@@ -10,9 +10,14 @@ tighter on near-term growth; `critical` lower and wider; `two-step` (reason
 about AI capability first) a fatter upper tail, most at 2050/2100. Oct 22
 adds a small drift and per-cell jitter.
 
+The two AI-benefit questions (probabilities, 2026-10-27) were not asked by
+the pilot, so they have no Oct 1 point; their Oct 22 answers are INVENTED
+too: a median per horizon, moved on the logit by each condition (a slowdown
+policy lower, a higher ECI level higher) and each prompt.
+
     REDLINES_ENV_FILE=/dev/null python3 welfare/tools/preview.py
 """
-import hashlib, importlib.util, json, os, sys, tempfile
+import hashlib, importlib.util, json, math, os, sys, tempfile
 from datetime import date
 from pathlib import Path
 REPO = str(Path(__file__).resolve().parents[2])
@@ -65,6 +70,18 @@ def answer(qid, hz, cid, prompt, day):
     out = {p: m + shift + (q[p] - m) * wf + skew * SKEW[p] * (1 if far else 0.4) for p in P}
     return {p: round(v, 2) for p, v in out.items()}
 
+# The AI-benefit questions' invented unconditional answers, per horizon.
+PROB = {"ai:pancreatic": {"6mo": 0.001, "12mo": 0.002, "2028": 0.005, "2030": 0.02, "2050": 0.2, "2100": 0.5},
+        "ai:garments":   {"6mo": 0.01, "12mo": 0.02, "2028": 0.05, "2030": 0.12, "2050": 0.5, "2100": 0.75}}
+# Logit shifts: per condition, and per prompt.
+COND = {"unconditional": 0, "sq": 0.05, "p1": 0.1, "p2a": -0.25, "p2b": -0.5, "p3a": -0.2, "p3b": -0.35,
+        "p4": -0.15, "p5": -0.7, "eci_p10": -0.45, "eci_p25": -0.2, "eci_p50": 0, "eci_p75": 0.25, "eci_p90": 0.5}
+PROMPT_LOGIT = {"none": 0, "independent": -0.1, "recent": 0.1, "critical": -0.3, "two-step": 0.35}
+
+def answer_p(qid, hz, cid, prompt):
+    x = math.log(PROB[qid][hz] / (1 - PROB[qid][hz])) + COND[cid] + PROMPT_LOGIT[prompt] + jitter(qid, hz, cid, prompt) * 0.3
+    return round(1 / (1 + math.exp(-x)), 4)
+
 def stub(prompt, day):
     def loop(model, text, tools, final_tool, usage=None, partial_tool=None, **kw):
         usage.update(turns=31, cost_usd=16.85)
@@ -73,6 +90,10 @@ def stub(prompt, day):
                   "percentiles": {cid: (base[(qid, hz, cid)] if day == "2026-10-01"
                                         else answer(qid, hz, cid, prompt, day)) for cid in ids}}
                  for (qid, hz) in {(k[0], k[1]) for k in base}]
+        if day != "2026-10-01":
+            cells += [{"question_id": qid, "horizon": hz,
+                       "probabilities": {cid: answer_p(qid, hz, cid, prompt) for cid in COND}}
+                      for qid, hs in PROB.items() for hz in hs]
         e = dict(pilot["eciForecast"]["Opus 5.5"])
         bump = 0 if day == "2026-10-01" else 1.5 + (2.0 if prompt == "two-step" else 0) - (1.0 if prompt == "critical" else 0)
         return {"forecasts": cells, "rationale": call["rationale"] if day == "2026-10-01"
@@ -95,6 +116,6 @@ log = tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False)
 log.write("".join(json.dumps(r) + "\n" for r in rows)); log.close()
 blobs = welfare.build(log_path=log.name)
 blobs["WELFARE"]["protocol"] = ("PREVIEW: Oct 1 = the pilot's real Opus 5.5 call; "
-                                "Oct 22's five prompts are invented")
+                                "Oct 22's five prompts are invented, and so is every AI-breakthrough answer")
 open(f"{REPO}/welfare-preview.html", "w").write(hydrate_page(f"{REPO}/web/welfare", blobs))
 print("wrote welfare-preview.html; snapshots", [s["date"] for s in blobs["TIMELINE"]["snapshots"]])

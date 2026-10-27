@@ -30,7 +30,8 @@ Before adding code, look for an existing function, field or component that nearl
 ## How it fits together
 
 ```
-data/welfare_questions.json      5 questions, 10 question x horizon cells, five percentiles each ("percentiles" key)
+data/welfare_questions.json      7 questions: 2 AI breakthroughs as probabilities on AIRO's six horizons (value_kind),
+                                 5 life expectancy / growth questions, 10 cells, five percentiles each ("percentiles" key)
 data/welfare_conditions.json     AIRO's combined set copied verbatim, slug "welfare" (a test fails if the copy drifts)
 experiments/welfare.toml         5 pooled prompts (none, independent, recent, critical, two-step), cadence manual
         |
@@ -130,6 +131,8 @@ These are candidates for your work. Ask the user before changing AIRO wording.
 - **ECI snapshot:** `data/welfare_conditions.json` carries the ECI history of 2026-10-01. Before a live run, re-copy the combined set if the server has a newer one; the drift test fails until you do.
 - **No per-question rationales:** the minimal instrument has no debrief, so the rationale panel shows each call's batch rationale.
 - **Timeline starts empty:** one point per question until a second welfare run.
+- **Mixed answer types:** the welfare call is the runner's only MIXED set (`question_mode`, `value_mode`). Its probability questions are drawn by AIRO's own builders (`conditional._variant`, `timeline._prob_row`, `graph1._ensemble`); keep it that way rather than copying them.
+- **AIRO's Timeline wording:** the horizon picker reads "by 6mo", AIRO's own label.
 - **Not served anywhere:** `welfare.html` isn't published by any script. Wiring that in is deploying, so it's the user's decision.
 - **Today's values:** the dashed lines' numbers in `data/welfare_questions.json` (`today`) are life expectancy in 2026 (UN WPP 2024 via OWID) and growth annualized over 2022–2026 (IMF WEO October 2026), fetched 2026-10-23 (see CHANGES.md). Refresh them when either source updates.
 - **Invented preview data:** `welfare-preview.html` contains invented Oct 22 data, stated in its header and in `CHANGES.md`. Keep it that way.

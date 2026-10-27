@@ -27,6 +27,7 @@ Checks: the full `pytest` suite passes (441 passed, 26 skipped). AIRO is byte-id
 | 8f65826 | Prompt colours on Policy levers and Capability, an axis per horizon for percentile cells, the "Benefit" title, no cost in the header |
 | 52b9c36 | The welfare page is titled AIBO (Automated AI Benefit Outlook) |
 | (2026-10-23) | Today's value: a faint dashed line on the Timeline and the horizon chart, per question |
+| (2026-10-27) | Two AI-breakthrough questions asked as probabilities in the same call, drawn as AIRO's |
 
 ## New files
 
@@ -121,9 +122,30 @@ The values are on the series and definitions the questions resolve on, fetched o
 - Growth uses the questions' formula on the IMF's PPP-weighted group aggregates, from the published one-decimal annual rates. 2022 is the newest start that ends the window in 2026; 2021–2025 would include the pandemic rebound (6.2% and 7.0%).
 - Refresh these when the UN publishes WPP 2026 (OWID expects to update in 2027) or the IMF publishes the April 2027 WEO.
 
+## AI breakthroughs (2026-10-27)
+
+Two benefit questions, answered as **probabilities** on AIRO's six horizons (within 6 and 12 months, by 2028, 2030, 2050, 2100), in the same welfare call and five-prompt rotation as the percentile questions:
+
+- **`ai:pancreatic`:** AI-enabled treatments raise the all-stage five-year relative survival of U.S. pancreatic cancer patients above 50%. It resolves on the cohort diagnosed in the 12 months before the resolution date, as SEER eventually measures it, so the five-year publication lag doesn't make the near horizons impossible. Treatment only; earlier detection alone doesn't count. Today: 13.7% (SEER, 2016–2022 diagnoses; ovary 52.0%, colorectal 65.4%, lung 29.5%).
+- **`ai:garments`:** a commercially operating line in a low- or lower-middle-income country makes a mainstream garment, sewn and assembled mainly by AI-directed robots, at 1 million units a year or more, at a fully loaded unit cost no higher than manual production at that country's garment wages.
+
+Both use AIRO's criteria clauses (`data/autoarc_crosscutting.json`): the Dafoe definition, the but-for "substantial involvement of AI" test, perfect knowledge, the rolling resolution date and an expert panel. They are a new first group (AI BREAKTHROUGHS) in the prompt and on every rail. The life expectancy and growth questions, their horizons and their charts are unchanged; every percentile entry in every blob is identical to before.
+
+| File | Change |
+|---|---|
+| `data/welfare_questions.json` | The group, the two questions (`value_kind: "probability"`), and AIRO's `rolling` table so `6mo`/`12mo` sort, date and label as AIRO's do. |
+| `code/run_unified.py` (shared) | `question_mode(q, spec)` reads a question's own `value_kind`. `value_mode` returns `MIXED` only when a set's questions disagree. In a mixed set the cell schema carries both `probabilities` and `percentiles` (requiring neither), `take_cells` and `clean_forecasts_joint(modes=)` take each question's own key (a probability outside [0,1] is dropped), Step 2 and the delivery paragraph ("Deliver the forecasts …") name both, and `cell_numbers` counts the total per question (868 numbers, was 700). When questions carry `horizon_meaning`, the Horizons line still dates the rolling horizons. **AIRO is untouched:** its sets are one mode, so the airo, axes and paperaxes dry-runs and the submit tools' JSON are byte-identical. |
+| `redlines/views/welfare.py` | Probability questions go through AIRO's own builders, unchanged: `views.conditional._variant` for Policy levers and Capability (tabs 2030, 2050, 2100; Capability's bars take the welfare labels and ECI levels), `views.timeline._prob_row` for the Timeline, and graph1's series arithmetic with `views.graph1._ensemble` for the horizon chart. Prompt dots stay on percentile cells only (AIRO's probability rows draw none). |
+| `web/welfare/manifest.json` | Adds `../demo/10-mock-graph1.jsx`, which holds `niceMax`, read by a probability row's linear axis (index.html already loads it). |
+| `web/welfare/85-welfare.jsx` | Subtitle and FAQ: two probability questions, five percentile ones. |
+| `welfare/tools/preview.py` | Invented Oct 22 probabilities for both questions (per condition and prompt, on the logit). The pilot didn't ask them, so there's no Oct 1 point. |
+| `tests/test_welfare.py` | 7 questions, the mixed prompt and tools, mixed cleaning, rolling horizons, and the AI questions first in AIRO's probability shapes. |
+
+The full panel's run is still 20 calls. Each call asks 168 more numbers (868 instead of 700), so expect a somewhat higher price per call than the pilot's $16.85.
+
 ## The preview
 
-[`welfare-preview.html`](../welfare-preview.html), at the repo root: download it and open it in a browser. The Oct 1 forecasts are the welfare pilot's one real Opus 5.5 call. **Every Oct 22 forecast is invented** to show the layout with five prompts: the Timeline, Policy levers, Capability, the horizon chart and the ECI forecast. No model was run for it. `welfare.html` is the real page and stays empty until the first live run.
+[`welfare-preview.html`](../welfare-preview.html), at the repo root: download it and open it in a browser. The Oct 1 forecasts are the welfare pilot's one real Opus 5.5 call. **Every Oct 22 forecast is invented**, and so is every AI-breakthrough answer, to show the layout with five prompts: the Timeline, Policy levers, Capability, the horizon chart and the ECI forecast. No model was run for it. `welfare.html` is the real page and stays empty until the first live run.
 
 `welfare/tools/` regenerates it (`preview.py`, deterministic) and renders pages without a browser (`ssr.js`, `svgpng.py`). [HANDOFF_CONTINUE.md](HANDOFF_CONTINUE.md) is the brief for whoever continues.
 

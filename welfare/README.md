@@ -1,6 +1,6 @@
 # Welfare instrument: prompts and spec
 
-This folder has what is needed to build a welfare dashboard on AIRO's pipeline. Today's dashboard asks catastrophe probabilities. This one asks for **five percentiles** (p10, p25, p50, p75, p90) on life expectancy and GDP growth, under the same 14 scenario conditions and the same five prompt variants. Since 2026-10-22 it is wired in: [CHANGES.md](CHANGES.md) lists what changed, file by file. [HANDOFF_PROMPT.md](HANDOFF_PROMPT.md) is the build brief: reuse AIRO's pipeline, and add code only where percentiles differ from probabilities.
+This folder has what is needed to build a welfare dashboard on AIRO's pipeline. Today's dashboard asks catastrophe probabilities. This one asks for **five percentiles** (p10, p25, p50, p75, p90) on life expectancy and GDP growth, under the same 14 scenario conditions and the same five prompt variants. Since 2026-10-22 it is wired in: [CHANGES.md](CHANGES.md) lists what changed, file by file. Since 2026-10-27 the live set (`data/welfare_questions.json`) also asks two AI-breakthrough questions as probabilities; the files in this folder describe the original five. [HANDOFF_PROMPT.md](HANDOFF_PROMPT.md) is the build brief: reuse AIRO's pipeline, and add code only where percentiles differ from probabilities.
 
 ## Files
 
