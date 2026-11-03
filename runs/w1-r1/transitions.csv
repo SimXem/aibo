@@ -1,0 +1,103 @@
+unit_id,source,commit,committer_date,from,to,state,recorded_date,subject
+erdos:1,erdos,99c392535c69420e7e09b2ced731423a0c83ebc0,2026-09-03T20:30:08+01:00,open,solved,disproved,2025-08-31,Problem status updates
+erdos:1,fc,a639d28912c26403640ce8f0b4a775175bfd9497,2026-09-12T11:46:37Z,open,solved,,,fix(ErdosProblems/1): the distinct subset sums conjecture is false (#5581)
+erdos:1041,fc,a01ad23474c14781e4f16f48f6e5a430895e10a0,2026-09-23T07:04:57Z,open,solved,,,Erdős 1041: mark solved with answer(False) and link a formal proof (#6505)
+erdos:1054,fc,929392d28c9749ea37514c8772ac3668db709b2e,2026-10-13T15:34:01Z,open,solved,,,feat(ErdosProblems/1054): mark parts solved and link the formal proof (#7098)
+erdos:1133,fc,121d72ce6ac513360240a84cd49af59684e3f6fc,2026-10-08T20:29:59Z,open,solved,,,fix(ErdosProblems/1133): record the robust interpolation solution (#6851)
+erdos:1150,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+erdos:119,erdos,cfe07e48557e77e5e0b383538420f8be24671f7f,2026-07-19T07:44:39+01:00,open,solved,solved,2025-08-31,Status of 119
+erdos:119,fc,78f0f657b61efb4a324ec431105ecac32242ebb7,2026-07-21T09:33:43+02:00,open,solved,,,feat(ErdosProblems): Update 119 status (#4488)
+erdos:1212,fc,a9326184fd159f4417735adf2352aea877e4dd90,2026-10-22T08:27:08Z,open,solved,,, Erdos Problem 1212 as solved (#6788)
+erdos:123,erdos,8cbad719512e130143e8b51cec90b398b006acfa,2026-07-17T13:14:30+01:00,open,solved,proved,2025-08-31,status of 123
+erdos:123,fc,39875db85782f5c4cc1adc7c405e329d450e57e5,2026-07-21T08:14:12Z,open,solved,,,feat(ErdosProblems): Update 123 status (#4492)
+erdos:126,erdos,99c392535c69420e7e09b2ced731423a0c83ebc0,2026-09-03T20:30:08+01:00,open,solved,proved,2025-08-31,Problem status updates
+erdos:126,fc,558863235893e5e7808be24f0845bfd9e4c34d9d,2026-09-12T12:06:40Z,open,solved,,,fix(ErdosProblems/126): f n / log n does tend to infinity (#5583)
+erdos:138,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+erdos:172,fc,1c53184677d233a8f95ab6e9e13d135281dbfa0f,2026-10-11T07:56:47Z,open,solved,,,feat(ErdosProblems/172): mark solved and link the formal proof (#7127)
+erdos:184,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+erdos:193,erdos,82f908ef42e7152c5811c9aa83eb3706e7418de5,2026-09-04T17:51:43+01:00,open,solved,disproved,2025-08-31,Status of 193
+erdos:193,fc,445de20a84c3343c4fb4d81f9a2ec90f85d01fde,2026-09-18T12:24:54Z,open,solved,,,solve(ErdosProblems): mark 193 solved (#5277)
+erdos:196,fc,da2b1e9c753182657b42ea2f30b871738d90f5af,2026-10-21T08:26:08Z,open,solved,,,feat(ErdosProblems/196): mark as solved (negative answer) (#7411)
+erdos:254,fc,f40ecd9b3b79a7aa1a64b7d2f3b2623d4a6c3081,2026-08-07T11:51:36Z,open,solved,,,ErdosProblems 130 254 267 394 489 521 769 796 1188: Star Fleet Math formal_proof links (#4578)
+erdos:260,fc,fdd4ea2ba50f2282c67638611ed68034aa54980c,2026-09-21T09:50:01Z,open,solved,,,feat(ErdosProblems): mark 260 as solved (#4446)
+erdos:267,fc,f40ecd9b3b79a7aa1a64b7d2f3b2623d4a6c3081,2026-08-07T11:51:36Z,open,solved,,,ErdosProblems 130 254 267 394 489 521 769 796 1188: Star Fleet Math formal_proof links (#4578)
+erdos:289,fc,96119ca3cc8c0955d9ad81e313e973162909a86e,2026-10-07T08:21:10Z,open,solved,,,feat(ErdosProblems): mark Erdős Problems 289 and 1063 as solved and link Lean 4 proofs (#6781)
+erdos:3,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+erdos:304,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+erdos:306,fc,d9c9d8ea1b3b1f2e617fd5e449bdda120872bbd3,2026-10-23T07:00:54Z,open,solved,,,feat(ErdosProblems/306): mark solved and link the formal proofs (#7295)
+erdos:321,erdos,5aca58abc6712b6412fb7115846a16ece45b0d41,2026-07-16T09:43:51+01:00,open,solved,solved,2025-08-31,Status of 320 and 321
+erdos:341,fc,a8d29337adec1b1c9057e0c94cae509a36b986ce,2026-09-18T19:24:58Z,open,solved,,,"Erdős 341: the answer is no (Li 2026), link the formal disproof (#6070)"
+erdos:346,erdos,514c2879d5b903a2060d97f950cf3aab23346ead,2026-09-01T13:55:15+01:00,open,solved,solved,2025-08-31,Problem status updates
+erdos:346,fc,0f841021739ee997358f8601faa80f7664e47aac,2026-09-12T12:00:21Z,open,solved,,,fix(ErdosProblems/346): the golden-ratio limit fails for a lacunary counterexample (#5571)
+erdos:348,fc,97a729a35de6de358570f9b5d820d6effb11bd43,2026-10-08T19:40:04Z,open,solved,,,fix(ErdosProblems/348): record the deletion classification (#6849)
+erdos:361,fc,eb5f135f5ae06f3764310a7146e19db1da91f917,2026-08-04T15:06:18Z,open,missing,,,Fix Erdős Problem 361 formalization (#4675)
+erdos:371,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+erdos:387,erdos,13ba620e1bf53eea47ed69934d48b373db11142f,2026-07-02T15:43:06+01:00,open,solved,solved,2025-08-31,Status of 387 and 865
+erdos:387,fc,1429198dec8eef0fe1982f867355fcd20bc075db,2026-07-05T16:14:34+02:00,open,solved,,,ErdosProblems/387: sync solved status (#4374)
+erdos:394,fc,f40ecd9b3b79a7aa1a64b7d2f3b2623d4a6c3081,2026-08-07T11:51:36Z,open,solved,,,ErdosProblems 130 254 267 394 489 521 769 796 1188: Star Fleet Math formal_proof links (#4578)
+erdos:421,erdos,124d967001458735ea67d55473540f5abe767074,2026-09-01T15:30:19+01:00,open,solved,solved,2025-08-31,Status of 421
+erdos:421,fc,5b7e9229667287202f57731b0a23df5c5042c02e,2026-09-12T11:50:43Z,open,solved,,,Sync Erdős Problem 421 solved status (#5850)
+erdos:424,fc,3cba9473f51e96b271278f34a97b31c2af3c2016,2026-09-21T09:12:12Z,open,solved,,,"Erdős 424: the answer is yes (Korsky 2026), link the formal proof (#6076)"
+erdos:469,erdos,79c6f0ac0ab903f663f3029bc0d3bd2b25aeae2e,2026-07-22T17:32:51-04:00,open,solved,proved,2026-07-21,Merge pull request #345 from plby/patch-9
+erdos:469,fc,09e0de635b220f0b362cdbd7aee910192c611b28,2026-08-04T21:01:52Z,open,solved,,,"ErdosProblems: link plby proofs for 206, 426, 469, 621, 639, 648 (#4718)"
+erdos:477,erdos,b17335bedda8c2aeea16eefe04f941c59745dc1e,2026-09-05T07:50:13+01:00,open,solved,solved,2025-08-31,Status of 477 and 625
+erdos:477,fc,cd0084c96ac8764cac2c4dcb1b6f1815112f1155,2026-09-12T12:02:17Z,open,solved,,,fix(ErdosProblems/477): such a polynomial and set do exist (#5573)
+erdos:486,fc,c74b753650ad69d8d3710bfd82a59240be429cdb,2026-09-18T19:29:39Z,open,solved,,,"Erdős 486: the answer is no (Wang 2026), link the formal disproofs (#6074)"
+erdos:489,fc,f40ecd9b3b79a7aa1a64b7d2f3b2623d4a6c3081,2026-08-07T11:51:36Z,open,solved,,,ErdosProblems 130 254 267 394 489 521 769 796 1188: Star Fleet Math formal_proof links (#4578)
+erdos:501,erdos,56d4286e6dece34ff05bf1fd2ce684111da4c912,2026-09-07T08:19:51+01:00,open,solved,independent,2025-08-31,Status of 501
+erdos:501,erdos,ee3b678d5796e583a109c4ea9537f5874478446e,2026-09-18T10:43:29-07:00,solved,partial,not disprovable,2026-09-03,Merge pull request #400 from Jayyhk/501
+erdos:520,fc,51cd112554ca413b70d68a1a661245e73957e76c,2026-09-18T19:33:22Z,open,solved,,,"Erdős 520: the answer is no (Høystad 2026), link the formal disproof (#6104)"
+erdos:522,fc,d050a588e676881bc748e6d14c12d1675da207f2,2026-09-28T10:29:48Z,open,solved,,,Mark Erdős Problem 522 and its 0/1 variant as solved (#6608)
+erdos:688,fc,67e055080608ebc88a7b6262f16096e03ad72b51,2026-09-13T16:13:56Z,open,missing,,,"fix(ErdosProblems/688): state ""estimate ε_n"" as a single Theta bound (#5842)"
+erdos:689,fc,a7a94e4a52ea28f60fed3e2e708e6bc50490ea8f,2026-10-12T21:46:39Z,open,solved,,,feat(ErdosProblems/689): mark solved and link the formal proof (#7027)
+erdos:730,erdos,514c2879d5b903a2060d97f950cf3aab23346ead,2026-09-01T13:55:15+01:00,open,solved,solved,2025-08-31,Problem status updates
+erdos:730,fc,29a95baef275ca85c144c248cb1d151803ecbeb1,2026-09-21T09:14:15Z,open,solved,,,Erdős 730: mark solved and record the registered formal proof (#5091)
+erdos:74,erdos,99c392535c69420e7e09b2ced731423a0c83ebc0,2026-09-03T20:30:08+01:00,open,solved,disproved,2025-08-31,Problem status updates
+erdos:74,fc,48f2670ef9a1392b8c686b37b357cf243df37c2e,2026-09-12T12:06:45Z,open,solved,,,fix(ErdosProblems/74): the Erdos-Hajnal-Szemeredi question has a negative answer (#5582)
+erdos:750,erdos,78997e63dcabff21a3051cb1f4c892a7d99f9067,2026-07-15T09:45:56+01:00,open,solved,proved,2025-08-31,Status of 750
+erdos:750,fc,0feb3762e47bbbb766743c15dcd4221c398c55de,2026-07-20T08:54:41Z,open,solved,,,feat(ErdosProblems): Update 750 status and add variants (#4475)
+erdos:817,fc,2ed7b815a7d712a37b2a0def069750f627b15ea4,2026-10-10T21:44:14Z,open,solved,,,feat(ErdosProblems/817): `erdos_817` is false (#7050)
+erdos:865,erdos,13ba620e1bf53eea47ed69934d48b373db11142f,2026-07-02T15:43:06+01:00,open,solved,proved,2025-08-31,Status of 387 and 865
+erdos:865,fc,1d80d6e8d136b166d410ee6a01019e79e9b0ba55,2026-08-04T21:30:52Z,open,solved,,,ErdosProblems: link Jayyhk/erdos-lean proofs for 512 and 865 (#4723)
+erdos:920,erdos,1e89dca8f5f7ad457d8cd531beb56b00ca2340de,2026-07-25T18:26:42+01:00,open,solved,solved,2025-08-31,Status of 920
+erdos:920,fc,85f863718beeec7b58a3a1926ee92e3472bc2020,2026-07-29T11:50:02+02:00,open,solved,,,feat(ErdosProblems): Update 920 status (#4628)
+erdos:952,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+erdos:968,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+erdos:973,fc,d5ba143cc2fafd48cc6d5b6320a3aab287c38df7,2026-09-17T16:23:35Z,open,solved,,,ErdosProblems/973: the answer is no (#4862)
+erdos:978,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+fc:Arxiv/2107.00295/IndependentDomination,fc,c112d6def093cc2a80b5ec1f8a62d7071c1c355c,2026-09-18T12:39:44Z,open,solved,,,feat(Arxiv): update 2107.00295 Conjecture 1.6 status (#5105)
+fc:Arxiv/2208.14736/ZariskiCancellation,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+fc:Books/BugeaudDistributionModuloOne/Problem10_4,fc,28e6bdd6b994b19fa89457fa2012414af6600a25,2026-09-21T11:23:56Z,open,solved,,,feat(BugeadDistributionModuloOne/Problem10_4): add `formal_proof` (#6447)
+fc:Books/BugeaudDistributionModuloOne/Problem10_5,fc,dc0365baf4896fdbc79edcf0020390599802bfc8,2026-09-21T05:39:00Z,open,solved,,,Mark Bugeaud Problem 10.5 as solved (#6434)
+fc:Books/BugeaudDistributionModuloOne/Problem10_7,fc,db810e84d2042f3a6735aaeda5d7cd6f5d67a447,2026-07-02T11:17:56Z,open,missing,,,feat(Bugeaud): Problem 10.8 and 10.7 (#4203)
+fc:GreensOpenProblems/1,fc,137aec5c7abd3aa61f7a73138a97279acfc79e93,2026-09-30T18:50:19Z,open,solved,,,fix(GreensOpenProblems/1): `green_1` is true (#6748)
+fc:GreensOpenProblems/19,fc,76972ae6b4e9da06f15344411d68af1f7561bebc,2026-09-12T14:07:13Z,open,solved,,,fix(GreensOpenProblems/19): the bounds follow from the solved value C = 4 (#5557)
+fc:GreensOpenProblems/29,fc,468a1438e567ae6dd1d733cfbecacdd3b33afaed,2026-09-18T09:42:38Z,open,solved,,,Mark Green's Open Problem 29 as solved (#5094)
+fc:GreensOpenProblems/3,fc,fe1b0322f275cca3c7a3ada302f2a50694fba107,2026-09-12T14:17:46Z,open,solved,,,"fix(GreensOpenProblems/3): open product-free subsets of (0,1) have measure < 1/3 (#5604)"
+fc:GreensOpenProblems/42,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+fc:GreensOpenProblems/47,fc,3518567571a01fd82f52ed5e0c5a80e326fa90ee,2026-09-28T07:56:31Z,open,solved,,,Mark Green's Open Problem 47 as false (#6449)
+fc:GreensOpenProblems/54,fc,786dd04e25528a354ffe929d659422921be15008,2026-09-13T11:20:24Z,open,solved,,,"fix(GreensOpenProblems/54): use Minkowski sumsets, not scalar dilations (#5762)"
+fc:GreensOpenProblems/94,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+fc:Kourovka/19_25,fc,a3bc3141f97029b1eddc3b5e97a6a49a0544feb8,2026-08-23T21:46:58Z,open,missing,,,chore: bump to v4.32.2 (#4428)
+fc:Kourovka/20_76,fc,a3bc3141f97029b1eddc3b5e97a6a49a0544feb8,2026-08-23T21:46:58Z,open,missing,,,chore: bump to v4.32.2 (#4428)
+fc:Mathoverflow/1973,fc,b1fe0251acaa79bc0c876eda859c0f36cee456aa,2026-08-27T11:23:37Z,open,solved,,,feat: mark Hopf Problem as solved (#5178)
+fc:Mathoverflow/31809,fc,0771383387505c96d1b2f6a3d35088ad00892c5c,2026-09-23T14:28:07Z,open,solved,,,Mathoverflow 31809: mark as solved (#6515)
+fc:Mathoverflow/347178,fc,84d73c99d1f5a3a26a9537eae5b6d7792235e1f4,2026-07-21T16:47:53Z,open,solved,,,Updated 347178.lean (#4427)
+fc:Mathoverflow/507128,fc,be7f43f1ff453f49ce4635e9aa481ccda3b6f835,2026-08-04T12:46:47+02:00,open,solved,,,feat(Mathoverflow/507128): mark as formally solved (#4644)
+fc:OEIS/228828,fc,d7032450c559849f2a345f80582688c76b25ffcb,2026-08-13T10:55:54Z,open,missing,,,Add the first 64 files from AutoOeis to formal-conjectures (#4450)
+fc:OEIS/287616,fc,cdcc1598cb0eff740da0809f78b3a596bd9a311f,2026-09-23T10:26:59Z,open,solved,,,OEIS 287616: mark Sun's conjecture as solved (#6514)
+fc:OEIS/306477,fc,ea7a6fc34306b5fd534c6f9167e35df7e5009457,2026-09-23T06:28:52Z,open,solved,,,Mark OEIS conjectures settled by OEIS Open as research solved (#6456)
+fc:Other/EquationalTheories_677_255,fc,a573f0bffedb21c20a644ff41852424d22caca06,2026-09-12T14:39:31Z,open,missing,,,fix(Other/EquationalTheories_677_255): state 677 => 255 as one question (#5552)
+fc:Other/VCDimConvex,fc,7f8b9949ff633b2bc5d89fef0c1ac5ae29138398,2026-09-15T12:34:01Z,open,missing,,,feat(Other/VCDimConvex): make the universal statement interesting again (#6018)
+fc:Paper/Chvatal,fc,73b4f4cda1e465c6fb5b2206818ed2f6699aa07f,2026-10-07T20:48:04Z,open,solved,,,chore: update status of Chvatal's conjecture (#6886)
+fc:Paper/ClaudesCycles,fc,8e38bdd0f6266db9d14599ad7951222f1fa228b9,2026-08-15T09:01:35Z,open,solved,,,Paper/ClaudesCycles: the even case is settled in the revised source (#4935)
+fc:Paper/HartshorneConjecture,fc,bc99e1d0ee28304d7272f63cbfef130a9922b5b4,2026-08-22T13:04:50Z,open,missing,,,chore: miscellaneous golfs (#5101)
+fc:Paper/StrongSensitivityConjecture,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+fc:Paper/VoronovskajaTypeFormula,fc,f59c9c15bc5f951c90b8128ccc84681c5fd317e6,2026-09-14T17:47:37Z,open,solved,,,feat(Paper): mark Bézier–Bernstein Voronovskaja problem solved (#4646)
+fc:Wikipedia/BoundedBurnsideProblem,fc,43eeacb8e40e495e9580c74f00b533b0718aebff,2026-09-10T09:41:17Z,open,solved,,,fix(Wikipedia/BoundedBurnsideProblem): record negative answer (#4519)
+fc:Wikipedia/JacobianConjecture,fc,393aa9ab2403a2fb6f00eabf56fe8bf977a38efa,2026-07-26T15:40:33Z,open,solved,,,feat: add Jacobian disproof (#4474)
+fc:Wikipedia/KomlosConjecture,fc,2f82a24192f64ac678557247e496b2381d3889a1,2026-09-21T15:49:57Z,open,solved,,,feat(Wikipedia/KomlosConjecture): formalise the Karingula–Lovett proof (#6450)
+fc:Wikipedia/MovingSofa,fc,e7964ca5f87a29fae9e311e96737f5cbb69ba232,2026-08-10T05:50:59Z,open,missing,,,Wikipedia/MovingSofa: state sofa uniqueness up to a rigid motion (#4852)
+fc:Wikipedia/Sendov,fc,e0e1929ee61d4e722433ad6f9716aad4ef4ee08f,2026-09-12T11:55:20Z,open,solved,,,fix(Wikipedia/Sendov): mark Sendov's conjecture solved with a formal proof (#5560)
+fc:Wikipedia/SidorenkoConjecture,fc,3dfd999dfe5a3a1c739d362d3189daf9e08d9fa8,2026-10-11T07:51:35Z,open,solved,,,feat: mark problems solved in the OpenAI math release and link formal proofs (#6898)
+fc:Wikipedia/SurjunctiveGroup,fc,5922bfcbaf0b3e479cbf989d81510c30aa647742,2026-10-19T14:57:31Z,open,solved,,,fix(Wikipedia/SurjunctiveGroup): `gottschalk_surjunctivity_conjecture` is false (#7440)

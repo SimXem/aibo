@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Let f(n) count the k ≤ n with k·σ(k) = n, where σ is the sum-of-divisors function. Show: (i) for some h(n) = o(1/log log n), f(n) ≤ n^{h(n)} for all large n; (ii) for some constant C, f(n) = O((log n)^C).",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r000",
+ "draft": "Let f(n) be the number of k ≤ n with k·σ(k) = n, where σ(k) is the sum of divisors of k. Prove:\n\n(i) There is a function h(n) = o(1/log log n) such that f(n) ≤ n^{h(n)} for all sufficiently large n.\n\n(ii) There is a constant C with f(n) = O((log n)^C).",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "1f5c79bf602f4257f647a9aecb2e04faa5831087ac5b666247f4494d4a29b454",
+ "key": "erdos_1060@21e94494c418",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "The conjecture is about the function $f(n)$ which counts the number of solutions to\n$k\\sigma(k)=n$, where $\\sigma(k)$ is the sum of divisors of $k$. The first bound is that $f(n)$ grows slower\nthan any power of $n^(\\frac{1}{\\log\\log n})$. The second bound is that $f(n)$ is at most a power of\n$\\log n$.\n\nPart (ii) of Erdős Problem 1060: bound on the number of $k \\le n$ with $k \\sigma_1(k) = n$.",
+ "source_lean": "theorem erdos_1060.parts.i :\n    ∃ h : ℕ → ℝ,\n      h =o[atTop] (fun n ↦ 1 / log (log n)) ∧ ∀ᶠ n in atTop, #{k ≤ n | k * σ 1 k = n} ≤ (n : ℝ) ^ h n\n\ntheorem erdos_1060.parts.ii :\n    ∃ (C : ℝ), (fun n ↦ (#{k ≤ n | k * σ 1 k = n} : ℝ)) =O[atTop]\n      (fun n ↦ log n ^ C)",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:1060"
+}

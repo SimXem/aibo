@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Let F(α,n) be the largest d such that A + A contains a d-dimensional coset whenever A ⊆ F_2^n has density ≥ α. Determine F. Also: does every C > 0 admit c with F(α,n) ≥ n − c for large n and α ∈ (1/2 − C/√n, 1]?",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r041",
+ "draft": "Let F(α,n) be the largest d such that every A ⊆ F_2^n of density α has A+A containing a coset of a d-dimensional subspace. Determine F exactly.\n\nAlso: for every C>0, is there c such that for all large n and all α in (1/2 − C/√n, 1], F(α,n) ≥ n − c?",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "7136aeaf3bbc1cad803f80fbc6ec0d365f53632ba946ed3cc8a9ca85958229f2",
+ "key": "fc_GreensOpenProblems_51@55710cf58467",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Suppose that $A \\subset \\mathbb{F}_2^n$ is a set of density $\\alpha$. What is the largest size of coset\nguaranteed to be contained in $2A$?\n\nWe phrase this by asking for the exact function $F(\\alpha, n)$ giving the maximum dimension\nof a guaranteed coset.\n\nSuppose that $A \\subset \\mathbb{F}_2^n$ has density $\\alpha > 1/2 - C/\\sqrt{n}$.\nDoes $A + A$ contain a subspace of co-dimension $O_C(1)$? [Sa11, Question 5.1]",
+ "source_lean": "theorem green_51 : answer(sorry) = guaranteedMaxCosetDim\n\ntheorem green_51.one_half :\n    answer(sorry) ↔ ∀ (k : ℝ), 0 < k →\n      ∃ (c : ℕ), ∀ᶠ (n : ℕ) in atTop,\n        ∀ (α : ℝ), α > (1/2 : ℝ) - k / sqrt (n : ℝ) → α ≤ 1 →\n          n ≤ guaranteedMaxCosetDim n α + c",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "fc:GreensOpenProblems/51"
+}

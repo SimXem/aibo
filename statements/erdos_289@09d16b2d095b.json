@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Is it true that for all sufficiently large k there are k pairwise disjoint intervals [a_i, b_i] of natural numbers, each with a_i < b_i, such that the sum over all i of Σ_{n=a_i}^{b_i} 1/n equals 1? (Here 1/0 counts as 0.)",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r010",
+ "draft": "Is it true that for all sufficiently large k there exist k pairwise disjoint finite intervals [a_i, b_i] of natural numbers, each with a_i < b_i, such that the sum over all i of the sum of 1/n for n in [a_i, b_i] equals 1? Here 1/0 is taken to be 0.",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "45a8d027274cd9a4c6e999f865745a746282154e875b48b5609467b32a962d1e",
+ "key": "erdos_289@09d16b2d095b",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Is it true that, for all sufficiently large $k$, there exists finite intervals\n$I_1, \\dotsc, I_k \\subset \\mathbb{N}$ with $|I_i| \\geq 2$ for $1 \\leq i \\leq k$ such that\n$$\n1 = \\sum_{i=1}^k \\sum_{n \\in I_i} \\frac{1}{n}.\n$$",
+ "source_lean": "theorem erdos_289 : answer(sorry) ↔\n    (∀ᶠ k : ℕ in atTop, ∃ I : Fin k → ℕ × ℕ,\n    (∀ i, (I i).1 < (I i).2) ∧\n    (∀ i j, i ≠ j → (I i).2 < (I j).1 ∨ (I j).2 < (I i).1) ∧\n    ∑ i, ∑ n ∈ .Icc (I i).1 (I i).2, (n⁻¹ : ℚ) = 1)",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:289"
+}

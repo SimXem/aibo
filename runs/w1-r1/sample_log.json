@@ -1,0 +1,19 @@
+{
+ "guaranteed_shortfall": 0,
+ "n_eligible": 533,
+ "n_frame": 542,
+ "n_guaranteed": 10,
+ "n_sampled": 60,
+ "n_sampled_solved": 15,
+ "n_solved_pool": 66,
+ "strata_alloc": {
+  "erdos": 30,
+  "fc_named": 11,
+  "fc_other": 9
+ },
+ "strata_sizes": {
+  "erdos": 316,
+  "fc_named": 111,
+  "fc_other": 96
+ }
+}

@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "For r ≥ 3, let f_r(N) be the largest size of a subset of {1,…,N} with no r elements whose pairwise gcds are all equal. Show that for every r ≥ 3 some c > 0 has f_r(N) ≤ N^(c / log log N) for all sufficiently large N.",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r024",
+ "draft": "For each r ≥ 3, let f_r(N) be the largest size of a subset of {1,…,N} containing no r elements whose pairwise gcds are all equal. Show that for every r ≥ 3 there exists c > 0 such that f_r(N) ≤ N^(c / log log N) for all sufficiently large N.",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "3482793837e1d01422c290394eaf8ef0882536da4d5fabfd0d0b107324a64e07",
+ "key": "erdos_535@4f56b8fa9d9c",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Let $r \\geq 3$, and let $f_r(N)$ denote the size of the largest subset of $\\{1,\\ldots,N\\}$\nsuch that no subset of size $r$ has the same pairwise greatest common divisor between all\nelements. Erdős [Er64] proved that $f_3(N) > N^{c/\\log\\log N}$ for some constant $c > 0$, and\nconjectured this should also be an upper bound; here we state the conjectural upper bound\nfor all $r \\geq 3$.\n\nSee also [536].",
+ "source_lean": "theorem erdos_535 : ∀ r ≥ 3, ∃ c > (0 : ℝ),\n    ∀ᶠ (N : ℕ) in atTop,\n      (f r N : ℝ) ≤ (N : ℝ) ^ (c / log (log (N : ℝ)))",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:535"
+}

@@ -1,0 +1,139 @@
+{
+ "artifacts": {
+  "exclusions.csv": "f83de0c60b22f9be0de66a6a5a3ff2b0a31b82c3da309899770c9e869e2104c9",
+  "frame.csv": "cbfc2ff08a0c7e153fc1545cea705a1efbd91978dbb71df5626224074a30269c",
+  "outcomes.csv": "eebec47dd94ee966f16ee2a09c891d21a7a27c8443560a4f353116c622d14411",
+  "prompts.jsonl": "ea5b0f9e74c2560d5c7b9752de200bacf0da837c60f7e909746d5f87ed3dfb46",
+  "sample.csv": "f4de1b5f37f757ed378f97a870844e635472675568fad58776c6a8ed2d613f07",
+  "sample_log.json": "e6eaeaf0bc30215cfa0e49c99b242e2d0de8c21af8357b407ce6f61104539527",
+  "transitions.csv": "2e51a018de19ce5e265124e630bae9aa031875284015185c5c86d9c1243401b6"
+ },
+ "built_utc": "2026-11-03T19:01:51+00:00",
+ "bundles": [
+  {
+   "branch": "main",
+   "fetched_utc": "2026-11-03T17:21:46+00:00",
+   "file": "erdosproblems-e8eb30547deb933a8a83259597eb5cdc57d680b4.bundle",
+   "head": "e8eb30547deb933a8a83259597eb5cdc57d680b4",
+   "head_commit_date": "2026-11-03T17:05:03Z",
+   "repo": "erdosproblems",
+   "sha256": "d58b9b66c06a5bdfde15a3a26ccf6379040636916306490af7824da9351e7ac6",
+   "url": "https://github.com/teorth/erdosproblems.git"
+  },
+  {
+   "branch": "main",
+   "fetched_utc": "2026-11-03T17:22:27+00:00",
+   "file": "formal-conjectures-91de7907319346b089ceb4749313feb0f94fe269.bundle",
+   "head": "91de7907319346b089ceb4749313feb0f94fe269",
+   "head_commit_date": "2026-11-03T16:33:21Z",
+   "repo": "formal-conjectures",
+   "sha256": "9b880932f5d47f2c77dca008481a0e91c64baa41906fde12fdc9449ac830ad63",
+   "url": "https://github.com/google-deepmind/formal-conjectures.git"
+  }
+ ],
+ "commits": {
+  "erdosproblems": {
+   "s": "b5867d6d6c65dcccbbba81dfcc6f378e694ebd6c",
+   "s_info": {
+    "committer_date": "2026-11-01T20:58:42Z",
+    "sha": "b5867d6d6c65dcccbbba81dfcc6f378e694ebd6c",
+    "subject": "chore: regenerate derived fields and README [skip ci]"
+   },
+   "t0": "cbf955c5bd8e512114b5d4ae7905e9a6fc84f880",
+   "t0_info": {
+    "committer_date": "2026-06-30T09:49:05Z",
+    "sha": "cbf955c5bd8e512114b5d4ae7905e9a6fc84f880",
+    "subject": "chore: regenerate README [skip ci]"
+   }
+  },
+  "formal-conjectures": {
+   "s": "7bdc4a42f24c0316f81c73b26121794b2bed96a3",
+   "s_info": {
+    "committer_date": "2026-11-02T12:15:38Z",
+    "sha": "7bdc4a42f24c0316f81c73b26121794b2bed96a3",
+    "subject": "feat(Arxiv): the Maxwell conjecture and its refutation (arXiv:2607.27197) (#4683)"
+   },
+   "t0": "47f1df0809d2c154f5cbbeb5f2e697945ff9d1ae",
+   "t0_info": {
+    "committer_date": "2026-06-30T09:47:41Z",
+    "sha": "47f1df0809d2c154f5cbbeb5f2e697945ff9d1ae",
+    "subject": "feat(script/extract_names): add dates (#4205)"
+   }
+  }
+ },
+ "config_hash": "96bb7b792be7efc0d2bace7aab55c3cc29a09ee9604e27dc31a30e99d571e59a",
+ "inclusion_probability_note": "random-draw probabilities are conditional on the realised guaranteed draw",
+ "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+ "python": "3.14.4",
+ "requirements_sha256": "cc7b0726be454043bb28362552f47869f0262ba0a7cd5b88b9aec7f55f82b2b3",
+ "rules_version": "rules_v1",
+ "run_date": "2026-11-03",
+ "run_id": "w1-r1",
+ "snapshot_date": "2026-11-02",
+ "source_hash": "a36d5825a37be6874dea029a1cf112e54c2a049fa730b47d801c19b6c5432bd8",
+ "statement_files": {
+  "erdos_1060@21e94494c418.json": "87187fc06bc190e64e74f02c55333829d2bc4cb19157f4d80e8f8895d8efb1b7",
+  "erdos_1061@9ee07658d977.json": "2b760b9222a1d1cfcd37bc8c929b6e13538ae73dbbe71afefe69b8483585709c",
+  "erdos_1094@fa9f25b4ca31.json": "7b74204fe27b97f5256b43af5ab6c75d478fd6e078fb8ec9d44792b65cded60b",
+  "erdos_1145@54967b2fcac1.json": "2edfaecbd7319a8094bf5244f22038b2e51e5a9c8c1d4a6716ae32d541a0a8c2",
+  "erdos_1150@952e3a67873b.json": "6cc6f9798c12ad20467104c85d5be43c31b6ba0155f50ee385795ffb69759922",
+  "erdos_234@170d123782ce.json": "5b8732b01f9664228cfe511800757ac030f147200102cff2925074bdab9963b9",
+  "erdos_247@eb806492e637.json": "f2b020523c9d22579c28660c559b302c4db926948af1d8cd90e80de9b82928ed",
+  "erdos_251@f8aa7c98de35.json": "19e528e98d0a094d87883b4f54f61831a818f862dcbafde59a41168d441c96f8",
+  "erdos_254@81906d4c82ec.json": "7da31e04bbe6878caf5509068144d99c4e40a127755b1b79424688cb939d3fec",
+  "erdos_272@36c944d87001.json": "980755142f62305eaba90f2afd408956b4afd27c34bc5fbc20c26f2790773e16",
+  "erdos_289@09d16b2d095b.json": "c6be87ccd5e8d4700cdde540b2be60671c9791ad7a210ef5c6d42bd23b025d13",
+  "erdos_28@3bcd6eff1798.json": "a7e605b52eb9651e5ac5a4b76f62b066aceb39cd015ab42acccae69b7515fa7c",
+  "erdos_291@fcf1bac19658.json": "636f36a72304637896490c627cba9a1892450e3ab8a825a29f5311f93a71e23b",
+  "erdos_325@6d294b928f41.json": "0a10403fabdc265d66cb68778596fdf256235632df859a52b3fe75cace43c88c",
+  "erdos_329@a33db9026689.json": "a4eec06a53edba8aa4156db5cafc05a7025fc3b45695e0871fc2ae2aa7faa401",
+  "erdos_340@4948bd6894db.json": "655ad7a4227ca23cec2e866129d52927a700b04e1ec6438fb4de1be060fb8d58",
+  "erdos_341@6a09f86b5e0b.json": "2372aa21cc9c428dfcef1e06a13f2c999caccac16310b78f50bff2dc8e0366a2",
+  "erdos_348@4ec725b9ae79.json": "600b01b39182d5a3435c43da3a6454be56a95f28465a404e3c1b979c7c89e43d",
+  "erdos_366@e1c64007cfc8.json": "bc845725b7630cf921d84602b75df4ca9abe391152216f465debd21714937b92",
+  "erdos_386@6e216d7926e6.json": "59f94cc7c2e2276b659373f5e1d3f9a15a45a7f01e890dd4be905e8511150c6d",
+  "erdos_421@cc9a24b964a9.json": "a05db072f15be8731265f0fa1c3d321b80da325820ca2c7dfc587addfec2ecd5",
+  "erdos_424@930ea5bf9ec7.json": "9b8b1213b91d2cc8e6aac304270390d36cb5b4fe7aca98267d25cc90563373ff",
+  "erdos_513@529bdcd0e0d6.json": "fa051aa98b64f77b899f0da4801598745af93a1106739352681751bc75ab708e",
+  "erdos_520@7a8485d9c9e7.json": "d57bf4fee2294a07fd89f341d8ef35b2ce54948dff0eb2c4c942269d8bea9e61",
+  "erdos_535@4f56b8fa9d9c.json": "c2af79dc8cf2843c177bd8c982bae66fbdc315bb41ac37bb4969dcb900391ea1",
+  "erdos_598@c8dd2490669b.json": "8521e697ffb55c159690130152ce5c2cb7fe0bda8e0afcd08c1464db8b3b99f1",
+  "erdos_617@f4a1d3e42432.json": "984d61b1840f396e21c24cee8fc5609efb0fb42c53a6f18a8033889936528df6",
+  "erdos_688@49b0a3521300.json": "0769aa2a1fddee966a5faee17c6da86ab3cfa96b8b1c248dc04d59e5e41977ec",
+  "erdos_689@50d8ef36b8b5.json": "376811783f628337966f60e7fb913ec70f37d6142d72eebfbf96055677868245",
+  "erdos_726@1565cc4f1e1d.json": "4fab78048a5bd3101bc12ec0567c38bc1dbc07008fde1df6297f4dc88fd0ac4f",
+  "erdos_75@776ebbd5cd9e.json": "0caa311b4e61501bb2dcfe375ffd07ba80e837e2361785bf7f20e060e4085543",
+  "erdos_835@b9851985752b.json": "f8512ce4744552e00b0a2b7b877f270d6ad3b3b2200745487662073eebf90e48",
+  "erdos_913@aa42b8c68e7a.json": "3c76f5adf92c0042759e14049d86ac1d4660a40d348a476023d26f237d1c8325",
+  "erdos_918@2726a50a970b.json": "6b5c721d7c7ec9ce0f793a006619a843b35a7569e5ca90de7b5443d60035f806",
+  "erdos_931@770b76367639.json": "7bb6994cf40bb25747b0e7c33db806b633959668ba4c70f2d410f063c25860c7",
+  "erdos_96@8bed57ac9040.json": "9f026c810f81e946e2452ac749871a73450733143ef457bc3ed45848482abed2",
+  "fc_Books_UniformDistributionOfSequences_Equidistribution@199c86b56792.json": "384717e93d23026e3477d21be2dbbb43d9a18bd441aa6482e963a2341fa6c536",
+  "fc_GreensOpenProblems_29@2ec97563b9ed.json": "1c968fa12cd20efc07b7d578a227e0b2afda0e6b86a2a0a4257f685b7ebe8d57",
+  "fc_GreensOpenProblems_3@9e7663734bf0.json": "0a1b77cad0a3241c00b3634feaba5be8ba0305e45a0e554234c310b5ce1da7d5",
+  "fc_GreensOpenProblems_40@c5ea727dac45.json": "270ffa1c3268b28a44171fb87a617d875923aa5e43ff5c311e11303f44e1e494",
+  "fc_GreensOpenProblems_41@450fc900c9a5.json": "931070eaf6f96cefc95d3166c8c84d11251d2c2be59f025bb053dfd84164932f",
+  "fc_GreensOpenProblems_51@55710cf58467.json": "3c45a3fe0e3ddab0d19eb96a44550b075019d1438edcd23ebcc0d8db96af3b16",
+  "fc_GreensOpenProblems_54@77493a9f0a96.json": "920a3a22a5457f33a67e24dd7e9e29a3326247e3d3d5be8ed13d5b8893033b21",
+  "fc_GreensOpenProblems_77@a56f8827cd0c.json": "de861deae7517439d810e7b0a856a729763c3e93577184463a4c0df2319b9f35",
+  "fc_GreensOpenProblems_94@fa5f7266460b.json": "9727c255e82eb0da9c7a456c1f6449a79ff074ccdbfed48d5c200a4af6bec529",
+  "fc_OEIS_228828@ae4652d97d84.json": "0dff2de59e92130a20ebed9ba79511f3f679fc3a31b58db41109ed9e927f403b",
+  "fc_Paper_HartshorneConjecture@cad32807a4db.json": "ec0a9bbfb09da3890afd3c986072db27d1e3f915b04cad712bf0cabe1a51c4c7",
+  "fc_Paper_StrongSensitivityConjecture@66336e073585.json": "36ba4118c8fb825acb7cdc7b6f517ee709581c36b22b604830446f9d94177978",
+  "fc_Paper_VoronovskajaTypeFormula@a9ed052fe125.json": "488b519b95e137174fc708f83c42d7202e4387d17bbbcd1bdd2113fdc17e598c",
+  "fc_Wikipedia_EulerSumOfPowers@3e71c5dd6fd7.json": "9723b9fe6c01c88e3dee68b67d2dc8763dba2b98b4f24c80c44489094a41e4f6",
+  "fc_Wikipedia_Firoozbakht@f09e6dac82f3.json": "dfbc12202242a120c0229b11360b3dd24bea6c3b319fe04c5a6509f8dc91d080",
+  "fc_Wikipedia_FlintCooksonHills@ee01fea8519b.json": "0d66c5ddf745e680bd24527f312f36e6690d36d7485e392d38b9e64e4ae2d45a",
+  "fc_Wikipedia_Grimm@c68d56341479.json": "af6b3fb5958c265bb816f543c5b2ee54105f52dfc28dc505624b5099b351c489",
+  "fc_Wikipedia_Hall@230060001d6d.json": "d83a996d6f2e5e5d258de460fecace34ac934ef909e5ef1866be137c32844823",
+  "fc_Wikipedia_Koethe@42c0cff0c21c.json": "7d51569f362b406553fc3c7ce7bcc529244f90befe6962f55bb61c3dcca5a14c",
+  "fc_Wikipedia_NormalityOfPi@790bfb17aefa.json": "58754c2352f7939b7c502312e5e019467cf2b7a9e035bf0e2258f83869f858ce",
+  "fc_Wikipedia_PrimesAndPerfectSquares@3ad5be638e12.json": "97cd28d9a8d65ba78164a7ef76df3c057c818caff2121c7f4657e75e3676bf4b",
+  "fc_Wikipedia_RamanujanTau@7e132eb339dd.json": "8711666fb0a6e07447b84cfb152a22a8f55300e7bad41982908f42d8ad6082b1",
+  "fc_Wikipedia_RegularPrimes@01fc00e491c4.json": "fdadb13a09f205ae37c7d0ff24a323ad28d19256a282f851a022f3ede025d66d",
+  "fc_Wikipedia_Schinzel@38862f72186c.json": "c10449e6778e73bf055f73e651ef3f5459aac83de87dba0b27296b10c34c978b"
+ },
+ "statements_status": "approved",
+ "t0": "2026-06-30",
+ "wave": "wave1"
+}

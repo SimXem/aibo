@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Let A be a set of natural numbers such that all but finitely many natural numbers are of the form a + b with a, b ∈ A. Then the number of representations of n as a + b (a, b ∈ A) is unbounded as n → ∞.",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r011",
+ "draft": "Let A be a set of natural numbers such that all but finitely many natural numbers can be written as a + b with a, b in A. Prove that the number of representations of n as a + b with a, b in A has limsup infinity as n → ∞, i.e., is unbounded.",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "af9e66a61139f6adda4f96ab8f95c617abe3cdf1f3028dcd0cf162abb61fb91c",
+ "key": "erdos_28@3bcd6eff1798",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "If $A ⊆ \\mathbb{N}$ is such that $A + A$ contains all but finitely many integers then\n $\\limsup 1_A ∗ 1_A(n) = \\infty$.",
+ "source_lean": "theorem erdos_28 (A : Set ℕ) (h : (A + A)ᶜ.Finite) :\n    limsup (fun (n : ℕ) => (sumRep A n : ℕ∞)) atTop = (⊤ : ℕ∞)",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:28"
+}

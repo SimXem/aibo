@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Is it true that for every integer sequence a_0, a_1, … in which, for all sufficiently large n, a_{n+1} is the least integer exceeding a_n not of the form a_i + a_j (i, j ≤ n), the differences a_{m+1} − a_m are eventually periodic?",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r016",
+ "draft": "Is the following true? For every integer sequence a_0, a_1, a_2, ... such that, for all sufficiently large n, a_{n+1} is the least integer greater than a_n that is not of the form a_i + a_j with i, j ≤ n, the differences a_{m+1} − a_m are eventually periodic with some period p > 0.",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "98d81133ad3c7482413d0e046035bb61b0c617a7028c0be7e2dab151c80087f9",
+ "key": "erdos_341@6a09f86b5e0b",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Let $A=\\{a_1 < \\cdots < a_k\\}$ be a finite set of integers and extend it to an infinite\nsequence $\\overline{A}=\\{a_1 < a_2 < \\cdots \\}$ by defining $a_{n+1}$ for $n \\geq k$ to be\nthe least integer exceeding $a_n$ which is not of the form $a_i + a_j$ with $i,j \\leq n$.\nIs it true that the sequence of differences $a_{m+1}-a_m$ is eventually periodic?\n\nThis problem is discussed under Problem 7 on Green's open problems list.",
+ "source_lean": "theorem erdos_341 :\n    answer(sorry) ↔\n      ∀ (a : ℕ → ℤ),\n        (∀ᶠ n in atTop,\n          IsLeast { x | a n < x ∧ x ∉ { a i + a j | (i ≤ n) (j ≤ n) } } (a (n + 1))) →\n        let d := fun i ↦ a (i + 1) - a i\n        ∃ p > 0, ∀ᶠ m in atTop, d (m + p) = d m",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:341"
+}

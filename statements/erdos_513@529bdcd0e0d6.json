@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "For a transcendental entire function f(z) = Σ a_n z^n, let M(r) = max over |z| = r of |f(z)| and ratio(r) = max_n |a_n| r^n / M(r). What is the supremum, over all such f, of liminf as r → ∞ of ratio(r)?",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r022",
+ "draft": "For a non-polynomial (transcendental) entire function f(z) = Σ a_n z^n, let M(r) = max over |z| = r of |f(z)|, and let ratio(r) = max_n |a_n| r^n / M(r). What is the supremum, over all such f, of liminf as r → ∞ of ratio(r)?\n\n(The definition of ratio is assumed from the standard form of Erdős Problem 513; the given statement does not define it.)",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "0161aa03ae290139fd523df2e6490a52daad6026170d709c6232cafa3b2439f1",
+ "key": "erdos_513@529bdcd0e0d6",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Let `f` be a transcendental entire function. What is the greatest possible value of\n`liminf (fun r : ℝ => ratio r f) atTop`?",
+ "source_lean": "theorem erdos_513 : answer(sorry) =\n    ⨆ f : {f : ℂ → ℂ // Transcendental ℂ[X] f ∧ Differentiable ℂ f},\n    (liminf (fun r : ℝ => ratio r f) atTop)",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:513"
+}

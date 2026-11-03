@@ -1,0 +1,9 @@
+# A run fixes the snapshot date S (outcomes are read from the last tracker commit <= S, end of day UTC)
+# and the date stated in the prompt. Rerunning this file reproduces sample, prompts and reveal.
+run_id: w1-r1
+wave: wave1
+snapshot_date: '2026-11-02'   # S; must not be later than the newest archived tracker commit
+run_date: '2026-11-03'        # date written into the prompt ("Today is ...")
+templates: templates/v1
+stages: [forecast]            # add 'reveal' once the stage-3 question exists
+stage3_question: null

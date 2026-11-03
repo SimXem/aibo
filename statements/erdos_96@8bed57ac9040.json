@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Let f(n) be the maximum number of pairs at distance exactly 1 among n points in the plane that form the vertices of a convex polygon. Is f(n) = O(n) as n → ∞?",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r035",
+ "draft": "Let f(n) be the maximum number of pairs at distance exactly 1 among n points in the plane that form the vertices of a convex polygon. Is f(n) = O(n) as n → ∞?",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "af6a79792b0561dce51386e4df2763fc90476c61b1ffe9f00a02b626ced2599c",
+ "key": "erdos_96@8bed57ac9040",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "If $n$ points in $\\mathbb{R}^2$ form a convex polygon then there are $O(n)$ many pairs which are\ndistance $1$ apart.",
+ "source_lean": "theorem erdos_96 :\n    answer(sorry) ↔ (fun n => (maxConvexUnitDistances n : ℝ)) =O[atTop] fun n => (n : ℝ)",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:96"
+}

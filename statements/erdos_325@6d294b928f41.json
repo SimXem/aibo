@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "For k ≥ 3, let f_k(x) be the number of integers at most x that are sums of three kth powers. Is it true that for every k ≥ 3 some c > 0 has f_k(x) ≥ c·x^(3/k) for all sufficiently large x?",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r013",
+ "draft": "Is it true that for every integer k ≥ 3, the number f(x) of integers at most x that are a sum of three kth powers satisfies x^(3/k) = O(f(x))? That is, is there a constant c > 0 such that f(x) ≥ c·x^(3/k) for all sufficiently large natural numbers x?",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "2b61742186c5dd750f6890a91e498108dd8fccec4bb7021bea5291d97dc4ce65",
+ "key": "erdos_325@6d294b928f41",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Writing $f_{k, 3}(x)$ for the number of integers $\\leq x$ which are the sum of three $k$th powers,\nis it true that $f_{k, 3}(x) \\gg x ^ (3 / k)$?",
+ "source_lean": "theorem erdos_325 :\n     answer(sorry) ↔ ∀ k : ℕ, 3 ≤ k → (fun x : ℕ => (x : ℝ) ^ (3 / k : ℝ)) =O[atTop]\n      (fun x : ℕ => (cardIsSumThreePowerBelow k x : ℝ))",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:325"
+}

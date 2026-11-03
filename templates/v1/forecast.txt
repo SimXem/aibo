@@ -1,0 +1,17 @@
+Today's date is {run_date}.
+
+Below are {n_items} problems in mathematics, taken from two public trackers: the Erdős Problems database (github.com/teorth/erdosproblems) and Google DeepMind's Formal Conjectures repository. Each problem was listed as open on {t0}. Some have since been resolved and some have not; you do not know what has happened to them since {t0}.
+
+A problem counts as solved on the date a tracker records it as proved, disproved, solved or shown independent. Partial results and special cases do not count.
+
+For each problem, give three dates in the format YYYY-MM:
+- "best": your best guess of when it is (or was) solved;
+- "q10": a date by which you think there is a 10% chance it is solved;
+- "q90": a date by which you think there is a 90% chance it is solved.
+Use "after-2100" for any date later than 2100. Dates may lie between {t0_month} and today if you think the problem may already have been solved. No date may be earlier than {t0_month}. Each problem must satisfy q10 <= best <= q90.
+
+Problems:
+{items}
+
+Reply with a JSON array only, one object per problem, in any order:
+[{{"id": "<problem id>", "best": "YYYY-MM", "q10": "YYYY-MM", "q90": "YYYY-MM"}}, ...]

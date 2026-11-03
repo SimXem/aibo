@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "For integers n > 1 and k ≥ 6, if positive integers a_1, …, a_n and a natural number b satisfy a_1^k + a_2^k + … + a_n^k = b^k, then n ≥ k.",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r049",
+ "draft": "For integers n > 1 and k ≥ 6, if positive integers a_1, …, a_n and a natural number b satisfy a_1^k + a_2^k + … + a_n^k = b^k, then n ≥ k.",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "ed1f52a0dd04b428d60b27d0e0bb0e6c68424c1d4fac80c71714588fbbd5690b",
+ "key": "fc_Wikipedia_EulerSumOfPowers@3e71c5dd6fd7",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Euler's sum of powers conjecture states that for integers $n > 1$ and $k > 1$,\nif the sum of $n$ positive integers each raised to the $k$-th power equals another integer\nraised to the $k$-th power, then $n ≥ k$.\n\nThe conjecture is known to be false for $k = 4$ and $k = 5$,\nbut remains open for $k ≥ 6$.",
+ "source_lean": "theorem eulers_sum_of_powers_conjecture (n k b : ℕ) (hn : 1 < n) (hk : 5 < k) (a : Fin n → ℕ)\n    (ha : ∀ i, a i > 0) (hsum : ∑ i, (a i) ^ k = b ^ k) : k ≤ n",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "fc:Wikipedia/EulerSumOfPowers"
+}

@@ -1,0 +1,35 @@
+# A wave fixes T0, the model set and the seed. A model whose training cutoff is later than T0
+# cannot join this wave (starts a new wave).
+wave: wave1
+rules_version: rules_v1
+seed: wave1-2026-11-03
+t0: '2026-06-30'          # = latest training cutoff among the models below, last day of month
+n_total: 60
+n_guaranteed_solved: 10
+n_samples: 5
+
+models:
+  - id: claude-opus-5-5
+    provider: anthropic
+    training_cutoff: '2026-06'
+    cutoff_source: 'Anthropic support page (per study brief; not re-checked)'
+    effort: default        # no sampling params are sent; effort omitted = model default (Opus 5.5: medium; Sonnet 5.5: high)
+  - id: claude-sonnet-5-5
+    provider: anthropic
+    training_cutoff: '2026-06'
+    cutoff_source: 'Anthropic support page (per study brief; not re-checked)'
+    effort: default        # no sampling params are sent; effort omitted = model default (Opus 5.5: medium; Sonnet 5.5: high)
+  - id: claude-fable-5-1
+    provider: anthropic
+    training_cutoff: '2026-06'
+    cutoff_source: 'Anthropic support page (per study brief; not re-checked)'
+    effort: default        # no sampling params are sent; effort omitted = model default (Opus 5.5: medium; Sonnet 5.5: high)
+  - id: gpt-6.1-sol        # UNVERIFIED model id string; check OpenAI model page before running
+    provider: openai
+    training_cutoff: '2026-04'
+    cutoff_source: 'OpenAI model page (per study brief; not re-checked)'
+    effort: default        # no sampling params are sent; effort omitted = model default (Opus 5.5: medium; Sonnet 5.5: high)
+
+statements:
+  drafter: {provider: anthropic, id: claude-opus-5-5, effort: high, max_words: 50}   # no temperature: rejected by current models; reproducibility comes from the frozen cache
+  template: templates/v1/statement_draft.txt

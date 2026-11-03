@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Does there exist a graph G with ℵ_1 vertices and chromatic number ℵ_1 such that, for every ε > 0 and all sufficiently large n, every subgraph of G on n vertices contains more than n^(1−ε) of its vertices forming an independent set in G?",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r030",
+ "draft": "Does there exist a graph G with ℵ_1 vertices and chromatic number ℵ_1 such that, for every ε > 0 and all sufficiently large n, every subgraph of G on n vertices contains more than n^(1−ε) of its vertices forming an independent set in G?",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "5ff207a04160c8b2e7224bc2d6a594f0f193d38a9aabb5ae1bba54c36fff679d",
+ "key": "erdos_75@776ebbd5cd9e",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Is there a graph of chromatic number `ℵ_ 1` with `ℵ_ 1` vertices such that for all\n`ε > 0`, if `n` is sufficiently large and `H` is a subgraph on `n` vertices,\nthen `H` contains an independent set of size `> n ^ (1 - ε)`?",
+ "source_lean": "theorem erdos_75 :\n    answer(sorry) ↔\n    ∃ (V : Type) (G : SimpleGraph V),\n      G.chromaticCardinal = ℵ_ 1 ∧\n      #V = ℵ_ 1 ∧\n      ∀ ε > (0 : ℝ),\n        ∀ᶠ (n : ℕ) in Filter.atTop, ∀ (H : G.Subgraph),\n            H.verts.ncard = n →\n            ∃ (I : Finset V),\n              (I : Set V) ⊆ H.verts ∧\n              G.IsIndepSet (I : Set V) ∧\n              (I.card : ℝ) > (n : ℝ) ^ (1 - ε)",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:75"
+}

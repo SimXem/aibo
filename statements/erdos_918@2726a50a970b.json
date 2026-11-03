@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "(i) Is there a graph with ℵ_2 vertices and chromatic number ℵ_2 whose ℵ_1-vertex induced subgraphs all have chromatic number ≤ ℵ_0? (ii) For every ordinal α, is there a graph with ℵ_{α+1} vertices and chromatic number ℵ_1 whose ℵ_α-vertex induced subgraphs all have chromatic number ≤ ℵ_0?",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r033",
+ "draft": "Two questions:\n\n(i) Is there a graph with ℵ_2 vertices and chromatic number ℵ_2 in which every induced subgraph on ℵ_1 vertices has chromatic number ≤ ℵ_0?\n\n(ii) Is it true that for every ordinal α, some graph with ℵ_{α+1} vertices has chromatic number ℵ_1, while every induced subgraph on ℵ_α vertices has chromatic number ≤ ℵ_0?",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "e19cbf985e50c58143c23747ad24c26189d972fdef65092cea7e168000c94648",
+ "key": "erdos_918@2726a50a970b",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Is there a graph with $\\aleph_{\\omega+1}$ vertices and chromatic number $\\aleph_1$ such that\nevery subgraph on $\\aleph_\\omega$ vertices has chromatic number $\\leq\\aleph_0$?",
+ "source_lean": "theorem erdos_918.parts.i :\n    answer(sorry) ↔ ∃ (V : Type u) (G : SimpleGraph V), #V = ℵ_ 2 ∧ G.chromaticCardinal = ℵ_ 2 ∧\n      ∀ (W : Set V) (_ : #W = ℵ₁), (G.induce W).chromaticCardinal ≤ ℵ₀\n\ntheorem erdos_918.parts.ii :\n    answer(sorry) ↔ ∀ (ω : Ordinal),\n    ∃ (V : Type u) (G : SimpleGraph V), #V = ℵ_ (ω + 1) ∧ G.chromaticCardinal = ℵ₁ ∧\n      ∀ (W : Set V) (_ : #W = ℵ_ ω), (G.induce W).chromaticCardinal ≤ ℵ₀",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:918"
+}

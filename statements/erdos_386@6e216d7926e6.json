@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Is there an integer k ≥ 2 such that, for infinitely many n with k ≤ n − 2, the binomial coefficient C(n, k) is a product of consecutive primes p_a·p_{a+1}⋯p_{b−1}, where p_i is the i-th prime?",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r019",
+ "draft": "Does there exist an integer k ≥ 2 such that, for infinitely many n with k ≤ n − 2, the binomial coefficient C(n, k) equals a product of consecutive primes? That is, does C(n, k) = p_a · p_{a+1} ⋯ p_{b−1} hold for some a ≤ b, where p_i denotes the i-th prime?",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "a2abc55d29a5401a668bbeb30479b63e10fe43c921e6d9d4dc7f86e033e1b793",
+ "key": "erdos_386@6e216d7926e6",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "There is a $k$, such that $2 \\le k \\le n - 2$ and\n$\\binom{n}{k}$ can be the product of consecutive primes infinitely often?",
+ "source_lean": "theorem erdos_386 :\n    answer(sorry) ↔ ∃ k ≥ 2, ∃ᶠ n in .atTop,\n      k ≤ n - 2 ∧ ∃ p q : ℕ, n.choose k = ∏ i ∈ .Ico p q, nth Nat.Prime i",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:386"
+}

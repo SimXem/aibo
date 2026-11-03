@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Let r ≥ 3. For every colouring of the edges of the complete graph on r^2 + 1 vertices with r colours, there exist a set S of r + 1 vertices and a colour k such that no edge between two distinct vertices of S has colour k.",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r026",
+ "draft": "Let r ≥ 3. For every colouring of the edges of the complete graph on r^2 + 1 vertices with r colours, there exist a set S of r + 1 vertices and a colour k such that no edge between two distinct vertices of S has colour k.",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "bbe57388bf89ad3ace8866d58230c0b25085df5565e785f1ddc8ca55ac9c1010",
+ "key": "erdos_617@f4a1d3e42432",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Let $r\\geq 3$. If the edges of $K_{r^2+1}$ are $r$-coloured then there exist $r+1$ vertices with at\nleast one colour missing on the edges of the induced $K_{r+1}$.\n\nIn other words, there is no balanced colouring.\n\nA conjecture of Erdős and Gyárfás [ErGy99].",
+ "source_lean": "theorem erdos_617 (r : ℕ) (hr : r ≥ 3) {V : Type} [Fintype V] [DecidableEq V]\n    (hV : Fintype.card V = r^2 + 1) (coloring : Sym2 V → Fin r) :\n    ∃ (S : Finset V) (k : Fin r),\n      S.card = r + 1 ∧\n      ∀ u ∈ S, ∀ v ∈ S, u ≠ v → coloring s(u, v) ≠ k",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:617"
+}
