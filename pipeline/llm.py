@@ -16,6 +16,18 @@ from .common import ROOT, PipelineError
 
 MAX_TOKENS = 64000
 
+# The models get no tools: no web search, web fetch or code execution, so they cannot look anything up.
+# Every request is checked against this list; anything else (e.g. `tools`) stops the run.
+ALLOWED_REQUEST_KEYS = {'model', 'max_tokens', 'messages', 'output_config',   # Anthropic
+                        'input', 'reasoning'}                                    # OpenAI Responses
+
+
+def check_no_tools(params):
+    extra = set(params) - ALLOWED_REQUEST_KEYS
+    if extra:
+        raise PipelineError(f'request parameters not allowed in this study: {sorted(extra)} (models get no tools)')
+    return params
+
 
 def load_env():
     p = ROOT / '.env'
@@ -39,7 +51,7 @@ class Anthropic:
         kwargs = {'model': model, 'max_tokens': MAX_TOKENS, 'messages': messages}
         if effort and effort != 'default':
             kwargs['output_config'] = {'effort': effort}
-        with self.client.messages.stream(**kwargs) as stream:
+        with self.client.messages.stream(**check_no_tools(kwargs)) as stream:
             msg = stream.get_final_message()
         text = ''.join(b.text for b in msg.content if b.type == 'text')
         rec = {'response': msg.to_dict(), 'request_id': getattr(msg, '_request_id', None),
@@ -61,7 +73,7 @@ class OpenAI:
         kwargs = {'model': model, 'input': messages}
         if effort and effort != 'default':
             kwargs['reasoning'] = {'effort': effort}
-        resp = self.client.responses.create(**kwargs)
+        resp = self.client.responses.create(**check_no_tools(kwargs))
         text = resp.output_text
         rec = {'response': resp.to_dict(), 'request_id': getattr(resp, '_request_id', None),
                'returned_model': resp.model, 'stop_reason': getattr(resp, 'status', None),

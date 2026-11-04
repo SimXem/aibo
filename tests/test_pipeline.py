@@ -1,10 +1,18 @@
 """Fixture tests for the parsers and rules. Run: .venv/bin/python -m unittest discover -s tests -t ."""
 import unittest
 
-from pipeline import erdos, fc, outcomes, parse, sample
+from pipeline import erdos, fc, llm, outcomes, parse, run_batch, sample
 from pipeline.common import ROOT, PipelineError, load_yaml
 
 RULES = load_yaml(ROOT / 'rules' / 'rules_v1.yaml')
+
+
+def _no_env():
+    raise AssertionError('tests must never load .env or build a real API client')
+
+
+# Guard: any code path that would read credentials fails the test instead.
+llm.load_env = run_batch.load_env = _no_env
 
 LEAN = '''
 /-!
@@ -221,8 +229,6 @@ class TestRunBatch(unittest.TestCase):
             with fake:
                 c = _Obj(messages=_Obj(batches=_FakeBatches(
                     [('ok', good), ('ok', 'no array here'), ('errored', None), ('ok', good), ('ok', good)])))
-                with self.assertRaises(PipelineError):          # openai model is not batchable
-                    run_batch.submit('cfg', client=c)
                 run_batch.submit('cfg', models=['m1'], client=c)
                 self.assertIsNone(run_batch.submit('cfg', models=['m1'], client=c))   # all pending
                 run_batch.collect('cfg', client=c)
@@ -295,7 +301,7 @@ class TestAutoApprove(unittest.TestCase):
 class TestRunners(unittest.TestCase):
     """Orchestration only: every network / API / build function is mocked."""
 
-    def test_forecast_batches_anthropic_and_calls_others_directly(self):
+    def test_forecast_batches_every_provider_unless_direct(self):
         from unittest import mock
         from pipeline import stage_forecast as sf
         wave = {'models': [{'id': 'a', 'provider': 'anthropic'}, {'id': 'o', 'provider': 'openai'}]}
@@ -304,9 +310,9 @@ class TestRunners(unittest.TestCase):
                 mock.patch.object(sf.run_batch, 'collect') as col, mock.patch.object(sf.run, 'run') as direct, \
                 mock.patch.object(sf.parse, 'parse_run') as par, mock.patch.object(sf, '_unfinished', return_value=[]):
             sf.forecast('cfg', poll_seconds=0)
-        self.assertEqual([c.args[1] for c in sub.call_args_list], [['a']] * 3)
+        self.assertEqual([c.args[1] for c in sub.call_args_list], [['a', 'o']] * 3)   # both providers batched
         self.assertEqual(col.call_count, 3)                 # leftover batches + after each submitted batch
-        direct.assert_called_once_with('cfg', ['o'], None)
+        direct.assert_not_called()
         par.assert_called_once_with('cfg', stub=False)
         with mock.patch.object(sf, 'load_run_config', return_value=({}, wave, {})), \
                 mock.patch.object(sf.run_batch, 'submit') as sub, mock.patch.object(sf.run_batch, 'collect'), \
@@ -366,11 +372,150 @@ class TestRunners(unittest.TestCase):
                 sfu.run_followup('fu.yaml', poll_seconds=0)
                 bld.assert_called_once()                      # no lock yet -> build
                 self.assertEqual(sub.call_count, 2); self.assertEqual(col.call_count, 2)
-                direct.assert_called_once_with('fu.yaml', skip_providers=('anthropic',))
+                direct.assert_not_called()                    # every provider is batched
                 par.assert_called_once(); exp.assert_called_once()
                 (d / 'followups' / 'f').mkdir(parents=True); (d / 'followups' / 'f' / 'followup.lock.json').write_text('{}')
                 sfu.run_followup('fu.yaml', poll_seconds=0)
                 bld.assert_called_once()                      # existing lock is checked, never rebuilt
+
+
+
+class TestOrderSalt(unittest.TestCase):
+    def test_order_salt_pins_problem_order(self):
+        from pipeline import render
+        rows = [{'unit_id': f'u:{i}', 'code': f'P{i:05d}', 'display_name': f'U{i}', 'solved': '0'} for i in range(8)]
+        st = {r['unit_id']: 'text' for r in rows}
+        run = {'templates': 'templates/v1', 'run_date': '2026-11-03', 'snapshot_date': '2026-11-02', 'stages': ['forecast']}
+        wave = {'t0': '2026-06-30', 'n_samples': 2, 'models': [{'id': 'm', 'provider': 'anthropic'}]}
+        order = lambda w, h: [r['order'] for r in render.render(run, w, rows, st, h)]
+        self.assertNotEqual(order(wave, 'hash-a'), order(wave, 'hash-b'))            # default: config hash
+        pinned = {**wave, 'order_salt': 'hash-a'}
+        self.assertEqual(order(pinned, 'hash-b'), order(wave, 'hash-a'))              # salt overrides it
+        more = {**pinned, 'models': wave['models'] + [{'id': 'x', 'provider': 'openai'}]}
+        self.assertEqual(order(more, 'hash-c')[:2], order(wave, 'hash-a'))           # adding a model keeps m's order
+
+
+class TestNoTools(unittest.TestCase):
+    def test_requests_carry_no_tools(self):
+        from unittest import mock
+        from pipeline import llm, run_batch
+        with self.assertRaises(PipelineError):
+            llm.check_no_tools({'model': 'm', 'max_tokens': 1, 'messages': [], 'tools': [{'type': 'web_search_20260209'}]})
+        a = llm.Anthropic.__new__(llm.Anthropic)          # no __init__: no client, no .env
+        a.client = mock.MagicMock()
+        msg = mock.MagicMock(content=[], model='m', stop_reason='end_turn')
+        a.client.messages.stream.return_value.__enter__.return_value.get_final_message.return_value = msg
+        a.chat('m', [{'role': 'user', 'content': 'x'}], 'high')
+        self.assertEqual(set(a.client.messages.stream.call_args.kwargs), {'model', 'max_tokens', 'messages', 'output_config'})
+        jobs = run_batch._forecast_jobs({'run_id': 'r'}, [{'model': 'm', 'effort': 'high', 'sample_idx': 0,
+                                                          'forecast_prompt': 'p', 'order': [], 'forecast_sha256': 'h'}])
+        self.assertNotIn('tools', jobs[0]['params'])
+
+
+
+class _FakeOpenAI:
+    """Fake OpenAI client for the Batch API: files up, batches, result files down."""
+
+    def __init__(self, script):
+        import json
+        self.json, self.script, self.files_up, self.batches_made, self.out = json, script, {}, [], {}
+        fake = self
+
+        class Files:
+            def create(self, file, purpose):
+                fid = f'file-in{len(fake.files_up)}'
+                fake.files_up[fid] = [fake.json.loads(l) for l in file[1].decode().splitlines()]
+                return _Obj(id=fid)
+
+            def content(self, fid):
+                return _Obj(text=fake.out[fid])
+
+        class Batches:
+            def create(self, input_file_id, endpoint, completion_window):
+                bid = f'batch_{len(fake.batches_made)}'
+                lines = fake.files_up[input_file_id]
+                fake.batches_made.append((bid, endpoint, lines))
+                ok, bad = [], []
+                for i, l in enumerate(lines):          # results in reverse order: must be keyed by custom_id
+                    kind, text = fake.script.pop(0)
+                    if kind == 'ok':
+                        body = {'id': f'resp_{i}', 'model': l['body']['model'], 'status': 'completed',
+                                'output': [{'type': 'reasoning'}, {'type': 'message', 'role': 'assistant',
+                                                                   'content': [{'type': 'output_text', 'text': text}]}]}
+                        ok.append({'custom_id': l['custom_id'], 'response': {'status_code': 200, 'request_id': f'req_{i}', 'body': body}, 'error': None})
+                    else:
+                        bad.append({'custom_id': l['custom_id'], 'response': None, 'error': {'code': 'batch_expired', 'message': 'late'}})
+                fake.out[f'out_{bid}'] = '\n'.join(fake.json.dumps(x) for x in reversed(ok))
+                fake.out[f'err_{bid}'] = '\n'.join(fake.json.dumps(x) for x in bad)
+                return _Obj(id=bid)
+
+            def retrieve(self, bid):
+                return _Obj(status='completed', output_file_id=f'out_{bid}', error_file_id=f'err_{bid}', errors=None,
+                            request_counts=_Obj(completed=1, total=1, failed=0))
+
+        self.files, self.batches = Files(), Batches()
+
+
+class TestOpenAIBatch(unittest.TestCase):
+    def test_one_batch_per_model_retry_and_errors(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        from pipeline import parse, run_batch
+        arr = lambda: json.dumps([{'id': 'PA', 'best': '2030-01', 'q10': '2027-01', 'q90': '2040-01'}])
+        convs = [{'model': m, 'provider': 'openai', 'effort': 'high', 'sample_idx': i, 'order': ['PA'],
+                  'forecast_sha256': 'x', 'forecast_prompt': f'prompt {m} {i}'} for m in ('gpt-a', 'gpt-b') for i in range(2)]
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp); out = d / 'raw'; out.mkdir()
+            with mock.patch.object(run_batch, 'load_checked', return_value=({'run_id': 'r'}, d, out, convs, ['forecast'])):
+                fake = _FakeOpenAI([('ok', arr()), ('ok', 'no json'), ('ok', arr()), ('err', None),
+                                    ('ok', arr()), ('ok', arr())])
+                clients = {'openai': fake}
+                ids = run_batch.submit('cfg', client=clients)
+                self.assertEqual(len(ids), 2)                                  # one batch per model
+                for bid, endpoint, lines in fake.batches_made:
+                    self.assertEqual(endpoint, '/v1/responses')
+                    self.assertEqual(len({l['body']['model'] for l in lines}), 1)
+                    self.assertEqual(set(lines[0]['body']), {'model', 'reasoning', 'input'})
+                    self.assertEqual(lines[0]['body']['reasoning'], {'effort': 'high'})
+                run_batch.collect('cfg', client=clients)
+                self.assertTrue((out / 'gpt-a__s0.json').exists())
+                self.assertTrue((out / 'gpt-a__s1.partial.json').exists())     # unparseable -> retry
+                self.assertTrue((out / 'gpt-b__s1.error.json').exists())       # expired request
+                run_batch.submit('cfg', client=clients)
+                retry_batch = next(lines for _, _, lines in fake.batches_made[2:] if lines[0]['body']['model'] == 'gpt-a')
+                self.assertEqual(retry_batch[0]['body']['input'][1:], [{'role': 'assistant', 'content': 'no json'},
+                                                                        {'role': 'user', 'content': run_batch.RETRY_MSG}])
+                run_batch.collect('cfg', client=clients)
+                for sid in ('gpt-a__s0', 'gpt-a__s1', 'gpt-b__s0', 'gpt-b__s1'):
+                    rec = json.loads((out / f'{sid}.json').read_text())
+                    self.assertEqual(rec['stage_done'], 'forecast')
+                    final = rec['turns'][rec['forecast_turn_index']]
+                    self.assertEqual(json.loads(final['text'])[0]['id'], 'PA')
+                    self.assertTrue(final['request_id'].startswith('req_'))
+                self.assertIsNone(run_batch.submit('cfg', client=clients))
+
+
+class TestOpenAI(unittest.TestCase):
+    """The OpenAI adapter with a mocked client: request shape and multi-turn history."""
+
+    def test_request_and_followup_history(self):
+        from unittest import mock
+        from pipeline import followup, llm
+        o = llm.OpenAI.__new__(llm.OpenAI)                # no __init__: no client, no .env
+        o.client = mock.MagicMock()
+        o.client.responses.create.return_value = mock.MagicMock(output_text='[]', model='gpt-6.1-terra', status='completed')
+        turn, text, raw = o.chat('gpt-6.1-terra', [{'role': 'user', 'content': 'x'}], 'high')
+        kw = o.client.responses.create.call_args.kwargs
+        self.assertEqual(set(kw), {'model', 'input', 'reasoning'})
+        self.assertEqual(kw['reasoning'], {'effort': 'high'})
+        self.assertEqual(turn, {'role': 'assistant', 'content': '[]'})
+        o.chat('gpt-6.1-terra', [{'role': 'user', 'content': 'x'}], 'default')
+        self.assertNotIn('reasoning', o.client.responses.create.call_args.kwargs)   # vendor default: nothing sent
+        rec = {'provider': 'openai', 'forecast_turn_index': 1, 'turns': [
+            {'role': 'user', 'text': 'Q'}, {'role': 'assistant', 'text': '[1]', 'response': {'output': []}}]}
+        self.assertEqual(followup.base_messages(rec), [{'role': 'user', 'content': 'Q'}, {'role': 'assistant', 'content': '[1]'}])
 
 
 if __name__ == '__main__':

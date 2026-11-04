@@ -62,11 +62,15 @@ def _fmt(f):
 
 
 def base_messages(rec):
-    """Rebuild the API message list of a finished base conversation, up to its forecast answer."""
+    """Rebuild the API message list of a finished base conversation, up to its forecast answer.
+    Anthropic: assistant turns are sent back as the original content blocks (thinking included, as the
+    API requires). OpenAI (Responses API): as the answer text; reasoning items are not sent back."""
     msgs = []
     for t in rec['turns'][:rec['forecast_turn_index'] + 1]:
         if t['role'] == 'user':
             msgs.append({'role': 'user', 'content': t['text']})
+        elif rec.get('provider') == 'openai':
+            msgs.append({'role': 'assistant', 'content': t['text']})
         else:
             msgs.append({'role': 'assistant', 'content': t['response']['content']})
     return msgs
@@ -135,7 +139,10 @@ def build(fu_path):
 
 
 def _checked(fu_path):
-    """Re-render and compare with the lock: refuses if config, template, base data or prompts changed."""
+    """Re-render and compare with the lock: refuses if the config, the template, the pinned base
+    conversations or the follow-up prompts changed. The base run's lock and parsed.csv are recorded at
+    build time but not compared: they change whenever other models are added to the base run, which
+    leaves this follow-up's prompts untouched (the re-render below would catch any real change)."""
     fu, run_cfg, d, base_raw, convs, fdir = _load(fu_path)
     lp = fdir / 'followup.lock.json'
     if not lp.exists():
@@ -143,8 +150,6 @@ def _checked(fu_path):
     lock = read_json(lp)
     rows, pins = render(fu, run_cfg, d, base_raw, convs)
     now_ = {'config_sha256': sha256_file(fu_path), 'template_sha256': sha256_file(ROOT / fu['template']),
-            'base_lock_sha256': sha256_file(d / 'run.lock.json'),
-            'base_inputs': {n: sha256_file(d / n) for n in ('sample.csv', 'sample_log.json', 'parsed.csv')},
             'base_records': pins, 'prompts_sha256': sha256_file(fdir / 'prompts.jsonl')}
     bad = [k for k, v in now_.items() if lock.get(k) != v]
     stored = [json.loads(l) for l in open(fdir / 'prompts.jsonl', encoding='utf-8')]
@@ -168,22 +173,16 @@ def _jobs(fu, run_cfg, base_raw, rows):
                     'base_turns': len(base['turns'][:base['forecast_turn_index'] + 1]),
                     'turns': [*base['turns'][:base['forecast_turn_index'] + 1],
                               {'role': 'user', 'text': r['followup_prompt'], 'utc': now()}]}
-        jobs.append({'sid': f"{r['model']}__s{r['sample_idx']}", 'params': params_for(r['model'], r['effort']),
+        jobs.append({'sid': f"{r['model']}__s{r['sample_idx']}", 'provider': r['provider'],
+                     'params': params_for(r['model'], r['effort'], r['provider']),
                      'messages': [*base_messages(base), {'role': 'user', 'content': r['followup_prompt']}],
                      'start_record': start, 'stage': STAGE})
     return jobs
 
 
-def _anthropic(rows):
-    skipped = sorted({r['model'] for r in rows if r['provider'] != 'anthropic'})
-    if skipped:
-        print(f'batch mode is Anthropic-only; not batched: {skipped} (use run for these)')
-    return [r for r in rows if r['provider'] == 'anthropic']
-
-
 def submit(fu_path, client=None):
     fu, run_cfg, base_raw, rows, fdir = _checked(fu_path)
-    return submit_jobs(_jobs(fu, run_cfg, base_raw, _anthropic(rows)), fdir / 'raw', fdir / 'batches.json', client,
+    return submit_jobs(_jobs(fu, run_cfg, base_raw, rows), fdir / 'raw', fdir / 'batches.json', client,
                        f'python -m pipeline.followup collect {fu_path} --wait')
 
 

@@ -19,7 +19,8 @@ def render(run, wave, sample_rows, statements, config_hash):
     rows = []
     for m in wave['models']:
         for k in range(wave['n_samples']):
-            salt = f"{config_hash}|{m['id']}|{k}"
+            # order_salt pins the problem order when a wave's model list changes after a run
+            salt = f"{wave.get('order_salt') or config_hash}|{m['id']}|{k}"
             order = sorted(sample_rows, key=lambda r: hash_rank(salt, r['unit_id']))
             items = '\n'.join(f"[{r['code']}] {r['display_name']}: {statements[r['unit_id']]}" for r in order)
             fprompt = t_fc.format(run_date=run['run_date'], t0=t0, t0_month=t0[:7], n_items=len(order), items=items)

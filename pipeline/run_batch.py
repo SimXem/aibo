@@ -1,49 +1,164 @@
-"""Run the forecast stage through the Anthropic Message Batches API (asynchronous, half price;
-usually < 1 h, max 24 h). Writes the same raw/<model>__s<i>.json records as `pipeline.run`, so
-`pipeline.parse` works unchanged, and the two runners can be mixed: each skips finished samples.
+"""Run forecasts through the providers' batch APIs (asynchronous, half price, results within 24 h):
+Anthropic Message Batches and the OpenAI Batch API (`/v1/responses`). Writes the same
+raw/<model>__s<i>.json records as `pipeline.run`, so `pipeline.parse` works unchanged, and the two
+runners can be mixed: each skips finished samples.
 
-    python -m pipeline.run_batch submit  config/runs/w1-r1.yaml --models claude-opus-5-5
-    python -m pipeline.run_batch collect config/runs/w1-r1.yaml --wait
-    python -m pipeline.run_batch submit  config/runs/w1-r1.yaml --models claude-opus-5-5   # parse retries / failures
+    python -m pipeline.run_batch submit  config/runs/<run>.yaml [--models ...]
+    python -m pipeline.run_batch collect config/runs/<run>.yaml --wait
+    python -m pipeline.run_batch submit  config/runs/<run>.yaml          # parse retries / failed requests
 
 Same study rules as `pipeline.run`: prompts must match run.lock.json, real runs need approved
-statements, and an unparseable answer gets exactly one retry turn. Here the retry is a second batch:
-`collect` keeps the first answer in raw/<model>__s<i>.partial.json, and the next `submit` sends the
-conversation so far plus the retry message. Errored, expired or cancelled requests are archived as
+statements, and an unparseable answer gets exactly one retry turn. Here the retry goes in the next
+batch: `collect` keeps the first answer in raw/<model>__s<i>.partial.json, and the next `submit` sends
+the conversation so far plus the retry message. Errored, expired or cancelled requests are archived as
 .error.json, do not count as samples, and are resubmitted by the next `submit`.
 
-Batch IDs and the custom_id -> (model, sample, turn) map are kept in runs/<run>/forecast_batches.json.
-Only the anthropic provider and the forecast stage are supported (the reveal stage is multi-turn).
+One `submit` creates one batch per provider (OpenAI: one per model, as its Batch API requires).
+Batch IDs and the custom_id -> conversation map are kept in runs/<run>/forecast_batches.json.
 
 The engine (`submit_jobs` / `collect_jobs`) is generic: a job is one conversation whose last user
-turn is to be answered. `pipeline.followup` uses it for the follow-up stage.
+turn is to be answered. `pipeline.followup` uses it for follow-up turns.
 """
 import argparse
 import datetime as dt
+import json
 import sys
 import time
 
 from .common import PipelineError, read_json, write_json
-from .llm import MAX_TOKENS, load_env
+from .llm import MAX_TOKENS, check_no_tools, load_env
 from .parse import extract_array
 from .run import RETRY_MSG, load_checked, new_record, now, selected
 
-
-def _client():
-    import anthropic
-    load_env()
-    return anthropic.Anthropic(max_retries=5)
+BATCH_PROVIDERS = ('anthropic', 'openai')
 
 
-def params_for(model, effort):
+def params_for(model, effort, provider='anthropic'):
+    """Request parameters without the messages; the same values the direct adapters send."""
+    if provider == 'openai':
+        p = {'model': model}
+        if effort and effort != 'default':
+            p['reasoning'] = {'effort': effort}
+        return p
     p = {'model': model, 'max_tokens': MAX_TOKENS}
     if effort and effort != 'default':
         p['output_config'] = {'effort': effort}
     return p
 
 
+# ---------- provider backends ----------
+
+class AnthropicBatches:
+    """Anthropic Message Batches API."""
+    messages_key = 'messages'
+
+    def __init__(self, client=None):
+        if client is None:
+            import anthropic
+            load_env()
+            client = anthropic.Anthropic(max_retries=5)
+        self.c = client
+
+    def create(self, requests):
+        return self.c.messages.batches.create(
+            requests=[{'custom_id': cid, 'params': p} for cid, p in requests]).id
+
+    def poll(self, bid):
+        info = self.c.messages.batches.retrieve(bid)
+        n = getattr(info, 'request_counts', None)
+        prog = info.processing_status + (f' (processing {n.processing}, succeeded {n.succeeded})' if n else '')
+        return info.processing_status == 'ended', prog
+
+    def results(self, bid):
+        """-> iterable of (custom_id, turn or None, error or None)"""
+        for res in self.c.messages.batches.results(bid):
+            r = res.result
+            if r.type != 'succeeded':
+                err = getattr(getattr(r, 'error', None), 'error', None)
+                yield res.custom_id, None, f'batch result {r.type}' + (f': {err.type}: {err.message}' if err else '')
+                continue
+            msg = r.message
+            yield res.custom_id, {'text': ''.join(x.text for x in msg.content if x.type == 'text'),
+                                  'returned_model': msg.model, 'stop_reason': msg.stop_reason, 'request_id': None,
+                                  'response': msg.to_dict()}, None
+
+    @staticmethod
+    def history(turn):
+        return {'role': 'assistant', 'content': turn['response']['content']}   # thinking blocks included
+
+
+class OpenAIBatches:
+    """OpenAI Batch API on /v1/responses: requests go up as a JSONL file, results come back as files."""
+    messages_key = 'input'
+    ENDED = ('completed', 'failed', 'expired', 'cancelled')
+
+    def __init__(self, client=None):
+        if client is None:
+            import openai
+            load_env()
+            client = openai.OpenAI(max_retries=5)
+        self.c = client
+
+    def create(self, requests):
+        lines = [json.dumps({'custom_id': cid, 'method': 'POST', 'url': '/v1/responses', 'body': p},
+                            ensure_ascii=False) for cid, p in requests]
+        f = self.c.files.create(file=('batch.jsonl', ('\n'.join(lines) + '\n').encode('utf-8'), 'application/jsonl'),
+                                purpose='batch')
+        return self.c.batches.create(input_file_id=f.id, endpoint='/v1/responses', completion_window='24h').id
+
+    def poll(self, bid):
+        b = self.c.batches.retrieve(bid)
+        n = getattr(b, 'request_counts', None)
+        prog = f'{b.status}' + (f' (completed {n.completed}/{n.total}, failed {n.failed})' if n else '')
+        return b.status in self.ENDED, prog
+
+    @staticmethod
+    def _text(body):
+        return ''.join(c.get('text', '') for item in body.get('output', []) if item.get('type') == 'message'
+                       for c in item.get('content', []) if c.get('type') == 'output_text')
+
+    def results(self, bid):
+        b = self.c.batches.retrieve(bid)
+        seen = set()
+        for fid in (b.output_file_id, b.error_file_id):
+            if not fid:
+                continue
+            for line in self.c.files.content(fid).text.splitlines():
+                if not line.strip():
+                    continue
+                rec = json.loads(line)
+                cid, resp = rec['custom_id'], rec.get('response') or {}
+                seen.add(cid)
+                body = resp.get('body') or {}
+                if resp.get('status_code') == 200 and not rec.get('error'):
+                    yield cid, {'text': self._text(body), 'returned_model': body.get('model'),
+                                'stop_reason': body.get('status'), 'request_id': resp.get('request_id'),
+                                'response': body}, None
+                else:
+                    err = rec.get('error') or body.get('error') or {}
+                    yield cid, None, f"batch result error: {err.get('code')}: {err.get('message')} (HTTP {resp.get('status_code')})"
+        if b.status != 'completed':
+            errs = '; '.join(f'{e.code}: {e.message}' for e in (b.errors.data if b.errors and b.errors.data else []))
+            yield None, None, f'batch {b.status}' + (f': {errs}' if errs else '')   # requests without a line
+
+    @staticmethod
+    def history(turn):
+        return {'role': 'assistant', 'content': turn['text']}       # reasoning items are not sent back
+
+
+BACKENDS = {'anthropic': AnthropicBatches, 'openai': OpenAIBatches}
+
+
+def _backend(provider, clients):
+    if provider not in clients:
+        clients[provider] = BACKENDS[provider]()
+    elif not isinstance(clients[provider], tuple(BACKENDS.values())):
+        clients[provider] = BACKENDS[provider](clients[provider])   # a raw (test) client was passed
+    return clients[provider]
+
+
 # ---------- generic engine ----------
-# job = {'sid': '<model>__s<i>', 'params': {...}, 'messages': [... ending with the user turn to answer],
+# job = {'sid': '<model>__s<i>', 'provider': ..., 'params': {...}, 'messages': [... ending with the user turn],
 #        'start_record': callable -> fresh record dict whose turns end with that user turn,
 #        'stage': value written to record['stage_done'] when finished}
 
@@ -55,41 +170,54 @@ def _state(p):
     return read_json(p) if p.exists() else {'batches': []}
 
 
+def _clients(client):
+    """`client`: None, a dict {provider: backend or raw client}, or one raw client (Anthropic, for tests)."""
+    if client is None:
+        return {}
+    return dict(client) if isinstance(client, dict) else {'anthropic': client}
+
+
 def submit_jobs(jobs, out, state_path, client=None, collect_hint=''):
-    """One batch for every job that is not finished and not in an uncollected batch."""
+    """One batch per provider (OpenAI: per model) for every job that is not finished and not in an
+    uncollected batch. Returns the list of new batch IDs, or None if there was nothing to send."""
+    clients = _clients(client)
     st = _state(state_path)
     pending = {r['sid'] for b in st['batches'] if not b['collected'] for r in b['requests'].values()}
-    requests, meta = [], {}
+    groups = {}
     for j in jobs:
         final, partial, _ = _paths(out, j['sid'])
         if (final.exists() and read_json(final).get('stage_done') == j['stage']) or j['sid'] in pending:
             continue
+        prov = j.get('provider', 'anthropic')
+        if prov not in BACKENDS:
+            raise PipelineError(f"no batch API for provider {prov!r} ({j['sid']}); use direct calls")
         messages, turn = list(j['messages']), 'first'
         if partial.exists():
-            last = read_json(partial)['turns'][-1]
-            messages += [{'role': 'assistant', 'content': last['response']['content']},
-                         {'role': 'user', 'content': RETRY_MSG}]
+            messages += [BACKENDS[prov].history(read_json(partial)['turns'][-1]), {'role': 'user', 'content': RETRY_MSG}]
             turn = 'retry'
-        cid = f'r{len(requests):03d}'           # custom_id allows only [A-Za-z0-9_-]
-        requests.append({'custom_id': cid, 'params': {**j['params'], 'messages': messages}})
-        meta[cid] = {'sid': j['sid'], 'turn': turn}
-    if not requests:
+        key = (prov, j['params']['model'] if prov == 'openai' else '')
+        groups.setdefault(key, []).append((j, messages, turn))
+    if not groups:
         print('nothing to submit (all selected conversations finished or in a pending batch)'); return None
-    batch = (client or _client()).messages.batches.create(requests=requests)
-    st['batches'].append({'batch_id': batch.id, 'collected': False, 'requests': meta,
-                          'created_utc': dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()})
-    write_json(state_path, st)
-    n_retry = sum(m['turn'] == 'retry' for m in meta.values())
-    print(f'submitted batch {batch.id}: {len(requests)} requests ({n_retry} parse retries)'
-          + (f'; collect with: {collect_hint}' if collect_hint else ''))
-    return batch.id
-
-
-def _assistant_turn(msg, params, batch_id, cid):
-    return {'role': 'assistant', 'text': ''.join(x.text for x in msg.content if x.type == 'text'),
-            'returned_model': msg.model, 'stop_reason': msg.stop_reason, 'request_id': None,
-            'batch_id': batch_id, 'custom_id': cid, 'request_params': params,
-            'response': msg.to_dict(), 'utc': now()}
+    ids = []
+    for (prov, _), items in sorted(groups.items()):
+        be = _backend(prov, clients)
+        requests, meta = [], {}
+        for j, messages, turn in items:
+            cid = f'r{len(requests):03d}'       # custom_id: only [A-Za-z0-9_-] (Anthropic)
+            requests.append((cid, check_no_tools({**j['params'], be.messages_key: messages})))
+            meta[cid] = {'sid': j['sid'], 'turn': turn}
+        bid = be.create(requests)
+        st['batches'].append({'batch_id': bid, 'provider': prov, 'collected': False, 'requests': meta,
+                              'created_utc': dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()})
+        write_json(state_path, st)
+        n_retry = sum(m['turn'] == 'retry' for m in meta.values())
+        models = sorted({j['params']['model'] for j, _, _ in items})
+        print(f'submitted {prov} batch {bid}: {len(requests)} requests ({n_retry} parse retries) for {models}')
+        ids.append(bid)
+    if collect_hint:
+        print(f'collect with: {collect_hint}')
+    return ids
 
 
 def collect_jobs(jobs, out, state_path, client=None, wait=False, poll_seconds=60):
@@ -98,41 +226,54 @@ def collect_jobs(jobs, out, state_path, client=None, wait=False, poll_seconds=60
     st = _state(state_path)
     if not any(not b['collected'] for b in st['batches']):
         return                                   # nothing pending: no client, no credentials needed
-    client = client or _client()
+    clients = _clients(client)
     for b in [b for b in st['batches'] if not b['collected']]:
+        prov = b.get('provider', 'anthropic')
+        be = _backend(prov, clients)
         while True:
-            info = client.messages.batches.retrieve(b['batch_id'])
-            if info.processing_status == 'ended' or not wait:
+            ended, progress = be.poll(b['batch_id'])
+            if ended or not wait:
                 break
-            n = info.request_counts
-            print(f"{b['batch_id']}: {info.processing_status} (processing {n.processing}, succeeded {n.succeeded})")
+            print(f"{b['batch_id']}: {progress}")
             time.sleep(poll_seconds)
-        if info.processing_status != 'ended':
-            print(f"{b['batch_id']}: {info.processing_status}; not collected (use --wait to poll)")
+        if not ended:
+            print(f"{b['batch_id']}: {progress}; not collected (use --wait to poll)")
             continue
         counts = {'done': 0, 'retry_needed': 0, 'error': 0}
-        for res in client.messages.batches.results(b['batch_id']):
-            m = b['requests'][res.custom_id]
+        got = set()
+
+        def error(cid, msg):
+            m = b['requests'][cid]
             j = by_sid[m['sid']]
             final, partial, errp = _paths(out, j['sid'])
+            rec = read_json(partial) if m['turn'] == 'retry' else j['start_record']()
+            rec['error'] = msg
+            rec['error_batch'] = {'batch_id': b['batch_id'], 'custom_id': cid, 'turn': m['turn']}
+            write_json(errp, rec)
+            counts['error'] += 1
+
+        for cid, turn, err in be.results(b['batch_id']):
+            if cid is None:                      # batch-level failure: every request without a line
+                for c in b['requests']:
+                    if c not in got:
+                        got.add(c); error(c, err)
+                continue
+            got.add(cid)
+            if err:
+                error(cid, err)
+                continue
+            m = b['requests'][cid]
+            j = by_sid[m['sid']]
+            final, partial, _ = _paths(out, j['sid'])
             if m['turn'] == 'retry':
                 rec = read_json(partial)
+                rec['turns'].append({'role': 'user', 'text': RETRY_MSG, 'utc': b['created_utc']})
             else:
                 rec = j['start_record']()
                 rec['started_utc'] = b['created_utc']
                 rec['transport'] = 'batch'
-            r = res.result
-            if r.type != 'succeeded':
-                err = getattr(getattr(r, 'error', None), 'error', None)
-                rec['error'] = f'batch result {r.type}' + (f': {err.type}: {err.message}' if err else '')
-                rec['error_batch'] = {'batch_id': b['batch_id'], 'custom_id': res.custom_id, 'turn': m['turn']}
-                write_json(errp, rec)
-                counts['error'] += 1
-                continue
-            if m['turn'] == 'retry':
-                rec['turns'].append({'role': 'user', 'text': RETRY_MSG, 'utc': b['created_utc']})
-            turn = _assistant_turn(r.message, j['params'], b['batch_id'], res.custom_id)
-            rec['turns'].append(turn)
+            rec['turns'].append({'role': 'assistant', **turn, 'batch_id': b['batch_id'], 'custom_id': cid,
+                                 'request_params': j['params'], 'utc': now()})
             if m['turn'] == 'first':
                 try:
                     extract_array(turn['text'])
@@ -156,25 +297,21 @@ def collect_jobs(jobs, out, state_path, client=None, wait=False, poll_seconds=60
             print('run submit again to send the retries / resubmit the errors')
 
 
-# ---------- forecast stage ----------
+# ---------- forecasts ----------
 
 def _forecast_jobs(run_cfg, convs):
     jobs = []
     for c in convs:
         def start(c=c):
-            rec = new_record(run_cfg, c, 'anthropic')
+            rec = new_record(run_cfg, c, c.get('provider', 'anthropic'))
             rec['turns'].append({'role': 'user', 'text': c['forecast_prompt'], 'utc': now()})
             return rec
-        jobs.append({'sid': f"{c['model']}__s{c['sample_idx']}", 'params': params_for(c['model'], c['effort']),
+        prov = c.get('provider', 'anthropic')
+        jobs.append({'sid': f"{c['model']}__s{c['sample_idx']}", 'provider': prov,
+                     'params': params_for(c['model'], c['effort'], prov),
                      'messages': [{'role': 'user', 'content': c['forecast_prompt']}],
                      'start_record': start, 'stage': 'forecast'})
     return jobs
-
-
-def check_anthropic_only(convs):
-    other = sorted({c['provider'] for c in convs} - {'anthropic'})
-    if other:
-        raise PipelineError(f'batch mode supports the anthropic provider only; select models with --models ({other} found)')
 
 
 def submit(run_cfg_path, models=None, samples=None, allow_unreviewed=False, client=None):
@@ -184,7 +321,6 @@ def submit(run_cfg_path, models=None, samples=None, allow_unreviewed=False, clie
         raise PipelineError(f'no conversations match models={models} samples={samples}')
     if stages != ['forecast']:
         raise PipelineError(f'batch mode runs the forecast stage only; run config has stages={stages}')
-    check_anthropic_only(convs)
     return submit_jobs(_forecast_jobs(run_cfg, convs), out, d / 'forecast_batches.json', client,
                        f'python -m pipeline.run_batch collect {run_cfg_path} --wait')
 

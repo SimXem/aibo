@@ -26,6 +26,7 @@ import sys
 from . import fc
 from .common import (ROOT, STATEMENTS, PipelineError, hash_rank, load_run_config, read_csv, read_json, run_dir,
                      sha256_text, write_csv, write_json)
+from .llm import check_no_tools
 from .snapshot import CatFile
 
 REVIEW_FIELDS = ['key', 'unit_id', 'display_name', 'docstrings', 'lean', 'draft', 'approved_text', 'reviewer', 'checklist_ok']
@@ -130,7 +131,7 @@ def submit(run_cfg_path):
         cid = f'r{i:03d}'                       # custom_id allows only [A-Za-z0-9_-]; map back via `keys`
         keys[cid], prompt_sha[cid] = key_of(u), sha256_text(prompt)
         requests.append(Request(custom_id=cid, params=MessageCreateParamsNonStreaming(
-            **params_common, messages=[{'role': 'user', 'content': prompt}])))
+            **check_no_tools({**params_common, 'messages': [{'role': 'user', 'content': prompt}]}))))
     batch = _client().messages.batches.create(requests=requests)
     st['batches'].append({'batch_id': batch.id, 'created_utc': dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
                           'params': params_common, 'template': cfg['template'], 'template_sha256': sha256_text(tmpl),

@@ -1,18 +1,18 @@
-"""Runner 1 (workflow steps 1-6): data, sample, statements and lock, without human statement review.
+"""Prepare a run up to the point where models can be called (statements frozen without human review).
 
     python -m pipeline.stage_prepare config/runs/<run>.yaml              # network fetch first
     python -m pipeline.stage_prepare config/runs/<run>.yaml --no-fetch   # use the archived bundles as they are
 
-1. fetch:      archive both trackers as git bundles (network; skipped with --no-fetch)
-2. build:      frame, outcomes, sample
-3. statements: one Message Batch with a draft for every sampled problem that has no frozen statement
+- fetch:      archive both trackers as git bundles (network; skipped with --no-fetch)
+- build:      frame, outcomes, sample
+- statements: one Message Batch with a draft for every sampled problem that has no frozen statement
                (PAID, Anthropic batch price), polled until it ends; failed drafts are resubmitted
                (at most --rounds batches)
-4. freeze:     every new draft is frozen as-is, marked auto_approved; no human review
+- freeze:     every new draft is frozen as-is, marked auto_approved; no human review
                (statements that already exist, reviewed or not, are reused and never overwritten)
-5. build:      render prompts and write run.lock.json (statements_status says whether any statement
+- build:      render prompts and write run.lock.json (statements_status says whether any statement
                was auto-approved)
-6. verify:     rebuild from the bundles alone and compare every artifact hash
+- verify:     rebuild from the bundles alone and compare every artifact hash
 
 Stops with an error if statements are still missing after the last round or if verification fails.
 """
@@ -24,16 +24,16 @@ from .common import PipelineError, load_run_config, read_json, run_dir
 
 
 def prepare(run_cfg_path, no_fetch=False, rounds=3, poll_seconds=60):
-    print('== 1. fetch' + (' (skipped: --no-fetch)' if no_fetch else ''))
+    print('== fetch tracker history' + (' (skipped: --no-fetch)' if no_fetch else ''))
     if not no_fetch:
         fetch.fetch()
     fetch.restore()
 
-    print('== 2. build (frame, outcomes, sample)')
+    print('== build frame, outcomes, sample')
     build.build(run_cfg_path)
     run, _, _ = load_run_config(run_cfg_path)
 
-    print('== 3-4. statements (draft by Message Batch, freeze without human review)')
+    print('== statements: draft by Message Batch, freeze without human review')
     for i in range(rounds):
         statements.collect(run_cfg_path, wait=True, poll_seconds=poll_seconds)   # batches left from an earlier run
         statements.auto_approve(run_cfg_path)
@@ -50,10 +50,10 @@ def prepare(run_cfg_path, no_fetch=False, rounds=3, poll_seconds=60):
                             f"{[u['unit_id'] for u in missing][:10]}")
     print('all sampled statements are frozen')
 
-    print('== 5. build (prompts + run.lock.json)')
+    print('== build forecast prompts + run.lock.json')
     build.build(run_cfg_path)
 
-    print('== 6. verify --fresh')
+    print('== verify: rebuild from the bundles alone')
     if not verify.verify(run_cfg_path, fresh=True):
         raise PipelineError('verification failed: the run does not rebuild identically from the bundles')
     lock = read_json(run_dir(run) / 'run.lock.json')

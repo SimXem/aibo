@@ -3,12 +3,12 @@
   "exclusions.csv": "f83de0c60b22f9be0de66a6a5a3ff2b0a31b82c3da309899770c9e869e2104c9",
   "frame.csv": "cbfc2ff08a0c7e153fc1545cea705a1efbd91978dbb71df5626224074a30269c",
   "outcomes.csv": "eebec47dd94ee966f16ee2a09c891d21a7a27c8443560a4f353116c622d14411",
-  "prompts.jsonl": "ea5b0f9e74c2560d5c7b9752de200bacf0da837c60f7e909746d5f87ed3dfb46",
+  "prompts.jsonl": "460cd4156634579d921cfe33313efda8c69e8489e2b5122c9bf46155f3eb0766",
   "sample.csv": "f4de1b5f37f757ed378f97a870844e635472675568fad58776c6a8ed2d613f07",
   "sample_log.json": "e6eaeaf0bc30215cfa0e49c99b242e2d0de8c21af8357b407ce6f61104539527",
   "transitions.csv": "2e51a018de19ce5e265124e630bae9aa031875284015185c5c86d9c1243401b6"
  },
- "built_utc": "2026-11-03T19:01:51+00:00",
+ "built_utc": "2026-11-04T17:05:46+00:00",
  "bundles": [
   {
    "branch": "main",
@@ -61,7 +61,7 @@
    }
   }
  },
- "config_hash": "96bb7b792be7efc0d2bace7aab55c3cc29a09ee9604e27dc31a30e99d571e59a",
+ "config_hash": "f52651632a1b438789d3ed4c7adb0ff5a0f8ad7056eb40508c4cbf34bf359458",
  "inclusion_probability_note": "random-draw probabilities are conditional on the realised guaranteed draw",
  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
  "python": "3.14.4",
@@ -70,7 +70,7 @@
  "run_date": "2026-11-03",
  "run_id": "w1-r1",
  "snapshot_date": "2026-11-02",
- "source_hash": "a36d5825a37be6874dea029a1cf112e54c2a049fa730b47d801c19b6c5432bd8",
+ "source_hash": "0b3d5199ad01e659d615aaf78ba5b8ddaa2082f3e3eb7de80269c96ae78a6dc6",
  "statement_files": {
   "erdos_1060@21e94494c418.json": "87187fc06bc190e64e74f02c55333829d2bc4cb19157f4d80e8f8895d8efb1b7",
   "erdos_1061@9ee07658d977.json": "2b760b9222a1d1cfcd37bc8c929b6e13538ae73dbbe71afefe69b8483585709c",

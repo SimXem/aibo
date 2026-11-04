@@ -1,5 +1,13 @@
 # A wave fixes T0, the model set and the seed. A model whose training cutoff is later than T0
 # cannot join this wave (starts a new wave).
+#
+# Change log
+# 2026-11-03  Claude Opus 5.5 run (w1-r1, 5 samples, follow-up w1-r1-f1). The model list then also
+#             had claude-sonnet-5-5, claude-fable-5-1 and gpt-6.1-sol; none of them was ever called.
+# 2026-11-04  Model list set to Claude Opus 5.5, GPT-6 Astra, GPT-6.1 Sol, GPT-6.1 Terra. IDs and
+#             cutoffs checked against the vendors' model pages (README, Sources). order_salt keeps the
+#             problem order the Opus run used (it was derived from the config hash before this change),
+#             so Opus's forecast prompts are byte-identical to the ones it answered.
 wave: wave1
 rules_version: rules_v1
 seed: wave1-2026-11-03
@@ -7,28 +15,29 @@ t0: '2026-06-30'          # = latest training cutoff among the models below, las
 n_total: 60
 n_guaranteed_solved: 10
 n_samples: 5
+order_salt: 96bb7b792be7efc0d2bace7aab55c3cc29a09ee9604e27dc31a30e99d571e59a   # config hash of w1-r1 as first built
 
 models:
   - id: claude-opus-5-5
     provider: anthropic
     training_cutoff: '2026-06'
-    cutoff_source: 'Anthropic support page (per study brief; not re-checked)'
-    effort: default        # no sampling params are sent; effort omitted = model default (Opus 5.5: medium; Sonnet 5.5: high)
-  - id: claude-sonnet-5-5
-    provider: anthropic
-    training_cutoff: '2026-06'
-    cutoff_source: 'Anthropic support page (per study brief; not re-checked)'
-    effort: default        # no sampling params are sent; effort omitted = model default (Opus 5.5: medium; Sonnet 5.5: high)
-  - id: claude-fable-5-1
-    provider: anthropic
-    training_cutoff: '2026-06'
-    cutoff_source: 'Anthropic support page (per study brief; not re-checked)'
-    effort: default        # no sampling params are sent; effort omitted = model default (Opus 5.5: medium; Sonnet 5.5: high)
-  - id: gpt-6.1-sol        # UNVERIFIED model id string; check OpenAI model page before running
+    cutoff_source: 'Anthropic models overview, "Training data cutoff: Jun 2026" (checked 2026-11-04)'
+    effort: default        # as run on 2026-11-03: nothing sent, vendor default = medium
+  - id: gpt-6-astra
     provider: openai
     training_cutoff: '2026-04'
-    cutoff_source: 'OpenAI model page (per study brief; not re-checked)'
-    effort: default        # no sampling params are sent; effort omitted = model default (Opus 5.5: medium; Sonnet 5.5: high)
+    cutoff_source: 'OpenAI model page, "Apr 30, 2026 knowledge cutoff" (checked 2026-11-04)'
+    effort: high
+  - id: gpt-6.1-sol
+    provider: openai
+    training_cutoff: '2026-04'
+    cutoff_source: 'OpenAI model page, "Apr 30, 2026 knowledge cutoff" (checked 2026-11-04)'
+    effort: high
+  - id: gpt-6.1-terra
+    provider: openai
+    training_cutoff: '2026-06'
+    cutoff_source: 'OpenAI model page, "Jun 01, 2026 knowledge cutoff" (checked 2026-11-04)'
+    effort: high
 
 statements:
   drafter: {provider: anthropic, id: claude-opus-5-5, effort: high, max_words: 50}   # no temperature: rejected by current models; reproducibility comes from the frozen cache

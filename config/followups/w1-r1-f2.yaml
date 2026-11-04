@@ -1,0 +1,9 @@
+# Same follow-up as w1-r1-f1 (which covered Claude Opus 5.5), for the three GPT models of wave 1:
+# reveal the solved problems next to the model's own earlier forecast (with the sampling design and
+# population solve rate stated), then ask for revised forecasts of the still-open ones.
+# Every listed model needs finished forecasts in w1-r1. Never edit this file after it has been run.
+followup_id: w1-r1-f2
+base_run: config/runs/w1-r1.yaml
+models: [gpt-6-astra, gpt-6.1-sol, gpt-6.1-terra]
+template: templates/followup_v1/reveal_solved.txt
+reveal: solved_side_by_side

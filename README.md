@@ -1,133 +1,71 @@
 # Math-problem forecasting pipeline
 
-Models get a list of math problems that were open at a reference date T0 and predict when each will be solved. A follow-up then shows each model which problems were solved between T0 and a snapshot date S, next to its own forecast, and asks it to revise its forecasts for the problems that are still open.
+Language models get 60 math problems that were open at a reference date T0 (their training cutoff) and forecast when each will be solved. A follow-up then shows each model which of them were solved by a later snapshot date S, next to its own forecast, and asks for revised forecasts of the problems still open.
 
-Every run is a pure function of a config plus archived tracker history. Rerunning an old config reproduces the frame, sample, outcomes and prompts byte for byte (`pipeline.verify`). Model outputs can't be reproduced, so every raw response is archived instead.
-
-## Setup (Linux)
+## How to run
 
 ```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.lock.txt
+python3 -m venv .venv && .venv/bin/pip install -r requirements.lock.txt
+# API keys in .env: ANTHROPIC_API_KEY=..., OPENAI_API_KEY=...  (git-ignored)
+
+.venv/bin/python -m pipeline.stage_prepare  config/runs/w1-r1.yaml          # data, sample, statements, prompts
+.venv/bin/python -m pipeline.stage_forecast config/runs/w1-r1.yaml          # forecasts -> runs/w1-r1/parsed.csv
+.venv/bin/python -m pipeline.stage_followup config/followups/w1-r1-f2.yaml  # revised forecasts -> runs/w1-r1/followups/<id>/
+.venv/bin/python -m unittest discover -s tests -t .                         # tests (no network, no API)
 ```
 
-Commands below call `.venv/bin/python` directly; after `source .venv/bin/activate` you can write plain `python` instead.
+- **`stage_prepare`** downloads both trackers, builds the frame, outcomes and sample, drafts missing problem statements, writes the prompts and a lock file, and rebuilds everything from the archive to check it. New statements are frozen **without human review** (marked `auto_approved`); existing ones are reused. `--no-fetch` skips the download.
+- **`stage_forecast`** sends each model its forecast prompt 5 times, with the problems in a different order each time, and parses the answers. `--models` and `--samples N` select a subset.
+- **`stage_followup`** sends the follow-up message in each finished forecast conversation of the models in the follow-up config, then writes `parsed.csv` (revised next to earlier forecast), `dates_long.csv` and `dates_summary.csv`.
 
-API keys go in `.env` (`ANTHROPIC_API_KEY=...`, `OPENAI_API_KEY=...`). The file is git-ignored, and `.claude/settings.json` denies Claude read and edit access to it.
+All model calls go through the providers' batch APIs at half price (Anthropic Message Batches, OpenAI Batch API); `--direct` uses direct calls instead, and `--stub` does a free offline dry run. The runners can be re-run safely: finished work is skipped. `--help` on each runner lists its steps; each step is also a module of its own (`pipeline.fetch`, `build`, `statements`, `verify`, `run`, `run_batch`, `parse`, `followup`). For a new snapshot, copy `config/runs/w1-r1.yaml` with a later `snapshot_date` and the actual `run_date`; never edit a config, rules file or template a run has used.
 
-## Workflow
+## Sources and procedure
 
-Three runners cover the whole workflow. Each one can be re-run safely: finished work is skipped, and batches left over from an interrupted run are collected first.
+**Trackers.** Both are archived as git bundles in `archive/` (checksums in `manifest.json`); every later step reads only from those bundles.
+- [Erdős Problems database](https://github.com/teorth/erdosproblems) (Apache-2.0): problem status, prize and tags from `data/problems.yaml`. Archived head `e8eb305` (2026-11-03).
+- [Formal Conjectures](https://github.com/google-deepmind/formal-conjectures) (Apache-2.0, Google DeepMind): one Lean 4 file per problem, with a `research open` / `research solved` category per theorem, a docstring and the formal statement. It is the second status source for Erdős problems and the source of all statement texts. Archived head `91de790` (2026-11-03).
 
-```bash
-.venv/bin/python -m pipeline.stage_prepare  config/runs/w1b-r1.yaml          # steps 1-6: data, sample, statements, lock
-.venv/bin/python -m pipeline.stage_forecast config/runs/w1b-r1.yaml          # steps 7-8: forecasts, parse
-.venv/bin/python -m pipeline.stage_followup config/followups/w1b-r1-f1.yaml  # steps 9-12: reveal + revised forecasts, parse, export
-```
+**Frame, outcomes, sample** (all rules in `rules/rules_v1.yaml`):
+- **Open at T0:** open in the tracker at T0, with at least one open headline theorem (name without `.variants.`) in a Formal Conjectures file. Erdős problems without such a file, "not provable / not disprovable" problems and the machine-generated WrittenOnTheWallII collection are excluded.
+- **Solved by S:** the Erdős database says proved, disproved, solved or independent, or all headline theorems in the Formal Conjectures file are no longer open. The solve date is the earliest such recording, taken as the UTC date of the commit. Literature finds are dropped: solves whose commit says the result was already known, or whose added references all predate T0.
+- **Sample:** 60 problems: 10 drawn from those solved by S, 50 at random from the rest, stratified (Erdős / named conjectures / other) and drawn by seeded hash rank. Inclusion probabilities are stored per problem.
 
-| Runner | Steps | Paid API calls | Useful options |
+**Statements.** The text each model sees is drafted by Claude Opus 5.5 from the problem's T0 docstring and Lean statement (at most 50 words, no history, attribution or solution status) and frozen in `statements/`. The 60 statements in use were reviewed against the full T0 Lean files: 33 drafts kept, 27 corrected. The review files are in `review/`.
+
+**Prompts.** The forecast prompt (`templates/v1/forecast.txt`) lists the 60 problems and asks for three dates per problem: a best guess and the dates by which the model gives a 10% and a 90% chance of a solve, as JSON. The follow-up (`templates/followup_v1/reveal_solved.txt`) lists the problems solved by S with the model's earlier forecast for each, states that 10 of the 60 were chosen because they were solved and that 66 of 533 (12.4%) eligible problems were solved by S, and asks for revised forecasts of the still-open problems.
+
+**Models.** IDs and cutoffs from the vendors' model pages (checked 2026-11-04). T0 = 2026-06-30, the end of the month of the latest cutoff.
+
+| Model | API ID | Training cutoff | Effort |
 |---|---|---|---|
-| `stage_prepare` | 1 fetch both trackers (network) · 2 build frame, outcomes, sample · 3 draft missing statements in one Message Batch · 4 freeze the drafts **without human review** · 5 render prompts and write `run.lock.json` · 6 rebuild from the bundles alone and compare hashes | only step 3, and only for sampled problems without a frozen statement (batch price) | `--no-fetch` (use the archived bundles), `--rounds`, `--poll` |
-| `stage_forecast` | 7 call the models (Anthropic models via Message Batches, others directly; parse retries and failed requests resent) · 8 parse into `parsed.csv` | step 7 | `--models`, `--samples N`, `--direct`, `--stub` (offline dry run) |
-| `stage_followup` | 9 render and lock the follow-up turn (only once; an existing lock is checked, never rewritten) · 10 call the models · 11 parse · 12 export `dates_long.csv` and `dates_summary.csv` | step 10 | `--direct`, `--stub` |
+| Claude Opus 5.5 | `claude-opus-5-5` | Jun 2026 ([source](https://platform.claude.com/docs/en/about-claude/models/overview)) | vendor default (`medium`) |
+| GPT-6 Astra | `gpt-6-astra` | Apr 30, 2026 ([source](https://developers.openai.com/api/docs/models/gpt-6-astra)) | `high` |
+| GPT-6.1 Sol | `gpt-6.1-sol` | Apr 30, 2026 ([source](https://developers.openai.com/api/docs/models/gpt-6.1-sol)) | `high` |
+| GPT-6.1 Terra | `gpt-6.1-terra` | Jun 01, 2026 ([source](https://developers.openai.com/api/docs/models/gpt-6.1-terra)) | `high` |
 
-`stage_forecast` runs every model in the wave unless `--models` is given, so it includes `gpt-6.1-sol` (direct calls, full price, untested adapter). `--stub` replaces the models with a fixed offline answer, which is useful for checking a new config end to end at no cost.
+**No tools.** The models get no web search, web fetch or code execution; the code refuses any request parameter beyond the model, messages, effort and token limit. The prompt names the trackers (and the Erdős database's URL), but the models cannot look anything up.
 
-**Statements without human review.** `stage_prepare` freezes every new draft as it is, marks it `auto_approved` with an automatic word-count check (`auto_checks`), and the lock then says `statements_status: auto-approved (no human review)`. Statements that are already frozen are always reused and never overwritten. The 60 statements of wave 1 were reviewed (see Sources), and wave 1b uses the same sample, so it needs no new drafts. For a reviewed set, use the single-step commands below instead of `stage_prepare`.
+**Reproducibility.** Rebuilding a run from its config and the archived bundles reproduces frame, outcomes, sample and prompts byte for byte (`pipeline.verify`). Model calls refuse to start if the prompts don't match the run's lock file. Every model response is archived unchanged in `raw/`, with request parameters and token usage.
 
-**Before each new run:** write a new `config/runs/<id>.yaml` with a later `snapshot_date` (S) and the actual `run_date`, keeping the wave, then run `stage_prepare` (it fetches first). If the model set changes so that the latest training cutoff moves, start a new wave (`config/waves/<wave>.yaml`) with a new T0 and seed. Never edit a config, rules file or template that a run has used; copy it to a new version.
+## Run so far
 
-<details>
-<summary>Single steps (what the runners call)</summary>
-
-```bash
-.venv/bin/python -m pipeline.fetch                                     # 1. network: archive both trackers as git bundles
-.venv/bin/python -m pipeline.build config/runs/w1b-r1.yaml             # 2. frame, outcomes, sample (stops if statements are missing)
-.venv/bin/python -m pipeline.statements submit config/runs/w1b-r1.yaml          # 3a. Message Batch: one draft per missing statement
-.venv/bin/python -m pipeline.statements collect config/runs/w1b-r1.yaml --wait   # 3b. -> review/<run>__<batch_id>_review_queue.csv
-#    human review: edit approved_text, fill reviewer + checklist_ok=yes (outcomes are not shown in this file)
-.venv/bin/python -m pipeline.statements ingest review/<run>__<batch_id>_review_queue.csv   # 4. freeze reviewed statements
-.venv/bin/python -m pipeline.build config/runs/w1b-r1.yaml             # 5. render prompts + write runs/<run>/run.lock.json
-.venv/bin/python -m pipeline.verify config/runs/w1b-r1.yaml --fresh    # 6. rebuild from bundles alone, compare hashes
-.venv/bin/python -m pipeline.run config/runs/w1b-r1.yaml               # 7. direct calls (resumable); --stub for a dry run
-.venv/bin/python -m pipeline.run_batch submit  config/runs/w1b-r1.yaml # 7 (alt). Message Batches (Anthropic only, half price)
-.venv/bin/python -m pipeline.run_batch collect config/runs/w1b-r1.yaml --wait
-.venv/bin/python -m pipeline.parse config/runs/w1b-r1.yaml             # 8. raw/*.json -> parsed.csv (flags, never repairs)
-.venv/bin/python -m pipeline.followup build   config/followups/w1b-r1-f1.yaml   # 9. render + lock the follow-up turn (no API)
-.venv/bin/python -m pipeline.followup submit  config/followups/w1b-r1-f1.yaml   # 10. Message Batch (or: run [--stub])
-.venv/bin/python -m pipeline.followup collect config/followups/w1b-r1-f1.yaml --wait
-.venv/bin/python -m pipeline.followup parse   config/followups/w1b-r1-f1.yaml   # 11. -> followups/<id>/parsed.csv
-.venv/bin/python -m pipeline.followup export  config/followups/w1b-r1-f1.yaml   # 12. -> dates_long.csv + dates_summary.csv
-.venv/bin/python -m unittest discover -s tests -t .                    # fixture and runner tests (no network, no API)
-```
-</details>
-
-## Runs so far
-
-| Run | Wave | Effort | State |
-|---|---|---|---|
-| `w1-r1` | `wave1` | vendor default: Claude Opus 5.5 and GPT-6.1 Sol `medium`, Claude Sonnet 5.5 and Claude Fable 5.1 `high` | Claude Opus 5.5 forecasts done (5 samples); follow-up `w1-r1-f1` done |
-| `w1b-r1` | `wave1b` | `high` for every model | configured, not run yet |
-
-Both runs use the same T0 (2026-06-30), seed, sample and statements, and the same snapshot S (2026-11-02), so they differ only in effort and in the problem order within each prompt (the order is seeded by the config hash).
-
-## Effort
-
-Effort is set per model in the wave config (`effort`), or for all models at once with `default_effort`; without either it is `high`. The value is sent as `output_config.effort` (Anthropic) or `reasoning.effort` (OpenAI); `default` sends nothing, so the vendor default applies. `high` is accepted by all four models. Vendor defaults, checked on 2026-11-04: Claude Opus 5.5 `medium`, Claude Sonnet 5.5 `high`, Claude Fable 5.1 `high`, GPT-6.1 Sol `medium`. The statement drafter runs at `high`.
-
-## Sources
-
-**Erdős Problems database.** [github.com/teorth/erdosproblems](https://github.com/teorth/erdosproblems), branch `main`, Apache-2.0. The pipeline reads `data/problems.yaml`, which the repository calls its "ground truth": per problem the status (`informal_status`, falling back to `status`), prize and tags. The status at T0 decides whether a problem is open; the status history over first-parent commits gives the solve date (the UTC date of the commit that moved the status into the solved set). Since 2026-10-06 erdosproblems.com no longer displays statuses or solved counts; the repository data is still updated. Archived head: `e8eb305` (committed 2026-11-03).
-
-**Formal Conjectures.** [github.com/google-deepmind/formal-conjectures](https://github.com/google-deepmind/formal-conjectures), branch `main`, Apache-2.0. Lean 4 files under `FormalConjectures/`, one problem per file, grouped into collections (`ErdosProblems`, `GreensOpenProblems`, `Wikipedia`, `Paper`, `Books`, `OEIS`, …). The pipeline reads each theorem's `@[category research open|solved]` attribute, its docstring and its statement, and follows the attribute through the first-parent history. The `ErdosProblems/` files are the second status source for Erdős problems and the source of their statement text. Archived head: `91de790` (committed 2026-11-03).
-
-Both repositories are archived as git bundles in `archive/` (checksums in `archive/manifest.json`), and every later stage reads only from clones made from those bundles.
-
-**Problem statements.** The plain-language statement shown to the models is drafted by Claude Opus 5.5 (effort `high`, `templates/v1/statement_draft.txt`) from the T0 docstring and Lean statement of the problem's headline theorems, and frozen in `statements/`, keyed by unit and T0 file version. The 60 wave-1 statements were reviewed by Claude on the author's delegation, against the T0 Lean files including helper definitions: 33 drafts kept, 27 corrected (missing definitions, attribution, word limit). The review files are in `review/`.
-
-**Model facts.** Model IDs, training cutoffs and effort levels come from the vendors' model pages, checked on 2026-11-04:
-
-| Model | API ID | Training data cutoff | Source |
-|---|---|---|---|
-| Claude Opus 5.5 | `claude-opus-5-5` | Jun 2026 | [Anthropic models overview](https://platform.claude.com/docs/en/about-claude/models/overview) |
-| Claude Sonnet 5.5 | `claude-sonnet-5-5` | Jun 2026 | same |
-| Claude Fable 5.1 | `claude-fable-5-1` | Jun 2026 | same |
-| GPT-6.1 Sol | `gpt-6.1-sol` | Apr 30, 2026 | [OpenAI model page](https://developers.openai.com/api/docs/models/gpt-6.1-sol) |
-
-T0 = 2026-06-30 is the latest of these cutoffs (end of month). Anthropic lists the reliable knowledge cutoff as Jun 2026 as well.
-
-**Model outputs.** Anthropic models are called through the Messages API and the Message Batches API, OpenAI models through the Responses API. Every response is archived unchanged in `runs/<run>/raw/` (and `followups/<id>/raw/`), including request parameters and token usage. Thinking text is not returned by these models (the thinking blocks come back empty), so only the answers and the thinking token counts are on record.
+One test run with Claude Opus 5.5 (run `w1-r1`, T0 = 2026-06-30, S = 2026-11-02): 5 forecast samples on 2026-11-03 and the follow-up (`w1-r1-f1`) on 2026-11-04. All 300 forecasts and 225 revised forecasts parsed as valid. Results are in `runs/w1-r1/parsed.csv` and `runs/w1-r1/followups/w1-r1-f1/`. The archived requests contain no tools and the responses no tool use.
 
 ## Layout
+
 | Path | Content |
 |---|---|
-| `config/waves/` | T0, seed, sample sizes, models (id, provider, training cutoff + source, effort), statement drafter |
-| `config/runs/` | run id, wave, snapshot date S, date written into the prompt, stages |
-| `config/followups/` | follow-ups: base run, models, template, reveal mode. A follow-up continues finished base conversations with one more user turn |
-| `rules/rules_v1.yaml` | every selection and resolution rule (status vocabularies, headline regex, exclusions, literature rule) |
-| `templates/v1/` | forecast, reveal and statement-draft prompts |
-| `templates/followup_v1/` | follow-up prompts (`reveal_solved.txt`: solved problems next to the model's own forecast, sampling design and population solve rate stated, then re-forecast of the still-open ones) |
-| `pipeline/stage_*.py` | the three runners |
-| `archive/` | git bundles (not committed; keep them) and `manifest.json` with SHA-256 checksums |
-| `statements/` | frozen problem statements, keyed by unit and T0 blob SHA (`auto_approved: true` marks unreviewed ones) |
-| `review/` | statement-draft batches and review queues |
-| `runs/<run>/` | `frame.csv`, `exclusions.csv` (one reason per dropped unit), `outcomes.csv`, `transitions.csv`, `sample.csv`, `sample_log.json`, `prompts.jsonl`, `run.lock.json`, `raw/`, `forecast_batches.json`, `parsed.csv`, `followups/<id>/` (`prompts.jsonl`, `followup.lock.json`, `batches.json`, `raw/`, `parsed.csv`, `dates_long.csv`, `dates_summary.csv`) |
-| `work/`, `cache/` | disposable clones (rebuilt from bundles) |
+| `config/waves/`, `config/runs/`, `config/followups/` | T0, seed, sample sizes, models · snapshot date and prompt date per run · follow-up settings |
+| `rules/`, `templates/` | selection and resolution rules · prompt templates |
+| `archive/`, `statements/`, `review/` | tracker bundles (not committed) · frozen statements · statement drafts and reviews |
+| `runs/<run>/` | `frame.csv`, `outcomes.csv`, `sample.csv`, `prompts.jsonl`, `run.lock.json`, `raw/`, `parsed.csv`, `followups/<id>/` |
+| `pipeline/` | the code; `stage_*.py` are the three runners |
 
-## Rules in force (rules_v1)
-- **Units:** Erdős problems (`erdos:N`) use the Erdős DB status, with the Formal Conjectures (FC) file as a second status source and the source of the statement text. Every other FC file is a unit (`fc:<path>`).
-- **Open at T0:** the Erdős DB state is one of {open, decidable, falsifiable, verifiable}, and the FC file has at least one *headline* theorem tagged `research open`. Headline means the theorem name has no `.variants.` segment; non-Erdős units need 1–3 headline theorems. Erdős problems without an FC file at T0 are excluded, since there is no statement text. "not provable / not disprovable" problems are excluded. The WrittenOnTheWallII collection is excluded.
-- **Solved by S:** the Erdős DB state is one of {proved, disproved, solved, independent}, **or** all FC headline theorems are non-open (union rule). The solve date is the earliest recording: for the Erdős DB, the UTC commit date of the status change; for FC, the commit date of the last headline flip.
-- **Literature finds** are dropped from both sampling pools. A find is a commit message saying "already known" or similar, or all references added by the FC flip commit predating T0.
-- **Sample:** 10 solved problems drawn by hash rank, then 50 more drawn by hash rank from the rest of the eligible set, split across the strata erdos / fc_named / fc_other in proportion to their sizes. Inclusion probabilities are stored per row.
-- Commits are taken from the default branch, first-parent only. A date means the end of that day in UTC.
+## Limitations
 
-## Known limitations
-- The OpenAI adapter (`pipeline/llm.py`) is untested; no key was available. Batch mode is Anthropic-only, so OpenAI models always use direct calls.
-- `config/waves/wave1.yaml` still says the cutoffs were "not re-checked"; it can't be edited because `w1-r1` used it. The values in it are the ones verified above.
-- Statements frozen by `stage_prepare` are not reviewed: only their word count is checked, not quantifiers, constants or attribution.
-- No refusal fallbacks are used, so a refused request stays refused and is recorded rather than routed to another model.
-- The literature rule is a heuristic. `docstring_refs_all_pre_t0` in `outcomes.csv` is a stricter diagnostic; it is not used for selection.
-- FC-only solves count (union rule). 31 Erdős problems were solved per FC while the Erdős DB still says open; see `sources_disagree`.
-- The Lean parser is regex-based. A per-file check compares the count of `category research` attributes with the declarations parsed, and halts on a mismatch in any file that backs a unit. FC's own `extract_names` cross-check was dropped by decision.
-- Tracker dates are dates of recording, not of proof. Curators batch updates (for example, FC marked 14 OpenAI results solved in one commit on 2026-10-11).
+- The OpenAI code (direct and batch) has only been tested with a fake client. Run one sample first: `stage_forecast ... --models gpt-6.1-terra --samples 1`.
+- In the follow-up, OpenAI models get their earlier answer back as text only, Claude models with their thinking blocks.
+- Statements frozen by `stage_prepare` without review are only checked for length.
+- Tracker dates are dates of recording, not of proof, and curators sometimes record many results in one commit. Solves recorded only in Formal Conjectures count (31 Erdős problems are solved there but still open in the Erdős database).
+- The literature-find rule and the Lean parser are heuristics (regex-based, with a consistency check that halts on mismatches).

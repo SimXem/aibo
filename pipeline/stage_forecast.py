@@ -1,19 +1,20 @@
-"""Runner 2 (workflow steps 7-8): call the models on the rendered prompts, then parse.
+"""Get the forecasts: call the models on the run's forecast prompts, then parse the answers.
 
     python -m pipeline.stage_forecast config/runs/<run>.yaml                          # all models in the wave
     python -m pipeline.stage_forecast config/runs/<run>.yaml --models claude-opus-5-5 # a subset
     python -m pipeline.stage_forecast config/runs/<run>.yaml --stub                   # offline dry run
 
-7. run:   Anthropic models go through the Message Batches API (PAID, half price), polled until each
-          batch ends; parse retries and failed requests are sent in follow-up batches (at most --rounds).
-          Other providers, or everything with --direct, use direct calls (PAID, full price).
+- run:   every model goes through its provider's batch API (Anthropic Message Batches, OpenAI Batch
+          API; PAID, half price), polled until each batch ends; parse retries and failed requests are
+          sent in further batches (at most --rounds). With --direct: direct calls (PAID, full price).
           Finished samples are always skipped, so the runner can be re-run safely.
-8. parse: raw/*.json -> parsed.csv (violations are flagged, never repaired)
+- parse: raw/*.json -> parsed.csv (violations are flagged, never repaired)
 """
 import argparse
 import sys
 
 from . import parse, run, run_batch
+from .run_batch import BATCH_PROVIDERS
 from .common import load_run_config
 
 
@@ -31,11 +32,11 @@ def forecast(run_cfg_path, models=None, samples=None, direct=False, stub=False, 
     if unknown:
         raise SystemExit(f'not in the wave: {unknown}; wave models: {list(prov)}')
 
-    print('== 7. run' + (' (stub)' if stub else ''))
+    print('== forecasts' + (' (stub)' if stub else ''))
     if stub:
         run.run(run_cfg_path, models, samples, stub=True)
     else:
-        batched = [] if direct else [m for m in models if prov[m] == 'anthropic']
+        batched = [] if direct else [m for m in models if prov[m] in BATCH_PROVIDERS]
         directs = [m for m in models if m not in batched]
         if batched:
             print(f'batch: {batched}')
@@ -51,7 +52,7 @@ def forecast(run_cfg_path, models=None, samples=None, direct=False, stub=False, 
     if left:
         print(f'WARNING: {len(left)} conversations unfinished (see raw/*.error.json): {left}')
 
-    print('== 8. parse')
+    print('== parse -> parsed.csv')
     parse.parse_run(run_cfg_path, stub=stub)
 
 
@@ -60,7 +61,7 @@ if __name__ == '__main__':
     ap.add_argument('run_config')
     ap.add_argument('--models', nargs='*', help='model ids (default: all models in the wave)')
     ap.add_argument('--samples', type=int, help='only sample_idx < N')
-    ap.add_argument('--direct', action='store_true', help='direct calls instead of batches for Anthropic models')
+    ap.add_argument('--direct', action='store_true', help='direct calls (full price) instead of batches')
     ap.add_argument('--stub', action='store_true', help='offline dry run -> raw_stub/, parsed_stub.csv')
     ap.add_argument('--rounds', type=int, default=3, help='max batches (first + retry rounds, default 3)')
     ap.add_argument('--poll', type=int, default=60, help='seconds between batch status checks')
