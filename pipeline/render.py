@@ -23,7 +23,7 @@ def render(run, wave, sample_rows, statements, config_hash):
             order = sorted(sample_rows, key=lambda r: hash_rank(salt, r['unit_id']))
             items = '\n'.join(f"[{r['code']}] {r['display_name']}: {statements[r['unit_id']]}" for r in order)
             fprompt = t_fc.format(run_date=run['run_date'], t0=t0, t0_month=t0[:7], n_items=len(order), items=items)
-            rec = {'model': m['id'], 'provider': m['provider'], 'effort': m.get('effort', 'default'),
+            rec = {'model': m['id'], 'provider': m['provider'], 'effort': m.get('effort', wave.get('default_effort', 'high')),
                    'sample_idx': k, 'order': [r['code'] for r in order],
                    'forecast_prompt': fprompt, 'forecast_sha256': sha256_text(fprompt)}
             if 'reveal' in run.get('stages', []):

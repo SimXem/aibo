@@ -1,0 +1,9 @@
+# Follow-up w1-r1-f1 repeated on the high-effort run w1b-r1: reveal the solved problems next to the
+# model's own earlier forecast (sampling design and population solve rate stated), then ask for
+# revised forecasts of the still-open ones. Every listed model needs finished base forecasts.
+# Never edit this file after it has been run; copy it to a new id.
+followup_id: w1b-r1-f1
+base_run: config/runs/w1b-r1.yaml
+models: [claude-opus-5-5, claude-sonnet-5-5, claude-fable-5-1]
+template: templates/followup_v1/reveal_solved.txt
+reveal: solved_side_by_side

@@ -95,8 +95,10 @@ def _assistant_turn(msg, params, batch_id, cid):
 def collect_jobs(jobs, out, state_path, client=None, wait=False, poll_seconds=60):
     """Fetch ended batches and write records: final, partial (awaiting the parse retry) or error."""
     by_sid = {j['sid']: j for j in jobs}
-    client = client or _client()
     st = _state(state_path)
+    if not any(not b['collected'] for b in st['batches']):
+        return                                   # nothing pending: no client, no credentials needed
+    client = client or _client()
     for b in [b for b in st['batches'] if not b['collected']]:
         while True:
             info = client.messages.batches.retrieve(b['batch_id'])

@@ -261,5 +261,117 @@ class TestFollowup(unittest.TestCase):
         self.assertEqual(m[3]['content'][0]['text'], '[]')
 
 
+class TestAutoApprove(unittest.TestCase):
+    def test_freeze_drafts_and_status(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        from pipeline import statements
+        from pipeline.common import write_csv
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp); (tmp / 'review').mkdir()
+            write_csv(tmp / 'review' / 'q.csv', [
+                {'key': 'u_1@aaa', 'unit_id': 'u:1', 'docstrings': 'd', 'lean': 'l', 'draft': 'short text'},
+                {'key': 'u_2@bbb', 'unit_id': 'u:2', 'docstrings': 'd', 'lean': 'l', 'draft': ' '.join(['w'] * 60)},
+                {'key': 'u_3@ccc', 'unit_id': 'u:3', 'docstrings': 'd', 'lean': 'l', 'draft': ''}],
+                statements.REVIEW_FIELDS)
+            st = {'batches': [{'collected': True, 'review_file': 'q.csv'}, {'collected': False}]}
+            wave = {'statements': {'drafter': {'max_words': 50}}}
+            with mock.patch.object(statements, 'ROOT', tmp), mock.patch.object(statements, 'STATEMENTS', tmp / 's'), \
+                    mock.patch.object(statements, 'load_run_config', return_value=({'run_id': 'r'}, wave, {})), \
+                    mock.patch.object(statements, '_state', return_value=st):
+                self.assertEqual(statements.auto_approve('cfg'), 2)       # empty draft skipped
+                self.assertEqual(statements.auto_approve('cfg'), 0)       # existing files never rewritten
+                r2 = json.loads((tmp / 's' / 'u_2@bbb.json').read_text())
+                self.assertTrue(r2['auto_approved'] and r2['auto_checks']['over_word_limit'])
+                self.assertEqual(r2['reviewer'], statements.AUTO_REVIEWER)
+                units = [{'unit_id': 'u:1', 'fc_blob_t0': 'aaa'}]
+                self.assertEqual(statements.approval_status(units), 'auto-approved (no human review)')
+                (tmp / 's' / 'u_1@aaa.json').write_text(json.dumps({'approved': True, 'approved_text': 'x'}))
+                self.assertEqual(statements.approval_status(units), 'approved')
+
+
+class TestRunners(unittest.TestCase):
+    """Orchestration only: every network / API / build function is mocked."""
+
+    def test_forecast_batches_anthropic_and_calls_others_directly(self):
+        from unittest import mock
+        from pipeline import stage_forecast as sf
+        wave = {'models': [{'id': 'a', 'provider': 'anthropic'}, {'id': 'o', 'provider': 'openai'}]}
+        with mock.patch.object(sf, 'load_run_config', return_value=({}, wave, {})), \
+                mock.patch.object(sf.run_batch, 'submit', side_effect=['b1', 'b2', None]) as sub, \
+                mock.patch.object(sf.run_batch, 'collect') as col, mock.patch.object(sf.run, 'run') as direct, \
+                mock.patch.object(sf.parse, 'parse_run') as par, mock.patch.object(sf, '_unfinished', return_value=[]):
+            sf.forecast('cfg', poll_seconds=0)
+        self.assertEqual([c.args[1] for c in sub.call_args_list], [['a']] * 3)
+        self.assertEqual(col.call_count, 3)                 # leftover batches + after each submitted batch
+        direct.assert_called_once_with('cfg', ['o'], None)
+        par.assert_called_once_with('cfg', stub=False)
+        with mock.patch.object(sf, 'load_run_config', return_value=({}, wave, {})), \
+                mock.patch.object(sf.run_batch, 'submit') as sub, mock.patch.object(sf.run_batch, 'collect'), \
+                mock.patch.object(sf.run, 'run') as direct, mock.patch.object(sf.parse, 'parse_run'), \
+                mock.patch.object(sf, '_unfinished', return_value=[]):
+            sf.forecast('cfg', direct=True)
+        sub.assert_not_called(); direct.assert_called_once_with('cfg', ['a', 'o'], None)
+
+    def test_prepare_drafts_until_complete_then_verifies(self):
+        from unittest import mock
+        from pipeline import stage_prepare as sp
+        from pipeline.common import PipelineError
+        def patched(lookups, verified=True):
+            return [mock.patch.object(sp.fetch, 'fetch'), mock.patch.object(sp.fetch, 'restore'),
+                    mock.patch.object(sp.build, 'build'), mock.patch.object(sp.verify, 'verify', return_value=verified),
+                    mock.patch.object(sp, 'load_run_config', return_value=({'run_id': 'r'}, {}, {})),
+                    mock.patch.object(sp, 'read_json', return_value={'statements_status': 'approved'}),
+                    mock.patch.object(sp, 'run_dir'),
+                    mock.patch.object(sp.statements, '_sampled_units'),
+                    mock.patch.object(sp.statements, 'lookup', side_effect=lookups),
+                    mock.patch.object(sp.statements, 'submit'), mock.patch.object(sp.statements, 'collect'),
+                    mock.patch.object(sp.statements, 'auto_approve')]
+        import contextlib
+        with contextlib.ExitStack() as es:
+            m = [es.enter_context(p) for p in patched([({}, [{'unit_id': 'u:1'}]), ({}, []), ({}, [])])]
+            sp.prepare('cfg', no_fetch=True)
+            m[0].assert_not_called()                          # --no-fetch
+            self.assertEqual(m[9].call_count, 1)              # one draft batch
+            m[3].assert_called_once_with('cfg', fresh=True)
+            self.assertEqual(m[2].call_count, 2)              # build before and after the statements
+        with contextlib.ExitStack() as es:
+            [es.enter_context(p) for p in patched([({}, [{'unit_id': 'u:1'}])] * 4)]
+            with self.assertRaises(PipelineError):            # still missing after all rounds
+                sp.prepare('cfg', no_fetch=True, rounds=2)
+        with contextlib.ExitStack() as es:
+            [es.enter_context(p) for p in patched([({}, []), ({}, [])], verified=False)]
+            with self.assertRaises(PipelineError):            # verification failure stops the runner
+                sp.prepare('cfg', no_fetch=True)
+
+    def test_followup_builds_once_batches_and_exports(self):
+        import tempfile
+        from pathlib import Path
+        from unittest import mock
+        from pipeline import stage_followup as sfu
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            rows = [{'provider': 'anthropic'}, {'provider': 'openai'}]
+            with mock.patch.object(sfu, 'load_yaml', return_value={'base_run': 'b', 'followup_id': 'f'}), \
+                    mock.patch.object(sfu, 'load_checked', return_value=(None, d, None, None, None)), \
+                    mock.patch.object(sfu.followup, 'build') as bld, \
+                    mock.patch.object(sfu.followup, '_checked', return_value=(None, None, None, rows, None)), \
+                    mock.patch.object(sfu.followup, 'submit', side_effect=['b1', None, None]) as sub, \
+                    mock.patch.object(sfu.followup, 'collect') as col, \
+                    mock.patch.object(sfu.followup, 'run_direct') as direct, \
+                    mock.patch.object(sfu.followup, 'pending', return_value=[]), \
+                    mock.patch.object(sfu.followup, 'parse') as par, mock.patch.object(sfu.followup, 'export') as exp:
+                sfu.run_followup('fu.yaml', poll_seconds=0)
+                bld.assert_called_once()                      # no lock yet -> build
+                self.assertEqual(sub.call_count, 2); self.assertEqual(col.call_count, 2)
+                direct.assert_called_once_with('fu.yaml', skip_providers=('anthropic',))
+                par.assert_called_once(); exp.assert_called_once()
+                (d / 'followups' / 'f').mkdir(parents=True); (d / 'followups' / 'f' / 'followup.lock.json').write_text('{}')
+                sfu.run_followup('fu.yaml', poll_seconds=0)
+                bld.assert_called_once()                      # existing lock is checked, never rebuilt
+
+
 if __name__ == '__main__':
     unittest.main()

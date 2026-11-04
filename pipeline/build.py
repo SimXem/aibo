@@ -60,7 +60,7 @@ def build(run_cfg_path, out=None, allow_unreviewed=False):
 
     in_sample = {r['unit_id'] for r in srows}
     texts, missing = statements.lookup([u for u in units if u['unit_id'] in in_sample])
-    st_status = 'approved'
+    st_status = statements.approval_status([u for u in units if u['unit_id'] in in_sample])
     if missing:
         if not allow_unreviewed:
             print(f'{len(missing)} sampled statements not approved yet. Next: '

@@ -1,0 +1,9 @@
+# Same snapshot as w1-r1, wave1b (all models at effort high). Rerunning this file reproduces sample,
+# prompts and reveal. Set run_date to the day you actually run the models, before the first run.
+run_id: w1b-r1
+wave: wave1b
+snapshot_date: '2026-11-02'   # S; must not be later than the newest archived tracker commit
+run_date: '2026-11-04'        # date written into the prompt ("Today is ...")
+templates: templates/v1
+stages: [forecast]
+stage3_question: null

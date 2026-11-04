@@ -119,8 +119,9 @@ def submit(run_cfg_path):
         print('nothing to submit (all sampled statements approved, drafted, or in a pending batch)'); return
     tmpl = (ROOT / cfg['template']).read_text(encoding='utf-8')
     params_common = {'model': cfg['drafter']['id'], 'max_tokens': DRAFT_MAX_TOKENS}
-    if cfg['drafter'].get('effort') not in (None, 'default'):
-        params_common['output_config'] = {'effort': cfg['drafter']['effort']}
+    effort = cfg['drafter'].get('effort', 'high')       # 'default' = vendor default (not sent)
+    if effort != 'default':
+        params_common['output_config'] = {'effort': effort}
     requests, keys, prompt_sha = [], {}, {}
     for i, u in enumerate(sorted(todo, key=key_of)):
         docs, lean = source_text(u, rules)
@@ -145,6 +146,8 @@ def collect(run_cfg_path, wait=False, poll_seconds=60):
     import time
     run, wave, rules = load_run_config(run_cfg_path)
     st = _state(run)
+    if not any(not b['collected'] for b in st['batches']):
+        return                                   # nothing pending: no client, no credentials needed
     client = _client()
     units = {key_of(u): u for u in _sampled_units(run)}
     for b in [b for b in st['batches'] if not b['collected']]:
@@ -216,6 +219,49 @@ def ingest(csv_path):
                        **meta.get(r['key'], {})})
         n += 1
     print(f'{n} statements frozen in {STATEMENTS}')
+
+
+
+AUTO_REVIEWER = 'none (auto-approved, no human review)'
+
+
+def auto_approve(run_cfg_path):
+    """No-human-review path (used by pipeline.stage_prepare): freeze every collected draft that has no
+    statement file yet, with the draft text as approved text. Each file is marked auto_approved and
+    records an automatic word-count check; nothing else is checked (quantifiers, attribution etc.)."""
+    run, wave, _ = load_run_config(run_cfg_path)
+    max_words = wave['statements']['drafter']['max_words']
+    n = over = 0
+    for b in _state(run)['batches']:
+        if not b.get('collected') or not b.get('review_file'):
+            continue
+        csv_path = ROOT / 'review' / b['review_file']
+        meta_p = csv_path.with_suffix('.meta.json')
+        meta = read_json(meta_p) if meta_p.exists() else {}
+        for r in read_csv(csv_path):
+            p = path_of(r['key'])
+            text = r['draft'].strip()
+            if p.exists() or not text:
+                continue
+            words = len(text.split())
+            over += words > max_words
+            STATEMENTS.mkdir(exist_ok=True)
+            write_json(p, {'key': r['key'], 'unit_id': r['unit_id'], 'approved': True, 'auto_approved': True,
+                           'approved_text': text, 'draft': r['draft'],
+                           'source_docstrings': r['docstrings'], 'source_lean': r['lean'],
+                           'reviewer': AUTO_REVIEWER, 'checklist_ok': False,
+                           'auto_checks': {'words': words, 'max_words': max_words, 'over_word_limit': words > max_words},
+                           'approved_utc': dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
+                           **meta.get(r['key'], {})})
+            n += 1
+    print(f'{n} statements auto-approved without human review ({over} over the {max_words}-word limit)')
+    return n
+
+
+def approval_status(units):
+    """'approved' if every statement was human-reviewed, else 'auto-approved (no human review)'."""
+    auto = any(read_json(path_of(key_of(u))).get('auto_approved') for u in units if path_of(key_of(u)).exists())
+    return 'auto-approved (no human review)' if auto else 'approved'
 
 
 if __name__ == '__main__':

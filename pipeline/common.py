@@ -14,6 +14,8 @@ ARCHIVE = ROOT / 'archive'      # git bundles + manifest (bundles are not commit
 WORK = ROOT / 'work'            # bare clones made from bundles (disposable)
 CACHE = ROOT / 'cache'          # fetch mirrors (disposable)
 RUNS = ROOT / 'runs'
+# statements_status values in run.lock.json that allow real (non-stub) model runs
+APPROVED_STATUSES = ('approved', 'auto-approved (no human review)')
 STATEMENTS = ROOT / 'statements'
 
 REPOS = {

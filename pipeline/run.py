@@ -11,7 +11,7 @@ import argparse
 import datetime as dt
 import json
 
-from .common import PipelineError, load_run_config, read_json, run_dir, sha256_file, write_json
+from .common import APPROVED_STATUSES, PipelineError, load_run_config, read_json, run_dir, sha256_file, write_json
 from .llm import provider
 from .parse import extract_array
 
@@ -39,7 +39,7 @@ def load_checked(run_cfg_path, stub=False, allow_unreviewed=False):
     lock = read_json(d / 'run.lock.json')
     if sha256_file(d / 'prompts.jsonl') != lock['artifacts'].get('prompts.jsonl'):
         raise PipelineError('prompts.jsonl differs from run.lock.json; rebuild before running')
-    if lock['statements_status'] != 'approved' and not (stub or allow_unreviewed):
+    if lock['statements_status'] not in APPROVED_STATUSES and not (stub or allow_unreviewed):
         raise PipelineError('statements are not approved; real runs are blocked (use --stub for a dry run)')
     out = d / ('raw_stub' if stub else 'raw')
     out.mkdir(exist_ok=True)

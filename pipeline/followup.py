@@ -25,7 +25,7 @@ from . import parse as parse_mod
 from .common import ROOT, PipelineError, load_yaml, read_csv, read_json, sha256_file, sha256_text, write_csv, write_json
 from .render import _outcome_text
 from .run import RETRY_MSG, load_checked, now
-from .run_batch import check_anthropic_only, collect_jobs, params_for, submit_jobs
+from .run_batch import collect_jobs, params_for, submit_jobs
 
 STAGE = 'followup'
 PARSED_FIELDS = ['model', 'returned_model', 'sample_idx', 'code', 'unit_id', 'position', 'best', 'q10', 'q90',
@@ -174,19 +174,36 @@ def _jobs(fu, run_cfg, base_raw, rows):
     return jobs
 
 
+def _anthropic(rows):
+    skipped = sorted({r['model'] for r in rows if r['provider'] != 'anthropic'})
+    if skipped:
+        print(f'batch mode is Anthropic-only; not batched: {skipped} (use run for these)')
+    return [r for r in rows if r['provider'] == 'anthropic']
+
+
 def submit(fu_path, client=None):
     fu, run_cfg, base_raw, rows, fdir = _checked(fu_path)
-    check_anthropic_only(rows)
-    return submit_jobs(_jobs(fu, run_cfg, base_raw, rows), fdir / 'raw', fdir / 'batches.json', client,
+    return submit_jobs(_jobs(fu, run_cfg, base_raw, _anthropic(rows)), fdir / 'raw', fdir / 'batches.json', client,
                        f'python -m pipeline.followup collect {fu_path} --wait')
 
 
-def collect(fu_path, wait=False, client=None):
+def collect(fu_path, wait=False, client=None, poll_seconds=60):
     fu, run_cfg, base_raw, rows, fdir = _checked(fu_path)
-    collect_jobs(_jobs(fu, run_cfg, base_raw, rows), fdir / 'raw', fdir / 'batches.json', client, wait)
+    collect_jobs(_jobs(fu, run_cfg, base_raw, rows), fdir / 'raw', fdir / 'batches.json', client, wait, poll_seconds)
 
 
-def run_direct(fu_path, stub=False):
+def pending(fu_path):
+    """sids of follow-up conversations without a finished record."""
+    fu, run_cfg, base_raw, rows, fdir = _checked(fu_path)
+    out = []
+    for r in rows:
+        p = fdir / 'raw' / f"{r['model']}__s{r['sample_idx']}.json"
+        if not (p.exists() and read_json(p).get('stage_done') == STAGE):
+            out.append(f"{r['model']}__s{r['sample_idx']}")
+    return out
+
+
+def run_direct(fu_path, stub=False, skip_providers=()):
     """Direct calls (resumable), same retry rule as pipeline.run. --stub writes raw_stub/."""
     from .llm import provider
     from .parse import extract_array
@@ -196,7 +213,7 @@ def run_direct(fu_path, stub=False):
     clients = {}
     for j, r in zip(_jobs(fu, run_cfg, base_raw, rows), rows):
         p = out / f"{j['sid']}.json"
-        if p.exists() and read_json(p).get('stage_done') == STAGE:
+        if (p.exists() and read_json(p).get('stage_done') == STAGE) or (not stub and r['provider'] in skip_providers):
             continue
         prov = 'stub' if stub else r['provider']
         llm = clients.setdefault(prov, provider(prov))
@@ -272,7 +289,7 @@ def _median(xs):
     return (xs[(n - 1) // 2] + xs[n // 2]) / 2
 
 
-def export(fu_path):
+def export(fu_path, stub=False):
     """Tidy CSVs for analysis (e.g. pandas), from followups/<id>/parsed.csv:
     dates_long.csv    one row per (sample, problem, quantile, before/after); months_from_ref is empty
                       for "after-2100" (after_2100 = 1 instead)
@@ -288,7 +305,7 @@ def export(fu_path):
     months = lambda v: None if v == 'after-2100' else (int(v[:4]) - ry) * 12 + int(v[5:7]) - rm
     strata = {r['unit_id']: r['stratum'] for r in read_csv(d / 'sample.csv')}
     long = []
-    for r in read_csv(fdir / 'parsed.csv'):
+    for r in read_csv(fdir / ('parsed_stub.csv' if stub else 'parsed.csv')):
         for q in ('q10', 'best', 'q90'):
             for phase, key in (('before', f'before_{q}'), ('after', q)):
                 v = r[key]
@@ -300,7 +317,8 @@ def export(fu_path):
                              'phase': phase, 'date': v, 'after_2100': int(mo is None),
                              'months_from_ref': '' if mo is None else mo,
                              'valid': r['valid'] if phase == 'after' else ''})
-    write_csv(fdir / 'dates_long.csv', long, LONG_FIELDS)
+    sfx = '_stub' if stub else ''
+    write_csv(fdir / f'dates_long{sfx}.csv', long, LONG_FIELDS)
     summary = []
     for model in sorted({x['model'] for x in long}):
         for q in ('q10', 'best', 'q90'):
@@ -319,8 +337,8 @@ def export(fu_path):
                     'median_months_all': '' if med_all in (None, float('inf')) else med_all,
                     'median_all_is_after_2100': int(med_all == float('inf')),
                     'max_all_is_after_2100': int(len(fin) < len(xs)), 'ref_month': ref})
-    write_csv(fdir / 'dates_summary.csv', summary, SUMMARY_FIELDS)
-    print(f"{len(long)} rows -> {fdir / 'dates_long.csv'}\n{len(summary)} rows -> {fdir / 'dates_summary.csv'}")
+    write_csv(fdir / f'dates_summary{sfx}.csv', summary, SUMMARY_FIELDS)
+    print(f"{len(long)} rows -> {fdir / f'dates_long{sfx}.csv'}\n{len(summary)} rows -> {fdir / f'dates_summary{sfx}.csv'}")
 
 
 if __name__ == '__main__':
@@ -332,5 +350,5 @@ if __name__ == '__main__':
     a = ap.parse_args()
     {'build': lambda: build(a.followup_config), 'submit': lambda: submit(a.followup_config),
      'collect': lambda: collect(a.followup_config, a.wait), 'run': lambda: run_direct(a.followup_config, a.stub),
-     'parse': lambda: parse(a.followup_config, a.stub), 'export': lambda: export(a.followup_config)}[a.cmd]()
+     'parse': lambda: parse(a.followup_config, a.stub), 'export': lambda: export(a.followup_config, a.stub)}[a.cmd]()
     sys.exit(0)

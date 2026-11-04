@@ -7,7 +7,7 @@ import argparse
 import tempfile
 
 from . import build, fetch
-from .common import WORK, load_run_config, read_json, rmtree, run_dir, source_hash
+from .common import APPROVED_STATUSES, WORK, load_run_config, read_json, rmtree, run_dir, source_hash
 
 
 def verify(run_cfg_path, fresh=False):
@@ -17,7 +17,7 @@ def verify(run_cfg_path, fresh=False):
         rmtree(WORK)
         fetch.restore()
     with tempfile.TemporaryDirectory() as tmp:
-        new = build.build(run_cfg_path, out=tmp, allow_unreviewed=lock['statements_status'] != 'approved')
+        new = build.build(run_cfg_path, out=tmp, allow_unreviewed=lock['statements_status'] not in APPROVED_STATUSES)
         ok = True
         for k in ('config_hash', 'commits', 'statement_files'):
             if new[k] != lock[k]:
