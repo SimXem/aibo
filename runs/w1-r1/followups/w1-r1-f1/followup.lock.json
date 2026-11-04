@@ -1,0 +1,21 @@
+{
+ "base_inputs": {
+  "parsed.csv": "602174293d016fb4404cfa80a78b97a42e400349f3dbacc8a0d2df933f870375",
+  "sample.csv": "f4de1b5f37f757ed378f97a870844e635472675568fad58776c6a8ed2d613f07",
+  "sample_log.json": "e6eaeaf0bc30215cfa0e49c99b242e2d0de8c21af8357b407ce6f61104539527"
+ },
+ "base_lock_sha256": "784145f294b9d50203388c3a7aa614101ad5e59899b46a61f917a80a3d80dd3c",
+ "base_records": {
+  "claude-opus-5-5__s0.json": "cee4141ec846ef76ade182dcb350ca2e6592a22717d109fb19b215856ae055b6",
+  "claude-opus-5-5__s1.json": "9618be383e27e96e2f10eb62e1b80d1d8bb2c7fad7cf5e88e8a14dca3387b118",
+  "claude-opus-5-5__s2.json": "fea58527745603dc37acf7819f0dd28b725ddec49b9016e4c1f4a2392378c67e",
+  "claude-opus-5-5__s3.json": "99b3e5d9a794e972ef30e713ab64d73b2b5cf3e58b17fc97a945b6061e567682",
+  "claude-opus-5-5__s4.json": "d5e807857e0b78080aa6e430fce7b2e2834022f52839ea6907e85c85dac92dc8"
+ },
+ "base_run": "config/runs/w1-r1.yaml",
+ "built_utc": "2026-11-03T21:24:44+00:00",
+ "config_sha256": "aed4c6f4ef76c2c5169b143ab3b61a72b547223044314f35e054bdc61a0fbc70",
+ "followup_id": "w1-r1-f1",
+ "prompts_sha256": "485c62a576113339a810cee0f54ff90449728cfe24faae3910be5ee53ba084cb",
+ "template_sha256": "660c7a9885bc36f64f6dea2c7aa655d530faf13e78962cb89814ab26fd8963d3"
+}

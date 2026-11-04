@@ -28,6 +28,11 @@ Commands below call `.venv/bin/python` directly; after `source .venv/bin/activat
 .venv/bin/python -m pipeline.run_batch submit config/runs/w1-r1.yaml --models claude-opus-5-5   # 7 (alt). same, via Message Batches (Anthropic only, half price)
 .venv/bin/python -m pipeline.run_batch collect config/runs/w1-r1.yaml --wait  #    -> raw/*.json; run submit again for parse retries / failed requests
 .venv/bin/python -m pipeline.parse config/runs/w1-r1.yaml           # 8. raw/*.json -> parsed.csv (flags, never repairs)
+.venv/bin/python -m pipeline.followup build  config/followups/w1-r1-f1.yaml   # 9. follow-up: render + lock the reveal turn (no API)
+.venv/bin/python -m pipeline.followup submit config/followups/w1-r1-f1.yaml   #    Message Batch (or: run [--stub] for direct calls)
+.venv/bin/python -m pipeline.followup collect config/followups/w1-r1-f1.yaml --wait
+.venv/bin/python -m pipeline.followup parse  config/followups/w1-r1-f1.yaml   #    -> followups/<id>/parsed.csv, revised vs. earlier forecast
+.venv/bin/python -m pipeline.followup export config/followups/w1-r1-f1.yaml   #    -> dates_long.csv + dates_summary.csv (tidy, months from snapshot month)
 .venv/bin/python -m unittest discover -s tests -t .                 # fixture tests
 ```
 
@@ -42,9 +47,11 @@ API keys go in `.env` (`ANTHROPIC_API_KEY=...`, `OPENAI_API_KEY=...`). The file 
 | `config/runs/` | run id, wave, snapshot date S, date written into the prompt, stages |
 | `rules/rules_v1.yaml` | every selection and resolution rule (status vocabularies, headline regex, exclusions, literature rule) |
 | `templates/v1/` | forecast, reveal and statement-draft prompts |
+| `config/followups/` | follow-ups: base run, models, template, reveal mode. A follow-up continues finished base conversations with one more user turn |
+| `templates/followup_v1/` | follow-up prompts (`reveal_solved.txt`: solved problems next to the model's own forecast, sampling design and population solve rate stated, then re-forecast of the still-open ones) |
 | `archive/` | git bundles (not committed; keep them) and `manifest.json` with SHA-256 checksums |
 | `statements/` | frozen, reviewed problem statements, keyed by unit and T0 blob SHA |
-| `runs/<run>/` | `frame.csv`, `exclusions.csv` (one reason per dropped unit), `outcomes.csv`, `transitions.csv`, `sample.csv`, `sample_log.json`, `prompts.jsonl`, `run.lock.json`, `raw/`, `forecast_batches.json` (batch mode), `parsed.csv` |
+| `runs/<run>/` | `frame.csv`, `exclusions.csv` (one reason per dropped unit), `outcomes.csv`, `transitions.csv`, `sample.csv`, `sample_log.json`, `prompts.jsonl`, `run.lock.json`, `raw/`, `forecast_batches.json` (batch mode), `parsed.csv`, `followups/<id>/` (`prompts.jsonl`, `followup.lock.json`, `raw/`, `parsed.csv`) |
 | `work/`, `cache/` | disposable clones (rebuilt from bundles) |
 
 ## Rules in force (rules_v1)

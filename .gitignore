@@ -17,8 +17,8 @@ cache/
 archive/*.bundle
 
 # Dry-run (--stub) output, regenerable at no cost
-runs/*/raw_stub/
-runs/*/parsed_stub.csv
+runs/**/raw_stub/
+runs/**/parsed_stub.csv
 
 # Personal Claude Code settings (the shared .claude/settings.json is committed)
 .claude/settings.local.json

@@ -244,5 +244,22 @@ class TestRunBatch(unittest.TestCase):
                 self.assertIsNone(run_batch.submit('cfg', models=['m1'], client=c))   # everything done
 
 
+class TestFollowup(unittest.TestCase):
+    def test_relation_and_messages(self):
+        from pipeline import followup
+        f = {'valid': '1', 'best': '2030-01', 'q10': '2026-09', 'q90': 'after-2100'}
+        self.assertEqual(followup._relation('2026-08-07', f), 'solved before your 10% date')
+        self.assertEqual(followup._relation('2026-09-30', f), 'solved inside your 10%-90% range')
+        self.assertEqual(followup._relation('2026-09-30', {**f, 'q90': '2026-08'}), 'solved after your 90% date')
+        self.assertEqual(followup._relation('2026-09-30', None), 'you gave no valid forecast')
+        rec = {'forecast_turn_index': 3, 'turns': [
+            {'role': 'user', 'text': 'Q'}, {'role': 'assistant', 'response': {'content': [{'type': 'text', 'text': 'x'}]}},
+            {'role': 'user', 'text': 'retry'}, {'role': 'assistant', 'response': {'content': [{'type': 'text', 'text': '[]'}]}},
+            {'role': 'user', 'text': 'later stage'}]}
+        m = followup.base_messages(rec)
+        self.assertEqual([x['role'] for x in m], ['user', 'assistant', 'user', 'assistant'])
+        self.assertEqual(m[3]['content'][0]['text'], '[]')
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,16 @@
+Here is what happened between {t0} and {snapshot_date}, according to the trackers.
+
+{n_solved} of the {n_items} problems above were solved in that period. This share is not representative. {n_guaranteed} of the {n_items} problems were deliberately chosen from problems that were solved in this period; the other {n_random} were drawn at random from all {n_eligible} eligible problems that were open on {t0}, and {n_random_solved} of those {n_random} were solved. Across all {n_eligible} eligible problems, {n_pool_solved} ({pool_pct}%) were solved by {snapshot_date}.
+
+The solved problems, with your earlier forecast for each:
+
+{solved_items}
+
+The other {n_open} problems were still open on {snapshot_date}. Taking this information into account, give revised forecasts for these {n_open} problems, in the same format as before:
+
+{open_items}
+
+Use "after-2100" for any date later than 2100. No date may be earlier than {s_month}. Each problem must satisfy q10 <= best <= q90.
+
+Reply with a JSON array only, one object per problem, in any order:
+[{{"id": "<problem id>", "best": "YYYY-MM", "q10": "YYYY-MM", "q90": "YYYY-MM"}}, ...]
