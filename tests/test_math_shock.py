@@ -4,6 +4,7 @@ where node and the pinned pi are installed -- the real pi against a scripted
 local model. No provider is called."""
 import copy
 import importlib.util
+import io
 import json
 import os
 import shutil
@@ -11,8 +12,10 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from datetime import date
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 REPO = Path(__file__).resolve().parent.parent
@@ -273,8 +276,80 @@ class TestArms(unittest.TestCase):
 
     def test_no_experiment_file_runs_the_arms(self):
         # neither the cron nor `run_unified --experiment` can ask a math arm without its step
+        ids = {c["id"] for base in rs.SERIES for c in rs.arm_conditions(base=base, conditions=rs.series_conditions(base))}
+        self.assertTrue(set(rs.ARMS) < ids)
         for name in rs.experiments.names():
-            self.assertFalse(set(rs.experiments.load(name)["conditions"]) & set(rs.ARMS))
+            self.assertFalse(set(rs.experiments.load(name)["conditions"]) & ids)
+
+    def test_arms_under_another_prompt_condition(self):
+        series = rs.experiments.load("airo")["conditions"]
+        default = rs.arm_conditions()
+        arms = rs.arm_conditions(conditions=["none", "recent"])
+        self.assertEqual(arms[:3], default)                     # the baseline's arms, ids and hashes unchanged
+        self.assertEqual([c["id"] for c in arms[3:]], ["control.recent", "math-placebo.recent", "math-shock.recent"])
+        for c in arms[3:]:
+            self.assertEqual((c["publish"], c["pooled"], c["cadence"], c["variant"]),
+                             (False, False, "manual", "recent"))
+        self.assertEqual(arms[3]["sha256"], series["recent"]["sha256"])   # the control asks what `recent` asks
+        self.assertNotIn("_pretask", arms[3])
+        self.assertEqual([c["_pretask"] for c in arms[4:]], [c["_pretask"] for c in default[1:]])
+        self.assertEqual(len({c["sha256"] for c in arms}), 6)
+
+    def test_the_five_conditions_of_each_series(self):
+        for base in rs.SERIES:
+            series = rs.experiments.load(base)
+            self.assertEqual(rs.series_conditions(base), series["pooled"])
+            self.assertEqual(len(series["pooled"]), 5)
+            arms = rs.arm_conditions(base=base, conditions=series["pooled"])
+            self.assertEqual([rs.split_arm(c["id"]) for c in arms],
+                             [(a, cid) for cid in series["pooled"] for a in rs.ARMS])
+            for c in arms:
+                cond = series["conditions"][rs.split_arm(c["id"])[1]]
+                self.assertEqual((c["variant"], c["scenarios"]), (cond["variant"], cond["scenarios"]))
+                self.assertNotIn(":", c["id"])                  # run_unified joins a call id with colons
+            self.assertEqual(len({c["sha256"] for c in arms}), 15)
+        welfare = {c["id"]: c for c in rs.arm_conditions(base="welfare", conditions=["independent", "two-step"])}
+        self.assertEqual((welfare["math-shock.independent"]["variant"], welfare["control.two-step"]["variant"]),
+                         ("welfare-independent", "welfare-two-step"))
+
+    def test_only_the_pooled_conditions(self):
+        for bad in ("ai-banned", "recent-shadow-noairo", "bogus"):
+            with self.assertRaises(ValueError):
+                rs.arm_conditions(conditions=[bad])
+            with self.assertRaises(ValueError):
+                rs.pick_conditions([bad])
+
+    def test_pick_conditions(self):
+        self.assertEqual(rs.pick_conditions([]), ["none"])
+        self.assertEqual(rs.pick_conditions(["all"]), rs.series_conditions())
+        self.assertEqual(rs.pick_conditions(["two-step,recent", "recent"]), ["recent", "two-step"])   # the series' order
+        self.assertEqual(rs.pick_conditions(["independent"], "welfare"), ["independent"])
+        with self.assertRaises(ValueError):
+            rs.pick_conditions(["none"], "axes")
+
+    def test_split_arm(self):
+        self.assertEqual(rs.split_arm("math-shock"), ("math-shock", "none"))
+        self.assertEqual(rs.split_arm("control.two-step"), ("control", "two-step"))
+        self.assertEqual(rs.split_arm(rs.arm_id("math-placebo", "critical")), ("math-placebo", "critical"))
+
+
+class TestDryRun(PackCase):
+    def test_each_prompt_once_and_each_user_turn_once(self):
+        asked = []
+        fake_ru = SimpleNamespace(run=lambda args, exp, conditions, path, publish:
+                                  asked.append([c["id"] for c in conditions]))
+        fake_pt = SimpleNamespace(pack=self.pack, select_models=lambda model_set, args: None)
+        conds = rs.arm_conditions(pack_id=self.pack_id, pack_sha256=self.sha, conditions=["none", "recent"])
+        out = io.StringIO()
+        with redirect_stdout(out):
+            rs.dry_run(fake_ru, fake_pt, None, conds, "set.json")
+        text = out.getvalue()
+        self.assertEqual(asked, [["control"], ["control.recent"]])
+        self.assertIn("##### math-placebo.recent, math-shock.recent: the same prompt #####", text)
+        self.assertEqual(text.count("##### MATH STEP"), 1)
+        self.assertIn("##### math-placebo, math-placebo.recent: THE USER TURN", text)
+        self.assertIn("##### math-shock, math-shock.recent: THE USER TURN", text)
+        self.assertEqual(text.count("THE USER TURN, THEN ITS CONDITION'S PROMPT ABOVE"), 2)
 
 
 class TestRunnerWraps(PackCase):
@@ -318,10 +393,12 @@ class TestRunnerWraps(PackCase):
         return {"session": "/nonexistent/session.jsonl", "prompt": ms.math_prompt(pack, codes, run_date),
                 "rows": rows, "issues": issues, "turns": 1}
 
-    def run_arm(self, arm, retries=0, base=rs.DEFAULT_BASE):
-        """One call of `arm` on `base`'s series, as run_unified.run makes it."""
+    def run_arm(self, arm, retries=0, base=rs.DEFAULT_BASE, condition=rs.DEFAULT_CONDITION):
+        """One call of `arm` on `base`'s series, under its prompt `condition`,
+        as run_unified.run makes it."""
         today = date(2026, 11, 10)
-        cond = next(c for c in rs.arm_conditions({arm: rs.ARMS[arm]}, self.pack_id, self.sha, base=base))
+        cond = next(c for c in rs.arm_conditions({arm: rs.ARMS[arm]}, self.pack_id, self.sha, base=base,
+                                                 conditions=[condition]))
         pol = ru.load_policies(os.path.join(ru.ROOT, cond["scenarios"]))
         self.g, self.b, h, _, spec = (ru.load_questions(pol["questions"]) if pol.get("questions")
                                       else ru.load_batch(ru.LADDER, ru.CROSS, ru.UNBATCHED))
@@ -385,6 +462,26 @@ class TestRunnerWraps(PackCase):
         self.assertEqual((doc["status"], doc["message"], doc["call_id"]), ("ok", msg, rows[0]["call_id"]))
         self.assertIn("STATEMENT-ONE", doc["math_prompt"])
         self.assertTrue(rows[0]["call_id"].endswith(":math-shock"))
+
+    def test_shock_under_another_prompt_condition(self):
+        baseline = self.run_arm("math-shock")[0]
+        control = self.run_arm("control", condition="recent")[0]
+        self.calls.clear()
+        rows = self.run_arm("math-shock", condition="recent")
+        rec = rows[0]["pretask"]
+        # `recent`'s prompt, as its control asks it, after the reveal and the handoff in one user turn
+        self.assertEqual(rows[0]["prompt_sha256"], control["prompt_sha256"])
+        self.assertNotEqual(rows[0]["prompt_sha256"], baseline["prompt_sha256"])
+        self.assertIn(rs.experiments.VARIANTS["recent"], rows[0]["prompt"])
+        msg = ms.message(self.pack, rec["order"], ms.parse_answer(GOOD, rec["order"], T0)[0], "solved_side_by_side")
+        self.assertEqual(self.calls[0]["prompt"], msg + "\n\n" + rows[0]["prompt"])
+        self.assertEqual(rec["order"], baseline["pretask"]["order"])        # one order per model and run
+        # the rows and the transcript name the arm and the prompt condition
+        self.assertEqual({(r["condition"], r["variant"]) for r in rows}, {("math-shock.recent", "recent")})
+        self.assertEqual(control["condition"], "control.recent")
+        self.assertTrue(rows[0]["call_id"].endswith(":math-shock.recent"))
+        doc = json.loads((Path(self.tmp.name) / rec["transcript"]).read_text())
+        self.assertEqual((doc["condition"], doc["call_id"]), ("math-shock.recent", rows[0]["call_id"]))
 
     def test_placebo_gets_the_handoff_alone(self):
         rows = self.run_arm("math-placebo")

@@ -4,7 +4,7 @@ information shock about the model's own forecasting (redlines/math_shock.py).
 
 Three arms, one call per eligible panel model each, in one run:
 
-  control       the series' baseline prompt (its experiment's `none`), as is
+  control       the series' prompt (its experiment's `none`, or --condition's), as is
   math-placebo  the math step, then a neutral handoff, then the same prompt
   math-shock    the math step, then what happened to the problems against the
                 model's own forecasts, the handoff, then the same prompt
@@ -13,10 +13,21 @@ Two series can be asked (--experiment, as run_unified's): AIRO's, the risk
 questions (experiments/airo.toml, the default), or the welfare page's, the
 benefit questions (experiments/welfare.toml, 2026-11-10). One run asks one.
 
+THE PROMPT CONDITIONS (--condition, 2026-11-10). The series' prompt is its
+`none` condition by default. --condition picks others among the series'
+pooled five (none, independent, recent, critical, two-step: the prompts whose
+mean is a model's published number), or `all` for the five; each asked
+condition gets the three arms. The arms on `none` keep their bare ids
+(control, math-placebo, math-shock); on another condition the id names it,
+<arm>.<condition> (math-shock.recent), so no two prompts share a row's
+`condition` (split_arm reads one back).
+
     python code/run_math_shock.py --dry-run     # every prompt, the models; no call
     python code/run_math_shock.py               # PAID: three arms x the eligible panel
     python code/run_math_shock.py --arm math-shock --models "GPT-6 Astra"
     python code/run_math_shock.py --experiment welfare --dry-run
+    python code/run_math_shock.py --condition all --dry-run          # the five prompts x three arms
+    python code/run_math_shock.py --condition recent,critical        # PAID: two prompts x three arms
 
 Manual and unpublished: rows go to results/experiments/<name>-<run>.jsonl
 (and -instrument.jsonl) like any unpublished condition's -- <name> is
@@ -78,10 +89,13 @@ EXPERIMENT = "math-shock"
 # --run w1-r1`), outside git.
 PACK_ID = "math-shock-w1-r1"
 PACK_SHA256 = "8f3585467566a067808d7ea40f48649ee0ee214fad24b68fde457d3a4359370a"
-# The series a run can ask: experiment -> the baseline condition every arm
-# asks. AIRO's is the default and keeps its rows' name (EXPERIMENT).
-BASES = {"airo": "none", "welfare": "none"}
+# The series a run can ask (experiments/<name>.toml). AIRO's is the default
+# and keeps its rows' name (EXPERIMENT).
+SERIES = ("airo", "welfare")
 DEFAULT_BASE = "airo"
+# The prompt condition an arm copies unless --condition says otherwise: the
+# series' baseline prompt. Others: the series' pooled conditions.
+DEFAULT_CONDITION = "none"
 ARMS = {"control": None, "math-placebo": "none", "math-shock": "solved_side_by_side"}
 
 
@@ -90,9 +104,41 @@ def experiment_name(base=DEFAULT_BASE):
     another series, prefixed by it (welfare-math-shock), so its files under
     results/experiments/ are that page's, never AIRO's download's
     (redlines/export.py airo_file)."""
-    if base not in BASES:
-        raise ValueError(f"unknown series {base!r}; have {sorted(BASES)}")
+    if base not in SERIES:
+        raise ValueError(f"unknown series {base!r}; have {sorted(SERIES)}")
     return EXPERIMENT if base == DEFAULT_BASE else f"{base}-{EXPERIMENT}"
+
+
+def arm_id(arm, condition=DEFAULT_CONDITION):
+    """An arm's condition id: the bare arm on the baseline prompt (as before
+    --condition), else <arm>.<condition>. Never a colon: run_unified joins a
+    call id with them."""
+    return arm if condition == DEFAULT_CONDITION else f"{arm}.{condition}"
+
+
+def split_arm(aid):
+    """An arm's condition id (a row's `condition`) -> (arm, prompt condition)."""
+    arm, _, condition = aid.partition(".")
+    return arm, condition or DEFAULT_CONDITION
+
+
+def series_conditions(base=DEFAULT_BASE):
+    """The prompt conditions an arm may copy: the series' pooled ones, whose
+    mean is a model's published number."""
+    experiment_name(base)       # a known series, or ValueError
+    return list(experiments.load(base)["pooled"])
+
+
+def pick_conditions(values, base=DEFAULT_BASE):
+    """--condition's values (repeatable, comma-separated, `all` for every one)
+    -> the series' conditions they name, in the series' order; none given ->
+    the baseline alone. ValueError on a name the series does not pool."""
+    allowed = series_conditions(base)
+    names = [n.strip() for v in values for n in v.split(",") if n.strip()] or [DEFAULT_CONDITION]
+    bad = [n for n in names if n != "all" and n not in allowed]
+    if bad:
+        raise ValueError(f"--condition {bad[0]!r}: {base} has {', '.join(allowed)} (or all)")
+    return allowed if "all" in names else [c for c in allowed if c in names]
 WRAPPER = os.path.join(ROOT, "code", "math_shock_pi")
 SESSION_ENV, PI_ENV = "AIRO_PRETASK_SESSION", "AIRO_PRETASK_PI"
 
@@ -105,21 +151,29 @@ def load_runner():
     return mod
 
 
-def arm_conditions(arms=ARMS, pack_id=PACK_ID, pack_sha256=PACK_SHA256, base=DEFAULT_BASE):
-    """The arms as run_unified conditions: copies of the series' baseline,
-    unpublished. A math arm carries its pretask under `_pretask` (run_unified
-    ignores it) and a hash of the baseline's settings and the pretask; the
-    control keeps the baseline's hash, since it asks the same."""
-    experiment_name(base)       # a known series, or ValueError
-    base = experiments.load(base)["conditions"][BASES[base]]
+def arm_conditions(arms=ARMS, pack_id=PACK_ID, pack_sha256=PACK_SHA256, base=DEFAULT_BASE,
+                   conditions=(DEFAULT_CONDITION,)):
+    """The arms as run_unified conditions, for each prompt condition in turn:
+    copies of the series' condition, unpublished (ids: arm_id). A math arm
+    carries its pretask under `_pretask` (run_unified ignores it) and a hash
+    of the condition's settings and the pretask; the control keeps the
+    condition's hash, since it asks the same."""
+    allowed = series_conditions(base)
+    bad = [c for c in conditions if c not in allowed]
+    if bad:
+        raise ValueError(f"{base}: no pooled condition {bad[0]!r}; have {allowed}")
+    series = experiments.load(base)["conditions"]
     out = []
-    for aid, mode in arms.items():
-        c = {**copy.deepcopy(base), "id": aid, "publish": False, "pooled": False, "cadence": "manual"}
-        if mode is not None:
-            c["_pretask"] = {"pack": pack_id, "pack_sha256": pack_sha256, "reveal": mode}
-            c["sha256"] = ms.sha256_text(json.dumps({"base": base["sha256"], "pretask": c["_pretask"]},
-                                                    sort_keys=True))
-        out.append(c)
+    for cid in dict.fromkeys(conditions):
+        cond = series[cid]
+        for aid, mode in arms.items():
+            c = {**copy.deepcopy(cond), "id": arm_id(aid, cid), "publish": False, "pooled": False,
+                 "cadence": "manual"}
+            if mode is not None:
+                c["_pretask"] = {"pack": pack_id, "pack_sha256": pack_sha256, "reveal": mode}
+                c["sha256"] = ms.sha256_text(json.dumps({"base": cond["sha256"], "pretask": c["_pretask"]},
+                                                        sort_keys=True))
+            out.append(c)
     return out
 
 
@@ -256,7 +310,7 @@ class Pretask:
         if (pre["pack"], pre["pack_sha256"]) != (self.pack["pack"], self.pack_sha256):
             raise ValueError(f"{a['condition']['id']}: pretask pack {pre['pack']} is not the loaded one")
         today = a.get("today") or datetime.now(timezone.utc).date()
-        # One order per model and run, the same in both math arms.
+        # One order per model and run, the same in every math arm, whatever its prompt condition.
         seed = f"{self.pack['pack']}|{a['run_id']}|{a.get('arm')}|{a['label']}"
         ctx = {"mode": pre["reveal"], "codes": ms.order(self.pack, seed), "run_date": today.isoformat(),
                "step": None, "math_steps": [], "usage": {}, "message": None, "forecast_workdirs": []}
@@ -361,26 +415,35 @@ class Pretask:
 # ---- the run ------------------------------------------------------------------------
 
 def dry_run(ru, pt, args, conditions, path, name=EXPERIMENT):
-    """The series' prompt once (every arm asks the same), the math step and
-    what precedes that prompt in each math arm, and who would be asked."""
-    ru.run(args, {"name": name}, conditions[:1], path, False)
-    if len(conditions) > 1:
-        print(f"##### {', '.join(c['id'] for c in conditions[1:])}: the same prompt #####")
+    """Each prompt condition's prompt once (its arms ask the same), the math
+    step and what precedes that prompt in each math arm, and who would be
+    asked."""
+    groups = {}
+    for c in conditions:
+        groups.setdefault(split_arm(c["id"])[1], []).append(c)
+    for group in groups.values():
+        ru.run(args, {"name": name}, group[:1], path, False)
+        if len(group) > 1:
+            print(f"##### {', '.join(c['id'] for c in group[1:])}: the same prompt #####")
     math = [c for c in conditions if c.get("_pretask")]
     if math:
+        where = "THE PROMPT ABOVE" if len(groups) == 1 else "ITS CONDITION'S PROMPT ABOVE"
         pack, today = pt.pack, datetime.now(timezone.utc).date().isoformat()
         codes = ms.order(pack, f"{pack['pack']}|dry-run")
         st = ms.stats(pack)
-        print(f"##### MATH STEP, before the prompt above in {', '.join(c['id'] for c in math)} (pack {pack['pack']}: "
+        print(f"##### MATH STEP, before {where.lower()} in {', '.join(c['id'] for c in math)} (pack {pack['pack']}: "
               f"{st['n_items']} problems open on T0 {pack['t0']}, {st['n_solved']} solved by S "
               f"{pack['snapshot_date']}; no tools) #####")
         print(ms.math_prompt(pack, codes, today))
         print(f"##### ONCE, IF NO JSON ARRAY CAME BACK: {ms.RETRY_MSG} #####")
         rows, _, _ = ms.parse_answer("", codes, pack["t0"])
-        for c in math:
-            print(f"##### {c['id']}: THE USER TURN, THEN THE PROMPT ABOVE (shown for an answer with no "
+        reveals = {}
+        for c in math:                  # the user turn depends on the reveal only
+            reveals.setdefault(c["_pretask"]["reveal"], []).append(c["id"])
+        for mode, ids in reveals.items():
+            print(f"##### {', '.join(ids)}: THE USER TURN, THEN {where} (shown for an answer with no "
                   "valid forecast) #####")
-            print(ms.message(pack, codes, rows, c["_pretask"]["reveal"]))
+            print(ms.message(pack, codes, rows, mode))
     print("##### MODELS #####")
     pt.select_models(conditions[0]["model_set"], args)
 
@@ -388,9 +451,13 @@ def dry_run(ru, pt, args, conditions, path, name=EXPERIMENT):
 def main(argv=None):
     ap = argparse.ArgumentParser(description="AIRO (or the welfare page) after a math-problem information "
                                              "shock (see this file's docstring)")
-    ap.add_argument("--experiment", choices=list(BASES), default=DEFAULT_BASE,
-                    help="the series whose baseline prompt every arm asks: airo (the risk questions, "
+    ap.add_argument("--experiment", choices=list(SERIES), default=DEFAULT_BASE,
+                    help="the series whose prompt every arm asks: airo (the risk questions, "
                          "default) or welfare (the benefit questions; rows under welfare-math-shock)")
+    ap.add_argument("--condition", action="append", default=[], metavar="NAME",
+                    help="the series' prompt condition the arms ask: none (default), independent, recent, "
+                         "critical, two-step, or all for the five; repeatable or comma-separated. Each gets "
+                         "the three arms; off none, an arm's id is <arm>.<condition>")
     ap.add_argument("--arm", action="append", choices=list(ARMS), default=[],
                     help="run only this arm (repeatable; default: all three)")
     ap.add_argument("--models", help="comma-separated label filter")
@@ -404,7 +471,12 @@ def main(argv=None):
     ap.add_argument("--allow-ungrounded", action="store_true", help="run without Tavily (rows say so)")
     args = ap.parse_args(argv)
     name = experiment_name(args.experiment)
-    conditions = arm_conditions({a: ARMS[a] for a in (args.arm or ARMS)}, base=args.experiment)
+    try:
+        picked = pick_conditions(args.condition, args.experiment)
+    except ValueError as e:
+        ap.error(str(e))
+    conditions = arm_conditions({a: ARMS[a] for a in (args.arm or ARMS)}, base=args.experiment,
+                                conditions=picked)
     try:
         pack = ms.load_pack(PACK_ID, PACK_SHA256)
     except (OSError, ValueError) as e:
