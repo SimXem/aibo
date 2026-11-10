@@ -402,6 +402,7 @@ archive/jason-demo.html     the original mock dashboard the live page grew from 
 - `docs/question-swap.md` — the design record of the move to the Auto-ARC question set.
 - `docs/extinction-questions-2026-09-15.md` — the extinction pair: why, whose wording, what it compares with, what changed, what is still the team's call.
 - `docs/eci-top4-arm.md` — the ECI-ranked panel: where the selection rule came from and what it changed.
+- `docs/math-shock.md` — the math-problem shock: what it is, its commands, and how to run it before AIRO's or AIBO's prompt.
 - `docs/counting-rules-specification-2026-09-10.md` — the incident counting rules (onset windows, cyber campaign boundaries) behind instrument `airo-incidents-prospective-v1`.
 - `docs/cyber-validation-2026-09-10.md`, `docs/cyber-validation-prospective-2026-09-10.md`, `docs/cyber-source-review-prospective-2026-09-10.md` — the September 2026 audits of the cyber forecasts and their sources (with `.json` evidence files beside them).
 

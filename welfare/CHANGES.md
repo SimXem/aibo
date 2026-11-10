@@ -32,6 +32,7 @@ Checks: the full `pytest` suite passes (441 passed, 26 skipped). AIRO is byte-id
 | (2026-11-10) | `math_shock_fork` merged in (upstream `7021844` and the math-shock pretask); the pretask asks the welfare questions too: `code/run_math_shock.py --experiment welfare`, rows under `welfare-math-shock`, kept out of AIRO's download |
 | (2026-11-10) | A welfare run checks the ECI snapshot as AIRO's does, and that the welfare set is the combined set's current copy (`run_unified.eci_preflight`); `code/make_welfare_conditions.py` re-copies it. Sonnet 5.5 and Fable 5.1 cutoffs on record, so the whole panel can take the math pretask |
 | (2026-11-10) | The math-problem project as a git subtree at `experiments/math-shock/` (its history kept), run on its own by `code/math_shock_pipeline.py` (prepare, forecast, followup, test, pack); the pretask's pack is rebuilt from it, byte-identical to the pinned one |
+| (2026-11-10) | The math-shock pretask under any of the series' five prompts: `code/run_math_shock.py --condition` (e.g. `all`, or `recent,critical`), three arms each, ids `<arm>.<condition>` off `none`; how to run it all in `docs/math-shock.md` |
 
 ## New files
 
