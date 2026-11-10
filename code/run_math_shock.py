@@ -4,17 +4,24 @@ information shock about the model's own forecasting (redlines/math_shock.py).
 
 Three arms, one call per eligible panel model each, in one run:
 
-  control       AIRO's baseline prompt (experiments/airo.toml `none`), as is
+  control       the series' baseline prompt (its experiment's `none`), as is
   math-placebo  the math step, then a neutral handoff, then the same prompt
   math-shock    the math step, then what happened to the problems against the
                 model's own forecasts, the handoff, then the same prompt
 
+Two series can be asked (--experiment, as run_unified's): AIRO's, the risk
+questions (experiments/airo.toml, the default), or the welfare page's, the
+benefit questions (experiments/welfare.toml, 2026-11-10). One run asks one.
+
     python code/run_math_shock.py --dry-run     # every prompt, the models; no call
     python code/run_math_shock.py               # PAID: three arms x the eligible panel
     python code/run_math_shock.py --arm math-shock --models "GPT-6 Astra"
+    python code/run_math_shock.py --experiment welfare --dry-run
 
-Manual and unpublished: rows go to results/experiments/math-shock-<run>.jsonl
-(and -instrument.jsonl) like any unpublished condition's, each call's first row
+Manual and unpublished: rows go to results/experiments/<name>-<run>.jsonl
+(and -instrument.jsonl) like any unpublished condition's -- <name> is
+math-shock for AIRO, welfare-math-shock for welfare, so that welfare's stay
+out of AIRO's download (redlines/export.py airo_file) -- each call's first row
 carrying `pretask` -- problem codes, the model's dates, hashes; never problem
 text, since results/experiments/ reaches the public download. The transcripts
 (prompts, replies, both sessions) go beside the private pack:
@@ -28,18 +35,20 @@ replace call_tools:
   call_tools     for a math arm, first the MATH STEP: pi with no tools and a
                  session file, asked the math prompt, and once more in the same
                  session if no JSON array came back (the project's retry); then
-                 AIRO's call as always, through code/math_shock_pi, which
-                 continues that session, with the reveal and handoff before
-                 AIRO's prompt in the same user turn;
+                 the series' call as always, through code/math_shock_pi,
+                 which continues that session, with the reveal and handoff
+                 before the series' prompt in the same user turn;
   select_models  only models whose training cutoff is at or before T0
                  (data/training_cutoffs.json), in every arm, so the arms stay
                  comparable.
 
 Nothing in run_unified, redlines.pi_loop or agent-box changes. A math step
 that fails (no array after the retry, a provider error) fails that attempt;
-run_unified retries the call, and AIRO's prompt is never asked without the
-step. The arms are defined here, not in experiments/*.toml, so neither the
-cron nor `run_unified --experiment` can ask a math arm without its step.
+run_unified retries the call, and the series' prompt is never asked without
+the step. The arms are defined here, not in experiments/*.toml, so neither the
+cron nor `run_unified --experiment` can ask a math arm without its step. A cell
+is whatever the series asks (AIRO's probabilities; welfare's percentiles and
+probabilities): the wraps never read one.
 """
 import argparse
 import copy
@@ -67,9 +76,21 @@ EXPERIMENT = "math-shock"
 # 2026-11-02), built by code/build_math_shock_pack.py, outside git.
 PACK_ID = "math-shock-w1-r1"
 PACK_SHA256 = "8f3585467566a067808d7ea40f48649ee0ee214fad24b68fde457d3a4359370a"
-# Every arm asks the published series' baseline condition.
-BASE = ("airo", "none")
+# The series a run can ask: experiment -> the baseline condition every arm
+# asks. AIRO's is the default and keeps its rows' name (EXPERIMENT).
+BASES = {"airo": "none", "welfare": "none"}
+DEFAULT_BASE = "airo"
 ARMS = {"control": None, "math-placebo": "none", "math-shock": "solved_side_by_side"}
+
+
+def experiment_name(base=DEFAULT_BASE):
+    """The name a run's rows and files go under: math-shock for AIRO; for
+    another series, prefixed by it (welfare-math-shock), so its files under
+    results/experiments/ are that page's, never AIRO's download's
+    (redlines/export.py airo_file)."""
+    if base not in BASES:
+        raise ValueError(f"unknown series {base!r}; have {sorted(BASES)}")
+    return EXPERIMENT if base == DEFAULT_BASE else f"{base}-{EXPERIMENT}"
 WRAPPER = os.path.join(ROOT, "code", "math_shock_pi")
 SESSION_ENV, PI_ENV = "AIRO_PRETASK_SESSION", "AIRO_PRETASK_PI"
 
@@ -82,12 +103,13 @@ def load_runner():
     return mod
 
 
-def arm_conditions(arms=ARMS, pack_id=PACK_ID, pack_sha256=PACK_SHA256):
-    """The arms as run_unified conditions: copies of the baseline, unpublished.
-    A math arm carries its pretask under `_pretask` (run_unified ignores it)
-    and a hash of the baseline's settings and the pretask; the control keeps
-    the baseline's hash, since it asks the same."""
-    base = experiments.load(BASE[0])["conditions"][BASE[1]]
+def arm_conditions(arms=ARMS, pack_id=PACK_ID, pack_sha256=PACK_SHA256, base=DEFAULT_BASE):
+    """The arms as run_unified conditions: copies of the series' baseline,
+    unpublished. A math arm carries its pretask under `_pretask` (run_unified
+    ignores it) and a hash of the baseline's settings and the pretask; the
+    control keeps the baseline's hash, since it asks the same."""
+    experiment_name(base)       # a known series, or ValueError
+    base = experiments.load(base)["conditions"][BASES[base]]
     out = []
     for aid, mode in arms.items():
         c = {**copy.deepcopy(base), "id": aid, "publish": False, "pooled": False, "cadence": "manual"}
@@ -303,15 +325,20 @@ class Pretask:
     def transcript(self, a, ctx, rows=None, error=None):
         """The private record of a math arm's call -> its path under the
         pretask folder (what the row's `pretask.transcript` names)."""
-        run_id, label = a["run_id"], a["label"]
-        call_id = rows[0]["call_id"] if rows else f"{run_id}:{a.get('arm')}:{label}:{a['condition']['id']}"
+        run_id, label, cid = a["run_id"], a["label"], a["condition"]["id"]
+        # A failed call has no rows: its id as run_one_joint would have made
+        # it, with the scenario set, so AIRO's and welfare's never share one.
+        call_id = rows[0]["call_id"] if rows else (
+            f"{run_id}:{self.ru.set_slug(a['policies'])}:{a.get('arm')}:{label}"
+            + (f":{cid}" if cid != self.ru.DEFAULT_VARIANT else ""))
         name = re.sub(r"[^A-Za-z0-9._-]+", "_", call_id)
         rel = os.path.join(self.pack["pack"], "transcripts", re.sub(r"[^A-Za-z0-9._-]+", "_", run_id), name)
         base = ms.pretask_dir() / rel
         base.parent.mkdir(parents=True, exist_ok=True)
         step = ctx["step"]
         doc = {"call_id": call_id, "model": a["model_id"], "label": label, "arm": a.get("arm"),
-               "condition": a["condition"]["id"], "reveal": ctx["mode"], "pack": self.pack["pack"],
+               "experiment": a["experiment"], "scenario_set": self.ru.set_slug(a["policies"]),
+               "condition": cid, "reveal": ctx["mode"], "pack": self.pack["pack"],
                "pack_sha256": self.pack_sha256, "run_date": ctx["run_date"], "order": ctx["codes"],
                "status": "failed" if error else "ok", "error": f"{type(error).__name__}: {error}" if error else None,
                "math_prompt": step["prompt"] if step else None, "math_steps": ctx["math_steps"],
@@ -331,10 +358,10 @@ class Pretask:
 
 # ---- the run ------------------------------------------------------------------------
 
-def dry_run(ru, pt, args, conditions, path):
-    """AIRO's prompt once (every arm asks the same), the math step and what
-    precedes AIRO's prompt in each math arm, and who would be asked."""
-    ru.run(args, {"name": EXPERIMENT}, conditions[:1], path, False)
+def dry_run(ru, pt, args, conditions, path, name=EXPERIMENT):
+    """The series' prompt once (every arm asks the same), the math step and
+    what precedes that prompt in each math arm, and who would be asked."""
+    ru.run(args, {"name": name}, conditions[:1], path, False)
     if len(conditions) > 1:
         print(f"##### {', '.join(c['id'] for c in conditions[1:])}: the same prompt #####")
     math = [c for c in conditions if c.get("_pretask")]
@@ -342,14 +369,14 @@ def dry_run(ru, pt, args, conditions, path):
         pack, today = pt.pack, datetime.now(timezone.utc).date().isoformat()
         codes = ms.order(pack, f"{pack['pack']}|dry-run")
         st = ms.stats(pack)
-        print(f"##### MATH STEP, before AIRO's prompt in {', '.join(c['id'] for c in math)} (pack {pack['pack']}: "
+        print(f"##### MATH STEP, before the prompt above in {', '.join(c['id'] for c in math)} (pack {pack['pack']}: "
               f"{st['n_items']} problems open on T0 {pack['t0']}, {st['n_solved']} solved by S "
               f"{pack['snapshot_date']}; no tools) #####")
         print(ms.math_prompt(pack, codes, today))
         print(f"##### ONCE, IF NO JSON ARRAY CAME BACK: {ms.RETRY_MSG} #####")
         rows, _, _ = ms.parse_answer("", codes, pack["t0"])
         for c in math:
-            print(f"##### {c['id']}: THE USER TURN, THEN AIRO'S PROMPT (shown for an answer with no "
+            print(f"##### {c['id']}: THE USER TURN, THEN THE PROMPT ABOVE (shown for an answer with no "
                   "valid forecast) #####")
             print(ms.message(pack, codes, rows, c["_pretask"]["reveal"]))
     print("##### MODELS #####")
@@ -357,8 +384,11 @@ def dry_run(ru, pt, args, conditions, path):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="AIRO after a math-problem information shock "
-                                             "(see this file's docstring)")
+    ap = argparse.ArgumentParser(description="AIRO (or the welfare page) after a math-problem information "
+                                             "shock (see this file's docstring)")
+    ap.add_argument("--experiment", choices=list(BASES), default=DEFAULT_BASE,
+                    help="the series whose baseline prompt every arm asks: airo (the risk questions, "
+                         "default) or welfare (the benefit questions; rows under welfare-math-shock)")
     ap.add_argument("--arm", action="append", choices=list(ARMS), default=[],
                     help="run only this arm (repeatable; default: all three)")
     ap.add_argument("--models", help="comma-separated label filter")
@@ -371,7 +401,8 @@ def main(argv=None):
     ap.add_argument("--conditional-out", default=None, help="every row (default: results/experiments/)")
     ap.add_argument("--allow-ungrounded", action="store_true", help="run without Tavily (rows say so)")
     args = ap.parse_args(argv)
-    conditions = arm_conditions({a: ARMS[a] for a in (args.arm or ARMS)})
+    name = experiment_name(args.experiment)
+    conditions = arm_conditions({a: ARMS[a] for a in (args.arm or ARMS)}, base=args.experiment)
     try:
         pack = ms.load_pack(PACK_ID, PACK_SHA256)
     except (OSError, ValueError) as e:
@@ -383,7 +414,8 @@ def main(argv=None):
         except re.error as e:
             sys.exit(f"{ru.BLOCK_ENV}: bad pattern: {e}")
     path = os.path.join(ROOT, conditions[0]["scenarios"])
-    # As run_unified's main: the combined instrument refuses a stale ECI snapshot.
+    # As run_unified's main: the combined instrument refuses a stale ECI
+    # snapshot (welfare's set, a copy of it, is not gated there either).
     if not args.dry_run and os.path.abspath(path) == os.path.abspath(ru.COMBINED):
         subprocess.run([sys.executable, os.path.join(ROOT, "code", "check_eci_snapshot.py")], check=True)
     ns = argparse.Namespace(out=args.out, conditional_out=args.conditional_out, dry_run=args.dry_run,
@@ -391,8 +423,8 @@ def main(argv=None):
                             news_snapshot=None, allow_ungrounded=args.allow_ungrounded)
     pt = Pretask(ru, pack, PACK_SHA256, ms.load_cutoffs()).install()
     if args.dry_run:
-        return dry_run(ru, pt, ns, conditions, path)
-    return ru.run(ns, {"name": EXPERIMENT}, conditions, path, False)
+        return dry_run(ru, pt, ns, conditions, path, name)
+    return ru.run(ns, {"name": name}, conditions, path, False)
 
 
 if __name__ == "__main__":

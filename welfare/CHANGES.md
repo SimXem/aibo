@@ -29,6 +29,7 @@ Checks: the full `pytest` suite passes (441 passed, 26 skipped). AIRO is byte-id
 | (2026-10-23) | Today's value: a faint dashed line on the Timeline and the horizon chart, per question |
 | (2026-10-27) | Two AI-breakthrough questions asked as probabilities in the same call, drawn as AIRO's |
 | 25b8b1e (merge) | forecastingresearch/airo main `64d8429` merged in; AIBO adapted to it |
+| (2026-11-10) | `math_shock_fork` merged in (upstream `7021844` and the math-shock pretask); the pretask asks the welfare questions too: `code/run_math_shock.py --experiment welfare`, rows under `welfare-math-shock`, kept out of AIRO's download |
 
 ## New files
 

@@ -12,7 +12,8 @@ conversation:
   2. what happened to the problems, against the model's own forecasts (the
      project's `solved_side_by_side` reveal, verbatim up to its re-forecast
      request), then a neutral handoff -- or the handoff alone (the placebo);
-  3. AIRO's prompt, unchanged.
+  3. AIRO's prompt, unchanged -- or the welfare page's (the benefit
+     questions), after the same two turns (2026-11-10).
 
 code/run_math_shock.py runs it (the arms, the pi session that carries turns
 1-2 into AIRO's call, the rows). This module is the content: the pack, the

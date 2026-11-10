@@ -246,6 +246,31 @@ class TestArms(unittest.TestCase):
         self.assertEqual(arms["math-placebo"]["_pretask"]["reveal"], "none")
         self.assertEqual(len({c["sha256"] for c in arms.values()}), 3)
 
+    def test_welfare_arms_from_its_baseline(self):
+        base = rs.experiments.load("welfare")["conditions"]["none"]
+        airo = {c["id"]: c for c in rs.arm_conditions()}
+        arms = {c["id"]: c for c in rs.arm_conditions(base="welfare")}
+        self.assertEqual(list(arms), list(rs.ARMS))
+        for c in arms.values():
+            self.assertEqual((c["scenarios"], c["publish"], c["pooled"], c["cadence"], c["variant"]),
+                             (base["scenarios"], False, False, "manual", "none"))
+        self.assertEqual(os.path.basename(base["scenarios"]), "welfare_conditions.json")
+        self.assertEqual(arms["control"]["sha256"], base["sha256"])
+        self.assertEqual(arms["math-shock"]["_pretask"], airo["math-shock"]["_pretask"])   # the same pack and reveal
+        for a in rs.ARMS:                                                                  # a different condition
+            self.assertNotEqual(arms[a]["sha256"], airo[a]["sha256"])
+        with self.assertRaises(ValueError):
+            rs.arm_conditions(base="axes")
+
+    def test_welfare_rows_stay_out_of_airos_download(self):
+        from redlines import export
+        self.assertEqual((rs.experiment_name(), rs.experiment_name("welfare")), (rs.EXPERIMENT, "welfare-math-shock"))
+        for base, in_airo in (("airo", True), ("welfare", False)):
+            name = rs.experiment_name(base)
+            for tag in (name, f"smoke-{name}"):          # run_unified.run's names under results/experiments/
+                for f in (f"{tag}-2026-11-10T1200Z.jsonl", f"{tag}-2026-11-10T1200Z-instrument.jsonl"):
+                    self.assertEqual(export.airo_file(f), in_airo, f)
+
     def test_no_experiment_file_runs_the_arms(self):
         # neither the cron nor `run_unified --experiment` can ask a math arm without its step
         for name in rs.experiments.names():
@@ -265,12 +290,20 @@ class TestRunnerWraps(PackCase):
         self.answer_cells = [True]
         self.math_fail = []
 
+    def cell(self, q):
+        """What the series asks of one question per condition: a probability,
+        or (welfare's) five percentiles inside its bounds."""
+        mode = ru.question_mode(q, self.spec)
+        lo = (q.get("bounds") or [0])[0]
+        value = 0.01 if mode == ru.PROBABILITY else {f: lo + i + 1 for i, f in enumerate(ru.PERCENTILE_FIELDS)}
+        return ru.CELL_MODES[mode]["key"], value
+
     def fake_call_tools(self, model, prompt, tools, final_tool, **kw):
         self.calls.append(dict(prompt=prompt, **kw))
         kw["usage"].update(cost_usd=kw["usage"].get("cost_usd", 0) + 1.0)
         ok = self.answer_cells.pop(0) if len(self.answer_cells) > 1 else self.answer_cells[0]
         cells = [{"question_id": q["id"], "horizon": hz,
-                  "probabilities": {k: 0.01 for k in ["unconditional"] + self.cond_ids}}
+                  self.cell(q)[0]: {k: self.cell(q)[1] for k in ["unconditional"] + self.cond_ids}}
                  for gg in self.g for q in self.b[gg["key"]] for hz in self.h if hz in q["horizons"]] if ok else []
         return {"forecasts": cells, "rationale": "r",
                 "eci_forecast": {"p10": 168, "p25": 170, "p50": 172, "p75": 175, "p90": 178}}, []
@@ -285,13 +318,16 @@ class TestRunnerWraps(PackCase):
         return {"session": "/nonexistent/session.jsonl", "prompt": ms.math_prompt(pack, codes, run_date),
                 "rows": rows, "issues": issues, "turns": 1}
 
-    def run_arm(self, arm, retries=0):
+    def run_arm(self, arm, retries=0, base=rs.DEFAULT_BASE):
+        """One call of `arm` on `base`'s series, as run_unified.run makes it."""
         today = date(2026, 11, 10)
-        pol = ru.load_policies(ru.COMBINED)
-        self.g, self.b, h, _, spec = ru.load_batch(ru.LADDER, ru.CROSS, ru.UNBATCHED)
+        cond = next(c for c in rs.arm_conditions({arm: rs.ARMS[arm]}, self.pack_id, self.sha, base=base))
+        pol = ru.load_policies(os.path.join(ru.ROOT, cond["scenarios"]))
+        self.g, self.b, h, _, spec = (ru.load_questions(pol["questions"]) if pol.get("questions")
+                                      else ru.load_batch(ru.LADDER, ru.CROSS, ru.UNBATCHED))
+        self.spec = spec
         self.h = ru.set_horizons(pol, h)
         self.cond_ids = [c["id"] for c in ru.resolve_set(pol, today)["conditions"]]
-        cond = next(c for c in rs.arm_conditions({arm: rs.ARMS[arm]}, self.pack_id, self.sha))
         orig = ru.call_tools, ru.run_one_joint, ru.select_models
         ru.call_tools = self.fake_call_tools
         pt = rs.Pretask(ru, self.pack, self.sha, {}, harness=self.harness).install()
@@ -299,7 +335,7 @@ class TestRunnerWraps(PackCase):
             with patch.object(rs, "math_step", self.fake_math_step):
                 rows = ru.run_one_joint("Opus 5.5", "anthropic/claude-opus-5-5", self.g, self.b, self.h,
                                         "2026-11-10T1200Z", retries, spec, pol["conditions"], pol, cond,
-                                        rs.EXPERIMENT, "joint#1", None, today)
+                                        rs.experiment_name(base), "joint#1", None, today)
         finally:
             pt.uninstall()
             ru.call_tools, ru.run_one_joint, ru.select_models = orig
@@ -374,6 +410,43 @@ class TestRunnerWraps(PackCase):
         self.assertEqual(self.calls, [])                          # AIRO's prompt was never asked
         failed = list((Path(self.tmp.name) / self.pack_id / "transcripts").rglob("*.json"))
         self.assertTrue(any(json.loads(f.read_text())["status"] == "failed" for f in failed))
+
+    def test_welfare_shock_continues_the_math_conversation(self):
+        control = self.run_arm("control", base="welfare")[0]
+        self.calls.clear()
+        rows = self.run_arm("math-shock", base="welfare")
+        rec = rows[0]["pretask"]
+        # the welfare prompt, as its control asks it, after the reveal and the handoff in one user turn
+        self.assertEqual(rows[0]["prompt_sha256"], control["prompt_sha256"])
+        msg = ms.message(self.pack, rec["order"], ms.parse_answer(GOOD, rec["order"], T0)[0], "solved_side_by_side")
+        self.assertEqual(self.calls[0]["prompt"], msg + "\n\n" + rows[0]["prompt"])
+        self.assertEqual(self.calls[0]["env"][rs.SESSION_ENV], "/nonexistent/session.jsonl")
+        self.assertEqual((len(self.math_calls), self.math_calls[0]["system"]), (1, ru.MINIMAL_SYSTEM))
+        # welfare's rows: its set and name, and its cells as it asks them, every one answered
+        self.assertEqual({(r["scenario_set"], r["experiment"], r["condition"]) for r in rows},
+                         {("welfare", "welfare-math-shock", "math-shock")})
+        self.assertTrue(rows[0]["call_id"].startswith("2026-11-10T1200Z:welfare:"))
+        self.assertTrue(all(r["forecasts"] for r in rows))
+        self.assertEqual({k for r in rows for f in r["forecasts"] for k in f} - {"horizon"},
+                         {"percentiles", "probability"})
+        self.assertEqual((rec["reveal"], rec["n_valid"]), ("solved_side_by_side", 4))
+        blob = json.dumps(rows, ensure_ascii=False)
+        for t in TEXT:
+            self.assertNotIn(t, blob)
+        doc = json.loads((Path(self.tmp.name) / rec["transcript"]).read_text())
+        self.assertEqual((doc["call_id"], doc["scenario_set"], doc["experiment"]),
+                         (rows[0]["call_id"], "welfare", "welfare-math-shock"))
+
+    def test_failed_calls_of_both_series_keep_their_own_transcripts(self):
+        # one run id, one model, one arm: only the scenario set tells the two calls apart
+        for base in ("airo", "welfare"):
+            self.math_fail = [True]
+            with self.assertRaisesRegex(RuntimeError, "math step"):
+                self.run_arm("math-shock", base=base)
+        docs = [json.loads(f.read_text()) for f in (Path(self.tmp.name) / self.pack_id / "transcripts").rglob("*.json")]
+        self.assertEqual(sorted((d["experiment"], d["scenario_set"], d["status"]) for d in docs),
+                         [("math-shock", "combined", "failed"), ("welfare-math-shock", "welfare", "failed")])
+        self.assertEqual(self.calls, [])
 
 
 class TestEligibility(PackCase):
