@@ -73,7 +73,9 @@ from redlines.pi_loop import DEFAULT_TIMEOUT, pi_model  # noqa: E402
 
 EXPERIMENT = "math-shock"
 # The pack: math-problem knowledge-shock run w1-r1 (T0 2026-06-30, S
-# 2026-11-02), built by code/build_math_shock_pack.py, outside git.
+# 2026-11-02), built by code/build_math_shock_pack.py from the project's
+# subtree (experiments/math-shock/; `python code/math_shock_pipeline.py pack
+# --run w1-r1`), outside git.
 PACK_ID = "math-shock-w1-r1"
 PACK_SHA256 = "8f3585467566a067808d7ea40f48649ee0ee214fad24b68fde457d3a4359370a"
 # The series a run can ask: experiment -> the baseline condition every arm

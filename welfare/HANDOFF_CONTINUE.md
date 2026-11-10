@@ -116,7 +116,7 @@ Do look. The prompt dots overlapping and the 2050 rows squeezed against 2100's a
 
 Do this after any change to a shared chunk or to AIRO's Python:
 
-The base is upstream's main: this fork tracks forecastingresearch/airo as the `upstream` remote, merged up to `64d8429` on 2026-10-27 (`git fetch upstream && git merge upstream/main`; a merge, never a rebase, since `main` is pushed).
+The base is upstream's main: this fork tracks forecastingresearch/airo as the `upstream` remote, merged up to `64d8429` on 2026-10-27 and `7021844` on 2026-11-10 (`git fetch upstream && git merge upstream/main`; a merge, never a rebase, since `main` is pushed). The math-problem project is a git subtree at `experiments/math-shock/` (2026-11-10); its own updates come in the same way: `git subtree pull --prefix=experiments/math-shock https://github.com/SimXem/math-problem-info-shock main`, never an edit of `pipeline/`, `rules/` or `templates/` here, since its run locks hash them.
 
 1. Run `assemble --pages demo`. Then `git diff upstream/main -- index.html | grep '^[-+]' | grep -v '^+++\|^---' | grep -c 'window.__'` must be `0`.
 2. Server-render upstream's `index.html` (a `git archive upstream/main` export) and the new one for `forecasts capability conditional faq` with `DUMP`, then `cmp` each pair. Each pair must be identical.

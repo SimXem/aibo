@@ -1,7 +1,9 @@
 """The math-shock pretask (2026-11-10): an information shock before the forecast.
 
-The math-problem knowledge-shock project (a sibling study, outside this
-repository) asks a model when each of 60 math problems will be solved -- all
+The math-problem knowledge-shock project (a sibling study; since 2026-11-10
+also in this repository, experiments/math-shock/, a git subtree that
+code/math_shock_pipeline.py runs on its own) asks a model when each of 60
+math problems will be solved -- all
 open on T0, the model's training cutoff -- and then shows it, in the same
 conversation, which were solved by a later snapshot date S, beside its own
 forecast for each. Here that exchange comes BEFORE AIRO's forecast, in one
@@ -24,7 +26,8 @@ the same way. Stdlib only.
 THE PACK is one JSON file, kept OUT OF GIT (AIRO_PRETASK_DIR, default
 private/pretasks/): the sample, its outcomes, the approved problem
 statements and the project's templates, built by
-code/build_math_shock_pack.py and pinned here by SHA-256. Rows carry only
+code/build_math_shock_pack.py (from experiments/math-shock/ by default) and
+pinned by SHA-256 in code/run_math_shock.py. Rows carry only
 problem codes (opaque) and hashes; the text stays in the private transcripts.
 """
 import hashlib

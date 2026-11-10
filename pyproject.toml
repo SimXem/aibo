@@ -25,6 +25,10 @@ pi = [
 test = [
     "pytest>=8",
     "openpyxl>=3.1",
+    # The math-problem project's own tests (experiments/math-shock/, run by
+    # tests/test_math_pipeline.py) need only its YAML reader; its API
+    # clients are mocked.
+    "PyYAML>=6",
 ]
 
 [tool.pytest.ini_options]

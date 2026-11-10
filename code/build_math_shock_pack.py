@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 """Build the math-shock pack (redlines/math_shock.py) from a run of the
-math-problem knowledge-shock project. Reads that checkout, never writes to it.
+math-problem knowledge-shock project. Reads that project, never writes to it.
 
+The project lives in this repository at experiments/math-shock/ (2026-11-10;
+a git subtree of github.com/SimXem/math-problem-info-shock), the default
+source; --source names another checkout of it.
+
+    python code/build_math_shock_pack.py --run w1-r1
     python code/build_math_shock_pack.py --source ../math_problem_knowledge_shock --run w1-r1
 
 Writes <AIRO_PRETASK_DIR, default private/pretasks/>/math-shock-<run>.json --
-outside git -- and prints its SHA-256 for code/run_math_shock.py to pin.
+outside git -- and prints its SHA-256 for code/run_math_shock.py to pin. The
+pack names the project's commit it was built from (source_commit): a
+checkout's HEAD, or for the subtree the project's commit it was copied from
+while it is unchanged from it -- so both give the same pack.
 
 Checks, any failure stops the build:
   - the run's sample, sample log and every statement file match the hashes in
@@ -32,6 +40,7 @@ sys.path.insert(0, str(ROOT))
 from redlines import math_shock as ms  # noqa: E402
 
 APPROVED = ("approved", "auto-approved (no human review)")   # the project's APPROVED_STATUSES
+SOURCE = ROOT / "experiments" / "math-shock"                 # the project, as a subtree of this repository
 
 
 def read_csv(path):
@@ -41,6 +50,33 @@ def read_csv(path):
 
 def jsonl(path):
     return [json.loads(line) for line in open(path, encoding="utf-8") if line.strip()]
+
+
+def _git(*args, cwd):
+    r = subprocess.run(["git", "-C", str(cwd), *args], capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def source_commit(src):
+    """The project's commit `src` holds. A checkout of the project: its HEAD.
+    A git subtree of it inside another repository (this one's
+    experiments/math-shock): the project's commit the last `git subtree`
+    add or pull recorded (git-subtree-split), when the committed copy is
+    that commit's tree; changed since, this repository's HEAD and the path,
+    since the project has no commit for it. None outside git."""
+    src = Path(src).resolve()
+    top = _git("rev-parse", "--show-toplevel", cwd=src)
+    if top is None:
+        return None
+    if Path(top).resolve() == src:
+        return _git("rev-parse", "HEAD", cwd=src)
+    prefix = src.relative_to(Path(top).resolve()).as_posix()
+    log = _git("log", "-1", "--format=%B", f"--grep=^git-subtree-dir: {prefix}/*$", cwd=top) or ""
+    split = next((line.split(":", 1)[1].strip() for line in log.splitlines()
+                  if line.startswith("git-subtree-split:")), None)
+    if split and _git("rev-parse", f"{split}^{{tree}}", cwd=top) == _git("rev-parse", f"HEAD:{prefix}", cwd=top):
+        return split
+    return f"{_git('rev-parse', 'HEAD', cwd=top)}:{prefix}"
 
 
 def check_hash(path, want, what):
@@ -71,8 +107,7 @@ def build(source, run_id):
     missing = [r["unit_id"] for r in sample if r["unit_id"] not in statements]
     if missing:
         sys.exit(f"no approved statement for {missing}")
-    commit = subprocess.run(["git", "-C", str(src), "rev-parse", "HEAD"], capture_output=True,
-                            text=True).stdout.strip() or None
+    commit = source_commit(src)
     pack = {
         "pack": f"math-shock-{run_id}", "format": ms.PACK_FORMAT,
         "source": {"project": "math_problem_knowledge_shock", "commit": commit, "run_id": run_id,
@@ -91,6 +126,11 @@ def build(source, run_id):
                       .read_text(encoding="utf-8")},
     }
     return pack, run
+
+
+def serialize(pack):
+    """The pack file's bytes (what its SHA-256 pins)."""
+    return (json.dumps(pack, ensure_ascii=False, indent=1, sort_keys=True) + "\n").encode("utf-8")
 
 
 def parity(pack, run):
@@ -122,7 +162,8 @@ def parity(pack, run):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--source", required=True, help="a checkout of the math-problem knowledge-shock project")
+    ap.add_argument("--source", default=str(SOURCE),
+                    help="the math-problem knowledge-shock project (default: experiments/math-shock/)")
     ap.add_argument("--run", default="w1-r1", help="its run id (runs/<id>/)")
     ap.add_argument("--out-dir", default=None, help=f"default: ${ms.PRETASK_DIR_ENV} or private/pretasks/")
     args = ap.parse_args()
@@ -130,7 +171,7 @@ def main():
     parity(pack, run)
     out = ms.pack_path(pack["pack"], args.out_dir)
     out.parent.mkdir(parents=True, exist_ok=True)
-    data = (json.dumps(pack, ensure_ascii=False, indent=1, sort_keys=True) + "\n").encode("utf-8")
+    data = serialize(pack)
     if out.exists() and out.read_bytes() != data:
         sys.exit(f"{out} exists with other contents; a changed pack is a new pack (move the old one first)")
     out.write_bytes(data)
