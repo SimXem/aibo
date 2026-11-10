@@ -433,3 +433,16 @@ def test_inode_exhaustion_blocks_deployment(runtime, monkeypatch):
     monkeypatch.setattr(runtime, 'storage_status', lambda: {'free_bytes': 100*1024**3, 'min_free_bytes': 5*1024**3, 'inode_used_percent': 99})
     with pytest.raises(RuntimeError, match='inode usage 99'):
         runtime.require_space()
+
+
+def test_status_lists_receipts_by_start_time_not_filename(runtime, capsys):
+    # Alphabetical slicing previously hid airo-* behind news and smoke keys.
+    for i in range(12):
+        p.write_json(runtime.root / 'runs' / f'z-smoke-{i}.json',
+                     {'key': f'z-smoke-{i}', 'started': f'2026-10-{i+1:02}T12:00:00Z'})
+    p.write_json(runtime.root / 'runs/airo-latest.json',
+                 {'key': 'airo-latest', 'started': '2026-10-28T12:00:00Z', 'status': 'failed'})
+    runtime.status()
+    receipts = json.loads(capsys.readouterr().out)['recent_runs']
+    assert len(receipts) == 10
+    assert receipts[0]['key'] == 'airo-latest'

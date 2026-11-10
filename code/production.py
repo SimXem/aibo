@@ -493,7 +493,8 @@ class Runtime:
                           'release': json.loads((self.current / 'release.json').read_text()) if self.current.exists() else None,
                           'jobs_enabled': (self.root / 'jobs-enabled').exists(),
                           'jobs': json.loads((self.current / 'code/deploy/jobs.json').read_text()) if self.current.exists() else [],
-                          'recent_runs': [json.loads(p.read_text()) for p in sorted((self.root / 'runs').glob('*.json'))[-10:]]}, indent=2))
+                          'recent_runs': sorted((json.loads(p.read_text()) for p in (self.root / 'runs').glob('*.json')),
+                                                key=lambda receipt: receipt.get('started', ''), reverse=True)[:10]}, indent=2))
 
     def serve(self):
         runtime = self

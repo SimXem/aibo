@@ -1,0 +1,35 @@
+#!/bin/sh
+# pi, continuing a conversation (code/run_math_shock.py).
+#
+# agent-box's harness.run(pi=...) runs this in place of pi, with pi's
+# arguments, which carry --no-session: every AIRO call starts a fresh
+# conversation. Here the call continues the math step's instead: the step's
+# session file ($AIRO_PRETASK_SESSION, never written to) is copied into this
+# attempt's folder ($FORECASTER_OUT, set per attempt by the harness), and
+# --no-session becomes --session <the copy>, so a retried attempt starts from
+# the math step again, not from the failed attempt. Then the real pi
+# ($AIRO_PRETASK_PI: a pi executable, or a cli.js run under node, as
+# harness.pi_argv runs it) replaces this process, so the harness's timeout
+# reaches pi itself.
+set -eu
+: "${AIRO_PRETASK_SESSION:?}" "${AIRO_PRETASK_PI:?}" "${FORECASTER_OUT:?}"
+session="$FORECASTER_OUT/session.jsonl"
+cp "$AIRO_PRETASK_SESSION" "$session"
+found=0
+for a do
+    shift
+    if [ "$a" = --no-session ]; then
+        set -- "$@" --session "$session"
+        found=1
+    else
+        set -- "$@" "$a"
+    fi
+done
+if [ "$found" != 1 ]; then
+    echo "math_shock_pi: no --no-session in pi's arguments to replace" >&2
+    exit 2
+fi
+case "$AIRO_PRETASK_PI" in
+    *.js) exec node "$AIRO_PRETASK_PI" "$@" ;;
+    *) exec "$AIRO_PRETASK_PI" "$@" ;;
+esac

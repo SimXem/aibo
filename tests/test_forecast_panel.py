@@ -32,7 +32,7 @@ class TestCurrentForecastPanel(unittest.TestCase):
         return rows + extra
 
     def test_capability_filters_before_risk_and_eci_aggregation(self):
-        with patch.object(capability, 'load_conditional', return_value=_current_fixture()):
+        with patch('redlines.conditional.iter_conditional', return_value=_current_fixture()):
             expected = capability.build()
             spec, rows, *rest = capability._pick(capability.VARIANTS[0][1])
         self.assertNotIn('Fable 5', {r['label'] for r in rows})
@@ -46,7 +46,7 @@ class TestCurrentForecastPanel(unittest.TestCase):
         self.assertIn('Fable 5', {m['label'] for m in historical['variants'][0]['models']})
 
     def test_policy_filters_before_ensemble_aggregation(self):
-        with patch.object(conditional, 'load_conditional', return_value=_current_fixture()):
+        with patch('redlines.conditional.iter_conditional', return_value=_current_fixture()):
             expected = conditional.build()
             source = conditional.pick_source(conditional.SOURCES, None)
         source = copy.deepcopy(source)

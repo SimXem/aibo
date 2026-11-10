@@ -29,19 +29,20 @@ cd "$REPO"
 LAUNCH_DATE="$(python3 - <<'PY_PREFLIGHT'
 import json
 from datetime import date
+from itertools import chain
 from pathlib import Path
 from redlines.instrument import CURRENT_INSTRUMENT
 from redlines.logs import iter_rows, log_exists
-from redlines.runlog import load_runlog
+from redlines.runlog import iter_runlog
 
 paths = [Path('results') / 'conditional_runs_combined.jsonl']
-rows = load_runlog(panel_only=False)
+rows = iter_runlog()
 missing = []
 for path in paths:
     if not log_exists(path):
         missing.append(str(path))
         continue
-    rows.extend(iter_rows(path))
+    rows = chain(rows, iter_rows(path))
 days = [date.fromisoformat(r['run_date']).isoformat() for r in rows
         if r.get('instrument_version') == CURRENT_INSTRUMENT and r.get('run_date')]
 if missing or not days:
@@ -61,7 +62,7 @@ if ! python3 code/validate_launch_run.py --date "$LAUNCH_DATE" --out results/val
     echo "Publication withheld: integrity validation failed; currently served files are unchanged." >&2
     exit 1
 fi
-python3 -m redlines build --views g1,g2,databank,timeline,conditional,capability,axes,method,rationales,csv
+python3 -m redlines build --views g1,g2,databank,timeline,conditional,capability,axes,method,rationales,csv --isolate --memory-limit-mib "${AIRO_BUILD_MEMORY_MIB:-2048}"
 # Atomic: copy beside the target, then rename, so a request that lands
 # mid-publish never sees a truncated page or a half-written archive.
 publish() { cp "$1" "$2.tmp" && mv -f "$2.tmp" "$2"; }

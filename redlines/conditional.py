@@ -236,20 +236,44 @@ def load_conditional(path=CONDITIONAL_LOG, experiment=None, protocol=None, poole
     sixth call since 2026-10-19 evening, stamped `pooled: false`;
     redlines.runlog.pooled_rows), so the tabs' per-model means stay the
     mean of the five prompts; False reads everything."""
-    rows = []
+    return list(iter_conditional(path, experiment, protocol, pooled_only))
+
+
+def iter_conditional(path=CONDITIONAL_LOG, experiment=None, protocol=None, pooled_only=True):
+    """Stream the same eligible rows as load_conditional()."""
     for one in _paths(path):
         for r in iter_rows(one):
             if experiment and r.get("experiment") != experiment:
                 continue
             if protocol and r.get("protocol") != protocol:
                 continue
-            if not isinstance(r.get("forecasts"), list):
-                continue
-            if is_superseded(r):       # redlines.superseded: replaced the same day
+            if not isinstance(r.get("forecasts"), list) or is_superseded(r):
                 continue
             if pooled_only and not r.get("pooled", True):
                 continue
-            rows.append(r)
+            yield r
+
+
+def latest_conditional(path, protocols, experiment=None, *, prefer_protocol=False):
+    """Keep just the current instrument's selected day/protocol while reading.
+
+    Policy views prefer the newest day, then protocol; capability views prefer
+    protocol, then day. Historical rows are scanned without being retained.
+    """
+    from .instrument import CURRENT_INSTRUMENT
+    from .runlog import elicitation_date
+
+    best, rows = None, []
+    for row in iter_conditional(path, experiment):
+        proto = row.get("protocol")
+        if row.get("instrument_version") != CURRENT_INSTRUMENT or proto not in protocols:
+            continue
+        day, rank = elicitation_date(row), -protocols.index(proto)
+        key = (rank, day) if prefer_protocol else (day, rank)
+        if best is None or key > best:
+            best, rows = key, []
+        if key == best:
+            rows.append(row)
     return rows
 
 

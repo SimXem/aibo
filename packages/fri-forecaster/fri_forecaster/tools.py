@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """Grounding tools the forecasting models can call during a tool-use run.
 
-Moved from AIRO's redlines/tools.py on 2026-10-05 (AIRO re-exports it).
-
 VENDORED on 2026-08-28 from xrisk-canaries' `forecast/cruxgen/tools.py` -- see
 redlines/llm.py for why the move happened. Pure stdlib: urllib against Tavily,
 no third-party client.
@@ -44,11 +42,17 @@ without buying information. Rows elicited with it carry protocol tags up to
 2026-09-02) and needed METACULUS_API_KEY, which redlines.llm no longer loads.
 The paper tells the same story in its methods section.
 """
+import fcntl
+import hashlib
 import json
 import os
 import re
+import sqlite3
+import time
+from pathlib import Path
 import urllib.error
 import urllib.request
+from contextlib import closing
 from datetime import date, timedelta
 
 TAVILY_URL = "https://api.tavily.com/search"
@@ -103,6 +107,71 @@ def search_body(query, max_results=5, recent_days=None, today=None):
     return body
 
 
+def _cached_tavily(endpoint, spec, key, fetch):
+    """Cache successful raw responses across processes; never cache credentials.
+
+    A bounded set of advisory locks coalesces simultaneous misses. Filtering,
+    cause tags and page windows happen AFTER this layer, on every invocation.
+    Cache/storage failures fail open, but fetch exceptions propagate normally.
+    """
+    try:
+        ttl = float(os.environ.get("FORECASTER_TAVILY_CACHE_TTL", "3600"))
+    except ValueError:
+        ttl = 0
+    if not 0 < ttl < float("inf"):
+        return fetch()
+    lock = None
+    try:
+        root = Path(os.environ.get("FORECASTER_TAVILY_CACHE_DIR") or
+                    str(Path(os.environ.get("XDG_CACHE_HOME") or
+                             Path.home() / ".cache") / "fri-forecaster" / "tavily"))
+        root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        # Hash the account into the key to avoid sharing results across keys;
+        # neither the key nor request credentials are written to disk.
+        digest = hashlib.sha256(json.dumps(
+            ["v1", endpoint, spec, hashlib.sha256(key.encode()).hexdigest()],
+            sort_keys=True).encode()).hexdigest()
+        lock = (root / ("lock-" + str(int(digest[:2], 16) % 64))).open("a")
+        fcntl.flock(lock, fcntl.LOCK_EX)
+    except OSError:
+        if lock is not None:
+            lock.close()
+        return fetch()
+    try:
+        now = time.time()
+        try:
+            with closing(sqlite3.connect(root / "responses.sqlite3", timeout=5)) as db, db:
+                db.execute("CREATE TABLE IF NOT EXISTS responses "
+                           "(key TEXT PRIMARY KEY, created REAL, payload TEXT)")
+                row = db.execute("SELECT created, payload FROM responses WHERE key=?",
+                                 (digest,)).fetchone()
+            if row and 0 <= now - row[0] < ttl:
+                return json.loads(row[1])
+        except (OSError, sqlite3.Error, ValueError):
+            pass
+        data = fetch()
+        # Empty/failed extracts and API error envelopes must remain retryable.
+        if (isinstance(data, dict) and not data.get("error") and
+                isinstance(data.get("results"), list) and
+                (endpoint != TAVILY_EXTRACT_URL or
+                 any(r.get("raw_content") for r in data["results"]))):
+            try:
+                with closing(sqlite3.connect(root / "responses.sqlite3", timeout=5)) as db, db:
+                    db.execute("DELETE FROM responses WHERE created < ?", (now - ttl,))
+                    db.execute("INSERT OR REPLACE INTO responses VALUES (?, ?, ?)",
+                               (digest, now, json.dumps(data)))
+            except (OSError, sqlite3.Error, ValueError):
+                pass
+        return data
+    finally:
+        lock.close()
+
+
+def _fetch_tavily(req, timeout):
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.load(resp)
+
+
 def web_search(query, max_results=5, recent_days=None, cause=None):
     """Search the web via Tavily. Returns {query, answer?, results:[{title,url,
     content, published?}]}. `recent_days` bounds the search to news published in
@@ -127,8 +196,8 @@ def web_search(query, max_results=5, recent_days=None, cause=None):
     req = urllib.request.Request(
         TAVILY_URL, data=body, headers={"Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.load(resp)
+        data = _cached_tavily(TAVILY_URL, spec, key,
+                              lambda: _fetch_tavily(req, 30))
     except (urllib.error.URLError, ValueError, TimeoutError) as e:
         return {"query": query, **tag, "results": [], "error": f"web search failed: {e}"}
     out = {"query": query, **tag, "answer": data.get("answer"), "results": []}
@@ -164,13 +233,14 @@ def read_page(url, offset=0):
     if not key:
         return {"url": url, "text": "",
                 "error": "page reading unavailable (no TAVILY_API_KEY set)"}
-    body = json.dumps({"urls": [url], "extract_depth": "basic"}).encode()
+    spec = {"urls": [url], "extract_depth": "basic"}
+    body = json.dumps(spec).encode()
     req = urllib.request.Request(
         TAVILY_EXTRACT_URL, data=body,
         headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
     try:
-        with urllib.request.urlopen(req, timeout=45) as resp:
-            data = json.load(resp)
+        data = _cached_tavily(TAVILY_EXTRACT_URL, spec, key,
+                              lambda: _fetch_tavily(req, 45))
     except (urllib.error.URLError, ValueError, TimeoutError) as e:
         return {"url": url, "text": "", "error": f"page read failed: {e}"}
     results = data.get("results") or []

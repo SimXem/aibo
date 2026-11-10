@@ -113,9 +113,9 @@ class TestInstrumentViews(unittest.TestCase):
         stale = copy.deepcopy(self.old)
         for r in stale:
             r['protocol'] = 'unified-joint-combined-v5'
-        with patch.object(conditional, 'load_conditional', return_value=stale):
+        with patch('redlines.conditional.iter_conditional', return_value=stale):
             self.assertIsNone(conditional.pick_source())
-        with patch.object(capability, 'load_conditional', return_value=stale):
+        with patch('redlines.conditional.iter_conditional', return_value=stale):
             self.assertEqual(capability._pick(capability.VARIANTS[0][1])[1], [])
         with tempfile.TemporaryDirectory() as d:
             log = Path(d) / 'axes.jsonl';log.write_text('')
@@ -170,9 +170,9 @@ class TestInstrumentViews(unittest.TestCase):
         rows = _current_fixture()
         removed = rows[0]['label']
         partial = [r for r in rows if r['label'] != removed]
-        with patch.object(conditional, 'load_conditional', return_value=partial):
+        with patch('redlines.conditional.iter_conditional', return_value=partial):
             self.assertFalse(conditional.build()['instrumentInfo']['available'])
-        with patch.object(capability, 'load_conditional', return_value=partial):
+        with patch('redlines.conditional.iter_conditional', return_value=partial):
             self.assertFalse(any(v['questions'] for v in capability.build()['variants']))
         self.assertEqual(conditional.current_forecast_rows(partial), [])
         # A late row for the fourth model must not bridge two onset dates.

@@ -47,7 +47,11 @@ scenario sets, the ECI snapshots, and a README naming each. The Download
 button serves the zip; the CSVs sit beside it for a quick look.
 """
 import csv
+from contextlib import closing
 import json
+import io
+import sqlite3
+import tempfile
 from pathlib import Path
 from functools import lru_cache
 
@@ -55,7 +59,7 @@ from .conditional import CONDITIONAL_LOG
 from .logs import iter_rows, log_exists, log_files, log_names
 from .questions import all_questions
 from .runlog import RUNLOG, RUNS_DIR
-from .runlog import load_runlog, panel_rows
+from .runlog import iter_runlog, panel_rows
 from .instrument import CURRENT_INSTRUMENT
 
 from .config import REPO_ROOT
@@ -286,58 +290,79 @@ def _published_rows(conditional_log=CONDITIONAL_LOG, combined_log=COMBINED_LOG):
     model that ever ran, stamped or not) plus the conditional rows of every
     instrument log. Nothing is filtered here; the panel_set column lets a
     reader apply the dashboard's own rule (panel rows only)."""
-    rows = list(load_runlog(panel_only=False))
+    yield from iter_runlog()
     logs = [Path(combined_log), Path(conditional_log)]
     logs += [p for p in conditional_logs() if p not in logs]
     for p in logs:
         for r in iter_rows(p):
             if r.get("scenario"):
                 r["forecasts"] = r.get("forecasts") or []
-                rows.append(r)
-    return rows
+                yield r
+
+
+def _sorted_csv(lines, out, columns, sort_columns):
+    """Disk-backed stable sort: history size must not determine peak memory.
+
+    Store the final CSV representation so SQLite cannot change number/None
+    formatting. An insertion sequence preserves Python sorted()'s tie order.
+    SQLite's file-backed sort and bounded cache also cover large rationales.
+    """
+    out = Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    keys = [f"k{i}" for i in range(len(sort_columns))]
+    with tempfile.TemporaryDirectory(prefix="airo-export-", dir=out.parent) as directory:
+        with closing(sqlite3.connect(str(Path(directory) / "sort.sqlite"))) as db:
+            db.execute("PRAGMA cache_size = -8192")
+            db.execute("PRAGMA temp_store = FILE")
+            db.execute("PRAGMA journal_mode = OFF")
+            db.execute("CREATE TABLE lines (seq INTEGER NOT NULL, " +
+                       ", ".join(f"{key} TEXT NOT NULL" for key in keys) +
+                       ", csv TEXT NOT NULL, PRIMARY KEY (" +
+                       ", ".join([*keys, "seq"]) + ")) WITHOUT ROWID")
+            count = 0
+
+            def records():
+                nonlocal count
+                buffer = io.StringIO(newline="")
+                writer = csv.DictWriter(buffer, fieldnames=columns)
+                for count, line in enumerate(lines, 1):
+                    buffer.seek(0)
+                    buffer.truncate()
+                    writer.writerow(line)
+                    yield (count, *(line[key] for key in sort_columns), buffer.getvalue())
+
+            db.executemany("INSERT INTO lines VALUES (" +
+                           ",".join("?" for _ in range(len(keys) + 2)) + ")", records())
+            db.commit()
+            with out.open("w", newline="") as fh:
+                csv.DictWriter(fh, fieldnames=columns).writeheader()
+                for (line,) in db.execute("SELECT csv FROM lines ORDER BY " +
+                                          ", ".join([*keys, "seq"])):
+                    fh.write(line)
+    return count
 
 
 def rationales_csv(out=RATIONALES_OUT, conditional_log=CONDITIONAL_LOG, combined_log=COMBINED_LOG):
     """Write the rationales CSV; return the number of data lines."""
-    qs = all_questions()
-    lines = sorted(_rationale_lines(_published_rows(conditional_log, combined_log), qs),
-                   key=lambda d: (d["elicited_at"], d["model"], d["question_id"],
-                                  d["scenario"], d["arm"], d["call_id"]))
-    out = Path(out)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with open(out, "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=RATIONALE_COLUMNS)
-        w.writeheader()
-        w.writerows(lines)
-    return len(lines)
+    return _sorted_csv(
+        _rationale_lines(_published_rows(conditional_log, combined_log), all_questions()),
+        out, RATIONALE_COLUMNS,
+        ("elicited_at", "model", "question_id", "scenario", "arm", "call_id"))
 
 
 def debriefs_csv(out=DEBRIEFS_OUT, conditional_log=CONDITIONAL_LOG, combined_log=COMBINED_LOG):
     """Write the debriefs CSV; return the number of data lines."""
-    lines = sorted(_debrief_lines(_published_rows(conditional_log, combined_log)),
-                   key=lambda d: (d["elicited_at"], d["model"], d["call_id"], d["group"]))
-    out = Path(out)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with open(out, "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=DEBRIEF_COLUMNS)
-        w.writeheader()
-        w.writerows(lines)
-    return len(lines)
+    return _sorted_csv(
+        _debrief_lines(_published_rows(conditional_log, combined_log)),
+        out, DEBRIEF_COLUMNS, ("elicited_at", "model", "call_id", "group"))
 
 
 def forecasts_csv(out=OUT, conditional_log=CONDITIONAL_LOG, combined_log=COMBINED_LOG):
     """Write the CSV; return the number of data lines."""
-    qs = all_questions()
-    lines = sorted(_lines(_published_rows(conditional_log, combined_log), qs),
-                   key=lambda d: (d["elicited_at"], d["model"], d["question_id"],
-                                  d["horizon"], d["scenario"], d["arm"], d["call_id"]))
-    out = Path(out)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with open(out, "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=COLUMNS)
-        w.writeheader()
-        w.writerows(lines)
-    return len(lines)
+    return _sorted_csv(
+        _lines(_published_rows(conditional_log, combined_log), all_questions()),
+        out, COLUMNS,
+        ("elicited_at", "model", "question_id", "horizon", "scenario", "arm", "call_id"))
 
 
 # ── the bundle: everything ───────────────────────────────────────────────────

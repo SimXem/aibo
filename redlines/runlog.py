@@ -249,15 +249,19 @@ def load_runlog(runlog=RUNLOG, runs_dir=RUNS_DIR, panel_only=True):
     module docstring) — callers never need to guard against a string or None
     payload themselves.
     """
+    rows = list(iter_runlog(runlog, runs_dir))
+    return pooled_rows(panel_rows(rows)) if panel_only else rows
+
+
+def iter_runlog(runlog=RUNLOG, runs_dir=RUNS_DIR):
+    """Stream all non-superseded rows, with the same forecast normalization."""
     paths = ([runlog] if runlog.exists() else []) + sorted(runs_dir.glob("*.jsonl"))
-    rows = []
     for p in paths:
         for row in iter_rows(p):
-            if is_superseded(row):     # redlines.superseded: replaced the same day
+            if is_superseded(row):
                 continue
             row["forecasts"] = _clean_forecasts(row.get("forecasts"))
-            rows.append(row)
-    return pooled_rows(panel_rows(rows)) if panel_only else rows
+            yield row
 
 
 def pooled_rows(rows):

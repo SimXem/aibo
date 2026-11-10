@@ -175,6 +175,43 @@ git clone https://github.com/forecastingresearch/agent-box && cd agent-box
 npm ci && python -m venv .venv && .venv/bin/pip install -e '.[dev]'
 ```
 
+## Tavily response cache
+
+Searches and full-page extracts are cached on disk for **one hour** by default,
+shared by all local workers and tool subprocesses (including separate conditions
+and models). Identical concurrent requests make only one upstream call. This is
+implemented in the Tavily tools, not the agent-box service; AIRO's mirrored tools
+use the same cache format and directory.
+
+- `FORECASTER_TAVILY_CACHE_DIR`: defaults to
+  `${XDG_CACHE_HOME:-~/.cache}/fri-forecaster/tavily`. Use a local filesystem.
+- `FORECASTER_TAVILY_CACHE_TTL`: lifetime in seconds; default `3600`, `0` disables.
+  To isolate a forecasting run, set a fresh directory for that run and remove it
+  afterwards. Otherwise nearby runs may reuse evidence for up to one hour.
+- Keys include the endpoint, complete request settings (including news dates),
+  and a hash of the API credential; credentials themselves are never stored.
+  Queries are matched exactly, not semantically. Full-page extraction is shared
+  across offsets; condition/group tags do not partition identical research.
+- URL guards and group tags are applied anew on every call, including cache hits.
+  Tool results and evidence recording retain their existing shape.
+- Network failures, API error responses, and empty/failed extracts are not cached.
+  Cache storage failures fall back to live requests. No stale-on-error fallback.
+- The private cache contains source text. Expired rows are pruned on successful
+  writes; remove the directory when no workers are running to purge everything.
+  This stdlib implementation uses Linux/POSIX advisory file locks.
+
+An opt-in live probe from the AIRO checkout checks eight concurrent workers
+across both tool copies, pagination, and per-caller tags, with an isolated cache:
+
+```sh
+python3 code/probe_tavily_cache.py --live --env-file /path/to/provider.env
+```
+
+It makes no model calls and caps HTTP attempts at four (normally one search and
+one extraction). It prints request counts and checksums, not credentials or page
+contents, and removes its temporary cache afterwards. This verifies deliberate
+identical requests, not the hit rate of a natural forecasting run.
+
 ## Use
 
 ```python

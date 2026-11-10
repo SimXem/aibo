@@ -16,7 +16,7 @@ class TestPublishPreflight(unittest.TestCase):
             (root / name).mkdir(parents=True, exist_ok=True)
         (root / 'redlines/__init__.py').write_text('')
         (root / 'redlines/instrument.py').write_text("CURRENT_INSTRUMENT = 'current-test'\n")
-        (root / 'redlines/runlog.py').write_text('def load_runlog(panel_only=False): return []\n')
+        (root / 'redlines/runlog.py').write_text('def iter_runlog(): return iter(())\n')
         (root / 'redlines/logs.py').write_text((ROOT / 'redlines/logs.py').read_text())
         (root / 'redlines/__main__.py').write_text("from pathlib import Path\nPath('build-called').write_text('yes')\n")
         (root / 'code/validate_launch_run.py').write_text('''import argparse,json

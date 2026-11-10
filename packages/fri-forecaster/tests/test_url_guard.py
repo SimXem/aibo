@@ -28,7 +28,7 @@ def reply(data):
 class UrlGuardTest(unittest.TestCase):
     def env(self, patterns=None):
         """TAVILY_API_KEY set; the guard variable unset (None) or set to `patterns`."""
-        env = {"TAVILY_API_KEY": "k"}
+        env = {"TAVILY_API_KEY": "k", "FORECASTER_TAVILY_CACHE_TTL": "0"}
         if patterns is not None:
             env[tools.BLOCK_ENV] = patterns
         return patch.dict(os.environ, env, clear=True)

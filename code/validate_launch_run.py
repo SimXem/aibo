@@ -87,7 +87,11 @@ def main():
         policies = ru.load_policies(ROOT / sets.pop())
         slug = ru.set_slug(policies)
         path = args.results / f'conditional_runs_{slug}.jsonl'
-        raw = b''.join(f.read_bytes() for f in log_files(path))
+        digest = hashlib.sha256()
+        for log_file in log_files(path):
+            with log_file.open('rb') as fh:
+                for chunk in iter(lambda: fh.read(1024 * 1024), b''):
+                    digest.update(chunk)
         # A draw the same day replaced (redlines.superseded) is not part of
         # the day's grid: without this, a re-run day fails as duplicates.
         rows = [r for r in iter_rows(path) if r.get('run_date') == args.date.isoformat()
@@ -230,7 +234,7 @@ def main():
                                             (label,v,f'ladder:ai:{rung}:{leg}',c,h), 'subtype_within_ai')
         # 4 x 6 = 24 calls under airo's six conditions; the unpooled ones
         # count where they answered, and are listed as missing where not.
-        report['experiments'][name] = {'scenario_set': slug, 'file_sha256': hashlib.sha256(raw).hexdigest(),
+        report['experiments'][name] = {'scenario_set': slug, 'file_sha256': digest.hexdigest(),
             'prompt_sha256': prompt_sha, 'rows': len(rows), 'probabilities': len(probabilities),
             'expected_probabilities': cells * len(scenario_ids) * (len(labels) * len(pooled) + unpooled_calls),
             'expected_calls': len(labels) * len(conds), 'pooled_calls': len(labels) * len(pooled),

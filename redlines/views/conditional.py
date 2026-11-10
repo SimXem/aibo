@@ -19,7 +19,7 @@ the conditionals came from the same calls.
 import json
 
 from ..logs import log_exists
-from ..conditional import (COMBINED_PROTOCOL, CONDITIONAL_LOG, LOSS_PREFIX, POLICIES, group_rows, group_view, load_conditional, loss_text, method_notes, protocol_line, protocols_in, summarize)
+from ..conditional import (COMBINED_PROTOCOL, CONDITIONAL_LOG, LOSS_PREFIX, POLICIES, group_rows, group_view, latest_conditional, loss_text, method_notes, protocol_line, protocols_in, summarize)
 from ..config import REPO_ROOT
 from pathlib import Path
 from ..questions import all_questions, cause_category, load_ladder, severity_label
@@ -91,7 +91,7 @@ def pick_source(sources=SOURCES, experiment=None):
     for log, set_path, group, protocols in sources:
         if not log_exists(log):
             continue
-        rows = [r for r in instrument_rows(load_conditional(str(log), experiment)) if r.get("protocol") in protocols]
+        rows = latest_conditional(str(log), protocols, experiment)
         if not rows:
             continue
         day = max(elicitation_date(r) for r in rows)

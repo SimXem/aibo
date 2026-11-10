@@ -21,7 +21,8 @@ except ImportError:
 class ToolsParity(unittest.TestCase):
     def test_same_functions(self):
         # The URL guard (2026-10-16, agent-box's `url-guard`) is part of the stack.
-        for name in ("search_body", "web_search", "read_page", "blocked_patterns", "is_blocked"):
+        for name in ("search_body", "web_search", "read_page", "blocked_patterns", "is_blocked",
+                     "_cached_tavily", "_fetch_tavily"):
             self.assertEqual(inspect.getsource(getattr(airo_tools, name)),
                              inspect.getsource(getattr(ff_tools, name)), name)
 

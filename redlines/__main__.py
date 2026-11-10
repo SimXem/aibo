@@ -47,6 +47,8 @@ import argparse
 import json
 import os
 import sys
+import subprocess
+import time
 import traceback
 
 from .config import FB_DATASETS_ROOT, FBSIM_ROOT, REPO_ROOT
@@ -316,14 +318,35 @@ def cmd_build(args):
 
     views = _parse_views(args.views) if args.views else list(VIEW_ORDER)
 
+    if args.memory_limit_mib < 0:
+        raise SystemExit("--memory-limit-mib must be non-negative")
+    if args.memory_limit_mib:
+        import resource
+        limit = args.memory_limit_mib * 1024**2
+        resource.setrlimit(resource.RLIMIT_AS, (limit, limit))
+
     failed = []
     for v in views:
+        started = time.monotonic()
         try:
-            BUILDERS[v]()
+            if args.isolate:
+                subprocess.run([sys.executable, "-u", "-m", "redlines", "build",
+                                "--views", v, "--memory-limit-mib", str(args.memory_limit_mib)],
+                               check=True)
+            else:
+                BUILDERS[v]()
         except Exception as exc:
             print(f"{v}: FAILED: {exc}", file=sys.stderr)
             traceback.print_exc()
             failed.append(v)
+        finally:
+            if args.memory_limit_mib and not args.isolate:
+                peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                if sys.platform == "darwin":
+                    peak /= 1024
+                print(f"build resource: {v} elapsed={time.monotonic() - started:.1f}s "
+                      f"peak_rss_mib={peak / 1024:.1f} "
+                      f"address_space_limit_mib={args.memory_limit_mib}", flush=True)
 
     if failed:
         print(f"redlines build: {len(failed)} view(s) failed: {', '.join(failed)}",
@@ -454,6 +477,10 @@ def build_arg_parser():
         "--list", action="store_true",
         help="list available view names (in build order) and exit",
     )
+    build.add_argument("--isolate", action="store_true",
+                       help="build each view in a fresh process to release its memory")
+    build.add_argument("--memory-limit-mib", type=int, default=0,
+                       help="per-process address-space limit, 0 for unlimited; log peak memory")
     build.set_defaults(func=cmd_build)
 
     assemble = sub.add_parser(

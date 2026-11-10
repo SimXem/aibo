@@ -86,6 +86,20 @@ Run it from a five-minute systemd timer and monitor failures. Monitor developmen
 storage independently on its own VM; a healthy production disk says nothing
 about the development disk.
 
+Dashboard publication streams the historical logs and sorts CSV exports in a
+bounded SQLite cache backed by temporary files beside the output, rather than
+in a potentially memory-backed system temporary directory. Policy and capability
+views retain only their selected day/protocol. Validation hashes logs in chunks.
+The publisher builds each view in a fresh process with a 2048 MiB address-space
+limit (`AIRO_BUILD_MEMORY_MIB` overrides it) and logs elapsed time and peak RSS.
+A memory-limit failure stops publication and retains the last good site.
+
+If forecasts completed but publication failed, inspect the run receipt and
+`home/logs/forecast-<stamp>.log`. Fix the build, merge through the normal checks,
+and run `airo deploy --publish-data` to validate and publish the saved forecasts;
+do not repeat the paid forecast job. `airo status` lists receipts newest first
+by their start timestamp, including failures.
+
 ## Scheduling
 
 Change `deploy/jobs.json` and merge/deploy it. The daily UTC wake-up delegates
