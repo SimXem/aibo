@@ -1,9 +1,17 @@
 {
  "_about": "Training-data cutoffs (YYYY-MM) by AIRO model id (redlines/registry.py), each with its vendor source. A pretask about events after a date T0 (redlines/math_shock.py) asks only models whose cutoff month is at or before T0's month; a model missing here is not asked. Add a model only with a vendor source and the date it was checked.",
  "models": {
+  "anthropic/claude-fable-5-1": {
+   "cutoff": "2026-06",
+   "source": "Anthropic Claude Fable 5.1 model page (platform.claude.com/docs/en/models/fable-5-1/overview), \"Training data cutoff: Jun 2026\" (checked 2026-11-10 for the math-shock pretask)"
+  },
   "anthropic/claude-opus-5-5": {
    "cutoff": "2026-06",
    "source": "Anthropic models overview, \"Training data cutoff: Jun 2026\" (checked 2026-11-04 for the math-problem knowledge-shock project, wave 1)"
+  },
+  "anthropic/claude-sonnet-5-5": {
+   "cutoff": "2026-06",
+   "source": "Anthropic models overview (platform.claude.com/docs/en/about-claude/models/overview), \"Training data cutoff: Jun 2026\" (checked 2026-11-10 for the math-shock pretask)"
   },
   "openai/responses/gpt-6-astra": {
    "cutoff": "2026-04",

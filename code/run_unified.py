@@ -122,6 +122,24 @@ COMBINED = os.path.join(ROOT, "data", "combined_conditions.json")
 # Sets whose unconditional slice IS the published series. Rows of any other
 # set are kept out of results/runs/ by run().
 PUBLISHED_SETS = (COMBINED, POLICIES)
+# The welfare set: the combined set copied (code/make_welfare_conditions.py).
+WELFARE = os.path.join(ROOT, "data", "welfare_conditions.json")
+# The sets that quote the Epoch ECI snapshot, and what must pass before one is
+# asked (eci_preflight): the snapshot is recent and the combined set is built
+# from it (code/check_eci_snapshot.py); the welfare set is also the combined
+# set's current copy (2026-11-10: until then a welfare run checked neither).
+ECI_PREFLIGHT = {
+    COMBINED: [["code/check_eci_snapshot.py"]],
+    WELFARE: [["code/check_eci_snapshot.py"], ["code/make_welfare_conditions.py", "--check"]],
+}
+
+
+def eci_preflight(path):
+    """Refuse to ask a set that quotes a stale ECI snapshot (ECI_PREFLIGHT);
+    any other set passes. Each check prints why it failed."""
+    for cmd in next((v for k, v in ECI_PREFLIGHT.items() if os.path.abspath(k) == os.path.abspath(path)), []):
+        if subprocess.run([sys.executable, *cmd], cwd=ROOT).returncode:
+            sys.exit(f"refusing: {os.path.relpath(path, ROOT)} failed its ECI preflight ({' '.join(cmd)})")
 
 # How many model turns a call may take before the loop forces submit_forecast
 # (redlines.pi_loop.call_tools max_iters). A turn is one model reply; it may carry
@@ -1606,15 +1624,14 @@ def main():
         except re.error as e:
             sys.exit(f"{BLOCK_ENV}: bad pattern: {e}")
     path = os.path.join(ROOT, conditions[0]["scenarios"])
-    # The combined instrument asks models to forecast and condition on frontier
-    # ECI. Refuse to run it against a stale frontier history or a scenario
-    # set not generated from the newest Epoch snapshot
-    # (code/check_eci_snapshot.py; code/cron_run.sh fetches and regenerates
-    # before every run). A dry run calls no model and prints the prompt as it
-    # stands, so it is not gated.
-    if not args.dry_run and os.path.abspath(path) == os.path.abspath(COMBINED):
-        subprocess.run([sys.executable, os.path.join(ROOT, "code", "check_eci_snapshot.py")],
-                       check=True)
+    # The combined instrument, and the welfare set copied from it, ask models
+    # to forecast and condition on frontier ECI. Refuse to run either against
+    # a stale frontier history, a scenario set not generated from the newest
+    # Epoch snapshot or (welfare) a stale copy (eci_preflight;
+    # code/cron_run.sh fetches and regenerates before every run). A dry run
+    # calls no model and prints the prompt as it stands, so it is not gated.
+    if not args.dry_run:
+        eci_preflight(path)
     return run(args, exp, conditions, path, publish)
 
 

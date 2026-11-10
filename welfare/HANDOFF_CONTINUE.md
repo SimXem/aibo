@@ -134,7 +134,7 @@ These are candidates for your work. Ask the user before changing AIRO wording.
 - **Unavailable cards:** empty panels read AIRO's "Awaiting a complete four-model run under the revised counting rules." Fixing this means a shared atom (`ForecastUnavailable` in `60-atoms.jsx`).
 - **"repeats" wording:** Policy levers' run line says "N models × 5 repeats", but the five are prompts.
 - **FAQ:** it says "AIRO's instrument" and "AIRO's" ensemble on purpose; both are the risk dashboard's.
-- **ECI snapshot:** `data/welfare_conditions.json` carries the ECI history of 2026-10-01. Before a live run, re-copy the combined set if the server has a newer one; the drift test fails until you do.
+- **ECI snapshot:** `data/welfare_conditions.json` carries the ECI history of 2026-10-01. A live welfare run now refuses a stale snapshot or a stale copy (`run_unified.eci_preflight`, 2026-11-10). To refresh: `python3 -m redlines.eci --fetch`, `python3 code/check_eci_snapshot.py --rebuild`, then `python3 code/make_welfare_conditions.py` (it rewrites both copies of the set).
 - **No per-question rationales:** the minimal instrument has no debrief, so the rationale panel shows each call's batch rationale.
 - **Timeline starts empty:** one point per question until a second welfare run.
 - **Upstream's Timeline marker:** AIRO's Timeline draws a red "Oct 21, 2026 · methodology change" line and blue Baseline dots for dates before it. The welfare preview shows them because of its Oct 1 pilot point; a live welfare series (after Oct 21) never will. Prompt dots no longer dodge sideways (upstream, 2026-10-22).

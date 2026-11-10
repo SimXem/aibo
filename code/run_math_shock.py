@@ -414,10 +414,10 @@ def main(argv=None):
         except re.error as e:
             sys.exit(f"{ru.BLOCK_ENV}: bad pattern: {e}")
     path = os.path.join(ROOT, conditions[0]["scenarios"])
-    # As run_unified's main: the combined instrument refuses a stale ECI
-    # snapshot (welfare's set, a copy of it, is not gated there either).
-    if not args.dry_run and os.path.abspath(path) == os.path.abspath(ru.COMBINED):
-        subprocess.run([sys.executable, os.path.join(ROOT, "code", "check_eci_snapshot.py")], check=True)
+    # As run_unified's main: the combined set refuses a stale ECI snapshot,
+    # and the welfare set also a stale copy of the combined set.
+    if not args.dry_run:
+        ru.eci_preflight(path)
     ns = argparse.Namespace(out=args.out, conditional_out=args.conditional_out, dry_run=args.dry_run,
                             smoke=args.smoke, models=args.models, retries=args.retries, workers=args.workers,
                             news_snapshot=None, allow_ungrounded=args.allow_ungrounded)

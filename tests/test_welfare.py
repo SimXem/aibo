@@ -133,6 +133,109 @@ class TestTheCopy(unittest.TestCase):
         self.assertNotIn("welfare", {e for e, _, _ in experiments.due(date(2026, 10, 28))})   # a Wednesday
 
 
+def _copier():
+    spec = importlib.util.spec_from_file_location("make_welfare_conditions",
+                                                  REPO / "code" / "make_welfare_conditions.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+class TestTheCopier(unittest.TestCase):
+    """code/make_welfare_conditions.py: the copy the drift test checks, made
+    and checked at run time (2026-11-10)."""
+
+    def setUp(self):
+        self.mk = _copier()
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.dir = Path(tmp.name)
+        self.combined = json.load(open(ru.COMBINED, encoding="utf-8"))
+        self.current = open(SET, encoding="utf-8").read()
+
+    def run_main(self, combined, *argv):
+        """main() on a copy of the welfare set, against `combined` -> its exit
+        status and the copy's text after."""
+        src, out = self.dir / "combined.json", self.dir / "welfare.json"
+        src.write_text(json.dumps(combined, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+        if not out.exists():
+            out.write_text(self.current, encoding="utf-8")
+        from unittest.mock import patch
+        with patch.object(self.mk, "COMBINED", str(src)), patch("sys.stdout"), patch("sys.stderr"):
+            try:
+                code = self.mk.main([*argv, "--out", str(out)])
+            except SystemExit as e:
+                code = e.code
+        return code, out.read_text(encoding="utf-8")
+
+    def test_the_committed_copy_is_what_the_copier_makes(self):
+        doc, changed = self.mk.build(self.combined, json.loads(self.current))
+        self.assertFalse(changed)
+        self.assertEqual(self.mk.text(doc), self.current)
+        self.assertEqual(self.run_main(self.combined, "--check"), (0, self.current))
+
+    def test_a_new_snapshot_makes_the_copy_stale_until_recopied(self):
+        newer = json.loads(json.dumps(self.combined))
+        newer["history"].append({"date": "2026-11-09", "score": 170.0, "model": "A newer model"})
+        code, text = self.run_main(newer, "--check")
+        self.assertIn("stale", code)
+        self.assertEqual(text, self.current)                                  # --check writes nothing
+        self.assertEqual(self.run_main(newer)[0], 0)
+        code, text = self.run_main(newer, "--check")
+        self.assertEqual(code, 0)
+        doc = json.loads(text)
+        self.assertEqual(doc["history"], newer["history"])
+        self.assertEqual((doc["slug"], doc["protocol"], doc["questions"]),
+                         ("welfare", "welfare-joint-v1", "data/welfare_questions.json"))
+        self.assertEqual(doc["copied_from"]["on"], self.mk.datetime.now(self.mk.timezone.utc).date().isoformat())
+        self.assertEqual(list(doc), list(json.loads(self.current)))           # the same keys, in the same order
+
+    def test_a_new_combined_protocol_needs_a_new_welfare_protocol(self):
+        newer = {**self.combined, "protocol": "unified-joint-combined-v13"}
+        self.assertIn("stale", self.run_main(newer, "--check")[0])
+        code, text = self.run_main(newer)
+        self.assertIn("--protocol", code)
+        self.assertEqual(text, self.current)
+        self.assertEqual(self.run_main(newer, "--protocol", "welfare-joint-v2")[0], 0)
+        code, text = self.run_main(newer, "--check")
+        self.assertEqual(code, 0)
+        doc = json.loads(text)
+        self.assertEqual((doc["protocol"], doc["copied_from"]["protocol"]),
+                         ("welfare-joint-v2", "unified-joint-combined-v13"))
+
+
+class TestThePreflight(unittest.TestCase):
+    """run_unified.eci_preflight: the combined set and its welfare copy are
+    each checked before a real run (2026-11-10); other sets are not."""
+
+    def preflight(self, path, fail=()):
+        from unittest.mock import patch
+        ran = []
+
+        def fake_run(cmd, **kw):
+            ran.append(os.path.relpath(cmd[1], ru.ROOT) if os.path.isabs(cmd[1]) else cmd[1])
+            return type("R", (), {"returncode": 1 if cmd[1] in fail else 0})()
+
+        with patch.object(ru.subprocess, "run", fake_run):
+            try:
+                ru.eci_preflight(path)
+            except SystemExit as e:
+                return ran, str(e.code)
+        return ran, None
+
+    def test_each_set_and_its_checks(self):
+        self.assertEqual(self.preflight(ru.COMBINED), (["code/check_eci_snapshot.py"], None))
+        self.assertEqual(self.preflight(SET),
+                         (["code/check_eci_snapshot.py", "code/make_welfare_conditions.py"], None))
+        self.assertEqual(self.preflight(os.path.join(ru.ROOT, "data", "axes_conditions.json")), ([], None))
+
+    def test_a_failed_check_refuses_the_run(self):
+        ran, why = self.preflight(SET, fail={"code/make_welfare_conditions.py"})
+        self.assertIn("refusing: data/welfare_conditions.json failed its ECI preflight", why)
+        ran, why = self.preflight(SET, fail={"code/check_eci_snapshot.py"})
+        self.assertEqual((ran, "check_eci_snapshot" in why), (["code/check_eci_snapshot.py"], True))
+
+
 class TestPrompt(unittest.TestCase):
     def test_the_questions_render_without_a_severity_and_with_units_and_meanings(self):
         p = _prompt()

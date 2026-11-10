@@ -450,11 +450,14 @@ class TestRunnerWraps(PackCase):
 
 
 class TestEligibility(PackCase):
-    def select(self, models, smoke=False):
+    # The rule, on a table of its own: a cutoff after T0's month, and none.
+    CUTOFFS = {"m/late": {"cutoff": "2026-07"}, "m/june": {"cutoff": "2026-06"}, "m/april": {"cutoff": "2026-04"}}
+
+    def select(self, models, smoke=False, cutoffs=CUTOFFS):
         import argparse
         orig = ru.select_models
         ru.select_models = lambda model_set, args: (list(models), {"set": model_set})
-        pt = rs.Pretask(ru, self.pack, self.sha, ms.load_cutoffs()).install()
+        pt = rs.Pretask(ru, self.pack, self.sha, cutoffs).install()
         try:
             return ru.select_models("eci_topk", argparse.Namespace(models=None, smoke=smoke))
         finally:
@@ -462,13 +465,43 @@ class TestEligibility(PackCase):
             ru.select_models = orig
 
     def test_only_models_trained_before_t0(self):
-        panel = [("Sonnet 5.5", "anthropic/claude-sonnet-5-5"), ("Opus 5.5", "anthropic/claude-opus-5-5"),
-                 ("GPT-6 Astra", "openai/responses/gpt-6-astra")]
+        panel = [("Late", "m/late"), ("June", "m/june"), ("April", "m/april"), ("Unknown", "m/unknown")]
         with patch("sys.stdout"):
-            self.assertEqual(self.select(panel)[0], panel[1:])
+            self.assertEqual(self.select(panel)[0], panel[1:3])
             self.assertEqual(self.select(panel, smoke=True)[0], panel[1:2])   # smoke: the first ELIGIBLE one
             with self.assertRaises(SystemExit):
-                self.select(panel[:1])
+                self.select([panel[0], panel[3]])
+
+    def test_the_panel_on_record(self):
+        # 2026-11-10: every model of the panel then has a sourced cutoff at or before T0
+        panel = [("Opus 5.5", "anthropic/claude-opus-5-5"), ("GPT-6 Astra", "openai/responses/gpt-6-astra"),
+                 ("Sonnet 5.5", "anthropic/claude-sonnet-5-5"), ("Fable 5.1", "anthropic/claude-fable-5-1")]
+        with patch("sys.stdout"):
+            self.assertEqual(self.select(panel, cutoffs=ms.load_cutoffs())[0], panel)
+
+
+class TestPreflight(PackCase):
+    """A real run asks run_unified's ECI preflight of its series' set before
+    anything else; a dry run does not."""
+
+    def main(self, *argv):
+        seen = []
+
+        def refuse(path):
+            seen.append(os.path.relpath(path, ru.ROOT))
+            sys.exit("stale")
+
+        with patch.object(rs, "load_runner", return_value=ru), patch.object(ru, "eci_preflight", refuse), \
+                patch.object(rs, "PACK_ID", self.pack_id), patch.object(rs, "PACK_SHA256", self.sha), \
+                patch.dict(os.environ, {ms.PRETASK_DIR_ENV: self.tmp.name}), \
+                self.assertRaisesRegex(SystemExit, "stale"):
+            rs.main(list(argv))
+        return seen
+
+    def test_each_series_checks_its_own_set(self):
+        self.assertEqual(self.main(), ["data/combined_conditions.json"])
+        self.assertEqual(self.main("--experiment", "welfare"), ["data/welfare_conditions.json"])
+        self.assertEqual(ru.call_tools.__module__, "redlines.pi_loop")       # nothing was left installed
 
 
 class TestWrapper(unittest.TestCase):

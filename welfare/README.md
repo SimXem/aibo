@@ -8,7 +8,7 @@ This folder has what is needed to build a welfare dashboard on AIRO's pipeline. 
 |---|---|
 | [questions.json](questions.json) | The 5 questions (10 question x horizon cells). Text and resolution criteria are copied verbatim from the published welfare pilot (`welfare-v1-pilot`, 2026-10-01). Units, bounds and horizon meanings were added here. |
 | [variants.json](variants.json) | The five prompt variants. `independent` and `two-step` are reworded for welfare questions; `recent` and `critical` are AIRO's, unchanged; `none` adds nothing. |
-| [welfare_conditions.json](welfare_conditions.json) | AIRO's combined scenario set (the 14 conditions and the `eci_forecast` step), copied verbatim under slug `welfare` and pointing at the welfare questions. Its own slug is what sends welfare rows to their own logs. |
+| [welfare_conditions.json](welfare_conditions.json) | AIRO's combined scenario set (the 14 conditions and the `eci_forecast` step), copied verbatim under slug `welfare` and pointing at the welfare questions. Its own slug is what sends welfare rows to their own logs. `python3 code/make_welfare_conditions.py` re-copies it (here and in `data/`); a live run refuses a stale copy. |
 | [experiment.welfare.toml](experiment.welfare.toml) | `experiments/welfare.toml`, ready to install. It loads once the two welfare variant keys are in VARIANTS. |
 | [render_prompts.py](render_prompts.py) | Renders the reference prompts and tools below. Stdlib only, makes no API calls: `python3 welfare/render_prompts.py` |
 | [prompts/welfare-*.txt](prompts/) | The full prompt for each variant, as it would have been sent on 2026-10-21. This is the intended content; the live runner uses its own layout. |
