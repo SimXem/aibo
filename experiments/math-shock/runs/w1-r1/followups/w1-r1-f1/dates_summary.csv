@@ -1,0 +1,7 @@
+model,quantile,phase,n,n_after_2100,share_after_2100,n_finite,mean_months_finite,median_months_finite,min_months_finite,max_months_finite,median_months_all,median_all_is_after_2100,max_all_is_after_2100,ref_month
+claude-opus-5-5,q10,before,225,0,0.0,225,185.18,98.0,1,878,98.0,0,0,2026-11
+claude-opus-5-5,q10,after,225,0,0.0,225,129.52,14.0,1,878,14.0,0,0,2026-11
+claude-opus-5-5,best,before,225,99,0.44,126,363.9,398.0,62,758,638.0,0,1,2026-11
+claude-opus-5-5,best,after,225,99,0.44,126,161.21,98.0,14,638,398.0,0,1,2026-11
+claude-opus-5-5,q90,before,225,224,0.9956,1,638.0,638.0,638,638,,1,1,2026-11
+claude-opus-5-5,q90,after,225,208,0.9244,17,405.06,398.0,218,638,,1,1,2026-11

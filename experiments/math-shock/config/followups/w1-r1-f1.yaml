@@ -1,0 +1,9 @@
+# A follow-up continues finished conversations of a base run with one more user turn.
+# Here: reveal the solved problems next to the model's own earlier forecast (with the sampling
+# design and population solve rate stated), then ask for revised forecasts of the still-open ones.
+# Never edit this file after it has been run; copy it to a new id.
+followup_id: w1-r1-f1
+base_run: config/runs/w1-r1.yaml
+models: [claude-opus-5-5]
+template: templates/followup_v1/reveal_solved.txt
+reveal: solved_side_by_side

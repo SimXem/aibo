@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Are there infinitely many natural numbers n such that n^2 + 1 is prime? Equivalently, are there infinitely many primes p for which p − 1 is a perfect square?",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r056",
+ "draft": "Are there infinitely many natural numbers n such that n^2 + 1 is prime? Equivalently, are there infinitely many primes p for which p − 1 is a perfect square?",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "7b9b33d8c9615f589b17de6b7afef9aa6159f14ceb19061a70e124bc11497cce",
+ "key": "fc_Wikipedia_PrimesAndPerfectSquares@3ad5be638e12",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Are there infinitely many primes $p$ such that $p - 1$ is a perfect square? In other words: Are there infinitely many primes of the form $n^2 + 1$?",
+ "source_lean": "theorem infinite_prime_sq_add_one :\n    answer(sorry) ↔ {n : ℕ | Prime (n^2 + 1)}.Infinite",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "fc:Wikipedia/PrimesAndPerfectSquares"
+}

@@ -1,0 +1,445 @@
+key,unit_id,display_name,docstrings,lean,draft,approved_text,reviewer,checklist_ok
+erdos_1150@952e3a67873b,erdos:1150,Erdős Problem 1150,"Is there some constant $c > 0$ such that, for all large enough $n$ and all polynomials $P$ of
+degree $n$ with coefficients in $\{-1, 1\}$,
+$$\max_{|z|=1} |P(z)| > (1 + c) \sqrt{n}?$$","theorem erdos_1150 :
+    answer(sorry) ↔ ∃ c > 0, ∀ᶠ n in Filter.atTop,
+      ∀ P : ℂ[X],  (∀ i ≤ P.natDegree, P.coeff i = - 1 ∨ P.coeff i = 1) → P.natDegree = n →
+        ⨆ z : Metric.sphere (0 : ℂ) 1, ‖P.eval (z : ℂ)‖ > (1 + c) * Real.sqrt n","Does there exist a constant c > 0 such that, for all sufficiently large n, every complex polynomial P of degree n with every coefficient (from degree 0 to n) equal to −1 or 1 satisfies max over |z| = 1 of |P(z)| > (1 + c)·√n?","Does there exist a constant c > 0 such that, for all sufficiently large n, every complex polynomial P of degree n with every coefficient (from degree 0 to n) equal to −1 or 1 satisfies max over |z| = 1 of |P(z)| > (1 + c)·√n?","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Wikipedia_FlintCooksonHills@ee01fea8519b,fc:Wikipedia/FlintCooksonHills,Wikipedia: Convergence of the Flint Hills and Cookson Hills series,"The Flint Hills series summing $csc(n)^2 / n^3$ from $n=1$ to $\infty$ converges.
+(Note that we 0-index the series below.)
+
+The Cookson Hills series summing $sec(n)^2 / n^3$ from $n=1$ to $\infty$ converges.","theorem flint_hills_series_converges :
+    answer(sorry) ↔
+      Summable (fun n : ℕ =>
+        1 / ((((n + 1) : ℝ)^3) * (Real.sin (n + 1)^2)))
+
+theorem cookson_hills_series_converges :
+    answer(sorry) ↔
+      Summable (fun n : ℕ =>
+        1 / ((((n + 1) : ℝ)^3) * (Real.cos (n + 1)^2)))","Determine whether each of the following series converges:
+
+1. The Flint Hills series: the sum over n ≥ 1 of 1/(n^3 sin^2 n).
+2. The Cookson Hills series: the sum over n ≥ 1 of 1/(n^3 cos^2 n).
+
+Here n is in radians.","Determine whether each of the following series converges:
+
+1. The Flint Hills series: the sum over n ≥ 1 of 1/(n^3 sin^2 n).
+2. The Cookson Hills series: the sum over n ≥ 1 of 1/(n^3 cos^2 n).
+
+Here n is in radians.","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Wikipedia_Firoozbakht@f09e6dac82f3,fc:Wikipedia/Firoozbakht,Wikipedia: Firoozbakht's conjecture,"**Firoozbakht's conjecture**
+The inequality $\sqrt[n+1]{p_{n+1}} < \sqrt[n]{p_n}$ holds for all prime numbers $p_n$.","theorem firoozbakht_conjecture (n : ℕ) :
+    firoozbakhtSeq (n+1) < firoozbakhtSeq n","Let p_n be the n-th prime, with p_1 = 2. Firoozbakht's conjecture states that the sequence p_n^(1/n) is strictly decreasing. That is, for every n ≥ 1,
+
+p_(n+1)^(1/(n+1)) < p_n^(1/n).","Let p_n be the n-th prime, with p_1 = 2. Then the sequence p_n^(1/n) is strictly decreasing: for every n ≥ 1, p_(n+1)^(1/(n+1)) < p_n^(1/n).","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_GreensOpenProblems_40@c5ea727dac45,fc:GreensOpenProblems/40,GreensOpenProblems: Ben Green's Open Problem 40,"Does $f(r) \to \infty$? [Gr24]
+
+The possibility that f(r) = 1 for all r has not been ruled out [Gr24]
+
+It is not known whether f(2) = 1 [Gr24]","theorem green_40 : answer(sorry) ↔ Tendsto f atTop (𝓝 ⊤)
+
+theorem green_40.f_eq_one_for_all : answer(sorry) ↔ ∀ r, f r = 1
+
+theorem green_40.f_two_eq_one : answer(sorry) ↔ f 2 = 1","For the function f(r) defined in Ben Green's Open Problem 40, whose definition is not given here, determine whether each of the following holds:
+
+1. f(r) tends to infinity as r → ∞.
+2. f(r) = 1 for every r.
+3. f(2) = 1.","Let H(r) be the radius-r Hamming ball in F_2^n, and f(r) the liminf over n of the minimum of |V|·|H(r)|/2^n over subspaces V with V + H(r) = F_2^n. Determine whether (1) f(r) → ∞ as r → ∞; (2) f(r) = 1 for all r; (3) f(2) = 1.","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_234@170d123782ce,erdos:234,Erdős Problem 234,"Is it true that for all `c ≥ 0`, the density `f c` of integers for which
+`(p (n + 1) - p n) / log n < c` exists and is a continuous function of `c`?","theorem erdos_234 : answer(sorry) ↔ ∃ f : ℝ≥0 → ℝ, Continuous f ∧
+    ∀ c : ℝ≥0, HasDensity {n : ℕ | primeGap n / log n < c} (f c)","Let p_n denote the n-th prime. Is it true that there is a continuous function f: [0, ∞) → ℝ such that, for every c ≥ 0, the set of natural numbers n with (p_{n+1} − p_n)/log n < c has natural density f(c)?","Let p_n denote the n-th prime. Is it true that there is a continuous function f: [0, ∞) → ℝ such that, for every c ≥ 0, the set of natural numbers n with (p_{n+1} − p_n)/log n < c has natural density f(c)?","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Wikipedia_Schinzel@38862f72186c,fc:Wikipedia/Schinzel,Wikipedia: Hypothesis H,"**Schinzel conjecture (H hypothesis)**
+If a finite set of polynomials $f_i$ satisfies both Schinzel and Bunyakovsky conditions,
+there exist infinitely many natural numbers $n$ such that $f_i(n)$ are primes for all $i$.","theorem schinzel_conjecture (fs : Finset ℤ[X]) (hfs : ∀ f ∈ fs, BunyakovskyCondition f)
+    (hfs' : SchinzelCondition fs) : Infinite {n : ℕ | ∀ f ∈ fs, (f.eval (n : ℤ)).natAbs.Prime}","Let fs be a finite set of integer polynomials. Suppose each satisfies the Bunyakovsky condition (irreducible, positive leading coefficient, values with no common prime divisor). Suppose also that no prime p divides the product of all f(n) for every n. Then infinitely many natural numbers n make |f(n)| prime for every f in fs.","Let fs be a finite set of nonconstant irreducible integer polynomials with positive leading coefficients. Suppose that for every prime p there is a natural number n with p dividing no f(n), f in fs. Then infinitely many natural numbers n make |f(n)| prime for every f in fs.","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Wikipedia_Koethe@42c0cff0c21c,fc:Wikipedia/Koethe,Wikipedia: Köthe conjecture,"The **Köthe conjecture**: In any ring, the sum of two nil left ideals is nil.",theorem KotheConjecture (I J : Ideal R) (hI : IsNil I) (hJ : IsNil J) : IsNil (I + J),"**Köthe conjecture:** Let R be any ring, and let I and J be left ideals of R that are nil, meaning every element is nilpotent. Then their sum I + J is also a nil left ideal: every element of I + J is nilpotent.","Let R be a ring, and let I and J be left ideals of R that are nil (every element is nilpotent). Then I + J is also nil: every element of I + J is nilpotent.","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_291@fcf1bac19658,erdos:291,Erdős Problem 291,"Let $n\geq 1$ and define $L_n$ to be the least common multiple of $\{1,\ldots,n\}$ and $a_n$ by
+$\sum_{1\leq k\leq n}\frac{1}{k}=\frac{a_n}{L_n}$.
+
+Is it true that $(a_n,L_n)=1$ occurs for infinitely many $n$?","theorem erdos_291.parts.i :
+    answer(sorry) ↔
+      { n : ℕ | Nat.gcd (a n) (L n) = 1 }.Infinite","For n ≥ 1, let L_n = lcm(1, …, n), and define a_n by 1 + 1/2 + … + 1/n = a_n / L_n. Are there infinitely many n for which gcd(a_n, L_n) = 1?","For n ≥ 1, let L_n = lcm(1, …, n), and define a_n by 1 + 1/2 + … + 1/n = a_n / L_n. Are there infinitely many n for which gcd(a_n, L_n) = 1?","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Wikipedia_RamanujanTau@7e132eb339dd,fc:Wikipedia/RamanujanTau,Wikipedia: Ramanujan τ-function,Lehmer's conjecture: $\tau(n) \ne 0$ for all $n > 0$.,"theorem lehmer_ramanujan_tau : ∀ n > 0, τ n ≠ 0","Let τ(n) be the Ramanujan tau function, defined by q ∏_{k≥1} (1 − q^k)^24 = Σ_{n≥1} τ(n) q^n. Prove that τ(n) ≠ 0 for every positive integer n.","Let τ(n) be the Ramanujan tau function, defined by q ∏_{k≥1} (1 − q^k)^24 = Σ_{n≥1} τ(n) q^n. Prove that τ(n) ≠ 0 for every positive integer n.","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_348@4ec725b9ae79,erdos:348,Erdős Problem 348,"For what values of $0 \leq m < n$ is there a complete sequence
+$A = \{a_1 \leq a_2 \leq \cdots\}$ of integers such that
+ 1. $A$ remains complete after removing any $m$ elements, but
+ 2. $A$ is not complete after removing any $n$ elements.","theorem erdos_348 :
+    { (m, n) | (m) (n) (_ : m < n) (a : ℕ → ℕ) (_ : Monotone a)
+      (_ : ∀ s, s.card = m → IsAddComplete (Set.range (Function.updateFinset a s 0)))
+        (_ : ∀ t, t.card = n → ¬IsAddComplete (Set.range (Function.updateFinset a t 0))) } =
+    answer(sorry)","Find all pairs of natural numbers m < n for which some nondecreasing sequence a_0 ≤ a_1 ≤ … of natural numbers has this property: replacing the terms at any m indices by 0 leaves a complete set of values, but doing so at any n indices does not. Complete means every sufficiently large integer is a sum of distinct elements.","Find all pairs of natural numbers m < n such that some nondecreasing natural-number sequence stays complete after zeroing the terms at any m indices, but not after zeroing the terms at any n indices. Complete: every sufficiently large integer is a sum of distinct values of the sequence.","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_75@776ebbd5cd9e,erdos:75,Erdős Problem 75,"Is there a graph of chromatic number `ℵ_ 1` with `ℵ_ 1` vertices such that for all
+`ε > 0`, if `n` is sufficiently large and `H` is a subgraph on `n` vertices,
+then `H` contains an independent set of size `> n ^ (1 - ε)`?","theorem erdos_75 :
+    answer(sorry) ↔
+    ∃ (V : Type) (G : SimpleGraph V),
+      G.chromaticCardinal = ℵ_ 1 ∧
+      #V = ℵ_ 1 ∧
+      ∀ ε > (0 : ℝ),
+        ∀ᶠ (n : ℕ) in Filter.atTop, ∀ (H : G.Subgraph),
+            H.verts.ncard = n →
+            ∃ (I : Finset V),
+              (I : Set V) ⊆ H.verts ∧
+              G.IsIndepSet (I : Set V) ∧
+              (I.card : ℝ) > (n : ℝ) ^ (1 - ε)","Does there exist a graph G with ℵ_1 vertices and chromatic number ℵ_1 such that, for every ε > 0 and all sufficiently large n, every subgraph of G on n vertices contains more than n^(1−ε) of its vertices forming an independent set in G?","Does there exist a graph G with ℵ_1 vertices and chromatic number ℵ_1 such that, for every ε > 0 and all sufficiently large n, every subgraph of G on n vertices contains more than n^(1−ε) of its vertices forming an independent set in G?","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Paper_VoronovskajaTypeFormula@a9ed052fe125,fc:Paper/VoronovskajaTypeFormula,Paper: Voronovskaja-type Formula for the Bezier Variant of the Bernstein Operators,"Conjecture: Voronovskaja-type formula for Bézier-Bernstein operators
+with shape parameter $\alpha > 0$, $\alpha \neq 1$.
+
+The source asks for sufficiently smooth functions. This concrete version uses
+`ContDiffOn ℝ 2 f I` as a readable baseline regularity assumption; since the
+domain is the compact interval $[0,1]$, this also explains why no separate
+boundedness assumption is included here. The variants below record the unknown
+smoothness threshold more explicitly.","theorem voronovskaja_theorem.bezier_bernstein_operators
+    (α : ℝ) (hα_pos : 0 < α) (hα : α ≠ 1)
+    (f : ℝ → ℝ) (x : ℝ) (hx : x ∈ I)
+    (hf : ContDiffOn ℝ 2 f I) :
+    Tendsto (fun n : ℕ => Real.sqrt n * (bezierBernstein n α f x - f x)) atTop
+      (𝓝 answer(sorry))","Let B_{n,α} f(x) = Σ_{k=0}^n f(k/n)[J_{n,k}(x)^α − J_{n,k+1}(x)^α] with J_{n,k}(x) = Σ_{j≥k} C(n,j) x^j (1−x)^{n−j} and J_{n,n+1} = 0. For α > 0, α ≠ 1, f twice continuously differentiable on [0,1], and x ∈ [0,1], determine lim_{n→∞} √n (B_{n,α} f(x) − f(x)).","Let B_{n,α} f(x) = Σ_{k=0}^n f(k/n)[J_{n,k}(x)^α − J_{n,k+1}(x)^α] with J_{n,k}(x) = Σ_{j≥k} C(n,j) x^j (1−x)^{n−j} and J_{n,n+1} = 0. For α > 0, α ≠ 1, f twice continuously differentiable on [0,1], and x ∈ [0,1], determine lim_{n→∞} √n (B_{n,α} f(x) − f(x)).","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_366@e1c64007cfc8,erdos:366,Erdős Problem 366,Are there any $2$-full $n$ such that $n+1$ is $3$-full?,"theorem erdos_366 : answer(sorry) ↔ ∃ n > 0, (2).Full n ∧ (3).Full (n + 1)",Does there exist a positive integer n such that n is 2-full (every prime dividing n divides it at least squared) and n+1 is 3-full (every prime dividing n+1 divides it at least cubed)?,Does there exist a positive integer n such that n is 2-full (every prime dividing n divides it at least squared) and n+1 is 3-full (every prime dividing n+1 divides it at least cubed)?,"Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_GreensOpenProblems_41@450fc900c9a5,fc:GreensOpenProblems/41,GreensOpenProblems: Ben Green's Open Problem 41,"How many rotated (about the origin) copies of the 'pyjama set'
+$\\{(x, y) \in \mathbb{R}^2 : \text{dist}(x, \mathbb{Z}) \leq \varepsilon\\}$ are needed to cover
+$\mathbb{R}^2$?
+
+In particular, can one find a better bound than the best-known bound from [KrLe25]?","theorem green_41 :
+    ∃ C : ℝ, C > 0 ∧ ∃ ε₀ > 0, ∀ ε ∈ Ioc 0 ε₀,
+      let ans := (answer(sorry) : ℝ)
+      (minCopies ε : ℝ) ≤ ans ∧ ans < Real.exp (Real.exp (Real.exp (ε ^ (-C))))","For ε > 0, let N(ε) be the minimum number of copies of the set {(x, y) ∈ R^2 : dist(x, Z) ≤ ε}, rotated about the origin, needed to cover R^2. Find an explicit bound B(ε) with N(ε) ≤ B(ε) such that, for some C > 0 and all sufficiently small ε, B(ε) < exp(exp(exp(ε^(-C)))).","For ε > 0, let N(ε) be the fewest rotations about the origin of {(x, y) ∈ R^2 : dist(x, Z) ≤ ε} covering R^2. Find an explicit B(ε) such that, for some C > 0 and all small enough ε > 0, N(ε) ≤ B(ε) < exp(exp(exp(ε^(-C)))).","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_OEIS_228828@ae4652d97d84,fc:OEIS/228828,OEIS: 228828,Conjecture: the sequence A228828 is infinite.,theorem a.infinite : {a n | n}.Infinite,"**Conjecture:** The OEIS sequence A228828, written a(n), takes infinitely many distinct values. Equivalently, the set {a(n) : n} is infinite.","There are infinitely many natural numbers m such that m^2 + π(m) is prime, where π(m) is the number of primes ≤ m. (Equivalently, OEIS sequence A228828, listing these m, takes infinitely many values.)","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_340@4948bd6894db,erdos:340,Erdős Problem 340,"Let $A = \{1, 2, 4, 8, 13, 21, 31, 45, 66, 81, 97, \ldots\}$ be the greedy Sidon sequence:
+we begin with $1$ and iteratively include the next smallest integer that preserves the
+Sidon property (i.e. there are no non-trivial solutions to $a + b = c + d$). What is the
+order of growth of $A$? Is it true that $|A \cap \{1, \ldots, N\}| \gg N^{1/2 - \varepsilon}$
+for all $\varepsilon > 0$ and large $N$?","theorem erdos_340 (ε : ℝ) (hε : ε > 0) :
+    (fun n : ℕ ↦ √n / n ^ ε) =O[atTop]
+      fun n : ℕ ↦ ((Set.range greedySidon ∩ Set.Icc 1 n).ncard : ℝ)","Let A = {1, 2, 4, 8, 13, ...} be the greedy Sidon sequence: start with 1, then repeatedly add the smallest integer keeping a+b=c+d free of non-trivial solutions. Is it true that for every ε>0 there is c>0 with |A ∩ {1,…,N}| ≥ c·N^{1/2−ε} for all large N?","Let A = {1, 2, 4, 8, 13, ...} be the greedy Sidon sequence: start with 1, then repeatedly add the smallest integer keeping a+b=c+d free of non-trivial solutions. Is it true that for every ε>0 there is c>0 with |A ∩ {1,…,N}| ≥ c·N^{1/2−ε} for all large N?","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_GreensOpenProblems_77@a56f8827cd0c,fc:GreensOpenProblems/77,GreensOpenProblems: Ben Green's Open Problem 77,"Given $n$ points in the unit disc, must there be a triangle of area at most $n^{-2+o(1)}$
+determined by them?","theorem green_77 :
+    answer(sorry) ↔
+    ∃ (o : ℕ → ℝ), Tendsto o atTop (𝓝 0) ∧
+      α ≪ fun n ↦ n ^ (-2 + o n)","For n points in the unit disc, let α(n) be the largest possible value of the smallest area of a triangle formed by three of the points. Is there a function o(n) → 0 such that α(n) ≤ C·n^(−2+o(n)) for some constant C and all sufficiently large n?","For n points in the unit disc, let α(n) be the largest possible value of the smallest area of a triangle formed by three of the points. Is there a function o(n) → 0 such that α(n) ≤ C·n^(−2+o(n)) for some constant C and all sufficiently large n?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_1060@21e94494c418,erdos:1060,Erdős Problem 1060,"The conjecture is about the function $f(n)$ which counts the number of solutions to
+$k\sigma(k)=n$, where $\sigma(k)$ is the sum of divisors of $k$. The first bound is that $f(n)$ grows slower
+than any power of $n^(\frac{1}{\log\log n})$. The second bound is that $f(n)$ is at most a power of
+$\log n$.
+
+Part (ii) of Erdős Problem 1060: bound on the number of $k \le n$ with $k \sigma_1(k) = n$.","theorem erdos_1060.parts.i :
+    ∃ h : ℕ → ℝ,
+      h =o[atTop] (fun n ↦ 1 / log (log n)) ∧ ∀ᶠ n in atTop, #{k ≤ n | k * σ 1 k = n} ≤ (n : ℝ) ^ h n
+
+theorem erdos_1060.parts.ii :
+    ∃ (C : ℝ), (fun n ↦ (#{k ≤ n | k * σ 1 k = n} : ℝ)) =O[atTop]
+      (fun n ↦ log n ^ C)","Let f(n) be the number of k ≤ n with k·σ(k) = n, where σ(k) is the sum of divisors of k. Prove:
+
+(i) There is a function h(n) = o(1/log log n) such that f(n) ≤ n^{h(n)} for all sufficiently large n.
+
+(ii) There is a constant C with f(n) = O((log n)^C).","Let f(n) count the k ≤ n with k·σ(k) = n, where σ is the sum-of-divisors function. Show: (i) for some h(n) = o(1/log log n), f(n) ≤ n^{h(n)} for all large n; (ii) for some constant C, f(n) = O((log n)^C).","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_835@b9851985752b,erdos:835,Erdős Problem 835,"Does there exist a $k>2$ such that the $k$-sized subsets of {1,...,2k} can be coloured with
+$k+1$ colours such that for every $A\subset \{1,\ldots,2k\}$ with $\lvert A\rvert=k+1$ all $k+1$
+colours appear among the $k$-sized subsets of $A$?
+
+Is the chromatic number of `J(2 * k, k)` always at least `k + 2`?","theorem erdos_835 : (∃ k > 2, Property k) ↔ answer(sorry)
+
+theorem johnson_chromaticNumber : answer(sorry) ↔
+    ∀ k ≥ 3, k + 2 ≤ J(2 * k, k).chromaticNumber","Two questions:
+
+1. Does some k > 2 allow colouring the k-subsets of {1,...,2k} with k+1 colours so that, for every (k+1)-subset A, all k+1 colours appear among A's k-subsets?
+
+2. For every k ≥ 3, is the chromatic number of the Johnson graph J(2k,k) at least k+2? (Its vertices are k-subsets; two are adjacent when they share k−1 elements.)","(1) Is there k > 2 such that the k-subsets of {1,…,2k} can be (k+1)-coloured so that every (k+1)-subset contains k-subsets of all colours? (2) For every k ≥ 3, is the chromatic number of the Johnson graph J(2k,k) (k-subsets, adjacent when sharing k−1 elements) at least k+2?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_689@50d8ef36b8b5,erdos:689,Erdős Problem 689,"Let `n` be sufficiently large. Is there some choice of congruence class `a_p` for all primes
+`2 ≤ p ≤ n` such that every integer in `[1,n]` satisfies at least two of the congruences
+`≡ a_p (mod p)`?","theorem erdos_689 :
+    answer(sorry) ↔ ∀ᶠ n in .atTop, ∃ a : ℕ → ℕ, ∀ m ∈ Finset.Icc 1 n,
+      2 ≤ (Finset.Icc 1 n |>.filter fun p => p.Prime ∧ a p ≡ m [MOD p]).card","Is it true that for all sufficiently large n, one can choose a residue a_p for each prime p ≤ n such that every integer m with 1 ≤ m ≤ n satisfies m ≡ a_p (mod p) for at least two primes p ≤ n?","Is it true that for all sufficiently large n, one can choose a residue a_p for each prime p ≤ n such that every integer m with 1 ≤ m ≤ n satisfies m ≡ a_p (mod p) for at least two primes p ≤ n?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_329@a33db9026689,erdos:329,Erdős Problem 329,"**Erdős Problem 329.**
+Let `A ⊆ ℕ` be a Sidon set. How large can
+`lim sup_{N → ∞} |A ∩ {1,…,N}| / N^{1/2}`
+be?","theorem erdos_329 : sSup {sidonUpperDensity A | (A : Set ℕ) (_ : IsSidon A)} =
+    answer(sorry)","Over all Sidon sets A ⊆ ℕ (sets where the sums a + b with a ≤ b are all distinct), what is the supremum of
+
+limsup as N → ∞ of |A ∩ {1,…,N}| / N^{1/2}?","Over all Sidon sets A ⊆ ℕ (sets where the sums a + b with a ≤ b are all distinct), what is the supremum of
+
+limsup as N → ∞ of |A ∩ {1,…,N}| / N^{1/2}?","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Paper_HartshorneConjecture@cad32807a4db,fc:Paper/HartshorneConjecture,Paper: HartshorneConjecture,"There are no indecomposable vector bundles of rank 2 on $\mathbb{P}^n$ for $n \ge 7$.
+This is Conjecture 6.3 in [Har1974].","theorem harthshorne_conjecture (n : ℕ) (hn : 7 ≤ n)
+    (𝓕 : VectorBundles ℙ(Fin (n + 1); Spec (.of ℂ)))
+    (h𝓕 : 𝓕.rank = 2) :
+    Nonempty (𝓕.Splitting (Fin 2))","For every n ≥ 7, every rank-2 vector bundle on complex projective n-space P^n over ℂ splits as a direct sum of two line bundles. Equivalently, no indecomposable rank-2 vector bundles exist on P^n for n ≥ 7.","For every n ≥ 7, every rank-2 vector bundle on complex projective n-space P^n over ℂ splits as a direct sum of two line bundles. Equivalently, no indecomposable rank-2 vector bundles exist on P^n for n ≥ 7.","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_386@6e216d7926e6,erdos:386,Erdős Problem 386,"There is a $k$, such that $2 \le k \le n - 2$ and
+$\binom{n}{k}$ can be the product of consecutive primes infinitely often?","theorem erdos_386 :
+    answer(sorry) ↔ ∃ k ≥ 2, ∃ᶠ n in .atTop,
+      k ≤ n - 2 ∧ ∃ p q : ℕ, n.choose k = ∏ i ∈ .Ico p q, nth Nat.Prime i","Does there exist an integer k ≥ 2 such that, for infinitely many n with k ≤ n − 2, the binomial coefficient C(n, k) equals a product of consecutive primes? That is, does C(n, k) = p_a · p_{a+1} ⋯ p_{b−1} hold for some a ≤ b, where p_i denotes the i-th prime?","Is there an integer k ≥ 2 such that, for infinitely many n with k ≤ n − 2, the binomial coefficient C(n, k) is a product of consecutive primes p_a·p_{a+1}⋯p_{b−1}, where p_i is the i-th prime?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_913@aa42b8c68e7a,erdos:913,Erdős Problem 913,"Are there infinitely many $n$ such that if
+$$
+  n(n + 1) = \prod_i p_i^{k_i}
+$$
+is the factorisation into distinct primes then all exponents $k_i$ are distinct?","theorem erdos_913 : answer(sorry) ↔
+    { n | Set.InjOn (n * (n + 1)).factorization (n * (n + 1)).primeFactors }.Infinite","Are there infinitely many natural numbers n such that, in the prime factorisation of n(n+1), distinct primes always appear with distinct exponents? That is, no two different prime factors of n(n+1) have the same exponent.","Are there infinitely many natural numbers n such that, in the prime factorisation of n(n+1), distinct primes always appear with distinct exponents? That is, no two different prime factors of n(n+1) have the same exponent.","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_726@1565cc4f1e1d,erdos:726,Erdős Problem 726,"As $n\to \infty$ ranges over integers
+$\sum_{p\leq n}1_{n\in (p/2,p)\pmod{p}}\frac{1}{p}\sim \frac{\log\log n}{2}$?
+
+A conjecture of Erdős, Graham, Ruzsa, and Straus [EGRS75].
+
+By $n\in (p/2,p)\pmod{p}$ we mean $n\equiv r\pmod{p}$ for some integer $r$ with $p/2<r<p$.","theorem erdos_726 :
+    answer(sorry) ↔
+      (fun n : ℕ ↦ ∑ p ∈ (range (n + 1)).filter
+          (fun p : ℕ ↦ p.Prime ∧ (p : ℝ) / 2 < (n % p : ℝ)),
+        (1 : ℝ) / (p : ℝ))
+      ~[atTop] (fun n : ℕ ↦ Real.log (Real.log (n : ℝ)) / 2)","Is it true that, as n → ∞ over natural numbers, the sum of 1/p over all primes p ≤ n for which the remainder n mod p is greater than p/2 is asymptotic to (log log n)/2, i.e. their ratio tends to 1?","Is it true that, as n → ∞ over natural numbers, the sum of 1/p over all primes p ≤ n for which the remainder n mod p is greater than p/2 is asymptotic to (log log n)/2, i.e. their ratio tends to 1?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_289@09d16b2d095b,erdos:289,Erdős Problem 289,"Is it true that, for all sufficiently large $k$, there exists finite intervals
+$I_1, \dotsc, I_k \subset \mathbb{N}$ with $|I_i| \geq 2$ for $1 \leq i \leq k$ such that
+$$
+1 = \sum_{i=1}^k \sum_{n \in I_i} \frac{1}{n}.
+$$","theorem erdos_289 : answer(sorry) ↔
+    (∀ᶠ k : ℕ in atTop, ∃ I : Fin k → ℕ × ℕ,
+    (∀ i, (I i).1 < (I i).2) ∧
+    (∀ i j, i ≠ j → (I i).2 < (I j).1 ∨ (I j).2 < (I i).1) ∧
+    ∑ i, ∑ n ∈ .Icc (I i).1 (I i).2, (n⁻¹ : ℚ) = 1)","Is it true that for all sufficiently large k there exist k pairwise disjoint finite intervals [a_i, b_i] of natural numbers, each with a_i < b_i, such that the sum over all i of the sum of 1/n for n in [a_i, b_i] equals 1? Here 1/0 is taken to be 0.","Is it true that for all sufficiently large k there are k pairwise disjoint intervals [a_i, b_i] of natural numbers, each with a_i < b_i, such that the sum over all i of Σ_{n=a_i}^{b_i} 1/n equals 1? (Here 1/0 counts as 0.)","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_272@36c944d87001,erdos:272,Erdős Problem 272,"Let $N\geq 1$. What is the largest $t$ such that there are
+$A_1,\ldots,A_t\subseteq \{1,\ldots,N\}$ with $A_i\cap A_j$ a non-empty
+arithmetic progression for all $i\neq j$?","theorem erdos_272 :
+    (fun N ↦ (maxArithInterCard N : ℝ)) ~[atTop] (answer(sorry) : ℕ → ℝ)","For N ≥ 1, let f(N) be the largest t such that there are t distinct subsets A_1, …, A_t of {1, …, N} where, for all i ≠ j, A_i ∩ A_j is a non-empty arithmetic progression. Find an explicit function g(N) with f(N) ~ g(N) as N → ∞.","For N ≥ 1, let f(N) be the largest t such that there are distinct subsets A_1, …, A_t of {1, …, N} with every A_i ∩ A_j (i ≠ j) a non-empty arithmetic progression. Find an explicit g(N) with f(N) ~ g(N) as N → ∞.","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_535@4f56b8fa9d9c,erdos:535,Erdős Problem 535,"Let $r \geq 3$, and let $f_r(N)$ denote the size of the largest subset of $\{1,\ldots,N\}$
+such that no subset of size $r$ has the same pairwise greatest common divisor between all
+elements. Erdős [Er64] proved that $f_3(N) > N^{c/\log\log N}$ for some constant $c > 0$, and
+conjectured this should also be an upper bound; here we state the conjectural upper bound
+for all $r \geq 3$.
+
+See also [536].","theorem erdos_535 : ∀ r ≥ 3, ∃ c > (0 : ℝ),
+    ∀ᶠ (N : ℕ) in atTop,
+      (f r N : ℝ) ≤ (N : ℝ) ^ (c / log (log (N : ℝ)))","For each r ≥ 3, let f_r(N) be the largest size of a subset of {1,…,N} containing no r elements whose pairwise gcds are all equal. Show that for every r ≥ 3 there exists c > 0 such that f_r(N) ≤ N^(c / log log N) for all sufficiently large N.","For r ≥ 3, let f_r(N) be the largest size of a subset of {1,…,N} with no r elements whose pairwise gcds are all equal. Show that for every r ≥ 3 some c > 0 has f_r(N) ≤ N^(c / log log N) for all sufficiently large N.","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Wikipedia_PrimesAndPerfectSquares@3ad5be638e12,fc:Wikipedia/PrimesAndPerfectSquares,Wikipedia: Primes and perfect squares,Are there infinitely many primes $p$ such that $p - 1$ is a perfect square? In other words: Are there infinitely many primes of the form $n^2 + 1$?,"theorem infinite_prime_sq_add_one :
+    answer(sorry) ↔ {n : ℕ | Prime (n^2 + 1)}.Infinite","Are there infinitely many natural numbers n such that n^2 + 1 is prime? Equivalently, are there infinitely many primes p for which p − 1 is a perfect square?","Are there infinitely many natural numbers n such that n^2 + 1 is prime? Equivalently, are there infinitely many primes p for which p − 1 is a perfect square?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_513@529bdcd0e0d6,erdos:513,Erdős Problem 513,"Let `f` be a transcendental entire function. What is the greatest possible value of
+`liminf (fun r : ℝ => ratio r f) atTop`?","theorem erdos_513 : answer(sorry) =
+    ⨆ f : {f : ℂ → ℂ // Transcendental ℂ[X] f ∧ Differentiable ℂ f},
+    (liminf (fun r : ℝ => ratio r f) atTop)","For a non-polynomial (transcendental) entire function f(z) = Σ a_n z^n, let M(r) = max over |z| = r of |f(z)|, and let ratio(r) = max_n |a_n| r^n / M(r). What is the supremum, over all such f, of liminf as r → ∞ of ratio(r)?
+
+(The definition of ratio is assumed from the standard form of Erdős Problem 513; the given statement does not define it.)","For a transcendental entire function f(z) = Σ a_n z^n, let M(r) = max over |z| = r of |f(z)| and ratio(r) = max_n |a_n| r^n / M(r). What is the supremum, over all such f, of liminf as r → ∞ of ratio(r)?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_1061@9ee07658d977,erdos:1061,Erdős Problem 1061,"How many (ordered) solutions are there to `σ(a) + σ(b) = σ(a + b)` with `a + b ≤ x`?
+Is it true that this number is asymptotic to `c * x` for some constant `c > 0`?","theorem erdos_1061 : answer(sorry) ↔ ∃ c : ℝ, 0 < c ∧ S ~[atTop] (fun x : ℝ ↦ c * x)","Let σ be the sum-of-divisors function, and let S(x) count ordered pairs of positive integers (a, b) with a + b ≤ x and σ(a) + σ(b) = σ(a + b). Does there exist a constant c > 0 such that S(x) is asymptotic to c·x as x → ∞?","Let σ be the sum-of-divisors function, and let S(x) count ordered pairs of positive integers (a, b) with a + b ≤ x and σ(a) + σ(b) = σ(a + b). Does there exist a constant c > 0 such that S(x) is asymptotic to c·x as x → ∞?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_617@f4a1d3e42432,erdos:617,Erdős Problem 617,"Let $r\geq 3$. If the edges of $K_{r^2+1}$ are $r$-coloured then there exist $r+1$ vertices with at
+least one colour missing on the edges of the induced $K_{r+1}$.
+
+In other words, there is no balanced colouring.
+
+A conjecture of Erdős and Gyárfás [ErGy99].","theorem erdos_617 (r : ℕ) (hr : r ≥ 3) {V : Type} [Fintype V] [DecidableEq V]
+    (hV : Fintype.card V = r^2 + 1) (coloring : Sym2 V → Fin r) :
+    ∃ (S : Finset V) (k : Fin r),
+      S.card = r + 1 ∧
+      ∀ u ∈ S, ∀ v ∈ S, u ≠ v → coloring s(u, v) ≠ k","Let r ≥ 3. For every colouring of the edges of the complete graph on r^2 + 1 vertices with r colours, there exist a set S of r + 1 vertices and a colour k such that no edge between two distinct vertices of S has colour k.","Let r ≥ 3. For every colouring of the edges of the complete graph on r^2 + 1 vertices with r colours, there exist a set S of r + 1 vertices and a colour k such that no edge between two distinct vertices of S has colour k.","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_325@6d294b928f41,erdos:325,Erdős Problem 325,"Writing $f_{k, 3}(x)$ for the number of integers $\leq x$ which are the sum of three $k$th powers,
+is it true that $f_{k, 3}(x) \gg x ^ (3 / k)$?","theorem erdos_325 :
+     answer(sorry) ↔ ∀ k : ℕ, 3 ≤ k → (fun x : ℕ => (x : ℝ) ^ (3 / k : ℝ)) =O[atTop]
+      (fun x : ℕ => (cardIsSumThreePowerBelow k x : ℝ))","Is it true that for every integer k ≥ 3, the number f(x) of integers at most x that are a sum of three kth powers satisfies x^(3/k) = O(f(x))? That is, is there a constant c > 0 such that f(x) ≥ c·x^(3/k) for all sufficiently large natural numbers x?","For k ≥ 3, let f_k(x) be the number of integers at most x that are sums of three kth powers. Is it true that for every k ≥ 3 some c > 0 has f_k(x) ≥ c·x^(3/k) for all sufficiently large x?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_421@cc9a24b964a9,erdos:421,Erdős Problem 421,"Is there a sequence $1 \le d_1 < d_2 < \dots$ with density 1 such that all products
+$\prod_{u \le i \le v} d_i$ are distinct?","theorem erdos_421 : answer(sorry) ↔
+    ∃ (d : ℕ → ℕ), StrictMono d ∧ 1 ≤ d 0 ∧ HasDensity (Set.range d) 1 ∧
+    {(u, v) : ℕ × ℕ | u ≤ v}.InjOn fun (u, v) => ∏ i ∈ Finset.Icc u v, d i","Does there exist a strictly increasing sequence of positive integers 1 ≤ d_0 < d_1 < d_2 < ..., whose set of values has natural density 1, such that the block products d_u · d_{u+1} · ... · d_v (for u ≤ v) are distinct for distinct pairs (u, v)?","Does there exist a strictly increasing sequence of positive integers 1 ≤ d_0 < d_1 < d_2 < ..., whose set of values has natural density 1, such that the block products d_u · d_{u+1} · ... · d_v (for u ≤ v) are distinct for distinct pairs (u, v)?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_341@6a09f86b5e0b,erdos:341,Erdős Problem 341,"Let $A=\{a_1 < \cdots < a_k\}$ be a finite set of integers and extend it to an infinite
+sequence $\overline{A}=\{a_1 < a_2 < \cdots \}$ by defining $a_{n+1}$ for $n \geq k$ to be
+the least integer exceeding $a_n$ which is not of the form $a_i + a_j$ with $i,j \leq n$.
+Is it true that the sequence of differences $a_{m+1}-a_m$ is eventually periodic?
+
+This problem is discussed under Problem 7 on Green's open problems list.","theorem erdos_341 :
+    answer(sorry) ↔
+      ∀ (a : ℕ → ℤ),
+        (∀ᶠ n in atTop,
+          IsLeast { x | a n < x ∧ x ∉ { a i + a j | (i ≤ n) (j ≤ n) } } (a (n + 1))) →
+        let d := fun i ↦ a (i + 1) - a i
+        ∃ p > 0, ∀ᶠ m in atTop, d (m + p) = d m","Is the following true? For every integer sequence a_0, a_1, a_2, ... such that, for all sufficiently large n, a_{n+1} is the least integer greater than a_n that is not of the form a_i + a_j with i, j ≤ n, the differences a_{m+1} − a_m are eventually periodic with some period p > 0.","Is it true that for every integer sequence a_0, a_1, … in which, for all sufficiently large n, a_{n+1} is the least integer exceeding a_n not of the form a_i + a_j (i, j ≤ n), the differences a_{m+1} − a_m are eventually periodic?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_424@930ea5bf9ec7,erdos:424,Erdős Problem 424,"Let $a_1 = 2$ and $a_2 = 3$ and continue the sequence by appending to $a_1, \ldots, a_n$ all possible
+values of $a_i a_j - 1$ with $i \neq j$.
+Is it true that the set of integers which eventually appear has positive density?",theorem erdos_424 : answer(sorry) ↔ generatedSet.HasPosDensity,"Let S be the smallest set of positive integers containing 2 and 3 such that whenever a and b are distinct elements of S, ab − 1 is also in S. Equivalently, S is the set of all integers that eventually appear when starting from 2, 3 and repeatedly appending a_i a_j − 1 (i ≠ j). Does S have positive density?",Let S be the smallest set of integers containing 2 and 3 such that ab − 1 ∈ S whenever a and b are distinct elements of S. Does S have positive density?,"Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_520@7a8485d9c9e7,erdos:520,Erdős Problem 520,"Let $f$ be a Rademacher multiplicative function.
+Does there exist some constant $c > 0$ such that, almost surely,
+$$
+  \limsup_{N \to \infty} \frac{\sum_{m \leq N} f(m)}{\sqrt{N \log \log N}} = c?
+$$","theorem erdos_520 :
+    answer(sorry) ↔ ∃ c > 0, ∀ (Ω : Type) [MeasureSpace Ω] [IsProbabilityMeasure (ℙ : Measure Ω)]
+      (f : ℕ → Ω → ℝ), IsRademacherMultiplicative f →
+      ∀ᵐ ω, limsup (fun N ↦ ∑ m ≤ N, f m ω / sqrt (N * log (log N))) atTop = c","Does there exist a constant c > 0 such that, for every Rademacher multiplicative function f on any probability space, almost surely
+
+limsup as N → ∞ of (sum over m ≤ N of f(m)) / sqrt(N log log N) = c?
+
+The same c must work for all such f.","Is there a constant c > 0 such that every Rademacher multiplicative function f, on any probability space, almost surely satisfies limsup as N → ∞ of (Σ_{m≤N} f(m)) / sqrt(N log log N) = c, with the same c for all such f?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_1094@fa9f25b4ca31,erdos:1094,Erdős Problem 1094,"For all $n\ge 2k$ the least prime factor of $\binom{n}{k}$ is $\le\max(n/k,k)$, with only
+finitely many exceptions.","theorem erdos_1094 :
+    {(n, k) : ℕ × ℕ | 0 < k ∧ 2 * k ≤ n ∧ (n.choose k).minFac > max (n / k) k}.Finite","There are only finitely many pairs of natural numbers (n, k) with k ≥ 1 and n ≥ 2k such that the least prime factor of the binomial coefficient C(n, k) exceeds max(⌊n/k⌋, k).","There are only finitely many pairs of natural numbers (n, k) with k ≥ 1 and n ≥ 2k such that the least prime factor of the binomial coefficient C(n, k) exceeds max(⌊n/k⌋, k).","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Wikipedia_Grimm@c68d56341479,fc:Wikipedia/Grimm,Wikipedia: Grimm's conjecture,"**Grimm's Conjecture**
+If $n, n+1, \dots, n+k-1$ are all composite numbers, then there are $k$ distinct primes $p_i$
+such that $p_i$ divides $n + i$ for all $0 \le i \le k-1$.
+
+**Grimm's Conjecture, weaker version**
+If $n, n+1, \dots, n+k-1$ are all composite numbers, then their product
+has at least $k$ distinct prime divisors.","theorem grimm_conjecture (n k : ℕ) (hn : 1 ≤ n) (hk : 1 ≤ k)
+    (h : ∀ i : Fin k, (n + i).Composite) :
+    ∃ ps : Fin k ↪ ℕ,  ∀ i : Fin k, (ps i).Prime ∧ ps i ∣ (n + i)
+
+theorem grimm_conjecture_weak (n k : ℕ) (hn : 1 ≤ n) (hk : 1 ≤ k)
+    (h : ∀ i : Fin k, (n + i).Composite) :
+    ∃ ps : Fin k ↪ ℕ,  ∀ i : Fin k, (ps i).Prime ∧ ∃ j : Fin k, ps i ∣ (n + j)","Let n, k ≥ 1 and suppose n, n+1, …, n+k−1 are all composite.
+
+1. There exist distinct primes p_0, …, p_{k−1} such that p_i divides n+i for each i from 0 to k−1.
+2. (Weaker) There exist k distinct primes, each dividing at least one of n, …, n+k−1.","Let n, k ≥ 1 and suppose n, n+1, …, n+k−1 are all composite.
+
+1. There exist distinct primes p_0, …, p_{k−1} such that p_i divides n+i for each i from 0 to k−1.
+2. (Weaker) There exist k distinct primes, each dividing at least one of n, …, n+k−1.","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_598@c8dd2490669b,erdos:598,Erdős Problem 598,"**Erdős Problem 598:**
+Let $m$ be an infinite cardinal and $\kappa$ be the successor cardinal of $2^{\aleph_0}$.
+Can one colour the countable subsets of $m$ using $\kappa$ many colours so that every
+$X \subseteq m$ with $|X| = \kappa$ contains subsets of all possible colours?","theorem erdos_598 : answer(sorry) ↔
+    ∃ c : { s : Set m // s.Countable } → κ.out,
+    ∀ X : Set m, #X = κ →
+    c '' { s : { sub : Set m // sub.Countable } | s.1 ⊆ X } = Set.univ","Let m be an infinite set and κ the successor cardinal of 2^ℵ0. Can the countable subsets of m be coloured with κ colours so that, for every X ⊆ m with |X| = κ, every colour is attained by some countable subset of X?","Let m be an infinite set and κ the successor cardinal of 2^ℵ0. Can the countable subsets of m be coloured with κ colours so that, for every X ⊆ m with |X| = κ, every colour is attained by some countable subset of X?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_28@3bcd6eff1798,erdos:28,Erdős Problem 28,"If $A ⊆ \mathbb{N}$ is such that $A + A$ contains all but finitely many integers then
+ $\limsup 1_A ∗ 1_A(n) = \infty$.","theorem erdos_28 (A : Set ℕ) (h : (A + A)ᶜ.Finite) :
+    limsup (fun (n : ℕ) => (sumRep A n : ℕ∞)) atTop = (⊤ : ℕ∞)","Let A be a set of natural numbers such that all but finitely many natural numbers can be written as a + b with a, b in A. Prove that the number of representations of n as a + b with a, b in A has limsup infinity as n → ∞, i.e., is unbounded.","Let A be a set of natural numbers such that all but finitely many natural numbers are of the form a + b with a, b ∈ A. Then the number of representations of n as a + b (a, b ∈ A) is unbounded as n → ∞.","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_GreensOpenProblems_29@2ec97563b9ed,fc:GreensOpenProblems/29,GreensOpenProblems: Ben Green's Open Problem 29,"Suppose that $A$ is a $K$-approximate group (not necessarily abelian). Is there $S \subset A$,
+$|S| \gg K^{-O(1)} |A|$, with $S^8 \subset A^4$?","theorem green_29 :
+    answer(sorry) ↔
+      ∃ C c : ℝ, 0 < C ∧ 0 < c ∧
+        ∀ {G : Type*} [Group G] [DecidableEq G] (K : ℝ) (A : Finset G),
+          1 ≤ K → IsApproximateSubgroup K (A : Set G) →
+            ∃ S ⊆ A, C * K ^ (-c) * (A.card : ℝ) ≤ (S.card : ℝ) ∧
+            S ^ 8 ⊆ A ^ 4","Do there exist constants C, c > 0 such that, for every group G (not necessarily abelian), every K ≥ 1 and every finite K-approximate subgroup A of G, there is a subset S ⊆ A with |S| ≥ C·K^(−c)·|A| and S^8 ⊆ A^4 (product sets)?","Do there exist constants C, c > 0 such that, for every group G (not necessarily abelian), every K ≥ 1 and every finite K-approximate subgroup A of G, there is a subset S ⊆ A with |S| ≥ C·K^(−c)·|A| and S^8 ⊆ A^4 (product sets)?","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_GreensOpenProblems_54@77493a9f0a96,fc:GreensOpenProblems/54,GreensOpenProblems: Ben Green's Open Problem 54,"Let $K \subset \mathbb{R}^n$ be a balanced compact set (that is, $\lambda K \subseteq K$ whenever
+$|\lambda| \leq 1$) and suppose that the normalised Gaussian measure $\gamma_n(K) \geq 0.99$.
+Does $10K$ contain a compact convex set $C$ with $\gamma_n(C) \geq 0.01$?","theorem green_54 :
+    answer(sorry) ↔ ∀ K : Set (ℕ → ℝ), IsCompact K → Balanced ℝ K → (0.99 : ℝ≥0∞) ≤
+    gaussianMeasureInf K → ∃ C : Set (ℕ → ℝ), IsCompact C ∧ Convex ℝ C ∧ C ⊆ (10 : ℝ) • K ∧
+    (0.01 : ℝ≥0∞) ≤ gaussianMeasureInf C","Let γ be the standard Gaussian product measure on the space of real sequences ℕ → ℝ. Is it true that for every compact balanced set K (λK ⊆ K whenever |λ| ≤ 1) with γ(K) ≥ 0.99, there is a compact convex set C ⊆ 10K with γ(C) ≥ 0.01?",Let γ be the standard Gaussian product measure on real sequences ℕ → ℝ. Is it true that every compact balanced set K (λK ⊆ K whenever |λ| ≤ 1) with γ(K) ≥ 0.99 satisfies: 10K contains a compact convex set C with γ(C) ≥ 0.01?,"Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_688@49b0a3521300,erdos:688,Erdős Problem 688,"Estimate $\epsilon_n$ - lower bound.
+
+Estimate $\epsilon_n$ - upper bound.
+
+In particular, is it true that $\epsilon_n = o(1)$?","theorem erdos_688.parts.i.lower_bound :
+    (answer(sorry) : ℕ → ℝ) =O[atTop] epsilonFunction
+
+theorem erdos_688.parts.i.upper_bound :
+    epsilonFunction =O[atTop] (answer(sorry) : ℕ → ℝ)
+
+theorem erdos_688.parts.ii : answer(sorry) ↔
+    epsilonFunction =o[atTop] (fun (n : ℕ) ↦ (1 : ℝ))","Let ε_n be the largest ε such that one can choose residues a_p for all primes n^ε < p ≤ n with every integer in [1,n] congruent to a_p mod p for some such p. Find f(n) with f = O(ε_n) and ε_n = O(f). Is ε_n → 0 as n → ∞?","Let ε_n be the supremum of ε such that residues a_p can be chosen for the primes n^ε < p ≤ n with every integer in [1,n] congruent to a_p mod p for some such p. Find f(n) with f = O(ε_n) and ε_n = O(f). Does ε_n → 0?","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Wikipedia_RegularPrimes@01fc00e491c4,fc:Wikipedia/RegularPrimes,Wikipedia: Infinite Regular Primes,Conjecture: The set of regular primes is infinite.,theorem regularprime_conjecture : RegularPrimeConjecture,There are infinitely many regular primes. A prime p is regular if p does not divide the class number of the p-th cyclotomic field Q(ζ_p).,There are infinitely many regular primes. A prime p is regular if p does not divide the class number of the p-th cyclotomic field Q(ζ_p).,"Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_GreensOpenProblems_3@9e7663734bf0,fc:GreensOpenProblems/3,GreensOpenProblems: Ben Green's Open Problem 3,"Suppose that $A \subset [0,1]$ is open and has measure greater than $\frac{1}{3}$. Is there a solution to $xy = z$ with $x, y, z \in A$?","theorem green_3 :
+    answer(sorry) ↔ ∀ A : Set ℝ,
+      IsOpen A → A ⊆ Icc 0 1 → volume A > 1/3 →
+        ∃ x y z, x ∈ A ∧ y ∈ A ∧ z ∈ A ∧ x * y = z","Is it true that every open set A ⊆ [0,1] with Lebesgue measure greater than 1/3 contains x, y, z (not necessarily distinct) with xy = z?","Is it true that every open set A ⊆ [0,1] with Lebesgue measure greater than 1/3 contains x, y, z (not necessarily distinct) with xy = z?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_931@770b76367639,erdos:931,Erdős Problem 931,"Let $k_1 \geq k_2 \geq 3$. Are there only finitely many $n_2\geq n_1 + k_1$
+such that
+$$
+  \prod_{1\leq i\leq k_1}(n_1 + i)\ \text{and}\ \prod_{1\leq j\leq k_2} (n_2 + j)
+$$
+have the same prime factors?","theorem erdos_931 : answer(sorry) ↔ ∀ᵉ (k₁ : ℕ) (k₂ ≥ 3), k₂ ≤ k₁ →
+    { (n₁, n₂) | n₁ + k₁ ≤ n₂ ∧
+      (∏ i ∈ Finset.Icc 1 k₁, (n₁ + i)).primeFactors =
+      (∏ j ∈ Finset.Icc 1 k₂, (n₂ + j)).primeFactors }.Finite","Is it true that for all natural numbers k1 ≥ k2 ≥ 3, there are only finitely many pairs of natural numbers (n1, n2) with n2 ≥ n1 + k1 such that (n1+1)(n1+2)…(n1+k1) and (n2+1)(n2+2)…(n2+k2) have exactly the same set of prime factors?","Is it true that for all natural numbers k1 ≥ k2 ≥ 3, there are only finitely many pairs of natural numbers (n1, n2) with n2 ≥ n1 + k1 such that (n1+1)(n1+2)…(n1+k1) and (n2+1)(n2+2)…(n2+k2) have exactly the same set of prime factors?","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Books_UniformDistributionOfSequences_Equidistribution@199c86b56792,fc:Books/UniformDistributionOfSequences/Equidistribution,Books: Equidistributed Sequences,"The sequence `(3/2)^n` is equidistributed modulo `1`.
+
+For any transcendental number `x`, the sequence `x * (3 / 2) ^ n` is
+equidistributed modulo 1.
+
+Find an accumulation point of the sequence `(3/2)^n` modulo `1`.","theorem isEquidistributedModuloOne_three_halves_pow :
+    IsEquidistributedModuloOne (fun n => (3 / 2 : ℝ)^n)
+
+theorem isEquidistributedModuloOne_transcendental_three_halves_pow (x : ℝ)
+    (hx : Transcendental ℚ x) :
+    IsEquidistributedModuloOne (fun n ↦ x * (3 / 2 : ℝ) ^ n)
+
+theorem isAccumulationPoint_three_halves_pow :
+    IsAccumulationPoint answer(sorry) (fun n => Int.fract <| (3 / 2 : ℝ)^n)","Three problems:
+
+1. Show that the sequence (3/2)^n, n = 0, 1, 2, …, is equidistributed modulo 1.
+2. Show that for every real x transcendental over the rationals, the sequence x·(3/2)^n is equidistributed modulo 1.
+3. Find an explicit accumulation point of the sequence of fractional parts of (3/2)^n.","Three problems:
+
+1. Show that the sequence (3/2)^n, n = 0, 1, 2, …, is equidistributed modulo 1.
+2. Show that for every real x transcendental over the rationals, the sequence x·(3/2)^n is equidistributed modulo 1.
+3. Find an explicit accumulation point of the sequence of fractional parts of (3/2)^n.","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Wikipedia_NormalityOfPi@790bfb17aefa,fc:Wikipedia/NormalityOfPi,Wikipedia: Normality of mathematical constants,$\pi$ is normal in base 10.,theorem pi_normal_base_ten : IsNormalInBase 10 π,"π is normal in base 10: in its decimal expansion, every finite string of k digits occurs with limiting frequency 10^(-k).","π is normal in base 10: in its decimal expansion, every finite string of k digits occurs with limiting frequency 10^(-k).","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Wikipedia_Hall@230060001d6d,fc:Wikipedia/Hall,Wikipedia: Hall's conjecture,"Original Hall's conjecture with exponent $1/2$.
+
+Weak form of Hall's conjecture: relax the exponent from $1/2$ to $1/2 - \varepsilon$.","theorem hall_conjecture : HallConjectureExp 2⁻¹
+
+theorem weak_hall_conjecture (ε : ℝ) (hε : ε > 0) : HallConjectureExp (2⁻¹ - ε)","**Original Hall conjecture:** there is a constant C > 0 such that every pair of integers x, y with y^2 ≠ x^3 satisfies |y^2 − x^3| > C·|x|^(1/2).
+
+**Weak form:** for every ε > 0, there is a constant C > 0 such that every pair of integers x, y with y^2 ≠ x^3 satisfies |y^2 − x^3| > C·|x|^(1/2 − ε).","(a) Some C > 0 has |y^2 − x^3| > C·|x|^(1/2) for all integers x, y with y^2 ≠ x^3. (b) For every ε > 0, some C > 0 has |y^2 − x^3| > C·|x|^(1/2 − ε) for all integers x, y with y^2 ≠ x^3.","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Paper_StrongSensitivityConjecture@66336e073585,fc:Paper/StrongSensitivityConjecture,Paper: Strong Sensitivity Conjecture (`bs(f) ≤ s(f)^2`),"Strong Sensitivity Conjecture,
+for every Boolean function `f : {0,1}^n → {0,1}`,
+`bs(f) ≤ s(f)^2`.
+
+We call this the *strong* sensitivity conjecture because the original sensitivity
+conjecture only asked for a polynomial bound in terms of `s(f)`. Huang's
+celebrated result (often called the sensitivity theorem) gives a quartic bound,
+`bs(f) ≤ s(f)^4`, thereby settling the original conjecture.","theorem strong_sensitivity_conjecture {n : ℕ} (f : (Fin n → Bool) → Bool) :
+    blockSensitivity f ≤ sensitivity f ^ 2","For every n ≥ 0 and every Boolean function f: {0,1}^n → {0,1}, the block sensitivity satisfies bs(f) ≤ s(f)^2. Here s(f) is the maximum, over inputs x, of the number of single bits whose flip changes f(x). bs(f) is the maximum number of disjoint bit-blocks whose flips each change f(x).","For every n and every Boolean function f: {0,1}^n → {0,1}, bs(f) ≤ s(f)^2. Here s(f) is the maximum over inputs x of the number of bits whose flip changes f(x); bs(f) is the maximum number of disjoint bit-blocks whose flips each change f(x).","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_1145@54967b2fcac1,erdos:1145,Erdős Problem 1145,"Let $A=\{1\leq a_1 < a_2 < \cdots\}$ and $B=\{1\leq b_1 < b_2 < \cdots\}$ be sets of integers with
+$a_n/b_n\to 1$.
+
+If $A+B$ contains all sufficiently large positive integers then is it true that
+$\limsup 1_A\ast 1_B(n)=\infty$?
+
+A conjecture of Erdős and Sárközy.",theorem erdos_1145 : answer(sorry) ↔ Erdos1145Prop,"Let A = {a_1 < a_2 < ...} and B = {b_1 < b_2 < ...} be infinite sets of positive integers with a_n/b_n → 1. If A+B contains every sufficiently large integer, must the number of representations n = a + b (a in A, b in B) be unbounded as n → ∞?","Let A, B be infinite sets of natural numbers whose n-th smallest elements a_n, b_n satisfy a_n/b_n → 1. If A + B contains all sufficiently large integers, must the number of representations n = a + b (a ∈ A, b ∈ B) be unbounded?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_918@2726a50a970b,erdos:918,Erdős Problem 918,"Is there a graph with $\aleph_{\omega+1}$ vertices and chromatic number $\aleph_1$ such that
+every subgraph on $\aleph_\omega$ vertices has chromatic number $\leq\aleph_0$?","theorem erdos_918.parts.i :
+    answer(sorry) ↔ ∃ (V : Type u) (G : SimpleGraph V), #V = ℵ_ 2 ∧ G.chromaticCardinal = ℵ_ 2 ∧
+      ∀ (W : Set V) (_ : #W = ℵ₁), (G.induce W).chromaticCardinal ≤ ℵ₀
+
+theorem erdos_918.parts.ii :
+    answer(sorry) ↔ ∀ (ω : Ordinal),
+    ∃ (V : Type u) (G : SimpleGraph V), #V = ℵ_ (ω + 1) ∧ G.chromaticCardinal = ℵ₁ ∧
+      ∀ (W : Set V) (_ : #W = ℵ_ ω), (G.induce W).chromaticCardinal ≤ ℵ₀","Two questions:
+
+(i) Is there a graph with ℵ_2 vertices and chromatic number ℵ_2 in which every induced subgraph on ℵ_1 vertices has chromatic number ≤ ℵ_0?
+
+(ii) Is it true that for every ordinal α, some graph with ℵ_{α+1} vertices has chromatic number ℵ_1, while every induced subgraph on ℵ_α vertices has chromatic number ≤ ℵ_0?","(i) Is there a graph with ℵ_2 vertices and chromatic number ℵ_2 whose ℵ_1-vertex induced subgraphs all have chromatic number ≤ ℵ_0? (ii) For every ordinal α, is there a graph with ℵ_{α+1} vertices and chromatic number ℵ_1 whose ℵ_α-vertex induced subgraphs all have chromatic number ≤ ℵ_0?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_96@8bed57ac9040,erdos:96,Erdős Problem 96,"If $n$ points in $\mathbb{R}^2$ form a convex polygon then there are $O(n)$ many pairs which are
+distance $1$ apart.","theorem erdos_96 :
+    answer(sorry) ↔ (fun n => (maxConvexUnitDistances n : ℝ)) =O[atTop] fun n => (n : ℝ)",Let f(n) be the maximum number of pairs at distance exactly 1 among n points in the plane that form the vertices of a convex polygon. Is f(n) = O(n) as n → ∞?,Let f(n) be the maximum number of pairs at distance exactly 1 among n points in the plane that form the vertices of a convex polygon. Is f(n) = O(n) as n → ∞?,"Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_Wikipedia_EulerSumOfPowers@3e71c5dd6fd7,fc:Wikipedia/EulerSumOfPowers,Wikipedia: Euler's sum of powers conjecture,"Euler's sum of powers conjecture states that for integers $n > 1$ and $k > 1$,
+if the sum of $n$ positive integers each raised to the $k$-th power equals another integer
+raised to the $k$-th power, then $n ≥ k$.
+
+The conjecture is known to be false for $k = 4$ and $k = 5$,
+but remains open for $k ≥ 6$.","theorem eulers_sum_of_powers_conjecture (n k b : ℕ) (hn : 1 < n) (hk : 5 < k) (a : Fin n → ℕ)
+    (ha : ∀ i, a i > 0) (hsum : ∑ i, (a i) ^ k = b ^ k) : k ≤ n","For integers n > 1 and k ≥ 6, if positive integers a_1, …, a_n and a natural number b satisfy a_1^k + a_2^k + … + a_n^k = b^k, then n ≥ k.","For integers n > 1 and k ≥ 6, if positive integers a_1, …, a_n and a natural number b satisfy a_1^k + a_2^k + … + a_n^k = b^k, then n ≥ k.","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_251@f8aa7c98de35,erdos:251,Erdős Problem 251,"Is $\sum_{n=1}^\infty \frac{p_n}{2^n}$ irrational? Here $p_n$ is the $n$-th prime ($p_1=2, p_2=3, \dots$).","theorem erdos_251 : answer(sorry) ↔ Irrational (∑' n : ℕ, (Nat.nth Nat.Prime n) / (2 ^ n))","Is the real number Σ_{n=0}^∞ q_n / 2^n irrational, where q_n is the n-th prime counting from zero (q_0 = 2, q_1 = 3, q_2 = 5, …)? Equivalently, is Σ_{n≥1} p_n / 2^n irrational, where p_n is the n-th prime with p_1 = 2?","Is the real number Σ_{n=0}^∞ q_n / 2^n irrational, where q_n is the n-th prime counting from zero (q_0 = 2, q_1 = 3, q_2 = 5, …)? Equivalently, is Σ_{n≥1} p_n / 2^n irrational, where p_n is the n-th prime with p_1 = 2?","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_GreensOpenProblems_94@fa5f7266460b,fc:GreensOpenProblems/94,GreensOpenProblems: Ben Green's Open Problem 94,"Let `A ⊂ R` be a set of positive measure. Does $A$ contain an affine copy of `{1, 1/2, 1/4, . . . }`?","theorem green_94 :
+   answer(sorry) ↔ ∀ A : Set ℝ,
+   MeasurableSet A ∧ volume A > 0 →
+   ∃ a b : ℝ, a ≠ 0 ∧ ∀ n : ℕ, a * (1 / 2^n) + b ∈ A","Does every measurable set A ⊂ ℝ of positive Lebesgue measure contain an affine copy of {1, 1/2, 1/4, ...}? That is, must there exist real numbers a ≠ 0 and b such that a·(1/2^n) + b ∈ A for every natural number n ≥ 0?","Does every measurable set A ⊂ ℝ of positive Lebesgue measure contain an affine copy of {1, 1/2, 1/4, ...}? That is, must there exist real numbers a ≠ 0 and b such that a·(1/2^n) + b ∈ A for every natural number n ≥ 0?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_247@eb806492e637,erdos:247,Erdős Problem 247,"Let $n_1 < n_2 < \cdots$ be a sequence of integers such that
+$$
+  \limsup \frac{n_k}{k} = \infty.
+$$
+Is
+$$
+  \sum_{k=1}^{\infty} \frac{1}{2^{n_k}}
+$$
+transcendental?","theorem erdos_247 : answer(sorry) ↔ ∀ (n : ℕ → ℕ), (StrictMono n) →
+    atTop.limsup (fun k => (n k / k.succ : EReal)) = ⊤ →
+    Transcendental ℚ (∑' k, (1 : ℝ) / 2 ^ n k)","Is it true that for every strictly increasing sequence of natural numbers n_0 < n_1 < n_2 < ⋯ with limsup_{k→∞} n_k/(k+1) = ∞, the real number ∑_{k≥0} 1/2^{n_k} is transcendental (over the rationals)?","Is it true that for every strictly increasing sequence of natural numbers n_0 < n_1 < n_2 < ⋯ with limsup_{k→∞} n_k/(k+1) = ∞, the real number ∑_{k≥0} 1/2^{n_k} is transcendental (over the rationals)?","Claude (claude-opus-5-5), delegated by SimXem",yes
+erdos_254@81906d4c82ec,erdos:254,Erdős Problem 254,"Let $A\subseteq \mathbb{N}$ be such that $\lvert A\cap [1,2x]\rvert -\lvert A\cap [1,x]\rvert \to
+\infty\textrm{ as }x\to \infty$ and $\sum_{n\in A} \{ \theta n\}=\infty$ for every $\theta\in
+(0,1)$, where $\{x\}$ is the distance of $x$ from the nearest integer. Then every sufficiently large
+integer is the sum of distinct elements of $A$.","theorem erdos_254 :
+    ∀ (A : Set ℕ),
+      (Tendsto (fun x : ℕ ↦ (A ∩ Icc 1 (2 * x)).ncard - (A ∩ Icc 1 x).ncard) atTop atTop) ∧
+      (∀ θ : ℝ, 0 < θ → θ < 1 → ¬ Summable (fun n : A ↦ distToNearestInt (θ * (n : ℝ)))) →
+        ∀ᶠ m in atTop, IsSumOfDistinct A m","Let A be a set of natural numbers such that the number of elements of A in (x, 2x] tends to infinity as x → ∞. Suppose also that for every real θ with 0 < θ < 1, the sum over n in A of ‖θn‖ diverges, where ‖·‖ is the distance to the nearest integer. Then every sufficiently large integer is a sum of distinct elements of A.","Let A ⊆ ℕ satisfy |A ∩ (x, 2x]| → ∞ as x → ∞, and suppose Σ_{n∈A} ‖θn‖ diverges for every θ ∈ (0,1), where ‖·‖ is the distance to the nearest integer. Then every sufficiently large integer is a sum of distinct elements of A.","Claude (claude-opus-5-5), delegated by SimXem",yes
+fc_GreensOpenProblems_51@55710cf58467,fc:GreensOpenProblems/51,GreensOpenProblems: Green's Open Problem 51,"Suppose that $A \subset \mathbb{F}_2^n$ is a set of density $\alpha$. What is the largest size of coset
+guaranteed to be contained in $2A$?
+
+We phrase this by asking for the exact function $F(\alpha, n)$ giving the maximum dimension
+of a guaranteed coset.
+
+Suppose that $A \subset \mathbb{F}_2^n$ has density $\alpha > 1/2 - C/\sqrt{n}$.
+Does $A + A$ contain a subspace of co-dimension $O_C(1)$? [Sa11, Question 5.1]","theorem green_51 : answer(sorry) = guaranteedMaxCosetDim
+
+theorem green_51.one_half :
+    answer(sorry) ↔ ∀ (k : ℝ), 0 < k →
+      ∃ (c : ℕ), ∀ᶠ (n : ℕ) in atTop,
+        ∀ (α : ℝ), α > (1/2 : ℝ) - k / sqrt (n : ℝ) → α ≤ 1 →
+          n ≤ guaranteedMaxCosetDim n α + c","Let F(α,n) be the largest d such that every A ⊆ F_2^n of density α has A+A containing a coset of a d-dimensional subspace. Determine F exactly.
+
+Also: for every C>0, is there c such that for all large n and all α in (1/2 − C/√n, 1], F(α,n) ≥ n − c?","Let F(α,n) be the largest d such that A + A contains a d-dimensional coset whenever A ⊆ F_2^n has density ≥ α. Determine F. Also: does every C > 0 admit c with F(α,n) ≥ n − c for large n and α ∈ (1/2 − C/√n, 1]?","Claude (claude-opus-5-5), delegated by SimXem",yes

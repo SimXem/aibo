@@ -1,0 +1,5 @@
+Here is what actually happened to each problem between {t0} and {snapshot_date}, according to the trackers:
+
+{items}
+
+{stage3_question}

@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Let R be a ring, and let I and J be left ideals of R that are nil (every element is nilpotent). Then I + J is also nil: every element of I + J is nilpotent.",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r054",
+ "draft": "**Köthe conjecture:** Let R be any ring, and let I and J be left ideals of R that are nil, meaning every element is nilpotent. Then their sum I + J is also a nil left ideal: every element of I + J is nilpotent.",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "f2f20f2880ba04d62a2ade460127d6bd5ce1c6168df453c37fe8cfb186fbb7dc",
+ "key": "fc_Wikipedia_Koethe@42c0cff0c21c",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "The **Köthe conjecture**: In any ring, the sum of two nil left ideals is nil.",
+ "source_lean": "theorem KotheConjecture (I J : Ideal R) (hI : IsNil I) (hJ : IsNil J) : IsNil (I + J)",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "fc:Wikipedia/Koethe"
+}

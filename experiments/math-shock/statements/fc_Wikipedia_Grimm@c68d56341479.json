@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Let n, k ≥ 1 and suppose n, n+1, …, n+k−1 are all composite.\n\n1. There exist distinct primes p_0, …, p_{k−1} such that p_i divides n+i for each i from 0 to k−1.\n2. (Weaker) There exist k distinct primes, each dividing at least one of n, …, n+k−1.",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r052",
+ "draft": "Let n, k ≥ 1 and suppose n, n+1, …, n+k−1 are all composite.\n\n1. There exist distinct primes p_0, …, p_{k−1} such that p_i divides n+i for each i from 0 to k−1.\n2. (Weaker) There exist k distinct primes, each dividing at least one of n, …, n+k−1.",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "0d8900d02aec409488d020f2f29063ed7612a2edeaa0f5a4468ce640bd8c2ede",
+ "key": "fc_Wikipedia_Grimm@c68d56341479",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "**Grimm's Conjecture**\nIf $n, n+1, \\dots, n+k-1$ are all composite numbers, then there are $k$ distinct primes $p_i$\nsuch that $p_i$ divides $n + i$ for all $0 \\le i \\le k-1$.\n\n**Grimm's Conjecture, weaker version**\nIf $n, n+1, \\dots, n+k-1$ are all composite numbers, then their product\nhas at least $k$ distinct prime divisors.",
+ "source_lean": "theorem grimm_conjecture (n k : ℕ) (hn : 1 ≤ n) (hk : 1 ≤ k)\n    (h : ∀ i : Fin k, (n + i).Composite) :\n    ∃ ps : Fin k ↪ ℕ,  ∀ i : Fin k, (ps i).Prime ∧ ps i ∣ (n + i)\n\ntheorem grimm_conjecture_weak (n k : ℕ) (hn : 1 ≤ n) (hk : 1 ≤ k)\n    (h : ∀ i : Fin k, (n + i).Composite) :\n    ∃ ps : Fin k ↪ ℕ,  ∀ i : Fin k, (ps i).Prime ∧ ∃ j : Fin k, ps i ∣ (n + j)",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "fc:Wikipedia/Grimm"
+}

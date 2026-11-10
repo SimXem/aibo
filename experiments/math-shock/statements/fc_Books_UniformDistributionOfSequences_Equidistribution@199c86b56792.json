@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Three problems:\n\n1. Show that the sequence (3/2)^n, n = 0, 1, 2, …, is equidistributed modulo 1.\n2. Show that for every real x transcendental over the rationals, the sequence x·(3/2)^n is equidistributed modulo 1.\n3. Find an explicit accumulation point of the sequence of fractional parts of (3/2)^n.",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r036",
+ "draft": "Three problems:\n\n1. Show that the sequence (3/2)^n, n = 0, 1, 2, …, is equidistributed modulo 1.\n2. Show that for every real x transcendental over the rationals, the sequence x·(3/2)^n is equidistributed modulo 1.\n3. Find an explicit accumulation point of the sequence of fractional parts of (3/2)^n.",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "c6527d23aafb3d5cdc2c1b235b28c403bc10080a75746a3758fa051b7243d839",
+ "key": "fc_Books_UniformDistributionOfSequences_Equidistribution@199c86b56792",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "The sequence `(3/2)^n` is equidistributed modulo `1`.\n\nFor any transcendental number `x`, the sequence `x * (3 / 2) ^ n` is\nequidistributed modulo 1.\n\nFind an accumulation point of the sequence `(3/2)^n` modulo `1`.",
+ "source_lean": "theorem isEquidistributedModuloOne_three_halves_pow :\n    IsEquidistributedModuloOne (fun n => (3 / 2 : ℝ)^n)\n\ntheorem isEquidistributedModuloOne_transcendental_three_halves_pow (x : ℝ)\n    (hx : Transcendental ℚ x) :\n    IsEquidistributedModuloOne (fun n ↦ x * (3 / 2 : ℝ) ^ n)\n\ntheorem isAccumulationPoint_three_halves_pow :\n    IsAccumulationPoint answer(sorry) (fun n => Int.fract <| (3 / 2 : ℝ)^n)",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "fc:Books/UniformDistributionOfSequences/Equidistribution"
+}

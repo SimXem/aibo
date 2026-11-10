@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "For N ≥ 1, let f(N) be the largest t such that there are distinct subsets A_1, …, A_t of {1, …, N} with every A_i ∩ A_j (i ≠ j) a non-empty arithmetic progression. Find an explicit g(N) with f(N) ~ g(N) as N → ∞.",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r009",
+ "draft": "For N ≥ 1, let f(N) be the largest t such that there are t distinct subsets A_1, …, A_t of {1, …, N} where, for all i ≠ j, A_i ∩ A_j is a non-empty arithmetic progression. Find an explicit function g(N) with f(N) ~ g(N) as N → ∞.",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "9e27cea560e6546a67f73ecb92399cc14efdfe5fc277af62554ce0c4d1799e1b",
+ "key": "erdos_272@36c944d87001",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Let $N\\geq 1$. What is the largest $t$ such that there are\n$A_1,\\ldots,A_t\\subseteq \\{1,\\ldots,N\\}$ with $A_i\\cap A_j$ a non-empty\narithmetic progression for all $i\\neq j$?",
+ "source_lean": "theorem erdos_272 :\n    (fun N ↦ (maxArithInterCard N : ℝ)) ~[atTop] (answer(sorry) : ℕ → ℝ)",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:272"
+}

@@ -1,0 +1,24 @@
+{
+ "bundles": [
+  {
+   "branch": "main",
+   "fetched_utc": "2026-11-03T17:21:46+00:00",
+   "file": "erdosproblems-e8eb30547deb933a8a83259597eb5cdc57d680b4.bundle",
+   "head": "e8eb30547deb933a8a83259597eb5cdc57d680b4",
+   "head_commit_date": "2026-11-03T17:05:03Z",
+   "repo": "erdosproblems",
+   "sha256": "d58b9b66c06a5bdfde15a3a26ccf6379040636916306490af7824da9351e7ac6",
+   "url": "https://github.com/teorth/erdosproblems.git"
+  },
+  {
+   "branch": "main",
+   "fetched_utc": "2026-11-03T17:22:27+00:00",
+   "file": "formal-conjectures-91de7907319346b089ceb4749313feb0f94fe269.bundle",
+   "head": "91de7907319346b089ceb4749313feb0f94fe269",
+   "head_commit_date": "2026-11-03T16:33:21Z",
+   "repo": "formal-conjectures",
+   "sha256": "9b880932f5d47f2c77dca008481a0e91c64baa41906fde12fdc9449ac830ad63",
+   "url": "https://github.com/google-deepmind/formal-conjectures.git"
+  }
+ ]
+}

@@ -1,0 +1,33 @@
+# Secrets (API keys). Never commit.
+.env
+.env.*
+
+# Python environment and bytecode
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# Disposable working copies, rebuilt from the bundles
+work/
+cache/
+
+# Tracker git bundles: large and kept locally (checksums are in archive/manifest.json)
+archive/*.bundle
+
+# Dry-run (--stub) output, regenerable at no cost
+runs/**/raw_stub/
+runs/**/parsed_stub.csv
+
+# Personal Claude Code settings (the shared .claude/settings.json is committed)
+.claude/settings.local.json
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+*:Zone.Identifier

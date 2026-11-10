@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "There are infinitely many regular primes. A prime p is regular if p does not divide the class number of the p-th cyclotomic field Q(ζ_p).",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r058",
+ "draft": "There are infinitely many regular primes. A prime p is regular if p does not divide the class number of the p-th cyclotomic field Q(ζ_p).",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "f13d18cbc47399f0e2b3a4dd48e0ac538f22dacbdb0bfbad1fa3a01eda24582f",
+ "key": "fc_Wikipedia_RegularPrimes@01fc00e491c4",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Conjecture: The set of regular primes is infinite.",
+ "source_lean": "theorem regularprime_conjecture : RegularPrimeConjecture",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "fc:Wikipedia/RegularPrimes"
+}

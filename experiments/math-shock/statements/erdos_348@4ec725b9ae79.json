@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Find all pairs of natural numbers m < n such that some nondecreasing natural-number sequence stays complete after zeroing the terms at any m indices, but not after zeroing the terms at any n indices. Complete: every sufficiently large integer is a sum of distinct values of the sequence.",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r017",
+ "draft": "Find all pairs of natural numbers m < n for which some nondecreasing sequence a_0 ≤ a_1 ≤ … of natural numbers has this property: replacing the terms at any m indices by 0 leaves a complete set of values, but doing so at any n indices does not. Complete means every sufficiently large integer is a sum of distinct elements.",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "89f92d6739741514e215701b75acac17ce49e3595d2c6325873601e5fff805c3",
+ "key": "erdos_348@4ec725b9ae79",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "For what values of $0 \\leq m < n$ is there a complete sequence\n$A = \\{a_1 \\leq a_2 \\leq \\cdots\\}$ of integers such that\n 1. $A$ remains complete after removing any $m$ elements, but\n 2. $A$ is not complete after removing any $n$ elements.",
+ "source_lean": "theorem erdos_348 :\n    { (m, n) | (m) (n) (_ : m < n) (a : ℕ → ℕ) (_ : Monotone a)\n      (_ : ∀ s, s.card = m → IsAddComplete (Set.range (Function.updateFinset a s 0)))\n        (_ : ∀ t, t.card = n → ¬IsAddComplete (Set.range (Function.updateFinset a t 0))) } =\n    answer(sorry)",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:348"
+}

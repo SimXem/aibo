@@ -1,0 +1,61 @@
+unit_id,code,role,stratum,collection,display_name,solved,solve_date,outcome_type,incl_prob,rank_key
+erdos:1060,P49A20,random,erdos,ErdosProblems,Erdős Problem 1060,0,,,0.094937,10025d733e63cbb1
+erdos:1061,PE29DA,random,erdos,ErdosProblems,Erdős Problem 1061,0,,,0.094937,09c5ca58302b8bd4
+erdos:1094,P67A56,random,erdos,ErdosProblems,Erdős Problem 1094,0,,,0.094937,03eb9412c1bb2ad2
+erdos:1145,PB6986,random,erdos,ErdosProblems,Erdős Problem 1145,0,,,0.094937,09f093849ab0e97a
+erdos:1150,P15F0E,random,erdos,ErdosProblems,Erdős Problem 1150,1,2026-10-11,resolved,0.232068,04575c286bcf449d
+erdos:234,P51C31,random,erdos,ErdosProblems,Erdős Problem 234,0,,,0.094937,0a4f8c9ad59176e8
+erdos:247,P36FF9,random,erdos,ErdosProblems,Erdős Problem 247,0,,,0.094937,010fe9a21a903ee3
+erdos:251,P7BB2A,random,erdos,ErdosProblems,Erdős Problem 251,0,,,0.094937,062c9f36447c4d5c
+erdos:254,PF0220,guaranteed,erdos,ErdosProblems,Erdős Problem 254,1,2026-08-07,resolved,0.232068,2bd712b21ff61ccc
+erdos:272,PA0866,random,erdos,ErdosProblems,Erdős Problem 272,0,,,0.094937,077b9587e87e6a21
+erdos:28,PA43C9,random,erdos,ErdosProblems,Erdős Problem 28,0,,,0.094937,0702ac6c734d8435
+erdos:289,PF315D,random,erdos,ErdosProblems,Erdős Problem 289,1,2026-10-07,resolved,0.232068,08f11f80d2bd5b37
+erdos:291,P7493A,random,erdos,ErdosProblems,Erdős Problem 291,0,,,0.094937,04c86248f768b538
+erdos:325,PB41CE,random,erdos,ErdosProblems,Erdős Problem 325,0,,,0.094937,0fb20cd564a604c3
+erdos:329,P7310C,random,erdos,ErdosProblems,Erdős Problem 329,0,,,0.094937,0094e1bd80b3f610
+erdos:340,P25018,random,erdos,ErdosProblems,Erdős Problem 340,0,,,0.094937,05b828cf426f2c7b
+erdos:341,PA385D,guaranteed,erdos,ErdosProblems,Erdős Problem 341,1,2026-09-18,resolved,0.232068,1d86f1b4a2fcaba7
+erdos:348,PF7B69,guaranteed,erdos,ErdosProblems,Erdős Problem 348,1,2026-10-08,resolved,0.232068,34b01487f7bb3439
+erdos:366,PB296F,random,erdos,ErdosProblems,Erdős Problem 366,0,,,0.094937,123272d42043990c
+erdos:386,PA33BB,random,erdos,ErdosProblems,Erdős Problem 386,0,,,0.094937,11f07fb940e02d41
+erdos:421,P809FC,guaranteed,erdos,ErdosProblems,Erdős Problem 421,1,2026-09-01,solved,0.232068,16dd8172454097dd
+erdos:424,P53BE7,guaranteed,erdos,ErdosProblems,Erdős Problem 424,1,2026-09-21,resolved,0.232068,311619386e409917
+erdos:513,P615DB,random,erdos,ErdosProblems,Erdős Problem 513,0,,,0.094937,0082df9adbdc3463
+erdos:520,P45303,guaranteed,erdos,ErdosProblems,Erdős Problem 520,1,2026-09-18,resolved,0.232068,25307d1fd6366ef4
+erdos:535,P13827,random,erdos,ErdosProblems,Erdős Problem 535,0,,,0.094937,06e0eb0b8babb834
+erdos:598,PEE92E,random,erdos,ErdosProblems,Erdős Problem 598,0,,,0.094937,0f98b5c3a19b5bbc
+erdos:617,PA0FA4,random,erdos,ErdosProblems,Erdős Problem 617,0,,,0.094937,0b387222f34ff624
+erdos:688,PB1864,random,erdos,ErdosProblems,Erdős Problem 688,0,,,0.094937,04b4de9baf47c11a
+erdos:689,P2E38F,random,erdos,ErdosProblems,Erdős Problem 689,1,2026-10-12,resolved,0.232068,003537db3817f41a
+erdos:726,P860D3,random,erdos,ErdosProblems,Erdős Problem 726,0,,,0.094937,040ae81ccc14ca55
+erdos:75,P2B869,random,erdos,ErdosProblems,Erdős Problem 75,0,,,0.094937,00854cfaffbb0c18
+erdos:835,PB3032,random,erdos,ErdosProblems,Erdős Problem 835,0,,,0.094937,030abe75b2405430
+erdos:913,PB15ED,random,erdos,ErdosProblems,Erdős Problem 913,0,,,0.094937,0fcf306704a3a5d4
+erdos:918,PE47EE,random,erdos,ErdosProblems,Erdős Problem 918,0,,,0.094937,069945f1af1248d8
+erdos:931,P14FDF,random,erdos,ErdosProblems,Erdős Problem 931,0,,,0.094937,1213129ba48683db
+erdos:96,PA32FB,random,erdos,ErdosProblems,Erdős Problem 96,0,,,0.094937,09a6f21fb02f29cd
+fc:Books/UniformDistributionOfSequences/Equidistribution,P51E2B,random,fc_other,Books,Books: Equidistributed Sequences,0,,,0.093750,0763bdf1cdec9aa0
+fc:GreensOpenProblems/29,PE9A6B,guaranteed,fc_other,GreensOpenProblems,GreensOpenProblems: Ben Green's Open Problem 29,1,2026-09-18,resolved,0.231061,303b41913da6dd5e
+fc:GreensOpenProblems/3,P5E395,random,fc_other,GreensOpenProblems,GreensOpenProblems: Ben Green's Open Problem 3,1,2026-09-12,resolved,0.231061,09b6100afa7bc166
+fc:GreensOpenProblems/40,P613D0,random,fc_other,GreensOpenProblems,GreensOpenProblems: Ben Green's Open Problem 40,0,,,0.093750,14beea8c7fa70711
+fc:GreensOpenProblems/41,P7FF46,random,fc_other,GreensOpenProblems,GreensOpenProblems: Ben Green's Open Problem 41,0,,,0.093750,10b9f726039b512f
+fc:GreensOpenProblems/51,PE2A32,random,fc_other,GreensOpenProblems,GreensOpenProblems: Green's Open Problem 51,0,,,0.093750,17bb3ce114812cdd
+fc:GreensOpenProblems/54,P8A11D,guaranteed,fc_other,GreensOpenProblems,GreensOpenProblems: Ben Green's Open Problem 54,1,2026-09-13,resolved,0.231061,2cc04c37fde5d155
+fc:GreensOpenProblems/77,P0FF79,random,fc_other,GreensOpenProblems,GreensOpenProblems: Ben Green's Open Problem 77,0,,,0.093750,1a381f65f40e623a
+fc:GreensOpenProblems/94,PC5591,random,fc_other,GreensOpenProblems,GreensOpenProblems: Ben Green's Open Problem 94,1,2026-10-11,resolved,0.231061,1e521e691fa18eec
+fc:OEIS/228828,P41504,random,fc_other,OEIS,OEIS: 228828,0,,,0.093750,0a8ddba25a3c86cc
+fc:Paper/HartshorneConjecture,P01F44,random,fc_other,Paper,Paper: HartshorneConjecture,0,,,0.093750,1a15117b746f9a0a
+fc:Paper/StrongSensitivityConjecture,PA49F4,guaranteed,fc_other,Paper,Paper: Strong Sensitivity Conjecture (`bs(f) ≤ s(f)^2`),1,2026-10-11,resolved,0.231061,2edb5c7fe61d22d9
+fc:Paper/VoronovskajaTypeFormula,PB5A4F,guaranteed,fc_other,Paper,Paper: Voronovskaja-type Formula for the Bezier Variant of the Bernstein Operators,1,2026-09-14,resolved,0.231061,2b5b7fa1d50bf95e
+fc:Wikipedia/EulerSumOfPowers,P899EA,random,fc_named,Wikipedia,Wikipedia: Euler's sum of powers conjecture,0,,,0.099099,03e685dfa53ec358
+fc:Wikipedia/Firoozbakht,P2551A,random,fc_named,Wikipedia,Wikipedia: Firoozbakht's conjecture,0,,,0.099099,13e40e2550ae48f7
+fc:Wikipedia/FlintCooksonHills,P81399,random,fc_named,Wikipedia,Wikipedia: Convergence of the Flint Hills and Cookson Hills series,0,,,0.099099,1b0f1a1afb5463ce
+fc:Wikipedia/Grimm,PE6A9E,random,fc_named,Wikipedia,Wikipedia: Grimm's conjecture,0,,,0.099099,114d2e78b1a93b84
+fc:Wikipedia/Hall,P226B7,random,fc_named,Wikipedia,Wikipedia: Hall's conjecture,0,,,0.099099,1314983b294de604
+fc:Wikipedia/Koethe,P5E074,random,fc_named,Wikipedia,Wikipedia: Köthe conjecture,0,,,0.099099,1f17b506698b2d63
+fc:Wikipedia/NormalityOfPi,P4E77C,random,fc_named,Wikipedia,Wikipedia: Normality of mathematical constants,0,,,0.099099,1f3c6817212563e6
+fc:Wikipedia/PrimesAndPerfectSquares,PBDB07,random,fc_named,Wikipedia,Wikipedia: Primes and perfect squares,0,,,0.099099,0494e7bc5b0c3596
+fc:Wikipedia/RamanujanTau,P1E0CB,random,fc_named,Wikipedia,Wikipedia: Ramanujan τ-function,0,,,0.099099,1983d8849425b493
+fc:Wikipedia/RegularPrimes,PB6033,random,fc_named,Wikipedia,Wikipedia: Infinite Regular Primes,0,,,0.099099,05117a054a1520d5
+fc:Wikipedia/Schinzel,P23B9D,random,fc_named,Wikipedia,Wikipedia: Hypothesis H,0,,,0.099099,0602a0ce3ae7b0b1

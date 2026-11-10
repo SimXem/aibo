@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "There are only finitely many pairs of natural numbers (n, k) with k ≥ 1 and n ≥ 2k such that the least prime factor of the binomial coefficient C(n, k) exceeds max(⌊n/k⌋, k).",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r002",
+ "draft": "There are only finitely many pairs of natural numbers (n, k) with k ≥ 1 and n ≥ 2k such that the least prime factor of the binomial coefficient C(n, k) exceeds max(⌊n/k⌋, k).",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "59bc7292ce1130d845fec2544d59b101203edb8a5b07f2e7c1ccfd1063879247",
+ "key": "erdos_1094@fa9f25b4ca31",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "For all $n\\ge 2k$ the least prime factor of $\\binom{n}{k}$ is $\\le\\max(n/k,k)$, with only\nfinitely many exceptions.",
+ "source_lean": "theorem erdos_1094 :\n    {(n, k) : ℕ × ℕ | 0 < k ∧ 2 * k ≤ n ∧ (n.choose k).minFac > max (n / k) k}.Finite",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:1094"
+}

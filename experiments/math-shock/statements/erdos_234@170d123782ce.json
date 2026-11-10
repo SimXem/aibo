@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Let p_n denote the n-th prime. Is it true that there is a continuous function f: [0, ∞) → ℝ such that, for every c ≥ 0, the set of natural numbers n with (p_{n+1} − p_n)/log n < c has natural density f(c)?",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r005",
+ "draft": "Let p_n denote the n-th prime. Is it true that there is a continuous function f: [0, ∞) → ℝ such that, for every c ≥ 0, the set of natural numbers n with (p_{n+1} − p_n)/log n < c has natural density f(c)?",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "9b7e2e8c6fe8e26cb17133862a2a3541e0f067ca843ca154264b2124e0efdbce",
+ "key": "erdos_234@170d123782ce",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "Is it true that for all `c ≥ 0`, the density `f c` of integers for which\n`(p (n + 1) - p n) / log n < c` exists and is a continuous function of `c`?",
+ "source_lean": "theorem erdos_234 : answer(sorry) ↔ ∃ f : ℝ≥0 → ℝ, Continuous f ∧\n    ∀ c : ℝ≥0, HasDensity {n : ℕ | primeGap n / log n < c} (f c)",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:234"
+}

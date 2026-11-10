@@ -1,0 +1,16 @@
+Below is the docstring and Lean 4 statement of a mathematical problem, taken from the Formal Conjectures repository. Write a plain-language statement of the problem in at most {max_words} words.
+
+Rules:
+- Use only the information below. Do not add history, attributions, partial results, difficulty, or whether the problem has been solved.
+- Be mathematically accurate: keep every quantifier, hypothesis and constant. If the Lean statement and the docstring differ, follow the Lean statement.
+- If there are several statements, state all of them (they are all part of the problem).
+- Inline notation is fine (e.g. "n^2", "log n"); no LaTeX commands.
+- Output the statement only, with no preamble.
+
+Problem: {display_name}
+
+Docstring(s):
+{docstrings}
+
+Lean statement(s):
+{lean}

@@ -1,0 +1,37 @@
+{
+ "batches": [
+  {
+   "batch_id": "msgbatch_01FuRj1FYysC8NXwY2q8a1nj",
+   "collected": true,
+   "collected_utc": "2026-11-04T15:22:27+00:00",
+   "counts": {
+    "done": 5,
+    "error": 0,
+    "retry_needed": 0
+   },
+   "created_utc": "2026-11-04T15:19:51+00:00",
+   "requests": {
+    "r000": {
+     "sid": "claude-opus-5-5__s0",
+     "turn": "first"
+    },
+    "r001": {
+     "sid": "claude-opus-5-5__s1",
+     "turn": "first"
+    },
+    "r002": {
+     "sid": "claude-opus-5-5__s2",
+     "turn": "first"
+    },
+    "r003": {
+     "sid": "claude-opus-5-5__s3",
+     "turn": "first"
+    },
+    "r004": {
+     "sid": "claude-opus-5-5__s4",
+     "turn": "first"
+    }
+   }
+  }
+ ]
+}

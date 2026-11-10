@@ -1,0 +1,24 @@
+{
+ "approved": true,
+ "approved_text": "Let σ be the sum-of-divisors function, and let S(x) count ordered pairs of positive integers (a, b) with a + b ≤ x and σ(a) + σ(b) = σ(a + b). Does there exist a constant c > 0 such that S(x) is asymptotic to c·x as x → ∞?",
+ "approved_utc": "2026-11-03T18:55:31+00:00",
+ "batch_id": "msgbatch_01SGZUnjtbi6ZBVemkwFXrgt",
+ "checklist_ok": true,
+ "custom_id": "r001",
+ "draft": "Let σ be the sum-of-divisors function, and let S(x) count ordered pairs of positive integers (a, b) with a + b ≤ x and σ(a) + σ(b) = σ(a + b). Does there exist a constant c > 0 such that S(x) is asymptotic to c·x as x → ∞?",
+ "drafter_model": "claude-opus-5-5",
+ "drafter_prompt_sha256": "76296b736d0fe83102a74c945e86df0bb56062e2e343f9e9aaf22fb313f9ceee",
+ "key": "erdos_1061@9ee07658d977",
+ "request_params": {
+  "max_tokens": 16000,
+  "model": "claude-opus-5-5",
+  "output_config": {
+   "effort": "high"
+  }
+ },
+ "reviewer": "Claude (claude-opus-5-5), delegated by SimXem",
+ "source_docstrings": "How many (ordered) solutions are there to `σ(a) + σ(b) = σ(a + b)` with `a + b ≤ x`?\nIs it true that this number is asymptotic to `c * x` for some constant `c > 0`?",
+ "source_lean": "theorem erdos_1061 : answer(sorry) ↔ ∃ c : ℝ, 0 < c ∧ S ~[atTop] (fun x : ℝ ↦ c * x)",
+ "template": "templates/v1/statement_draft.txt",
+ "unit_id": "erdos:1061"
+}

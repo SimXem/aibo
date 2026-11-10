@@ -1,0 +1,52 @@
+# Selection and resolution rules, version 1. Never edit in place: copy to rules_v2.yaml and bump
+# `rules_version` in the wave config. Every value here is read by the pipeline; nothing is hard-coded.
+version: rules_v1
+
+erdos:
+  path: data/problems.yaml
+  # Field precedence for the mathematical status. Early versions of problems.yaml (2025) only
+  # have `status`; later ones add `informal_status` (curated math status) next to the joined `status`.
+  status_fields: [informal_status, status]
+  strip_suffix_regex: '\s*\(.*\)\s*$'      # "disproved (Lean)" -> "disproved"
+  open_states: [open, decidable, falsifiable, verifiable]
+  solved_states: [proved, disproved, solved, independent]
+  partial_states: [not provable, not disprovable]   # excluded from frame at T0; count as not solved at S
+  # Solve date = UTC committer date of the first-parent commit where the status entered the solved set.
+  # (The curated `last_update` field was stale in 16 of 17 post-T0 transitions; it is stored for info only.)
+  date_source: commit
+
+fc:
+  root: FormalConjectures
+  erdos_dir: ErdosProblems                 # these files are a 2nd status source for erdos:N units
+  exclude_dirs: [Subsets, Util]            # Subsets = list files; Util = tooling (moved out of FormalConjectures/ in Sept 2026)
+  # Whole collections kept out of the frame by decision (logged as exclusions):
+  # WrittenOnTheWallII = machine-generated Graffiti graph conjectures (20 of 25 marked solved Jul-Oct 2026).
+  exclude_collections: [WrittenOnTheWallII]
+  named_dirs: [Wikipedia, Millennium, Millenium, HilbertProblems]   # stratum fc_named (Millenium = pre-2026-09 spelling)
+  open_categories: [research open]
+  solved_categories: [research solved, research formally solved]   # 'formally solved' = retired synonym
+  other_categories: [test, API, textbook, undergraduate, graduate, high_school]   # ignored
+  headline_exclude_regex: '(^|\.)variants(\.|$)'
+  headline_min: 1
+  headline_max: 3                           # applies to non-Erdős FC units only (Erdős units need >= 1)
+
+literature_rule:
+  # A unit solved in (T0, S] is dropped (from both sampling pools) if the commit messages of its
+  # status-changing commits (Erdős DB and/or FC) match a keyword, or if dated references exist in the
+  # lines added to its FC file by the FC status-changing commit and ALL of them predate T0.
+  # A same-year reference without a month counts as NOT predating T0.
+  message_keywords: ['in the literature', 'already solved', 'already proved', 'already known', 'previously solved', 'previously proved', 'was known']
+  arxiv_regex: '(?:arXiv:|arxiv\.org/(?:abs|pdf|html)/)(\d{2})(\d{2})\.\d{4,5}'
+  citekey_regex: '\[[A-Z][A-Za-z]*\+?(\d{2})[a-z]?\]'
+  paren_year_regex: '\(((?:19|20)\d{2})\)'
+  ignore_line_regex: 'Copyright'
+  citekey_century_pivot: 40                 # 2-digit year yy <= 40 -> 20yy, else 19yy
+
+strata:
+  erdos: 'source == erdos'
+  fc_named: 'collection in fc.named_dirs'
+  fc_other: 'everything else'
+
+sample:
+  allocation: largest_remainder             # ties broken by stratum name
+  order_by: 'sha256(seed|rules_version|unit_id)'
