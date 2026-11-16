@@ -252,3 +252,15 @@ The Friday listing must contain both the ordinary six-condition published
 group and `airo aside recent-shadow-noairo`. The Wednesday listing must not
 contain the news shadow. These commands do not verify live RSS/Jev access;
 review the first poll receipt and the Friday shadow's snapshot/evidence logs.
+
+The daily AIRO dispatcher checks experiment cadence before storage preflight or
+launching the forecasting runner. An off-day records `skipped` without building a
+site or paging. Missed-start checks also consult cadence for the scheduled UTC
+date, so scheduler downtime on an off-day does not page. A due job whose schedule query or storage preflight fails records
+`failed` with stage `preflight FAILED`, retains the reason in its private log, and
+pages once; it is not later misreported as a missed start or retried automatically.
+
+Due forecasts prune disposable releases and publications before checking space.
+Scheduled jobs reuse installed code and shared state; their preflight reserves
+twice the current site size for a publication plus 2 GiB headroom, subject to the
+configured free-space floor. Deployments still reserve their code and data copies.
