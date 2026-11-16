@@ -248,18 +248,23 @@ class Runtime:
         if not status['healthy']:
             raise SystemExit(1)
 
-    def require_space(self, publish_data=False):
+    def require_space(self, publish_data=False, job_kind=None):
         # Reserve headroom in addition to the candidate's code, website and data copy.
         def size(path):
             return sum(p.stat().st_size for p in path.rglob('*')
                        if not p.is_symlink() and p.is_file()) if path.exists() else 0
-        needed = 2 * 1024**3 + 2 * (size(self.current / 'code') + size(self.current / 'site'))
-        if publish_data:
-            needed += size(self.state)
+        if job_kind is not None:
+            # Jobs use the installed code and shared state; only publication
+            # builds another site. Reserve twice its current size plus headroom.
+            needed = 2 * 1024**3 + (2 * size(self.current / 'site') if publish_data else 0)
+        else:
+            needed = 2 * 1024**3 + 2 * (size(self.current / 'code') + size(self.current / 'site'))
+            if publish_data:
+                needed += size(self.state)
         status = self.storage_status()
         needed = max(needed, status['min_free_bytes'])
         if status['free_bytes'] < needed or status['inode_used_percent'] >= 90:
-            raise RuntimeError(f'Insufficient deployment storage: need {needed} free bytes; '
+            raise RuntimeError(f'Insufficient {"job" if job_kind else "deployment"} storage: need {needed} free bytes; '
                                f"have {status['free_bytes']}; inode usage {status['inode_used_percent']}%")
 
     def prune_locked(self):
@@ -531,29 +536,39 @@ class Runtime:
             receipt = self.root / 'runs' / (key + '.json')
             if receipt.exists():
                 return False  # Includes interrupted/failed runs: no surprise paid retries.
-            if job['kind'] != 'smoke':
-                self.require_space(publish_data=job['kind'] == 'forecast')
             release = self.current.resolve(strict=True)
             code = release / 'code'
             started = {'key': key, 'job': job['id'], 'release': release.name, 'status': 'running', 'started': datetime.now(timezone.utc).isoformat()}
             write_json(receipt, started)
             site = self.root / 'sites' / ('job-' + key)
-            site.mkdir()
-            env = self.environment(code, site)
             ledger = self.root / 'runs' / (key + '.alerts.jsonl')
-            env['FRI_ALERT_LEDGER'] = str(ledger)
             airo = code / AIRO
             argv = {'forecast': ['bash', airo / 'code/cron_run.sh'],
                     'news-poll': [code / '.venv/bin/python', airo / 'code/recent_news.py', 'poll'],
                     'forecastbench': ['bash', code / FORECASTBENCH / 'scripts/fb_cron.sh', job.get('due', '')],
                     'smoke': [code / '.venv/bin/python', '-c', 'import redlines, eeai, forecastbench, fri_forecaster, dashboard; print("scheduled runtime smoke passed")']}[job['kind']]
             cwd = code if job['kind'] in ('forecastbench', 'smoke') else airo
-            stage = 'run FAILED'
+            stage = 'preflight FAILED'
+            launched = False
             try:
-                expects_site = job['kind'] == 'forecast' and any(
-                    len(row.split()) > 1 and row.split()[1] == 'publish'
-                    for row in output([code / '.venv/bin/python', '-m', 'redlines.experiments', 'due'], cwd=airo, env=env).splitlines())
+                env = self.environment(code, site)
+                env['FRI_ALERT_LEDGER'] = str(ledger)
+                due = ''
+                if job['kind'] == 'forecast':
+                    due = output([code / '.venv/bin/python', '-m', 'redlines.experiments', 'due'], cwd=airo, env=env)
+                    if not due.strip():
+                        started.update(status='skipped', reason='No forecast conditions due')
+                        return True
+                expects_site = any(len(row.split()) > 1 and row.split()[1] == 'publish'
+                                   for row in due.splitlines())
+                if job['kind'] == 'forecast':
+                    self.prune_locked()
+                if job['kind'] != 'smoke':
+                    self.require_space(publish_data=expects_site, job_kind=job['kind'])
+                site.mkdir()
+                stage = 'run FAILED'
                 with (self.root / 'logs' / (key + '.log')).open('a') as log:
+                    launched = True
                     run(argv, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
                 if job['kind'] == 'forecastbench':
                     # fb_round's shell exit alone is insufficient; every expected set must build.
@@ -574,15 +589,21 @@ class Runtime:
                     write_json(release / 'release.json', meta)
                 started.update(status='succeeded')
             except Exception as exc:
-                started.update(status='failed', error=type(exc).__name__)
+                started.update(status='failed', error=type(exc).__name__, stage=stage)
+                # Keep the reason in the private log, including failures before launch.
+                with (self.root / 'logs' / (key + '.log')).open('a') as log:
+                    print(f'{stage}: {type(exc).__name__}: {exc}', file=log)
                 if job['kind'] != 'smoke' and not paged(ledger):  # the job's own page says more than this one
                     self.alert(job, f"{key} failed ({type(exc).__name__}). It is not retried.",
                                log=self.root / 'logs' / (key + '.log'), title=stage)
                 raise
             finally:
-                self.save_generated_data(code)
-                started['finished'] = datetime.now(timezone.utc).isoformat()
-                write_json(receipt, started)
+                try:
+                    if launched:
+                        self.save_generated_data(code)
+                finally:
+                    started['finished'] = datetime.now(timezone.utc).isoformat()
+                    write_json(receipt, started)
             return True
 
     def report_unrun(self, jobs, now):
@@ -610,6 +631,26 @@ class Runtime:
                 receipt = runs / (key + '.json')
                 if receipt.exists():
                     continue
+                if job['kind'] == 'forecast':
+                    code = self.current.resolve(strict=True) / 'code'
+                    try:
+                        due = output([code / '.venv/bin/python', '-m', 'redlines.experiments',
+                                      'due', '--date', at.date().isoformat()],
+                                     cwd=code / AIRO, env=self.environment(code, self.root / 'tmp'))
+                    except Exception as exc:
+                        log = self.root / 'logs' / (key + '.log')
+                        log.write_text(f'preflight FAILED: {type(exc).__name__}: {exc}\n')
+                        write_json(receipt, {'key': key, 'job': job['id'], 'status': 'failed',
+                                            'stage': 'preflight FAILED', 'error': type(exc).__name__,
+                                            'started': at.isoformat(), 'finished': now.isoformat()})
+                        self.alert(job, f'{key}: could not check the forecast schedule. It is not run late.',
+                                   log=log, title='preflight FAILED')
+                        continue
+                    if not due.strip():
+                        write_json(receipt, {'key': key, 'job': job['id'], 'status': 'skipped',
+                                            'reason': 'No forecast conditions due',
+                                            'started': at.isoformat(), 'finished': now.isoformat()})
+                        continue
                 write_json(receipt, {'key': key, 'job': job['id'], 'status': 'missed', 'started': at.isoformat(), 'finished': now.isoformat()})
                 self.alert(job, f"{key} was due at {at:%Y-%m-%d %H:%M} UTC and never started: "
                            'the scheduler was not running, or was busy with another job. It is not run late.')

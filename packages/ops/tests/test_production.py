@@ -454,14 +454,24 @@ def test_low_disk_preflight_does_not_fetch_install_or_change_current(runtime, mo
     assert not runtime.storage_status()['healthy']
 
 
-def test_low_disk_blocks_paid_work_before_receipt_or_provider_call(runtime, monkeypatch):
+def test_low_disk_records_and_pages_preflight_failure_without_paid_work(runtime, monkeypatch):
+    p.link(release(runtime, "old"), runtime.current)
+    monkeypatch.setattr(p, "output", lambda *a, **kw: "airo publish none")
+    sent = alerts(runtime, monkeypatch)
     def no_space(**kw):
         raise RuntimeError('Insufficient deployment storage')
     monkeypatch.setattr(runtime, 'require_space', no_space)
     monkeypatch.setattr(p, 'run', lambda *a, **kw: pytest.fail('must not run paid work'))
     with pytest.raises(RuntimeError, match='Insufficient'):
         runtime.execute_job('paid', {'id': 'forecast', 'kind': 'forecast'})
-    assert not (runtime.root / 'runs/paid.json').exists()
+    receipt = json.loads((runtime.root / 'runs/paid.json').read_text())
+    assert receipt['status'] == 'failed'
+    assert receipt['stage'] == 'preflight FAILED'
+    assert receipt['finished']
+    assert 'Insufficient deployment storage' in (runtime.root / 'logs/paid.log').read_text()
+    assert len(sent) == 1 and sent[0][1] == 'preflight FAILED'
+    assert not runtime.execute_job('paid', {'id': 'forecast', 'kind': 'forecast'})
+    assert len(sent) == 1
 
 
 def test_inode_exhaustion_blocks_deployment(runtime, monkeypatch):
@@ -495,7 +505,7 @@ def test_failed_job_pages_once_unless_the_job_already_paged(runtime, monkeypatch
     def fail(argv, **kw):
         raise subprocess.CalledProcessError(1, 'job')
     monkeypatch.setattr(p, 'run', fail)
-    monkeypatch.setattr(p, 'output', lambda *a, **kw: '')
+    monkeypatch.setattr(p, 'output', lambda *a, **kw: 'airo publish none')
     job = {'id': 'airo', 'kind': 'forecast', 'daily_utc': '12:00'}
     with pytest.raises(subprocess.CalledProcessError):
         runtime.execute_job('quiet-job', job)
@@ -515,7 +525,7 @@ def test_a_run_that_succeeds_but_cannot_publish_is_a_publish_failure(runtime, mo
     def run_and_write_a_bad_site(argv, **kw):
         (Path(kw['env']['REDLINES_DOCROOT']) / 'index.html').write_text('not a dashboard')
     monkeypatch.setattr(p, 'run', run_and_write_a_bad_site)
-    monkeypatch.setattr(p, 'output', lambda *a, **kw: '')
+    monkeypatch.setattr(p, 'output', lambda *a, **kw: 'airo publish none')
     with pytest.raises(Exception):
         runtime.execute_job('bad-site', {'id': 'airo', 'kind': 'forecast', 'daily_utc': '12:00'})
     assert [(j, t) for j, t, _ in sent] == [('airo', 'publish FAILED')]
@@ -536,6 +546,7 @@ def test_a_failed_news_poll_is_a_notice_and_a_failed_run_a_page(runtime, monkeyp
 
 
 def test_missed_and_interrupted_jobs_page_once_and_are_not_run_late(runtime, monkeypatch):
+    monkeypatch.setattr(p, "output", lambda *a, **kw: "airo publish none")
     p.link(release(runtime, 'old'), runtime.current)
     (runtime.root / 'jobs-enabled').touch()
     switched_on = datetime(2030, 11, 7, 18, 0, tzinfo=timezone.utc).timestamp()
@@ -641,3 +652,92 @@ def test_a_failed_handover_marks_the_candidate_and_keeps_the_live_release(runtim
         runtime.deploy('a' * 40)
     assert runtime.current.resolve() == old
     assert [f.parent.name for f in (runtime.root / 'releases').glob('*/failed.json')]
+
+
+def test_forecast_with_nothing_due_skips_before_storage_or_runner(runtime, monkeypatch):
+    p.link(release(runtime, 'old'), runtime.current)
+    sent = alerts(runtime, monkeypatch)
+    monkeypatch.setattr(p, 'output', lambda *a, **kw: '')
+    monkeypatch.setattr(runtime, 'require_space', lambda **kw: pytest.fail('off-day must not check forecast storage'))
+    monkeypatch.setattr(p, 'run', lambda *a, **kw: pytest.fail('off-day must not launch runner'))
+    monkeypatch.setattr(runtime, 'save_generated_data', lambda *a: pytest.fail('off-day must not copy data'))
+    job = {'id': 'airo', 'kind': 'forecast'}
+    assert runtime.execute_job('off-day', job)
+    record = json.loads((runtime.root / 'runs/off-day.json').read_text())
+    assert record['status'] == 'skipped'
+    assert record['reason'] == 'No forecast conditions due'
+    assert record['finished']
+    assert not (runtime.root / 'sites/job-off-day').exists()
+    assert not runtime.execute_job('off-day', job)
+    assert sent == []
+
+
+def test_unreadable_forecast_schedule_records_preflight_failure(runtime, monkeypatch):
+    p.link(release(runtime, 'old'), runtime.current)
+    sent = alerts(runtime, monkeypatch)
+    def fail(*a, **kw):
+        raise subprocess.CalledProcessError(1, 'experiments due')
+    monkeypatch.setattr(p, 'output', fail)
+    monkeypatch.setattr(runtime, 'require_space', lambda **kw: pytest.fail('schedule must be checked first'))
+    monkeypatch.setattr(p, 'run', lambda *a, **kw: pytest.fail('must not launch runner'))
+    with pytest.raises(subprocess.CalledProcessError):
+        runtime.execute_job('bad-schedule', {'id': 'airo', 'kind': 'forecast'})
+    record = json.loads((runtime.root / 'runs/bad-schedule.json').read_text())
+    assert record['status'] == 'failed' and record['stage'] == 'preflight FAILED'
+    assert len(sent) == 1 and sent[0][1] == 'preflight FAILED'
+
+
+def test_scheduled_forecast_does_not_reserve_deployment_copies(runtime, monkeypatch):
+    old = release(runtime, '20301108T000000-' + 'a' * 12)
+    p.link(old, runtime.current)
+    # Installed code and historical state are reused, not copied by a job.
+    (old / 'code/large').write_bytes(b'x' * 4096)
+    runtime.state.mkdir()
+    (runtime.state / 'history').write_bytes(b'x' * 4096)
+    (old / 'site').mkdir()
+    (old / 'site/index.html').write_bytes(b'x' * 128)
+    monkeypatch.setattr(runtime, 'storage_status', lambda: {
+        'free_bytes': 2 * 1024**3 + 512, 'min_free_bytes': 0, 'inode_used_percent': 1})
+    runtime.require_space(publish_data=True, job_kind='forecast')
+    with pytest.raises(RuntimeError, match='Insufficient deployment storage'):
+        runtime.require_space(publish_data=True)
+    monkeypatch.setattr(runtime, 'storage_status', lambda: {
+        'free_bytes': 2 * 1024**3 + 128, 'min_free_bytes': 0, 'inode_used_percent': 1})
+    with pytest.raises(RuntimeError, match='Insufficient job storage'):
+        runtime.require_space(publish_data=True, job_kind='forecast')
+
+
+def test_due_forecast_prunes_before_storage_preflight(runtime, monkeypatch):
+    p.link(release(runtime, 'old'), runtime.current)
+    monkeypatch.setattr(p, 'output', lambda *a, **kw: 'airo aside shadow')
+    order = []
+    monkeypatch.setattr(runtime, 'prune_locked', lambda: order.append('prune'))
+    monkeypatch.setattr(runtime, 'require_space', lambda **kw: order.append(('storage', kw)))
+    monkeypatch.setattr(p, 'run', lambda *a, **kw: order.append('run'))
+    runtime.execute_job('due', {'id': 'airo', 'kind': 'forecast'})
+    assert order == ['prune', ('storage', {'publish_data': False, 'job_kind': 'forecast'}), 'run']
+
+
+@pytest.mark.parametrize('schedule_fails', [False, True])
+def test_missed_offday_checks_cadence_and_records_outcome_once(runtime, monkeypatch, schedule_fails):
+    p.link(release(runtime, 'old'), runtime.current)
+    stamp = datetime(2026, 11, 16, 11, 0, tzinfo=timezone.utc).timestamp()
+    (runtime.root / 'jobs-enabled').touch()
+    p.os.utime(runtime.root / 'jobs-enabled', (stamp, stamp))
+    p.os.utime(runtime.current, (stamp, stamp), follow_symlinks=False)
+    sent = alerts(runtime, monkeypatch)
+    def schedule(argv, **kw):
+        assert argv[-2:] == ['--date', '2026-11-16']
+        if schedule_fails:
+            raise subprocess.CalledProcessError(1, 'experiments due')
+        return ''
+    monkeypatch.setattr(p, 'output', schedule)
+    job = {'id': 'airo', 'kind': 'forecast', 'daily_utc': '12:00'}
+    now = datetime(2026, 11, 16, 12, 1, tzinfo=timezone.utc)
+    runtime.report_unrun([job], now)
+    runtime.report_unrun([job], now)
+    record = json.loads((runtime.root / 'runs/airo-20261116.json').read_text())
+    assert record['status'] == ('failed' if schedule_fails else 'skipped')
+    assert len(sent) == int(schedule_fails)
+    if sent:
+        assert sent[0][1] == 'preflight FAILED'
