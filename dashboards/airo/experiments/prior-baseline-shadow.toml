@@ -1,0 +1,9 @@
+# Baseline plus optional access to the previous published Baseline ensemble.
+scenarios = "data/combined_conditions.json"
+instrument = "minimal"
+harness = "pi"
+publish = false
+cadence = ["wed", "fri"]
+
+[conditions.prior-baseline-shadow]
+prior_baseline = true

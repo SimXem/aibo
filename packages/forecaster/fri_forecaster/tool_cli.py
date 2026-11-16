@@ -20,6 +20,10 @@ from fri_forecaster import tools  # noqa: E402
 from fri_forecaster.keys import load_keys  # noqa: E402
 
 def read_page(url, offset=0):
+    from fri_forecaster.prior_forecast import read_snapshot as read_prior
+    prior = read_prior(url, offset)
+    if prior is not None:
+        return prior
     from fri_forecaster.news_cache import read_snapshot
     cached = read_snapshot(url, offset)
     return cached if cached is not None else tools.read_page(url, offset)

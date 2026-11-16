@@ -423,6 +423,13 @@ def minimal_joint_prompt(prompt, variant=DEFAULT_VARIANT):
 
 def condition_prompt(prompt, condition):
     """The joint prompt as a condition asks it: its instrument, its variant."""
+    if condition.get("prior_baseline"):
+        from redlines.prior_shadow import SENTENCE, SELF_SENTENCE
+        addition = SELF_SENTENCE if condition.get("prior_self") else SENTENCE
+        if condition.get("recent_news"):
+            from redlines.news_shadow import NEWS_SENTENCE
+            addition += "\n\n" + NEWS_SENTENCE
+        return minimal_joint_prompt(prompt, condition["variant"]) + "\n\n" + addition + "\n"
     if condition.get("news_cache"):
         from redlines.news_shadow import NEWS_SENTENCE
         out = minimal_joint_prompt(prompt, condition["variant"])
@@ -1180,13 +1187,18 @@ def run_one_joint(label, model_id, groups, by_group, horizons, run_id, retries, 
              # Not in the published number: redlines.runlog.pooled_rows.
              **({"pooled": False} if not condition["pooled"] else {})}
     call_env = {BLOCK_ENV: own_guard} if own_guard else {}
-    if condition.get("news_cache"):
+    if condition.get("news_cache") or condition.get("recent_news"):
         from redlines.news_shadow import PATH_ENV, HASH_ENV
         frozen = condition.get("_news_snapshot")
         if not frozen:
             raise ValueError("news_cache requires a pinned --news-snapshot")
         call_env.update({PATH_ENV: frozen["path"], HASH_ENV: frozen["sha256"]})
         extra["news_snapshot"] = {k: v for k, v in frozen.items() if k != "path"}
+    if condition.get("prior_baseline"):
+        from redlines.prior_shadow import PATH_ENV, HASH_ENV
+        frozen = condition["_prior_snapshot"]
+        call_env.update({PATH_ENV: frozen["path"], HASH_ENV: frozen["sha256"]})
+        extra["prior_baseline_snapshot"] = {k: v for k, v in frozen.items() if k != "path"}
     block = scenarios_block(scenarios, policies)
     sha = hashlib.sha256(block.encode()).hexdigest()
     scenario_ids = [c["id"] for c in scenarios]
@@ -1419,6 +1431,10 @@ def main():
                          "(default: airo, the published series; redlines/experiments.py)")
     ap.add_argument("--condition", action="append", default=[],
                     help="run only this condition of the experiment (repeatable; default: all)")
+    ap.add_argument("--seed-prior-baseline", action="store_true",
+                    help="explicitly bootstrap prior-recent shadow from published Baseline")
+    ap.add_argument("--prior-publication", default=os.environ.get("AIRO_PRIOR_PUBLICATION"),
+                    help="published site directory to freeze for prior-baseline shadow")
     ap.add_argument("--news-snapshot", help="private frozen news JSON for news-cache conditions")
     ap.add_argument("--smoke", action="store_true",
                     help="one model only; rows go to results/experiments/")
@@ -1545,11 +1561,20 @@ def run(args, exp, conditions, path, publish):
                   f"{c['url_block_patterns'] or os.environ.get(BLOCK_ENV) or 'off'} #####")
         return
     for c in conditions:
-        if c.get("news_cache"):
+        if c.get("news_cache") or c.get("recent_news"):
             from redlines.news_shadow import pin
             if not args.news_snapshot:
                 raise ValueError("news-cache condition requires --news-snapshot")
-            c["_news_snapshot"] = pin(args.news_snapshot, c["url_block_patterns"])
+            c["_news_snapshot"] = pin(args.news_snapshot, c["url_block_patterns"] or "")
+    for c in conditions:
+        if c.get("prior_baseline"):
+            from redlines.prior_shadow import freeze, load_self
+            if not args.prior_publication:
+                raise ValueError("prior-baseline shadow requires --prior-publication")
+            if os.environ.get(BLOCK_ENV):
+                raise ValueError("prior-baseline shadow must run without a URL guard")
+            c["_prior_snapshot"] = (load_self("results", args.prior_publication, args.seed_prior_baseline)
+                                    if c.get("prior_self") else freeze(args.prior_publication, "results"))
     load_keys()
     if not os.environ.get("TAVILY_API_KEY") and not args.allow_ungrounded:
         # Refuse rather than degrade. Without Tavily every model still answers
@@ -1624,6 +1649,11 @@ def run(args, exp, conditions, path, publish):
     print(f"{done} ok, {failed} failed, ${spent:.2f} priced spend -> {out} (unconditional) + {cond_out} (instrument)"
           + (f"; {failed_aside} call(s) outside the pooled conditions failed (not in the published number)"
              if failed_aside else ""))
+    if not failed and not failed_aside and not args.smoke and not args.models:
+        for c in conditions:
+            if c.get("prior_self"):
+                from redlines.prior_shadow import save_self
+                save_self(out, run_id, c, panels[c["model_set"]][0], "results")
     if failed or (not publish and failed_aside):
         # A standalone unpublished shadow must report failure to its scheduler;
         # unpooled failures inside a published group still do not fail the day.

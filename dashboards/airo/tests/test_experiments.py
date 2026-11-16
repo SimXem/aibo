@@ -195,7 +195,9 @@ cadence = ["mon", "wed"]
         import subprocess
         r = subprocess.run([sys.executable, "-m", "redlines.experiments", "due", "--date", "2026-10-21"],
                            capture_output=True, text=True, cwd=REPO)
-        self.assertEqual(r.stdout, "airo publish none independent recent critical two-step ai-banned\n")
+        self.assertEqual(r.stdout, "airo publish none independent recent critical two-step ai-banned\n"
+                         "prior-baseline-shadow aside prior-baseline-shadow\n"
+                         "prior-recent-shadow aside prior-recent-shadow\n")
 
     def test_cadences_that_cannot_be_kept_are_refused(self):
         head = 'scenarios = "data/combined_conditions.json"\npublish = true\ncadence = ["wed"]\npooled = ["a"]\n'
