@@ -59,6 +59,6 @@ url_block_patterns = 'forecastingresearch\.org/pdf/airo,forecastingresearch\.org
 variant = "recent"
 news_cache = true
 publish = false
-cadence = ["fri"]
+cadence = "manual"
 max_turns = 0
 url_block_patterns = 'forecastingresearch\.org/pdf/airo,forecastingresearch\.org/research/airo,airo\.forecastingresearch\.org'

@@ -72,6 +72,9 @@ DEFAULTS = {
     "model_set": DEFAULT_MODEL_SET,   # redlines.registry.MODEL_SETS
     "repeats": 1,                     # calls per model per run
     "url_block_patterns": None,       # agent-box's URL guard for these calls alone
+    "recent_news": False,            # news access without the legacy ban
+    "prior_self": False,             # use this shadow’s previous complete ensemble
+    "prior_baseline": False,         # optional prior Baseline ensemble file
     "news_cache": False,             # frozen weekly news input + AI-forecast ban (unpublished shadow)
     "max_turns": None,               # None: instrument default; 0: no forced-turn submission
 
@@ -127,6 +130,11 @@ def condition_sha256(settings):
     """A hash of what a condition's calls are asked: every setting but UNHASHED."""
     keep = {k: settings[k] for k in DEFAULTS if k not in UNHASHED}
     # An opt-in extension must not change existing published condition hashes.
+    for extension in ("recent_news", "prior_self"):
+        if not keep[extension]:
+            del keep[extension]
+    if not keep["prior_baseline"]:
+        del keep["prior_baseline"]
     if not keep["news_cache"]:
         del keep["news_cache"]
     if keep["max_turns"] is None:
@@ -186,6 +194,16 @@ def _check(s, pooled, where):
     if s["max_turns"] is not None and (type(s["max_turns"]) is not int or s["max_turns"] < 0
                                       or s["harness"] != "pi"):
         raise ValueError(f"{where}: max_turns must be a nonnegative integer for pi")
+    if any(not isinstance(s[k], bool) for k in ("recent_news", "prior_self")):
+        raise ValueError(f"{where}: shadow settings must be boolean")
+    if (s["recent_news"] or s["prior_self"]) and not (s["prior_baseline"] and s["recent_news"] and s["prior_self"]):
+        raise ValueError(f"{where}: recent_news/prior_self require the prior-recent shadow together")
+    if not isinstance(s["prior_baseline"], bool):
+        raise ValueError(f"{where}: prior_baseline must be boolean")
+    if s["prior_baseline"] and (pooled or s["publish"] or s["news_cache"] or
+            s["variant"] != "none" or s["instrument"] != "minimal" or
+            s["harness"] != "pi" or s["url_block_patterns"] or s["max_turns"] is not None):
+        raise ValueError(f"{where}: prior_baseline requires unpublished unpooled minimal/pi Baseline without guards or turn overrides")
     if not isinstance(s["news_cache"], bool):
         raise ValueError(f"{where}: news_cache must be boolean")
     if s["news_cache"] and (s["harness"] != "pi" or s["instrument"] != "minimal"

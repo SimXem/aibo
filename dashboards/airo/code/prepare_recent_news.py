@@ -45,12 +45,12 @@ def main():
     try:
         exp = experiments.load(args.experiment)
         conditions = [exp["conditions"][cid] for cid in args.condition]
-        required = [c for c in conditions if c["news_cache"]]
+        required = [c for c in conditions if c["news_cache"] or c.get("recent_news")]
         if not required:
             return 0
         if len(required) != len(conditions):
             raise ValueError("run news-cache conditions separately from other conditions")
-        guards = {c["url_block_patterns"] for c in required}
+        guards = {c["url_block_patterns"] or "" for c in required}
         if len(guards) != 1:
             raise ValueError("news group has different URL guards")
         # Load only the news key, by name, from the installation's keys file

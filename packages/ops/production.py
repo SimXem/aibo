@@ -166,6 +166,7 @@ class Runtime:
         env.update(HOME=str(self.home), PATH=str(code / '.venv/bin') + ':' + self.config['path'],
                    REDLINES_PY=str(code / '.venv/bin/python'), PY=str(code / '.venv/bin/python'),
                    AIRO_RELEASE=str(code / AIRO), REDLINES_REPO=str(code / AIRO), REDLINES_DOCROOT=str(docroot),
+                   AIRO_PRIOR_PUBLICATION=str((self.current / "site").resolve()),
                    AIRO_NEWS_DIR=str(self.state / 'recent-news'),
                    FORECASTER_PI=str(code / FORECASTER / 'node_modules/@earendil-works/pi-coding-agent/dist/bundle/cli.js'),
                    FORECASTER_ENV_FILE=str(self.home / '.config/fri-forecaster/env'),
