@@ -167,6 +167,40 @@ def test_forecast_environment_uses_proxy_and_separate_agent_directory(runtime, m
     assert 'OPENAI_API_KEY' not in env
 
 
+def test_uploader_setup_keeps_credentials_private_and_outside_release(runtime, monkeypatch):
+    selected = release(runtime, 'uploader')
+    p.link(selected, runtime.current)
+    key = {'type': 'service_account', 'client_email': 'uploader@example.iam.gserviceaccount.com',
+           'private_key': '-----BEGIN PRIVATE KEY-----\nexample',
+           'token_uri': 'https://oauth2.googleapis.com/token'}
+    calls = []
+    def verify(argv, **kwargs):
+        candidate = Path(kwargs['env']['FB_UPLOAD_KEY_FILE'])
+        assert json.loads(candidate.read_text()) == key
+        assert candidate.stat().st_mode & 0o777 == 0o600
+        calls.append(argv)
+    monkeypatch.setattr(p, 'run', verify)
+    runtime.configure_forecastbench('gs://bucket/team/binary', key)
+    private = runtime.home / '.config/forecastbench-uploader'
+    assert json.loads((private / 'key.json').read_text()) == key
+    assert private.stat().st_mode & 0o777 == 0o700
+    assert (private / 'key.json').stat().st_mode & 0o777 == 0o600
+    assert json.loads((private / 'settings.json').read_text()) == {
+        'prefix': 'gs://bucket/team/binary', 'account': key['client_email']}
+    assert not (private / 'candidate-key.json').exists()
+    assert len(calls) == 1
+    monkeypatch.setattr(p, 'run', lambda *a, **kw: (_ for _ in ()).throw(RuntimeError('auth failed')))
+    with pytest.raises(RuntimeError, match='auth failed'):
+        runtime.configure_forecastbench('gs://bucket/other/binary', dict(key, private_key='-----BEGIN PRIVATE KEY-----\nreplacement'))
+    assert json.loads((private / 'key.json').read_text()) == key
+    assert not (private / 'candidate-key.json').exists()
+
+
+def test_uploader_setup_refuses_personal_credentials(runtime):
+    with pytest.raises(ValueError, match='service-account JSON key'):
+        runtime.configure_forecastbench('gs://bucket/team/binary', {'type': 'authorized_user'})
+
+
 def test_preserved_publication_requires_explicit_request_and_keeps_its_provenance(runtime, monkeypatch):
     runtime.config['repository'] = 'https://example.invalid/repo.git'
     runtime.config['github_repository'] = 'example/project'

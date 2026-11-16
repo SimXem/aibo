@@ -175,6 +175,47 @@ class Runtime:
                    NO_PROXY='localhost,127.0.0.1,::1', no_proxy='localhost,127.0.0.1,::1')
         return env
 
+    def configure_forecastbench(self, prefix, credentials):
+        """Provision only the uploader key/settings via stdin, never a coding login."""
+        from urllib.parse import urlsplit
+        parsed = urlsplit(prefix or '')
+        if (parsed.scheme != 'gs' or not parsed.netloc or not parsed.path.strip('/')
+                or parsed.query or parsed.fragment):
+            raise ValueError('An upload prefix gs://bucket/team-prefix/binary is required')
+        if (credentials.get('type') != 'service_account'
+                or not credentials.get('client_email', '').endswith('.iam.gserviceaccount.com')
+                or not credentials.get('private_key', '').startswith('-----BEGIN PRIVATE KEY-----')
+                or credentials.get('token_uri') != 'https://oauth2.googleapis.com/token'):
+            raise ValueError('Expected a Google service-account JSON key on stdin')
+        with self.lock():
+            private = self.home / '.config/forecastbench-uploader'
+            private.mkdir(parents=True, mode=0o700, exist_ok=True)
+            private.chmod(0o700)
+            candidate = private / 'candidate-key.json'
+            try:
+                write_json(candidate, credentials)
+                candidate.chmod(0o600)
+                code = self.current.resolve(strict=True) / 'code'
+                env = self.environment(code, self.root / 'tmp')
+                env['FB_UPLOAD_KEY_FILE'] = str(candidate)
+                run([code / '.venv/bin/python', '-c',
+                     'from forecastbench.upload import Storage; import sys; Storage(sys.argv[1])',
+                     credentials['client_email']], env=env, cwd=code, timeout=120)
+                candidate.replace(private / 'key.json')
+                write_json(private / 'settings.json', {'prefix': prefix.rstrip('/'),
+                                                       'account': credentials['client_email']})
+                (private / 'settings.json').chmod(0o600)
+            finally:
+                candidate.unlink(missing_ok=True)
+        print('ForecastBench uploader credentials configured and authentication verified')
+
+    def check_forecastbench_upload(self, due):
+        datetime.strptime(due, '%Y-%m-%d')
+        with self.lock():
+            code = self.current.resolve(strict=True) / 'code'
+            run([code / '.venv/bin/python', '-m', 'forecastbench.upload', '--check-access', due],
+                env=self.environment(code, self.root / 'tmp'), cwd=code, timeout=360)
+
     def alert(self, job, message, log=None, title='run FAILED'):
         """One alert through the release's shared sender (fri_forecaster.alert):
         a page that the run (or its publication) failed; for the news poll, a
@@ -613,7 +654,10 @@ class Runtime:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', default=os.environ.get('AIRO_RUNTIME_CONFIG', str(Path.home() / '.config/airo/runtime.json')))
-    parser.add_argument('command', choices=['deploy', 'rollback', 'status', 'tick', 'serve', 'smoke', 'prune', 'storage', 'build-release'])
+    parser.add_argument('command', choices=['deploy', 'rollback', 'status', 'tick', 'serve', 'smoke', 'prune', 'storage', 'build-release',
+                                            'configure-forecastbench', 'check-forecastbench-upload'])
+    parser.add_argument('--upload-prefix', help='configure-forecastbench: gs://bucket/team-prefix/binary; key JSON on stdin')
+    parser.add_argument('--due', help='check-forecastbench-upload: round folder date for a .txt access probe')
     parser.add_argument('--commit')
     parser.add_argument('--release', help='build-release only (deploy runs it in the candidate): the checked-out release to build')
     publication = parser.add_mutually_exclusive_group()
@@ -625,6 +669,8 @@ def main():
     if args.command == 'deploy': runtime.deploy(args.commit, keep_publication=args.keep_publication, publish_data=args.publish_data)
     elif args.command == 'build-release': runtime.build_release(args.release, args.commit, keep_publication=args.keep_publication, publish_data=args.publish_data)
     elif args.command == 'smoke': runtime.execute_job(args.run_id, {'id': 'smoke', 'kind': 'smoke'})
+    elif args.command == 'configure-forecastbench': runtime.configure_forecastbench(args.upload_prefix, json.load(sys.stdin))
+    elif args.command == 'check-forecastbench-upload': runtime.check_forecastbench_upload(args.due)
     else: getattr(runtime, args.command)()
 
 

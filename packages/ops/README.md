@@ -125,7 +125,15 @@ Change `packages/ops/jobs.json` and merge/deploy it. The daily UTC wake-up deleg
 experiment selection to `experiments/*.toml`; days with nothing due make no paid
 calls. ForecastBench entries have explicit years and due dates. Creating a new
 round means adding an entry, reviewing its cost/configuration, and deploying.
-Submission upload remains manual, as before. What a round submits, and under
+Successful rounds upload their validated submission sets automatically with a
+dedicated service account; configure it using `submissions/forecastbench/README.md`.
+After deploying the upload-capable release, use `airo configure-forecastbench
+--upload-prefix gs://bucket/team-prefix/binary` with the service-account JSON
+key on stdin. The command validates authentication and stores the key/settings
+under the runtime's private home with restricted permissions. Verify write/read
+access with `airo check-forecastbench-upload --due YYYY-MM-DD`; this uses a test
+`.txt` object, never forecasts or provider calls.
+What a round submits, and under
 which of the team's names, is the private name registry's
 (`submissions/forecastbench/ROUND.md`): at most three sets, at
 most one of them public.
@@ -153,12 +161,16 @@ late. A job sends its own when it knows more (a refused key, a set that is not
 ready). The ensemble is the top four by ECI of the models the installation
 holds an API key for; a model whose lab's key is not held is left out until
 there is one. A run fails when any member of that ensemble cannot be reached:
-one that cannot be run, or one whose calls fail. No other model stands in. ForecastBench adds a notice that the sets are ready, while
-upload is by hand.
+one that cannot be run, or one whose calls fail. No other model stands in.
+ForecastBench pages **upload FAILED** on authentication, validation or upload
+failure, and sends a notice when submissions are confirmed uploaded. Fix an
+upload failure with the upload-only command in `submissions/forecastbench/README.md`;
+do not rerun paid forecasts.
 
 Notices: **condition failed** (outside the published number), **ECI fetch
 failed** (the last known ensemble is used), **news fetch failed**, **ensemble
-changed**. Nothing is sent on success, and nothing on the box can report that
+changed**. Apart from the ForecastBench upload confirmation, nothing is sent on
+success, and nothing on the box can report that
 the box is down: watch that from outside. To start scheduling after migration, create the private
 `jobs-enabled` file only after disabling the old server's corresponding jobs.
 

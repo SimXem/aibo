@@ -7,9 +7,9 @@ name = "forecastbench-submission"
 version = "0.1.0"
 description = "ForecastBench rounds: members (run), sets (build) and their leaderboard names"
 requires-python = ">=3.11"
-# Stdlib only, plus the engine installed beside it
+# Google authentication for uploads, plus the engine installed beside it
 # (pip install -e ../../packages/forecaster).
-dependencies = []
+dependencies = ["google-auth[requests]>=2.38,<3"]
 
 [tool.setuptools]
 packages = ["forecastbench"]

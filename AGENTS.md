@@ -20,7 +20,9 @@ explicit code-only deployment. Use `airo rollback` for an unhealthy release.
 See `packages/ops/README.md` for schedules, run receipts and recovery. Add or change
 scheduled work in `packages/ops/jobs.json`, then merge and deploy. Do not launch paid
 forecast jobs merely to test deployment; `airo smoke` exercises the runner without
-provider calls. ForecastBench submission upload is still manual.
+provider calls. ForecastBench rounds upload validated sets automatically; upload
+failures page and can be retried without rerunning forecasts. See
+`submissions/forecastbench/README.md` for the private authentication setup.
 
 Keep machine names, personal paths, production data, credentials and deployment
 receipts outside git. Read the cell's private runtime configuration for its

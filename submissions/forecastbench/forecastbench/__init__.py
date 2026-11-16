@@ -431,7 +431,9 @@ def cmd_build(args):
     json.dump(fs, open(path, "w"), indent=1)
     member_cov = {m: coverage(qset, r) for m, r in members.items()}
     json.dump({"members": list(members), "aggregate": "mean", "name": args.name, "organization": args.org,
-               "member_coverage": member_cov},
+               "member_coverage": member_cov,
+               "submission_sha256": hashlib.sha256(open(path, "rb").read()).hexdigest(),
+               "question_set_sha256": hashlib.sha256(open(os.path.join(root, "question_set.json"), "rb").read()).hexdigest()},
               open(path + ".provenance.json", "w"), indent=1)
     print(f"{len(fs['forecasts'])} forecasts from {len(members)} member(s) -> {path}")
     errs = validate(fs, qset)
