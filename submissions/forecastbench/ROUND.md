@@ -171,8 +171,12 @@ scripts/fb_round.sh 2026-10-25                       # the real round
 
 Unattended, cron runs `scripts/fb_cron.sh <due>` instead: the same round, its output in
 `<ROUNDS_DIR>/<due>/logs/cron.out`, then one alert (`fri_forecaster.alert`; where it goes
-is the installation's `alerts.json`): a notice that the sets are ready to upload, or a
-"run FAILED" page that they are not (unless the round already paged). One crontab line per due date,
+is the installation's `alerts.json`). Successful builds are automatically uploaded
+using the private settings in [the setup guide](README.md). A notice confirms the
+uploads; `upload FAILED` pages on upload errors, and `run FAILED` pages on build
+failures (unless the round already paged). Retry an upload with
+`python -m forecastbench.upload --root <ROUNDS_DIR>/<due>` after sourcing the
+private environment; this makes no forecasting calls. One crontab line per due date,
 a few minutes after the question set appears:
 
 ```
@@ -185,6 +189,7 @@ a few minutes after the question set appears:
 |--------------------|-------------------------------------------------------------------|
 | `forecastbench/__init__.py` | the ForecastBench driver: members (`run`) and sets (`build`) |
 | `forecastbench/names.py`    | the name registry: conditions, members, fingerprints         |
+| `forecastbench/upload.py`   | validated uploads, receipts and upload-only retries           |
 | `scripts/fb_round.sh`       | one round, unattended; `scripts/fb_cron.sh` is the scheduler's entry |
 
 The agent loop, the research tools, the panel and the keys are the engine's

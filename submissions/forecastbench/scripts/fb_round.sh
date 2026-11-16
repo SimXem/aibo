@@ -113,12 +113,14 @@ build() {  # pass, set number, condition: organization and model_organization ar
   "$PY" -m forecastbench build --root "$ROOT" --set-number "$n" --name "$name" \
       --org "$org" "${args[@]}" > "$ROOT/logs/build-$n.log" 2>&1
   rc=$?
+  if [[ $pass == 2 && $rc != 0 ]]; then build_failed=1; fi
   # Only the last pass's line reads "build exited": fb_cron.sh and AIRO's
   # scheduler count those, one per set.
   if [[ $pass == 2 ]]; then log "set $n ($name, as $org): build exited $rc (0 = ready to upload)"
   else log "set $n ($name, as $org): after pass 1, build $rc (0 = ready to upload; pass 2 builds it again)"; fi
 }
 
+build_failed=0
 rm -f "$ROOT"/logs/key-refused-*
 for pass in 1 2; do                         # pass 2 resumes whatever pass 1 left incomplete
   declare -A ran=()                         # a member is run once a pass (conditions share members)
@@ -155,3 +157,4 @@ done
   echo; ls "$ROOT"/*.json | grep -v question_set
 } > "$ROOT/summary.txt"
 log "done"; cat "$ROOT/summary.txt"
+exit "$build_failed"

@@ -1,7 +1,8 @@
 # ForecastBench submission setup
 
-The round scripts generate submission files. Upload is currently manual; creating
-an uploader identity does not enable automatic uploads or change the schedule.
+The scheduled round script builds and validates submission files, uploads them
+with a dedicated service account, and reports success or pages on failure.
+Installations must configure the private upload settings before enabling it.
 See the [round workflow](ROUND.md) and
 [ForecastBench's submission instructions](https://github.com/forecastingresearch/forecastbench/wiki/How-to-submit-to-ForecastBench).
 
@@ -32,7 +33,9 @@ gcloud iam service-accounts describe \
 Send that service-account email to the ForecastBench organizers and ask them to
 grant access to your team's submission prefix, including future round dates.
 Request object creation and, if supported, object metadata reads so uploads can
-be verified. Overwrite and delete access are unnecessary for creating new files.
+be verified and an interrupted upload can be retried safely. Metadata reads are
+required to recover when the server accepted a file but its response was lost.
+Overwrite and delete access are unnecessary for creating new files.
 The account needs no project-wide role to write to a separately authorized
 ForecastBench bucket.
 
@@ -58,15 +61,21 @@ chmod 700 "$FB_KEY_DIR"
    --project="$FB_PROJECT_ID")
 ```
 
-In the runner's private environment, use a separate Cloud SDK configuration and
-activate the service account with its provisioned key:
+For the managed production runtime, deploy the upload-capable release, then
+provision the key over stdin. The runtime validates authentication before
+replacing its private credential and settings files:
 
 ```sh
-export CLOUDSDK_CONFIG="$HOME/.config/forecastbench-uploader/gcloud"
-export CLOUDSDK_CORE_DISABLE_PROMPTS=1
-gcloud auth activate-service-account \
-  --key-file="$HOME/.config/forecastbench-uploader/key.json"
+airo configure-forecastbench \
+  --upload-prefix='gs://your-submission-bucket/your-team-prefix/binary' \
+  < "$FB_KEY_DIR/key.json"
+airo check-forecastbench-upload --due=YYYY-MM-DD
 ```
+
+The second command writes and reads a unique `.txt` test object in that round's
+folder, then deletes it if permitted. It submits no forecasts and sends no alert.
+The production uploader uses Google's authentication library to refresh its
+service-account token; it needs neither `gcloud` nor a personal login.
 
 Keep this configuration separate from the forecasting models' agent directory.
 Replace keys when needed and revoke retired keys after verifying their replacement.
@@ -77,30 +86,58 @@ Cloud Storage API endpoints.
 
 ## Verify and upload
 
+For a standalone runner, put the key at
+`~/.config/forecastbench-uploader/key.json` (or set `FB_UPLOAD_KEY_FILE`) and
+configure the prefix and identity in the private `round.env`:
+
+```sh
+FB_UPLOAD_PREFIX='gs://your-submission-bucket/your-team-prefix/binary'
+FB_UPLOAD_ACCOUNT='forecastbench-uploader@your-project.iam.gserviceaccount.com'
+```
+
+Do not append a round date: the uploader takes it from `question_set.json`.
+Managed installations read the same settings from the private uploader
+`settings.json` written by `airo configure-forecastbench`; explicit environment
+settings override those values. If no key file exists, the uploader can instead
+use `gcloud` with an already configured service account and private
+`CLOUDSDK_CONFIG`. It explicitly selects the configured service account and
+never falls back to a personal account. Missing configuration or failed
+authentication pages `upload FAILED` and makes the scheduled run fail.
+
 After the organizers grant access, verify an actual upload from the runner using
 a test filename and location agreed with them. `gcloud auth list` alone does not
 prove that credentials can refresh or that the account can write to the bucket.
 Do not place a test forecast into a live round without their agreement.
 
 For a real submission, configure the destination from the round invitation and
-upload each validated forecast set explicitly:
+run the upload-only command (also used by `scripts/fb_cron.sh` after a successful
+round). This retries saved forecasts without any paid model calls:
 
 ```sh
-FB_ROUND_DESTINATION='gs://your-submission-bucket/your-team-prefix/binary/YYYY-MM-DD'
-FB_SUBMISSION_FILE='/private/round/YYYY-MM-DD.team.1.json'
-gcloud storage cp --if-generation-match=0 \
-  "$FB_SUBMISSION_FILE" "$FB_ROUND_DESTINATION/"
+set -a
+source "$HOME/.config/fri-forecaster/round.env"
+set +a
+"$PY" -m forecastbench.upload --root "$ROUNDS_DIR/YYYY-MM-DD"
 ```
 
-The generation precondition refuses to overwrite an existing object. Upload only
-the validated submission JSON files, excluding question sets, provenance files
-and logs. Respect the current submission limits and the round's UTC deadline.
-Confirm the remote object's metadata/checksum when read permission is available.
-Keep receipts private. If upload fails, retain the built forecasts and retry the
-upload without rerunning paid forecasting work.
+The uploader selects only the registry's submitted conditions, checks each
+file's identity, build hashes, aggregate coverage and every member's coverage,
+and refuses rehearsals or uploads outside the round's UTC date. Existing builds
+without the new provenance hashes must be rebuilt with `forecastbench build`;
+this reads saved member results without calling forecasting providers.
 
-An automatic uploader should report failure through the runner's existing alert
-channel and mark the submission successful only after upload confirmation.
+Uploads use a generation precondition to refuse overwrites. Success requires
+the server's object name, size, MD5 checksum, generation and creation timestamp
+to match. On a retry, an existing identical object is verified and retained; a
+different object fails. No question sets, provenance files or logs are uploaded.
+Only the submitted conditions go up, subject to the registry's submission limits.
+The private round directory retains `upload-receipt.json` with per-object
+confirmations. If a round partially uploads, rerun this command before the
+deadline to verify existing files and upload the rest.
+
+Keep the runtime configuration and receipts outside git. Provision credentials
+on production and deploy the checked code through the normal release process;
+editing the development checkout does not enable live uploads.
 
 References: [service-account creation](https://docs.cloud.google.com/iam/docs/service-accounts-create),
 [service-account keys](https://docs.cloud.google.com/iam/docs/keys-create-delete),
