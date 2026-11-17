@@ -1,0 +1,806 @@
+{
+ "instrument": "eeai-survey-v2",
+ "continues": [
+  "eeai-survey-v1"
+ ],
+ "source": "Economic Effects of AI: an Expert Survey (Forecasting Research Institute), Part 1 (AI progress) and Part 3 (economic outcomes conditional on AI progress)",
+ "scenarios": {
+  "preamble": "We define three scenarios for different levels of AI development:\n\n- Slow progress\n- Moderate progress\n- Rapid progress\n\nIn the following scenarios, we consider the development of AI capabilities, not adoption. Regulation, social norms, or extended integration processes could all prevent the application of AI to all tasks of which it is capable.\n\nReasonable people may disagree with our characterization of what constitutes slow, moderate, or rapid AI progress. Or they may expect to see slow progress observed with some AI capabilities and moderate or fast progress in others. Nevertheless, we ask you to select which scenario, in sum, you feel best represents your views.\n\nWe consider a capability to have been achieved if there exists an AI system that can do it:\n\n* Inexpensively: with a computational cost not exceeding the salary of an appropriate 2025 human professional using the same amount of time to attempt the task.\n* Reliably: what this means is context-dependent, but typically we mean as reliably as, or more reliably than, a human or humans who do the same tasks professionally.\n\nThe scenarios refer to capability at the end of 2030.",
+  "footnote": "Level 5 autonomy is defined as, “can operate the vehicle on-road anywhere within its region of the world and under all road conditions in which a conventional vehicle can be reasonably operated by a typically skilled human driver. This means, for example, that there are no design-based weather, time-of-day, or geographical restrictions on where and when the ADS can operate the vehicle. However, there may be conditions not manageable by a driver in which the ADS would also be unable to complete a given trip (e.g., white-out snow storm, flooded roads, glare ice, etc.) until or unless the adverse conditions clear.”",
+  "items": [
+   {
+    "id": "slow",
+    "label": "Slow Progress",
+    "indicators": [
+     {
+      "name": "Summary",
+      "text": "By the end of 2030 in this slower-progress future, AI is a capable assisting technology for humans; it can automate basic research tasks, generate mediocre creative content, assist in vacation planning, and conduct relatively standard tasks that are currently (2025) performed by humans in homes and factories."
+     },
+     {
+      "name": "Research",
+      "text": "Researchers can benefit from literature reviews on almost any topic, written at the level of a capable PhD student, yet AI systems rarely produce novel and feasible solutions to difficult problems. As a result, genuine scientific breakthroughs remain almost entirely the result of human-run labs and grant cycles. Nevertheless, AI tools can support other research tasks (e.g., copy editing and data cleaning and analysis), freeing up time for researchers to focus on higher-impact tasks."
+     },
+     {
+      "name": "Problem-solving",
+      "text": "AI can handle roughly half of all freelance software-engineering jobs that would take an experienced human approximately 8 hours to complete in 2025, and if a company augments its customer service team with AI, it can expect the model to be able to resolve most complaints."
+     },
+     {
+      "name": "Creativity",
+      "text": "Writers enjoy a small productivity boost; models can turn out respectable short stories, but full-length novels still need heavy human rewriting to avoid plot holes or stylistic drift. AI can make a 3-minute song that humans would blindly judge to be of equal quality to a song released by a current (2025) major record label."
+     },
+     {
+      "name": "Agency",
+      "text": "At home, an AI system can draft emails, top up your online grocery cart, or collate news articles, and—so long as the task would take a human an hour or less and is well-scoped—it performs on par with a competent human assistant. With a few prompts, AI can create an itinerary and make bookings for a weeklong family vacation that feels curated by a discerning travel agent."
+     },
+     {
+      "name": "Robotics",
+      "text": "Self-driving car capabilities have advanced, but none have achieved true level-5 autonomy. Meanwhile, household robots can make a cup of coffee and unload and load a dishwasher in some modern homes—but they can’t do it as fast as most humans and they require a consistent environment and occasional human guidance. In advanced factories, autonomous systems can perform specific, repetitive tasks that require precision but little adaptability (e.g., wafer handling in semiconductor fabrication facilities)."
+     }
+    ]
+   },
+   {
+    "id": "moderate",
+    "label": "Moderate Progress",
+    "indicators": [
+     {
+      "name": "Summary",
+      "text": "By the end of 2030, in this middle-of-the-road future, AI is capable of being an effective collaborator across creative, corporate, and technical arenas."
+     },
+     {
+      "name": "Research",
+      "text": "R\\&D teams can lean on autonomous lab systems with human research assistants to make rapid advances in solar-cell chemistries or fusion-reactor components, although the inventions are improvements rather than revolutions."
+     },
+     {
+      "name": "Problem-solving",
+      "text": "Almost all freelance software-engineering jobs requiring 5 days or fewer of effort from experienced humans can be tackled by AI, and if a company wants to replace nearly all of its human customer service team with AI, it can probably get away with it, provided customers are not opposed in principle to AI customer service."
+     },
+     {
+      "name": "Creativity",
+      "text": "AI can draft 100-thousand-word novels solid enough for current (2025) mainstream publishers to release with typical levels of editing by a human publisher and can create a 5-minute song that humans would blindly judge to have breakout potential, exceptional emotional depth, and be of equal quality to the best songs released by current (2025) record labels."
+     },
+     {
+      "name": "Agency",
+      "text": "An AI agent can not only craft a well-curated weeklong vacation itinerary, but it can also make last-minute adjustments to bookings in response to unexpected weather, travel delays, or individual requests. Boardrooms are still run by people, but executive teams can delegate multiday operational projects to agentic software that reliably juggles vendors, budgets, and contingencies."
+     },
+     {
+      "name": "Robotics",
+      "text": "Level-5 robo-taxis that can go anywhere a human driver can go finally exist, as do robots that can navigate any home in the US, make a cup of coffee and unload and load a dishwasher as fast and reliably as most humans and without any human guidance. Robots in advanced factories can adapt to different tasks without extensive reprogramming or equipment changes, making real-time decisions, and have increased physical mobility."
+     }
+    ]
+   },
+   {
+    "id": "rapid",
+    "label": "Rapid Progress",
+    "indicators": [
+     {
+      "name": "Summary",
+      "text": "By the end of 2030, in the rapid-progress world, AI systems are capable of competing with the best human minds and workers, and can surpass them. Human creativity and leadership remain valued, but mostly for setting high-level vision—day-to-day execution can be left to silicon-based systems."
+     },
+     {
+      "name": "Research",
+      "text": "Autonomous researchers can collapse years-long research timelines into days, weeks, or months, creating game-changing technologies, such as materials that revolutionize energy storage, or bespoke cancer cures."
+     },
+     {
+      "name": "Problem-solving",
+      "text": "No human freelance software engineer can outperform AI. The same goes for customer service (e.g., call center and support chat), paralegal, and administrative workers (e.g., bookkeepers or scheduling assistants)."
+     },
+     {
+      "name": "Creativity",
+      "text": "Models have become so capable that AI can create an album of the same caliber as the Grammy Album of the Year. Additionally, a single AI agent can generate a Pulitzer- (or Booker Prize-) caliber novel according to current (2025) standards, adapt the book into an engaging two-hour movie,"
+     },
+     {
+      "name": "Agency",
+      "text": "negotiate the resulting book and movie contracts, and launch the marketing campaigns for both while its sibling agents manage the book publishing company and movie studio at the level of highly competent CEOs."
+     },
+     {
+      "name": "Robotics",
+      "text": "Not only do Level-5 robo-taxis exist, but they are, on average, 99.9% safer than human-piloted cars and can venture anywhere off-road that a competent human driver can. Meanwhile, robots can navigate an arbitrary home anywhere in the world, make a cup of the most popular local hot beverage, clean and put away the dishes according to the local custom, fix any plumbing issues that arise while they’re doing the dishes--and they can do it all faster and more reliably than most humans and without human guidance. Robots in advanced factories can autonomously perform the full range of tasks requiring the highest levels of dexterity, coordination, and adaptive decision-making."
+     }
+    ]
+   }
+  ]
+ },
+ "instructions": {
+  "percentiles": "We ask for the 10th, 50th, and 90th percentiles of the economic quantities of interest. To understand what these mean, let's assume you are forecasting a variable x. You think its value may be around 100, but you are uncertain about what it is exactly.\n\nYour 10th percentile forecast is a low estimate: you think there is only a 10% chance that the variable will be lower than it.\n\nYour 50th percentile forecast is a middle estimate: you think there is a 50% chance the variable will be lower than it (and a 50% chance that the variable will be higher than it). It is also known as the median.\n\nYour 90th percentile forecast is a high estimate: you think there is a 90% chance that the variable will be lower than it (and a 10% chance that the variable will be higher than it).",
+  "conditional": "Unconditional forecasts are forecasts where you don't make any specific assumptions about AI progress. Instead, you should reflect on your own beliefs about the speed of AI development and base your forecasts on them. For example, if you think AI development is certain to stall, you should assume that when answering the forecasting questions.\nConditional forecasts—forecasts assuming a given AI scenario—have a very specific meaning in this survey. You should assume that\n\n1. The members of a panel of experts at the end of 2030, including AI experts from academia and industry, economists, AI policy experts, and superforecasters, individually judge which of the three given scenarios best matches the world as it is then, at the end of 2030.\n2. The most commonly selected option is the assumed scenario.\n\nFor example, when we ask for forecasts conditional on the slow AI progress scenario, you should assume that the slow AI progress scenario receives the most votes from the panel. Perhaps they thought that while AI progress otherwise matches the moderate scenario, robotics progress has been slower, and that is a key factor for them. Or maybe they thought that progress has been slow across the board. You should consider all of these options when making your forecasts!",
+  "rationale": "Please explain the reasoning behind your forecasts. How did the different AI scenarios affect them? Refer to specific features in the scenarios where relevant."
+ },
+ "part1": [
+  {
+   "id": "scenario_probabilities",
+   "title": "Probability of AI Scenarios",
+   "kind": "probabilities",
+   "fields": [
+    "slow",
+    "moderate",
+    "rapid"
+   ],
+   "sum": 100,
+   "text": "Imagine a panel of experts at the end of 2030, including AI experts from academia and industry, economists, and AI policy experts. The panel is asked which of the three given scenarios best matches the world as it is then, at the end of 2030. What is the probability that a given scenario will be the most commonly selected option among the panel of experts?",
+   "details": "Note that you may be uncertain about two factors:\n\n* the level of AI capabilities at the end of 2030\n* the disagreement experts may have given a level of AI capabilities\n\nYou should consider both of these factors when giving your forecasts.\n\nIn June 2025, a large panel of experts, including top computer scientists, AI industry engineers and researchers, AI policy professionals, economists studying AI and technology, and superforecasters, was asked\n\nAt the end of 2030, what percent of panelists will choose each of the following scenarios as best matching the general level of AI progress?\n\nAccording to preliminary results, the average non-superforecaster expert (n = 361) estimated that 29.8% of panelists will choose “Slow progress”, 47.9% will choose “Moderate progress”, and 22.3% will choose “Rapid progress”."
+  },
+  {
+   "id": "indicator_importance",
+   "title": "Relative Importance of Indicators",
+   "kind": "allocation",
+   "fields": [
+    "research",
+    "problem_solving",
+    "creativity",
+    "agency",
+    "robotics"
+   ],
+   "sum": 100,
+   "text": "The above scenarios are defined using five indicators, seen on the rows of the grid above:\n\n* Research\n* Problem-solving\n* Creativity\n* Agency\n* Robotics\n\nWhen you think about the economic impacts of AI, which of these indicators do you think are the most important? By important, we refer to bottlenecks to impact—if progress was made, relative to current capabilities, in one indicator but not the others, which one would have the biggest impact? Please allocate 100 percentage points across the indicators.\n\nYour allocation should sum to 100%. Don’t spend too much time on this question; we simply want to understand if there are indicators you find more important than others."
+  },
+  {
+   "id": "household_robot",
+   "title": "Capability in Controlling Physical Systems",
+   "kind": "probability",
+   "text": "What is the probability that the median member of an expert panel will agree with the following at the end of 2030: there exists a commercially available household robot that can reliably (in more than 99% of attempts), and as well as the median human, do at least four out of the following five tasks:\n\n- filling and emptying the dishwasher\n- doing laundry (the entire process from hamper to wardrobe)\n- unloading groceries\n- cooking basic meals\n- vacuuming the floor\n\nAs above, the panel consists of a mixture of AI experts from academia and industry, economists, and AI policy experts.\n\nNote that we are asking whether the same robot can do the tasks—not whether there exists a (potentially different) robot for each task."
+  },
+  {
+   "id": "reliability",
+   "title": "Reliability",
+   "kind": "probability",
+   "text": "What is the probability that the median member of an expert panel will agree with the following at the end of 2030: frontier AI systems generally implement human-requested tasks correctly, avoiding obvious harms. They require minimal oversight for most tasks.\n\nAs above, the panel consists of a mixture of AI experts from academia and industry, economists, and AI policy experts."
+  }
+ ],
+ "questions": [
+  {
+   "id": "gdp",
+   "title": "Change in Gross Domestic Product",
+   "short": "Real GDP growth",
+   "category": "Economic Activity",
+   "unit": "% per year",
+   "bounds": [
+    -100,
+    1000
+   ],
+   "decimals": 1,
+   "uncertainty": true,
+   "preamble": null,
+   "stem": "What will be the annualized change, in percent, in the real Gross Domestic Product (GDP) of the U.S. between",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2022 and the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2023 and the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2024 and the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2025 and the beginning of 2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "the beginning of 2045 and the beginning of 2050?",
+     "added": false
+    }
+   ],
+   "details": "Gross Domestic Product (GDP) measures the total value of goods and services a country produces in a given period of time. Real GDP is the GDP after adjusting for inflation—how much the value of money has decreased during that period—so it captures changes in actual output rather than just price changes.\n\nHere we ask you to estimate the annualized change in the real GDP. We can understand annualization with an example.\n\n1. The GDP in the U.S. increased by 2.5% between 2021 and 2022, and by 2.9% between 2022 and 2023.\n2. That means that the total change in the real GDP of the U.S. between 2021–2023 was an increase of approximately 5.47%: (100% + 2.5%) * (100% + 2.9%) - 100% = 5.47%.\n3. The corresponding annualized change is approximately 2.70%, because constant growth at this rate for two years would lead to the same total growth of 5.47%: (100% + 2.70%)^2 - 100% = 5.47%.\n\nIn this question, annualized change can be calculated by the formula\n\n(real GDP in 2030 / real GDP in 2025)^(1/5) - 100%\n\nfor the first question, and equivalently for the second question.\n\nIf you believe the question becomes invalid—for example, if human economic activity ceases—please enter -100% for the corresponding percentile and explain your reasoning below.\n\nThe historical data shown in the graph, as well as more information, can be found on FRED (https://fred.stlouisfed.org/series/A191RL1A225NBEA) (data from U.S. Bureau of Economic Analysis), which we will use to resolve this question. We show annualized rates over five years. For example, the point dated January 1, 2025, is the annualized change for the years 2020–2024.",
+   "history": "gdp"
+  },
+  {
+   "id": "labor_productivity",
+   "title": "Change in Labor Productivity",
+   "short": "Labor productivity growth",
+   "category": "Economic Activity",
+   "unit": "% per year",
+   "bounds": [
+    -100,
+    1000
+   ],
+   "decimals": 1,
+   "uncertainty": false,
+   "preamble": null,
+   "stem": "What will be the annualized change, in percent, in the labor productivity of the nonfarm business sector in the U.S. between",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2022 and the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2023 and the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2024 and the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2025 and the beginning of 2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "the beginning of 2045 and the beginning of 2050?",
+     "added": false
+    }
+   ],
+   "details": "Labor productivity measures how much economic value (goods and services) is produced per hour worked. The nonfarm business sector comprises private businesses and government enterprises, excluding farms, households, nonprofits, and general government.\n\nHere we ask you to estimate the annualized change in labor productivity. We can understand annualization with an example.\n\n1. Labor productivity in the U.S. increased by 0.9% between 2021 and 2022. From 2022 to 2023, it decreased by 1.4%.\n2. That means that the total change in labor productivity between 2021–2023 was a decrease of approximately 0.51%: (100% + 0.9%) * (100% - 1.4%) - 100% = -0.51%.\n3. The corresponding annualized change is approximately -0.26%, because constant change at this rate for two years would lead to the same total change of -0.51%: (100% - 0.26%)^2 - 100% = -0.52%. (The difference is due to a rounding error.)\n\nIn this question, annualized change can be calculated by the formula\n\n(labor productivity in 2030 / labor productivity in 2025)^(1/5) - 100%\n\nfor the first question, and equivalently for the second question.\n\nIf you believe the question becomes invalid—for example, if human economic activity ceases—please enter -100% for the corresponding percentile and explain your reasoning below.\n\nThe historical data shown in the graph, as well as more information, can be found on FRED (https://fred.stlouisfed.org/series/PRS85006091) (data from the U.S. Bureau of Labor Statistics), which we will use to resolve this question. We show annualized rates over five years. For example, the point dated January 1, 2025, is the annualized change for the years 2020–2024.",
+   "history": "labor_productivity"
+  },
+  {
+   "id": "tfp",
+   "title": "Change in Total Factor Productivity",
+   "short": "Total factor productivity growth",
+   "category": "Economic Activity",
+   "unit": "% per year",
+   "bounds": [
+    -100,
+    1000
+   ],
+   "decimals": 1,
+   "uncertainty": false,
+   "preamble": null,
+   "stem": "What will be the annualized change, in percent, in the total factor productivity of the private nonfarm business sector in the U.S. between",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2022 and the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2023 and the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2024 and the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2025 and the beginning of 2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "the beginning of 2045 and the beginning of 2050?",
+     "added": false
+    }
+   ],
+   "details": "Total factor productivity (TFP) refers to how much output can be generated with a given amount of labor and capital inputs. An increase in TFP represents a higher efficiency in converting inputs to outputs, for example, due to advancements in technology and worker knowledge. The output consists of all goods and services produced by the sector. The private nonfarm business sector comprises private businesses, excluding farms, households, nonprofits, and all government operations, including government enterprises.\n\nHere we ask you to estimate the annualized change in total factor productivity. We can understand annualization with an example.\n\n- Total factor productivity in the U.S. increased by 3.8% between 2021 and 2022. From 2022 to 2023, it decreased by 1.1%.\n- That means that the total change in labor productivity between 2021–2023 was an increase of approximately 2.66%: (100% + 3.8%) * (100% - 1.1%) - 100% = 2.66%.\n- The corresponding annualized change is approximately 1.32%, because constant change at this rate for two years would lead to the same total change of 2.66%: (100% + 1.32%)^2 - 100% = 2.66%.\n\nIn this question, annualized change can be calculated by the formula\n\n(total factor productivity in 2030 / total factor productivity in 2025)^(1/5) - 100%\n\nfor the first question, and equivalently for the second question.\n\nIf you believe the question becomes invalid—for example, if human economic activity ceases—please enter -100% for the corresponding percentile and explain your reasoning below.\n\nThe historical data shown in the graph, as well as more information, can be found on FRED (https://fred.stlouisfed.org/series/MPU4910013#) (data from the U.S. Bureau of Labor Statistics), which we will use to resolve this question. We show annualized rates over five years. For example, the point dated January 1, 2025, is the annualized change for the years 2020–2024.",
+   "history": "tfp"
+  },
+  {
+   "id": "lfpr",
+   "title": "Labor Force Participation Rate",
+   "short": "Labor force participation",
+   "category": "Labor Markets",
+   "unit": "%",
+   "bounds": [
+    0,
+    100
+   ],
+   "decimals": 1,
+   "uncertainty": true,
+   "preamble": null,
+   "stem": "What will be the labor force participation rate in the U.S. at",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "the beginning of 2050?",
+     "added": false
+    }
+   ],
+   "details": "The labor force participation rate is the fraction of the civilian noninstitutional population who are in the labor force.\n\nThe civilian noninstitutional population includes all people residing in the U.S. aged 16 and above, except\n\n- active duty member of the U.S. Armed Forces\n- people confined to, or living in, institutions such as prisons and nursing homes.\n\nThe labor force includes people in the civilian noninstitutional population who are\n\n- employed\n- unemployed, and actively looking and available for work.\n\nIf you believe the question becomes invalid—for example, if the size of the civilian noninstitutional population is zero—please enter 0% for the corresponding percentile and explain your reasoning below.\n\nFor example, the civilian labor force participation rate was 62.4% in January 2023 and 62.5% in January 2024. The historical data shown in the graph can be found on FRED (https://fred.stlouisfed.org/series/CIVPART) (data from the U.S. Bureau of Labor Statistics), which we will use to resolve this question.",
+   "history": "lfpr"
+  },
+  {
+   "id": "unemployment",
+   "title": "Unemployment Rate",
+   "short": "Unemployment rate",
+   "category": "Labor Markets",
+   "unit": "%",
+   "bounds": [
+    0,
+    100
+   ],
+   "decimals": 1,
+   "uncertainty": true,
+   "preamble": null,
+   "stem": "What will be the unemployment rate in the U.S. at",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "the beginning of 2050?",
+     "added": false
+    }
+   ],
+   "details": "The unemployment rate is defined as the fraction of people in the labor force who are unemployed—people who are not working but are actively looking for work.\n\nThe labor force includes all people aged 16 and above who are either employed or unemployed and actively looking and available for work, except\n\n- active duty member of the U.S. Armed Forces\n- people confined to, or living in, institutions such as prisons and nursing homes\n\nThis definition is sometimes called the U-3 unemployment rate. For more details on how employment is measured, see the U.S. Bureau of Labor Statistics (https://www.bls.gov/cps/definitions.htm#ur).\n\nIf you believe the question becomes invalid—for example, if no human is employed or actively looking for work—please enter 0% for the corresponding percentile and explain your reasoning below.\n\nFor example, the unemployment rate in the U.S. was 3.5% in January 2023 and 3.7% in January 2024. The historical data shown in the graph can be found on FRED (https://fred.stlouisfed.org/series/UNRATE#) (data from the U.S. Bureau of Labor Statistics), which we will use to resolve this question.",
+   "history": "unemployment"
+  },
+  {
+   "id": "youth_unemployment",
+   "title": "Youth Unemployment Rate",
+   "short": "Youth unemployment rate (ages 20-24)",
+   "category": "Labor Markets",
+   "unit": "%",
+   "bounds": [
+    0,
+    100
+   ],
+   "decimals": 1,
+   "uncertainty": false,
+   "preamble": null,
+   "stem": "What will be the unemployment rate for 20-24 year-olds in the U.S. at",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "the beginning of 2050?",
+     "added": false
+    }
+   ],
+   "details": "For a definition of the unemployment rate, see “Details” under “Unemployment Rate”. Instead of the unemployment rate in the entire labor force, here we ask you to forecast the unemployment rate in the group of 20–24 year-olds in the labor force.\n\nIf you believe the question becomes invalid—for example, if no human is employed or actively looking for work—please enter 0% for the corresponding percentile and explain your reasoning below.\n\nFor example, the civilian unemployment rate in the U.S. was 7.1% in January 2023 and 6.0% in January 2024. The historical data shown in the graph can be found on FRED (https://fred.stlouisfed.org/series/LNS14000036) (data from the U.S. Bureau of Labor Statistics), which we will use to resolve this question.",
+   "history": "youth_unemployment"
+  },
+  {
+   "id": "jobs_business_analytical",
+   "title": "Share of Business and Analytical Jobs",
+   "short": "Business and analytical jobs",
+   "category": "Labor Markets",
+   "unit": "% of labor force",
+   "bounds": [
+    0,
+    100
+   ],
+   "decimals": 1,
+   "uncertainty": false,
+   "preamble": null,
+   "stem": "What fraction of the labor force will be in business and analytical occupations in the U.S. at",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "the beginning of 2050?",
+     "added": false
+    }
+   ],
+   "details": "For the purposes of this question, [business and analytical/skilled trade and industrial/care and service] occupations are the occupations within\n\n- business and analytical occupations: the following “supersectors” in the private, service-producing industries, as defined (https://www.bls.gov/news.release/empsit.t17.htm) by the Bureau of Labor Statistics (BLS):\n  - Information\n  - Financial Activities\n  - Professional and Business Services\n- skilled trade and industrial occupations: the private, goods-producing industries, as defined (https://www.bls.gov/news.release/empsit.t17.htm) by the Bureau of Labor Statistics (BLS). These include the following “supersectors”:\n  - Natural Resources and Mining\n  - Construction\n  - Manufacturing\n- care and service occupations: the following “supersectors” in the private, service-producing industries, as defined (https://www.bls.gov/news.release/empsit.t17.htm) by the Bureau of Labor Statistics (BLS):\n  - Trade, Transportation, and Utilities\n  - (Private) Education and Health Services\n  - Leisure and Hospitality\n  - Other Services\n\nFor more details on how the BLS defines these “supersectors”, see this article (https://www.bls.gov/sae/additional-resources/naics-supersectors-for-ces-program.htm). If the definitions change, we will follow the standards adopted by the BLS. We use seasonally adjusted (https://www.bls.gov/sae/seasonal-adjustment/) data.\n\nHere we ask you to estimate how the number of these jobs changes as a fraction of the size of the labor force. We can understand this question through an example:\n\n- In January 2024, there were roughly\n  - 34.8 million employees in business and analytical occupations (as defined above).\n  - 21.6 million employees in skilled trade and industrial occupations (as defined above).\n  - 77.5 million employees in care and service occupations (as defined above).\n- In the same month, the size of the labor force was roughly 167.3 million individuals.\n- Therefore,\n  - 34.8/167.3 = 20.8% of the labor force worked in business and analytical occupations.\n  - 21.6/167.3 = 12.9% of the labor force worked in skilled trade and industrial occupations.\n  - 77.5/167.3 = 46.3% of the labor force worked in care and service occupations.\n\nIf you believe the question becomes invalid—for example, if human economic activity ceases—please enter 0% for the corresponding percentile and explain your reasoning below.\n\nThe historical data shown in the graph have been calculated using data found on FRED (employees within industries (https://fred.stlouisfed.org/release/tables?rid=50&eid=4881), size of the labor force (https://fred.stlouisfed.org/series/CLF16OV); data from the BLS). We will use these sources to resolve this question.",
+   "history": "whitecollar"
+  },
+  {
+   "id": "jobs_skilled_trade_industrial",
+   "title": "Share of Skilled Trade and Industrial Jobs",
+   "short": "Skilled trade and industrial jobs",
+   "category": "Labor Markets",
+   "unit": "% of labor force",
+   "bounds": [
+    0,
+    100
+   ],
+   "decimals": 1,
+   "uncertainty": false,
+   "preamble": null,
+   "stem": "What fraction of the labor force will be in skilled trade and industrial occupations in the U.S. at",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "the beginning of 2050?",
+     "added": false
+    }
+   ],
+   "details": "For the purposes of this question, [business and analytical/skilled trade and industrial/care and service] occupations are the occupations within\n\n- business and analytical occupations: the following “supersectors” in the private, service-producing industries, as defined (https://www.bls.gov/news.release/empsit.t17.htm) by the Bureau of Labor Statistics (BLS):\n  - Information\n  - Financial Activities\n  - Professional and Business Services\n- skilled trade and industrial occupations: the private, goods-producing industries, as defined (https://www.bls.gov/news.release/empsit.t17.htm) by the Bureau of Labor Statistics (BLS). These include the following “supersectors”:\n  - Natural Resources and Mining\n  - Construction\n  - Manufacturing\n- care and service occupations: the following “supersectors” in the private, service-producing industries, as defined (https://www.bls.gov/news.release/empsit.t17.htm) by the Bureau of Labor Statistics (BLS):\n  - Trade, Transportation, and Utilities\n  - (Private) Education and Health Services\n  - Leisure and Hospitality\n  - Other Services\n\nFor more details on how the BLS defines these “supersectors”, see this article (https://www.bls.gov/sae/additional-resources/naics-supersectors-for-ces-program.htm). If the definitions change, we will follow the standards adopted by the BLS. We use seasonally adjusted (https://www.bls.gov/sae/seasonal-adjustment/) data.\n\nHere we ask you to estimate how the number of these jobs changes as a fraction of the size of the labor force. We can understand this question through an example:\n\n- In January 2024, there were roughly\n  - 34.8 million employees in business and analytical occupations (as defined above).\n  - 21.6 million employees in skilled trade and industrial occupations (as defined above).\n  - 77.5 million employees in care and service occupations (as defined above).\n- In the same month, the size of the labor force was roughly 167.3 million individuals.\n- Therefore,\n  - 34.8/167.3 = 20.8% of the labor force worked in business and analytical occupations.\n  - 21.6/167.3 = 12.9% of the labor force worked in skilled trade and industrial occupations.\n  - 77.5/167.3 = 46.3% of the labor force worked in care and service occupations.\n\nIf you believe the question becomes invalid—for example, if human economic activity ceases—please enter 0% for the corresponding percentile and explain your reasoning below.\n\nThe historical data shown in the graph have been calculated using data found on FRED (employees within industries (https://fred.stlouisfed.org/release/tables?rid=50&eid=4881), size of the labor force (https://fred.stlouisfed.org/series/CLF16OV); data from the BLS). We will use these sources to resolve this question.",
+   "history": "bluecollar"
+  },
+  {
+   "id": "jobs_care_service",
+   "title": "Share of Care and Service Jobs",
+   "short": "Care and service jobs",
+   "category": "Labor Markets",
+   "unit": "% of labor force",
+   "bounds": [
+    0,
+    100
+   ],
+   "decimals": 1,
+   "uncertainty": false,
+   "preamble": null,
+   "stem": "What fraction of the labor force will be in care and service occupations in the U.S. at",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "the beginning of 2050?",
+     "added": false
+    }
+   ],
+   "details": "For the purposes of this question, [business and analytical/skilled trade and industrial/care and service] occupations are the occupations within\n\n- business and analytical occupations: the following “supersectors” in the private, service-producing industries, as defined (https://www.bls.gov/news.release/empsit.t17.htm) by the Bureau of Labor Statistics (BLS):\n  - Information\n  - Financial Activities\n  - Professional and Business Services\n- skilled trade and industrial occupations: the private, goods-producing industries, as defined (https://www.bls.gov/news.release/empsit.t17.htm) by the Bureau of Labor Statistics (BLS). These include the following “supersectors”:\n  - Natural Resources and Mining\n  - Construction\n  - Manufacturing\n- care and service occupations: the following “supersectors” in the private, service-producing industries, as defined (https://www.bls.gov/news.release/empsit.t17.htm) by the Bureau of Labor Statistics (BLS):\n  - Trade, Transportation, and Utilities\n  - (Private) Education and Health Services\n  - Leisure and Hospitality\n  - Other Services\n\nFor more details on how the BLS defines these “supersectors”, see this article (https://www.bls.gov/sae/additional-resources/naics-supersectors-for-ces-program.htm). If the definitions change, we will follow the standards adopted by the BLS. We use seasonally adjusted (https://www.bls.gov/sae/seasonal-adjustment/) data.\n\nHere we ask you to estimate how the number of these jobs changes as a fraction of the size of the labor force. We can understand this question through an example:\n\n- In January 2024, there were roughly\n  - 34.8 million employees in business and analytical occupations (as defined above).\n  - 21.6 million employees in skilled trade and industrial occupations (as defined above).\n  - 77.5 million employees in care and service occupations (as defined above).\n- In the same month, the size of the labor force was roughly 167.3 million individuals.\n- Therefore,\n  - 34.8/167.3 = 20.8% of the labor force worked in business and analytical occupations.\n  - 21.6/167.3 = 12.9% of the labor force worked in skilled trade and industrial occupations.\n  - 77.5/167.3 = 46.3% of the labor force worked in care and service occupations.\n\nIf you believe the question becomes invalid—for example, if human economic activity ceases—please enter 0% for the corresponding percentile and explain your reasoning below.\n\nThe historical data shown in the graph have been calculated using data found on FRED (employees within industries (https://fred.stlouisfed.org/release/tables?rid=50&eid=4881), size of the labor force (https://fred.stlouisfed.org/series/CLF16OV); data from the BLS). We will use these sources to resolve this question.",
+   "history": "pinkcollar"
+  },
+  {
+   "id": "wealth_inequality",
+   "title": "Wealth Inequality",
+   "short": "Wealth share of the top 10%",
+   "category": "Economic Inequality",
+   "unit": "%",
+   "bounds": [
+    0,
+    100
+   ],
+   "decimals": 1,
+   "uncertainty": true,
+   "preamble": null,
+   "stem": "What will be the fraction of the national wealth owned by the top 10% wealthiest individuals in the U.S. at",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "the beginning of 2050?",
+     "added": false
+    }
+   ],
+   "details": "The wealth of a household contains the total of all financial and non-financial assets (such as houses, land, deposits, bonds, and others) owned by the household, minus their debts.\n\nHere we ask you to estimate what percentage of the wealth of all U.S. households will be owned by the wealthiest 10% of households. For example, the wealthiest 10% in the U.S. owned 71.2% of the total wealth of all U.S. households in 2023.\n\nIf you believe the question becomes invalid—for example, if humans go extinct—please enter 0% for the corresponding percentile and explain your reasoning below.\n\nThe historical data shown in the graph, as well as more information, can be found at Our World in Data (https://ourworldindata.org/grapher/wealth-share-richest-10-percent?tab=chart&country=~USA&mapSelect=~USA), which we will use to resolve this question.",
+   "history": "wealth_inequality"
+  },
+  {
+   "id": "labor_share",
+   "title": "Labor Share",
+   "short": "Labor share of output",
+   "category": "Economic Inequality",
+   "unit": "%",
+   "bounds": [
+    0,
+    100
+   ],
+   "decimals": 1,
+   "uncertainty": false,
+   "preamble": null,
+   "stem": "What will be the labor share in the nonfarm business sector in the U.S. at",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "the beginning of 2050?",
+     "added": false
+    }
+   ],
+   "details": "Labor share is the share of economic output that workers receive in the form of wages, salaries, benefits, and other compensation. It reflects how much of the value produced is distributed among workers.\n\nHere, we ask you to estimate the labor share for workers in the nonfarm business sector in the U.S.. For example, the labor share in Q1 of 2023 was 55.0%. You can find more information about how labor share is defined and estimated in this U.S. Bureau of Labor Statistics (BLS) article (https://www.bls.gov/opub/mlr/2017/article/estimating-the-us-labor-share.htm#edn10).\n\nIf you believe the question becomes invalid—for example, if human economic activity ceases—please enter 0% for the corresponding percentile and explain your reasoning below.\n\nThe historical data shown in the graph are extrapolated from level data shown in this figure (https://www.bls.gov/opub/ted/2017/labor-share-of-output-has-declined-since-1947.htm), published by the BLS, using index data available on FRED (https://fred.stlouisfed.org/series/PRS85006173) (data from the BLS). We will use data computed in this way to resolve the question, or level data directly from the BLS if these become available.",
+   "history": "labor_share"
+  },
+  {
+   "id": "median_household_income",
+   "title": "Median Household Income",
+   "short": "Real median household income",
+   "category": "Income and Well-Being",
+   "unit": "2023 US$",
+   "bounds": [
+    0,
+    100000000.0
+   ],
+   "decimals": 0,
+   "uncertainty": true,
+   "preamble": null,
+   "stem": "What will be the real median household income in the U.S. at",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "the beginning of 2050?",
+     "added": false
+    }
+   ],
+   "details": "The median household income represents the “middle” annual income of all household incomes—it shows the income for which half of the households earn more, and half less. The prefix ‘real’ means that this value is adjusted for inflation. Here, the values are adjusted to the value of the U.S. dollar in 2023.\n\nA household consists of all people who occupy a housing unit as their usual place of residence. Income includes all money received, such as earnings, government benefits, rental income, and pensions. It excludes noncash benefits, such as food stamps and subsidized housing, and tax credits such as the Earned Income Tax Credit. For definitions of household and income, see the U.S. Census Bureau (https://www.census.gov/programs-surveys/cps/technical-documentation/subject-definitions.html).\n\nFor example, the real median household income in the U.S. was $77,540 in 2022 and $80,610 in 2023.\n\nIf you believe the question becomes invalid—for example, if human economic activity ceases—please enter 0% for the corresponding percentile and explain your reasoning below.\n\nThe historical data shown in the graph, as well as more information, can be found on FRED (https://fred.stlouisfed.org/series/MEHOINUSA672N) (data from the U.S. Census Bureau), which we will use to resolve this question.",
+   "history": "median_household_income"
+  },
+  {
+   "id": "life_satisfaction",
+   "title": "Life Satisfaction",
+   "short": "Life satisfaction (0-10 ladder)",
+   "category": "Income and Well-Being",
+   "unit": "Cantril ladder, 0-10",
+   "bounds": [
+    0,
+    10
+   ],
+   "decimals": 2,
+   "uncertainty": false,
+   "preamble": null,
+   "stem": "What will be the average life evaluation in the U.S. on the Cantril ladder according to the World Happiness Report at",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "the beginning of 2050?",
+     "added": false
+    }
+   ],
+   "details": "The World Happiness Report reports the average response from the previous three years to the Cantril ladder question in the Gallup World Poll. This question, posed to approximately 1000 people in each country, asks:\n\n“Please imagine a ladder with steps numbered from 0 at the bottom to 10 at the top. The top of the ladder represents the best possible life for you and the bottom of the ladder represents the worst possible life for you. On which step of the ladder would you say you personally feel you stand at this time?”\n\nHere we ask you to estimate the average life evaluation of U.S. respondents as presented in the World Happiness Report. For example, in the 2025 World Happiness Report, the average of U.S. respondents’ self-assessed life evaluation was 6.724 for the years 2022–2024.\n\nIf you believe the question becomes invalid—for example, if humans go extinct—please enter 0 for the corresponding percentile and explain your reasoning below.\n\nThe historical data shown in the graph, as well as more information, can be accessed on the U.S. country profile from the World Happiness Report (https://data.worldhappiness.report/country/USA), which we will use to resolve this question.",
+   "history": "life_satisfaction"
+  },
+  {
+   "id": "work_hours_assisted",
+   "title": "Work Hours Assisted by Generative AI",
+   "short": "Work hours assisted by generative AI",
+   "category": "AI Adoption",
+   "unit": "% of work hours",
+   "bounds": [
+    0,
+    100
+   ],
+   "decimals": 1,
+   "uncertainty": false,
+   "preamble": "A study (https://fedinprint.org/item/fedlwp/98805/101172) by the Federal Reserve Bank of St. Louis estimated that between 1.3% and 5.4% of all work hours in the U.S. were assisted by generative AI in late 2024. This is based on data collected in the Real-Time Population Survey in November 2024 (N=1008) and measures the intensity of generative AI adoption.",
+   "stem": "What will a future iteration of this study estimate as the percentage of work hours in the U.S. assisted by generative AI at",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "the beginning of 2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "the beginning of 2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "the beginning of 2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "the beginning of 2030?",
+     "added": false
+    }
+   ],
+   "details": "The estimate is based on survey responses to questions about\n\n- usage intensity: for how long do people use generative AI on the days they use it\n- usage frequency: on how many work days they use generative AI\n- amount worked: days and hours worked in the previous week\n\nFor details, see Section 5.1 in the paper (https://fedinprint.org/item/fedlwp/98805/101172).\n\nIf the authors at the Federal Reserve Bank of St. Louis do not run a follow-up study meeting the requirements of this question, the Forecasting Research Institute will appoint a panel of experts to identify an appropriate substitute study.\n\nIf you believe the question becomes invalid—for example, if humans go extinct—please enter 0% for the corresponding percentile and explain your reasoning below.\n\nWe show the midpoint of the range 1.3%-5.4% (3.35%) in the graph below.",
+   "history": "work_hours_assisted"
+  },
+  {
+   "id": "ai_electricity",
+   "title": "AI Electricity Consumption",
+   "short": "AI share of electricity use",
+   "category": "AI Adoption",
+   "unit": "% of U.S. electricity",
+   "bounds": [
+    0,
+    100
+   ],
+   "decimals": 1,
+   "uncertainty": false,
+   "preamble": null,
+   "stem": "What percent of U.S. electricity consumption will be used for training and deploying AI systems in",
+   "horizons": [
+    {
+     "id": "2027",
+     "text": "2027?",
+     "added": true
+    },
+    {
+     "id": "2028",
+     "text": "2028?",
+     "added": true
+    },
+    {
+     "id": "2029",
+     "text": "2029?",
+     "added": true
+    },
+    {
+     "id": "2030",
+     "text": "2030?",
+     "added": false
+    },
+    {
+     "id": "2050",
+     "text": "2050?",
+     "added": false
+    }
+   ],
+   "details": "AI model training and deployment occur mainly through (https://www.iea.org/reports/energy-and-ai/energy-demand-from-ai) the use of data centers, which are giant computing centers that host computers (“servers”).\n\nServers in data centers are split into two main categories: conventional and AI-specialized servers (https://eta-publications.lbl.gov/sites/default/files/2024-12/lbnl-2024-united-states-data-center-energy-usage-report.pdf), the latter of which are better designed for and dedicated to AI workloads. This question asks about the electricity consumption of AI-specialized servers, regardless of the end application, which is, in practice, difficult to determine.\n\nHistorical baselines. There is currently no official reporting on the percentage of U.S. electricity consumption used for training and deploying AI systems. We estimate that this is 1.0% in 2024.\n\n[Nested text box] More information about this estimate:\n\n\t[Embedded PDF file of this (https://docs.google.com/document/d/1aCy2aSfX_NFFAvSf4apqoJj0xmZOseDhjvqlXcR_VUg/edit?usp=sharing) document]\n\nSome relevant sources that estimate future U.S. electricity consumption by data centers and by AI-specific usage:\n\n* Data Centers\n  * The 2024 United States Data Center Energy Usage Report estimates that data centers will consume approximately 6.7 to 12% (https://eta-publications.lbl.gov/sites/default/files/2024-12/lbnl-2024-united-states-data-center-energy-usage-report.pdf) of total U.S. electricity by 2028.\n  * A 2025 report by the National Academy of Sciences estimates U.S. data center demand as a percentage of total U.S. electricity demand under four different growth scenarios as between 4.6-9.1% (https://nap.nationalacademies.org/read/29101/chapter/4#11) in 2030.\n* AI-specific usage\n  * In February 2025,  Epoch AI estimates that  “AI could reach fairly eye-popping levels of energy usage by 2030, on the order of 10% (https://epoch.ai/gradient-updates/how-much-energy-does-chatgpt-use#:~:text=With%20reasonable%20and%20somewhat%20pessimistic,queries%20with%20very%20long%20inputs.) of US electricity.”\n  * A 2024 white paper estimates 40% (https://www.epri.com/research/products/3002028905) of AI energy usage by model training and development, and 60% for deployment, based on analysis of existing models.\n\nThe question will be resolved by\n\n* Credible reports of total U.S. electricity consumption and fraction of U.S. used for AI training and deployment, by sources such as the U.S. Energy Information Administration, the International Energy Agency, and peer-reviewed publications.\n* If credible reports are not available, FRI will resolve the question with input from at least 3 AI experts selected for expertise in estimating AI’s energy consumption.",
+   "history": "ai_electricity"
+  }
+ ]
+}

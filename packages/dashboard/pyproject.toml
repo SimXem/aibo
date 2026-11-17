@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fri-dashboard"
+version = "0.1.0"
+description = "The dashboard kit: a page from its chunks and data, the download, the site folder"
+requires-python = ">=3.11"
+dependencies = []            # stdlib only: building a dashboard never needs an install
+
+[tool.setuptools]
+packages = ["dashboard"]

@@ -1,9 +1,10 @@
-# The test suites on every PR and on main: AIRO's (tests/) and the harness's
-# (packages/fri-forecaster/tests, which runs pi_tools.ts through the pinned pi
-# against a scripted model on a local port). No secrets: nothing needs an API
-# key (the build stage is stdlib-only, redlines/llm.py imports its provider
-# client inside the call, and pi talks to the scripted model only). Actions
-# are pinned by commit.
+# Every project's tests on every PR and on main (the root pyproject.toml lists
+# them): the engine's (packages/forecaster/tests, which runs pi_tools.ts through
+# the pinned pi against a scripted model on a local port), the scheduler's,
+# AIRO's, EEAI's and ForecastBench's. No secrets: nothing needs an API key (the
+# build stages are stdlib-only, redlines/llm.py imports its provider client
+# inside the call, and pi talks to the scripted model only). Actions are pinned
+# by commit.
 name: test
 
 on:
@@ -22,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # both pyproject.tomls: requires-python = ">=3.11"
+        # every pyproject.toml: requires-python = ">=3.11"
         python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -32,25 +33,25 @@ jobs:
         with:
           node-version: "22.19"     # pi 0.99.2's engines floor
           cache: npm
-          cache-dependency-path: packages/fri-forecaster/package-lock.json
+          cache-dependency-path: packages/forecaster/package-lock.json
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: ${{ matrix.python-version }}
       - run: npm ci
-        working-directory: packages/fri-forecaster
-      - run: pip install -e '.[test]' -e './packages/fri-forecaster[dev]'
+        working-directory: packages/forecaster
+      - run: pip install -e './packages/forecaster[dev]' -e ./packages/dashboard -e './dashboards/airo[test]' -e ./dashboards/eeai -e ./submissions/forecastbench -e ./submissions/leap
       - run: python -m pytest -q -rs
-      - run: node --test tests/test_tooltips.cjs
+      - run: node --test dashboards/airo/tests/test_tooltips.cjs
 
-  # README promises that `build` and `assemble` round-trip to the tracked
+  # AIRO's README promises that `build` and `assemble` round-trip to the tracked
   # bytes. Rebuild everything on a fresh checkout and fail if anything tracked
   # changed or anything untracked (and not gitignored) appeared. This checks
   # reproduction only, never what the blobs contain.
   #
   # Nothing is installed: the build stage is stdlib-only, so running it straight
-  # from the checkout also enforces that (redlines.eci finds fri_forecaster in
-  # packages/ on its own; an editable install would also leave an untracked
-  # redlines.egg-info/ behind). The ForecastBench sets and the forecastbench-sim
+  # from dashboards/airo also enforces that (redlines finds fri_forecaster and
+  # the dashboard kit under packages/ on its own; an editable install would also leave an
+  # untracked redlines.egg-info/ behind). The ForecastBench sets and the forecastbench-sim
   # corpus are absent here, so Graph 3 and Graph 4 read their tracked mirrors
   # (results/graph3_data.json, results/graph4_combined.json), as on any fresh
   # clone.
@@ -65,7 +66,9 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m redlines build
+        working-directory: dashboards/airo
       - run: python -m redlines assemble
+        working-directory: dashboards/airo
       - name: tree matches the tracked bytes
         run: |
           if [ -n "$(git status --porcelain)" ]; then

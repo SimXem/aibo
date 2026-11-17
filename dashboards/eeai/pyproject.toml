@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eeai"
+version = "0.1.0"
+description = "EEAI (Economic Effects of AI): the dashboard"
+requires-python = ">=3.11"
+# Stdlib only. A run also needs the engine installed beside it
+# (pip install -e ../../packages/forecaster); a build needs nothing.
+dependencies = []
+
+[tool.setuptools]
+packages = ["eeai"]

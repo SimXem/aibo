@@ -2,39 +2,41 @@
 .env
 .env.sw?
 .env~
-.local/google-docs/
+dashboards/airo/.local/google-docs/
 
+# --- AIRO (dashboards/airo) ---
 # Regenerated deterministically from forecastbench-sim (see README/reproduce)
-data/lowprob_questions.json
+dashboards/airo/data/lowprob_questions.json
 # eval outputs / scratch
-data/reports/
-data/results/
+dashboards/airo/data/reports/
+dashboards/airo/data/results/
 __pycache__/
 *.pyc
+*.egg-info/
 .DS_Store
 
 # eval run artifacts (heavy / regenerated); keep metrics csv + plots
-results/reports/
-results/eval_*.json
-results/checkpoint*.json
-results/eval_*/checkpoint*.json
+dashboards/airo/results/reports/
+dashboards/airo/results/eval_*.json
+dashboards/airo/results/checkpoint*.json
+dashboards/airo/results/eval_*/checkpoint*.json
 
-results/graph4_data.json
+dashboards/airo/results/graph4_data.json
 
-results/pandemic/corpus.json
-results/pandemic/*.log
+dashboards/airo/results/pandemic/corpus.json
+dashboards/airo/results/pandemic/*.log
 
 # uv writes this; the pipeline is stdlib-only and does not depend on it.
 uv.lock
 
 # Derived: the download behind the page button, rebuilt by `redlines build --views csv`
-results/forecasts.csv
-results/rationales.csv
-results/debriefs.csv
-results/redlines-data.zip
+dashboards/airo/results/forecasts.csv
+dashboards/airo/results/rationales.csv
+dashboards/airo/results/debriefs.csv
+dashboards/airo/results/redlines-data.zip
 
 # paper figure previews (PNG); the PDFs are tracked
-paper/fig/*.png
+dashboards/airo/paper/fig/*.png
 
 # private working notes and agent scratch
 private/
@@ -43,13 +45,22 @@ private/
 # internal: the LEAP survey documents and the raw panel-answer pull. The
 # tracked derivations (data/leap_policies.json, data/leap_reference.json,
 # data/*axes_conditions.json) are what the pipeline reads.
-data/leap/
+dashboards/airo/data/leap/
 
 # Season Sans (Displaay Type Foundry): licensed to FRI for web embedding on
 # its own sites, not for redistribution. The live site self-hosts the files;
 # a clone renders with the fallback stack in web/demo/00-head.html.
-web/fonts/
+dashboards/airo/web/fonts/
 
 
 # Private RSS items, Jev decisions and generated news exports
-.local/recent-news/
+dashboards/airo/.local/recent-news/
+
+# EEAI (dashboards/eeai/eeai, one self-contained directory). Not tracked: the survey documents
+# (internal to FRI; eeai/data/questions.json and history.csv are derived from
+# them by eeai/make_questions.py), the run files, the built site, and the
+# licensed fonts a box copies in beside the page's source.
+dashboards/eeai/eeai/data/source/
+dashboards/eeai/eeai/results/
+dashboards/eeai/eeai/site/
+dashboards/eeai/eeai/web/fonts/

@@ -1,0 +1,5 @@
+{
+  "target": "eeai.html",
+  "blobs": ["EEAI"],
+  "chunks": ["00-head.html", "10-chart.js", "20-app.js", "90-close.html"]
+}

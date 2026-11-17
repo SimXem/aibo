@@ -1,0 +1,11 @@
+# Baseline plus current news and its own previous complete ensemble.
+scenarios = "data/combined_conditions.json"
+instrument = "minimal"
+harness = "pi"
+publish = false
+cadence = ["wed", "fri"]
+
+[conditions.prior-recent-shadow]
+prior_baseline = true
+prior_self = true
+recent_news = true

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>EEAI (Economic Effects of AI)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* FRI brand, as on AIRO's page (web/demo/00-head.html): Season Sans for
+     text (licensed, self-hosted from web/fonts/, absent from a clone), DM Mono
+     for figures, the stone ground. The scenario colours are EEAI's: validated
+     with the dataviz palette check against the white panel (CVD separation in
+     the 6-8 band, so every scenario line is also labelled at its end). */
+  @font-face { font-family: "Season Sans"; src: url("web/fonts/SeasonSans-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+  @font-face { font-family: "Season Sans"; src: url("web/fonts/SeasonSans-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+  @font-face { font-family: "Season Sans"; src: url("web/fonts/SeasonSans-SemiBold.woff2") format("woff2"); font-weight: 600 800; font-display: swap; }
+  :root {
+    --bg: #f6f8f1; --panel: #ffffff; --well: #f3f5ef;
+    --ink: #1f2328; --ink-soft: #57606a; --ink-faint: #6e7781;
+    --line: #d0d7de; --line-soft: #eaeef2;
+    --link: #115633; --accent-orange: #c4561b;
+    --slow: #d9703a; --moderate: #2f9e6e; --rapid: #5b4bd5;
+    --uncond: #3d4a8f; --band: rgba(91, 107, 200, 0.14);
+    --warn-bg: #fdeee2; --warn-ink: #9a4212; --warn-line: #e96b26;
+    --shadow: 0 1px 2px rgba(16, 43, 35, 0.06), 0 6px 20px rgba(16, 43, 35, 0.05);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: "Season Sans", system-ui, sans-serif; font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  #root { max-width: 1180px; margin: 0 auto; padding: 32px 16px 72px; }
+  @media (min-width: 720px) { #root { padding: 32px 28px 72px; } }
+  h1, h2, h3 { font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+  h1 { font-size: clamp(25px, 7.5vw, 33px); margin: 8px 0 6px; }
+  h2 { font-size: 24px; }
+  h3 { font-size: 15.5px; line-height: 1.25; }
+  a { color: var(--link); }
+  .mono { font-family: "DM Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .brand-logo { display: block; width: 231px; max-width: 70vw; height: auto; margin-bottom: 22px; }
+  .top { display: flex; flex-wrap: wrap; gap: 0 20px; align-items: flex-start; justify-content: space-between; }
+  .dl { display: inline-flex; align-items: center; flex-shrink: 0; background: var(--ink); color: #fff; text-decoration: none; border-radius: 12px; padding: 11px 18px; box-shadow: var(--shadow); font-size: 15.5px; font-weight: 700; letter-spacing: 0.01em; }
+  .dl { transition: transform .15s ease, box-shadow .15s ease; }
+  .dl:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(16, 43, 35, .1), 0 10px 26px rgba(16, 43, 35, .14); }
+  .dl:active { transform: none; }
+  .dl:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+  .top .dl { margin-bottom: 18px; }
+  .lede { color: var(--ink-soft); max-width: 780px; margin: 0 0 10px; }
+  .meta { color: var(--ink-faint); font-size: 13px; margin: 0; }
+  .banner { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn-ink); border-radius: 10px; padding: 10px 14px; margin: 18px 0 0; font-size: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line-soft); border-radius: 16px; box-shadow: var(--shadow); padding: 22px 18px; margin-top: 22px; }
+  @media (min-width: 720px) { .card { padding: 30px 32px; } }
+  .card > .sub { color: var(--ink-soft); margin: 4px 0 0; }
+  .head { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: flex-start; justify-content: space-between; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .seg { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px; background: var(--well); border: 1px solid var(--line-soft); border-radius: 10px; padding: 4px; }
+  .seg .lab { color: var(--ink-faint); font-size: 13px; padding: 0 8px 0 8px; }
+  .seg button { border: 0; background: none; color: var(--ink); font-size: 14px; padding: 6px 12px; border-radius: 7px; cursor: pointer; transition: background-color .15s ease, color .15s ease; }
+  .seg button[aria-pressed="false"]:hover { background: rgba(31, 35, 40, .07); }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+  .seg button:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+  .controls { align-items: center; }
+  .mini { display: inline-flex; margin-left: auto; background: var(--well); border: 1px solid var(--line-soft); border-radius: 8px; padding: 2px; }
+  .mini button { border: 0; background: none; color: var(--ink-soft); font-size: 11.5px; padding: 4px 9px; border-radius: 6px; cursor: pointer; transition: color .15s ease; }
+  .mini button[aria-pressed="false"]:hover { color: var(--ink); }
+  .mini button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+  .mini button:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+  .stats { display: flex; flex-wrap: wrap; gap: 14px 44px; margin-top: 20px; align-items: flex-end; }
+  .stat .k { color: var(--ink-soft); font-size: 13.5px; }
+  .stat .v { font-size: 22px; }
+  .stat .v.big { font-size: 46px; line-height: 1.05; font-weight: 500; }
+  /* (tabular figures are for the number; in Season Sans they also widen the space, so the unit turns them off) */
+  .stat .v small { font-family: "Season Sans", system-ui, sans-serif; font-variant-numeric: normal; font-size: 14px; color: var(--ink-soft); font-weight: 400; margin-left: 4px; }
+  .up { color: var(--accent-orange); } .down { color: var(--uncond); }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 16px; color: var(--ink-soft); font-size: 13.5px; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .sw { display: inline-block; width: 18px; height: 0; border-top: 2.5px solid currentColor; }
+  .sw.dash { border-top-style: dashed; }
+  .sw.band { height: 10px; border: 0; background: var(--band); border-radius: 2px; }
+  .sw.ring { width: 10px; height: 10px; border: 2px solid var(--ink-soft); border-radius: 50%; }
+  .sw.dot { width: 9px; height: 9px; border: 0; border-radius: 50%; background: currentColor; }
+  .chart { position: relative; margin-top: 10px; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { font-family: "Season Sans", system-ui, sans-serif; fill: var(--ink-faint); font-size: 12px; }
+  .chart text.end { fill: var(--ink); font-size: 12.5px; }
+  .tip { position: absolute; pointer-events: none; background: var(--ink); color: #fff; border-radius: 8px; padding: 8px 10px; font-size: 12.5px; line-height: 1.45; white-space: nowrap; z-index: 5; box-shadow: var(--shadow); }
+  .tip .who { display: grid; gap: 1px 14px; margin-top: 3px; justify-items: end; }
+  .tip .who > :nth-child(1), .tip .who i:not(:has(u)) { justify-self: start; }
+  .tip .who b { font-weight: 600; }
+  .tip .who u { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; text-decoration: none; }
+  .tip b { font-weight: 600; } .tip .row { display: flex; gap: 12px; justify-content: space-between; } .tip i { font-style: normal; opacity: .75; }
+  .well { background: var(--well); border: 1px solid var(--line-soft); border-radius: 12px; padding: 16px 18px; margin-top: 20px; }
+  .eyebrow { font-family: "DM Mono", ui-monospace, monospace; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 4px; }
+  .well p { margin: 0; } .well hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; margin-top: 18px; }
+  .tile { border: 1px solid var(--line-soft); border-radius: 14px; padding: 16px 16px 14px; min-width: 0; }
+  .tile .cat { color: var(--ink-faint); font-size: 12px; }
+  .tile .num { margin-top: 6px; font-size: 14px; }
+  .tile .num b { font-weight: 500; font-size: 17px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; font-size: 13px; color: var(--ink-soft); }
+  .chips span { display: inline-flex; align-items: center; gap: 5px; }
+  .more { display: block; margin-top: 8px; padding: 0; border: 0; background: none; color: var(--link); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+  .more::before { content: "▸ "; }
+  .more:hover { text-decoration: underline; } .more:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+  html:has(dialog.modal[open]) { overflow: hidden; }
+  dialog.modal { width: min(1100px, calc(100vw - 32px)); height: calc(100vh - 32px); max-width: none; max-height: none; padding: 0; border: 0; border-radius: 16px; background: var(--panel); color: var(--ink); box-shadow: 0 20px 60px rgba(16, 43, 35, .3); }
+  dialog.modal[open] { display: flex; flex-direction: column; }
+  /* The modal fades and rises a little as it opens, and fades out as it closes;
+     a browser without @starting-style or discrete transitions just shows it. */
+  dialog.modal { opacity: 0; transform: translateY(10px) scale(.985);
+    transition: opacity .2s ease, transform .2s ease, overlay .2s allow-discrete, display .2s allow-discrete; }
+  dialog.modal[open] { opacity: 1; transform: none; }
+  dialog.modal::backdrop { background: rgba(31, 35, 40, 0); transition: background-color .2s ease, overlay .2s allow-discrete, display .2s allow-discrete; }
+  dialog.modal[open]::backdrop { background: rgba(31, 35, 40, .55); }
+  @starting-style {
+    dialog.modal[open] { opacity: 0; transform: translateY(10px) scale(.985); }
+    dialog.modal[open]::backdrop { background: rgba(31, 35, 40, 0); }
+  }
+  dialog.modal header { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; padding: 22px 28px 16px; border-bottom: 1px solid var(--line-soft); }
+  dialog.modal h2 { font-size: 21px; }
+  dialog.modal .close { flex-shrink: 0; width: 38px; height: 38px; border: 1px solid var(--line-soft); border-radius: 10px; background: var(--well); color: var(--ink); font-size: 22px; line-height: 1; cursor: pointer; }
+  dialog.modal .close:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+  dialog.modal .body { flex: 1; overflow-y: auto; padding: 18px 28px 28px; font-size: 14.5px; color: var(--ink-soft); }
+  dialog.modal .body p { margin: 0 0 12px; white-space: pre-wrap; max-width: 860px; }
+  dialog.modal .body .who { color: var(--ink); font-weight: 600; }
+  dialog.modal table.tv { font-size: 13.5px; margin-bottom: 18px; }
+  @media (max-width: 719px) { dialog.modal { width: 100vw; height: 100vh; border-radius: 0; } dialog.modal header { padding: 16px 16px 12px; } dialog.modal .body { padding: 14px 16px 24px; } }
+  details { margin-top: 8px; }
+  summary { color: var(--link); cursor: pointer; font-size: 13.5px; }
+  details .body { font-size: 13.5px; color: var(--ink-soft); margin-top: 8px; }
+  details .body p { margin: 0 0 8px; white-space: pre-wrap; }
+  details .body .who { color: var(--ink); font-weight: 600; }
+  table.tv { border-collapse: collapse; width: 100%; font-size: 12.5px; margin: 4px 0 10px; }
+  table.tv th, table.tv td { text-align: right; padding: 4px 6px; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+  table.tv th:first-child, table.tv td:first-child { text-align: left; }
+  table.tv thead th { color: var(--ink-faint); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .scroll { overflow-x: auto; }
+  .bar { display: flex; height: 26px; border-radius: 6px; overflow: hidden; gap: 2px; margin-top: 10px; }
+  .bar div { min-width: 2px; }
+  .empty { color: var(--ink-soft); padding: 26px 0 6px; }
+  /* Motion, all of it small: the control just used presses in, the forecasts
+     fade in when a control redraws a chart (the record and the axes do not),
+     an opened section fades in. None of it for a reader who asks for less. */
+  @keyframes press { from { transform: scale(.93); opacity: .55; } }
+  @keyframes fade { from { opacity: 0; } }
+  .seg button.just, .mini button.just { animation: press .22s ease; }
+  .chart svg .fc, .chart svg text.end { animation: fade .32s ease both; }
+  .still .chart svg .fc, .still .chart svg text.end { animation: none; }
+  details[open] > .body { animation: fade .22s ease; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after, dialog::backdrop { animation: none !important; transition: none !important; }
+  }
+  footer { color: var(--ink-faint); font-size: 13px; margin-top: 28px; }
+</style>
+<!--EEAI_DATA--><!--/EEAI_DATA-->
+</head>
+<body>
+<div id="root"></div>
+<script>

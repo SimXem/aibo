@@ -1,4 +1,8 @@
-# Airo development and production
+# Development and production
+
+This is automated-forecasting-monorepo: the engine and the scheduler under
+`packages/`, the dashboards (AIRO, EEAI) under `dashboards/`, and submissions
+(ForecastBench) under `submissions/`. See `README.md` for the layout.
 
 Develop and test in the checkout. Production runs from a separate release.
 When the user asks to deploy, merge through the repository's normal PR/check
@@ -13,10 +17,12 @@ validate before publishing. Never silently fall back after a data check fails.
 `airo deploy --keep-publication` retains the entire old site and is only for an
 explicit code-only deployment. Use `airo rollback` for an unhealthy release.
 
-See `deploy/README.md` for schedules, run receipts and recovery. Add or change
-scheduled work in `deploy/jobs.json`, then merge and deploy. Do not launch paid
+See `packages/ops/README.md` for schedules, run receipts and recovery. Add or change
+scheduled work in `packages/ops/jobs.json`, then merge and deploy. Do not launch paid
 forecast jobs merely to test deployment; `airo smoke` exercises the runner without
-provider calls. ForecastBench submission upload is still manual.
+provider calls. ForecastBench rounds upload validated sets automatically; upload
+failures page and can be retried without rerunning forecasts. See
+`submissions/forecastbench/README.md` for the private authentication setup.
 
 Keep machine names, personal paths, production data, credentials and deployment
 receipts outside git. Read the cell's private runtime configuration for its

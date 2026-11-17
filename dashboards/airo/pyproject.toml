@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "redlines"
+version = "0.1.0"
+description = "AIRO (Automated AI Risk Outlook): the dashboard's data pipeline"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+# The build stage (python3 -m redlines build) is stdlib-only by design:
+# rebuilding every dashboard blob must never need API keys or third-party deps.
+dependencies = []
+
+[project.optional-dependencies]
+paper = [
+    "matplotlib>=3.9",
+]
+# The pi loop (redlines/pi_loop.py; the only loop since 2026-10-22): the
+# FRI Forecaster harness, which drives pi 0.99.2 -- FORECASTER_PI names its
+# cli.js. It lives in this repository, packages/forecaster (a uv workspace
+# member, [tool.uv.sources]); with plain pip install it from the path:
+# pip install -e ../../packages/forecaster
+pi = [
+    "fri-forecaster",
+]
+# Running the test suite: pytest, plus openpyxl for the question-set generator
+# tests (tests/test_autoarc_generator.py reads the Auto-ARC workbook).
+test = [
+    "pytest>=8",
+    "openpyxl>=3.1",
+    # The math-problem project's own tests (experiments/math-shock/, run by
+    # tests/test_math_pipeline.py) need only its YAML reader; its API
+    # clients are mocked.
+    "PyYAML>=6",
+]
+
+[tool.setuptools]
+packages = ["redlines", "redlines.views", "redlines.paper"]
+
+[tool.uv.sources]
+fri-forecaster = { workspace = true }
