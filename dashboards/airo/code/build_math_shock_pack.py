@@ -9,8 +9,8 @@ source; --source names another checkout of it.
     python code/build_math_shock_pack.py --run w1-r1
     python code/build_math_shock_pack.py --source ../math_problem_knowledge_shock --run w1-r1
 
-Writes <AIRO_PRETASK_DIR, default private/pretasks/>/math-shock-<run>.json --
-outside git -- and prints its SHA-256 for code/run_math_shock.py to pin. The
+Writes <AIRO_PRETASK_DIR, default data/pretasks/>/math-shock-<run>.json
+and prints its SHA-256 for code/run_math_shock.py to pin. The
 pack names the project's commit it was built from (source_commit): a
 checkout's HEAD, or for the subtree the project's commit it was copied from
 while it is unchanged from it -- so both give the same pack.
@@ -165,7 +165,7 @@ def main():
     ap.add_argument("--source", default=str(SOURCE),
                     help="the math-problem knowledge-shock project (default: experiments/math-shock/)")
     ap.add_argument("--run", default="w1-r1", help="its run id (runs/<id>/)")
-    ap.add_argument("--out-dir", default=None, help=f"default: ${ms.PRETASK_DIR_ENV} or private/pretasks/")
+    ap.add_argument("--out-dir", default=None, help=f"default: ${ms.PRETASK_DIR_ENV} or data/pretasks/")
     args = ap.parse_args()
     pack, run = build(args.source, args.run)
     parity(pack, run)

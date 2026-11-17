@@ -35,7 +35,7 @@ math-shock for AIRO, welfare-math-shock for welfare, so that welfare's stay
 out of AIRO's download (redlines/export.py airo_file) -- each call's first row
 carrying `pretask` -- problem codes, the model's dates, hashes; never problem
 text, since results/experiments/ reaches the public download. The transcripts
-(prompts, replies, both sessions) go beside the private pack:
+(prompts, replies, both sessions) go beside the pack:
 <AIRO_PRETASK_DIR>/<pack>/transcripts/<run>/.
 
 HOW. run_unified.py does the work -- the prompt, the panel, the workers, the
@@ -86,7 +86,7 @@ EXPERIMENT = "math-shock"
 # The pack: math-problem knowledge-shock run w1-r1 (T0 2026-06-30, S
 # 2026-11-02), built by code/build_math_shock_pack.py from the project's
 # subtree (experiments/math-shock/; `python code/math_shock_pipeline.py pack
-# --run w1-r1`), outside git.
+# --run w1-r1`), in data/pretasks/.
 PACK_ID = "math-shock-w1-r1"
 PACK_SHA256 = "8f3585467566a067808d7ea40f48649ee0ee214fad24b68fde457d3a4359370a"
 # The series a run can ask (experiments/<name>.toml). AIRO's is the default

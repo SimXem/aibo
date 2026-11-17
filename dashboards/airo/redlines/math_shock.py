@@ -23,12 +23,12 @@ prompts, the parser and the reveal, ported from the project's
 pipeline/parse.py, render.py and followup.py so the two studies ask and score
 the same way. Stdlib only.
 
-THE PACK is one JSON file, kept OUT OF GIT (AIRO_PRETASK_DIR, default
-private/pretasks/): the sample, its outcomes, the approved problem
+THE PACK is one JSON file, in git since 2026-11-17 (AIRO_PRETASK_DIR, default
+data/pretasks/; it was private/ until then): the sample, its outcomes, the approved problem
 statements and the project's templates, built by
 code/build_math_shock_pack.py (from experiments/math-shock/ by default) and
 pinned by SHA-256 in code/run_math_shock.py. Rows carry only
-problem codes (opaque) and hashes; the text stays in the private transcripts.
+problem codes (opaque) and hashes; the text stays in the pack and the transcripts beside it.
 """
 import hashlib
 import json
@@ -38,7 +38,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PRETASK_DIR_ENV = "AIRO_PRETASK_DIR"
-DEFAULT_PRETASK_DIR = REPO_ROOT / "private" / "pretasks"
+DEFAULT_PRETASK_DIR = REPO_ROOT / "data" / "pretasks"
 CUTOFFS = REPO_ROOT / "data" / "training_cutoffs.json"
 PACK_FORMAT = 1
 
@@ -79,7 +79,7 @@ def load_pack(pack_id, sha256, directory=None):
     path = pack_path(pack_id, directory)
     if not path.exists():
         raise FileNotFoundError(f"{path}: no pack {pack_id!r}; build it with code/build_math_shock_pack.py "
-                                f"(the pack stays outside git; {PRETASK_DIR_ENV} names its folder)")
+                                f"({PRETASK_DIR_ENV} names another folder)")
     raw = path.read_bytes()
     got = sha256_bytes(raw)
     if got != sha256:

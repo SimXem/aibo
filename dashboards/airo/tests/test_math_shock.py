@@ -92,7 +92,7 @@ class TestPack(PackCase):
         with patch.dict(os.environ, {ms.PRETASK_DIR_ENV: self.tmp.name}):
             self.assertEqual(ms.load_pack(self.pack_id, self.sha)["pack"], self.pack_id)
         with patch.dict(os.environ, {ms.PRETASK_DIR_ENV: ""}):
-            self.assertEqual(ms.pretask_dir(), REPO / "private" / "pretasks")     # gitignored
+            self.assertEqual(ms.pretask_dir(), REPO / "data" / "pretasks")     # in git since 2026-11-17
 
     def test_order_is_the_projects_hash_rank(self):
         order = ms.order(self.pack, "seed")

@@ -77,11 +77,12 @@ models are eligible: Opus 5.5, GPT-6 Astra, Sonnet 5.5 and Fable 5.1.
 ### The pack
 
 The problem texts, outcomes and prompt templates for the experiment are in one
-JSON file, `private/pretasks/math-shock-w1-r1.json` (or under
-`$AIRO_PRETASK_DIR`). It is kept **outside git**, and `code/run_math_shock.py`
+JSON file, `data/pretasks/math-shock-w1-r1.json` (or under
+`$AIRO_PRETASK_DIR`). It is in git (since 2026-11-17; before, it was kept in
+`private/`), and `code/run_math_shock.py`
 pins it by SHA-256. Rows written to `results/experiments/` (which feeds the
 public download) carry only opaque problem codes, the model's dates and hashes,
-never problem text. The full text of each conversation goes to private
+never problem text. The full text of each conversation goes to the
 transcripts beside the pack.
 
 ## Setup
@@ -92,7 +93,7 @@ transcripts beside the pack.
    `npm ci --prefix packages/forecaster`), plus API keys in the installation's
    keys file, `~/.config/fri-forecaster/env` (or `$FORECASTER_ENV_FILE`),
    including `TAVILY_API_KEY`. The commands below run from `dashboards/airo/`.
-2. Build the pack if `private/pretasks/math-shock-w1-r1.json` is missing:
+2. Build the pack if `data/pretasks/math-shock-w1-r1.json` is missing:
 
    ```bash
    python code/math_shock_pipeline.py pack --run w1-r1
@@ -149,7 +150,7 @@ arguments are passed to the step unchanged.
 | `forecast config/runs/<run>.yaml` | **PAID** (batch API, half price). Sends each model the math prompt 5 times, with the problems in a different order each time, and parses the answers into `runs/<run>/parsed.csv`. `--stub` is a free offline dry run; `--models` and `--samples N` pick a subset; `--direct` skips the batch API. |
 | `followup config/followups/<id>.yaml` | **PAID.** Shows each model which problems were solved, next to its forecasts, and asks for revised forecasts of the open ones. Writes `runs/<run>/followups/<id>/`. |
 | `test` | The project's own tests (22). No network, no API. |
-| `pack --run <run>` | Builds the experiment's pack from a finished run (`code/build_math_shock_pack.py`). It checks the run's hashes and that its statements are approved, checks that the pack reproduces the project's prompts byte for byte, writes `private/pretasks/math-shock-<run>.json` and prints its SHA-256. `--out-dir` writes elsewhere. |
+| `pack --run <run>` | Builds the experiment's pack from a finished run (`code/build_math_shock_pack.py`). It checks the run's hashes and that its statements are approved, checks that the pack reproduces the project's prompts byte for byte, writes `data/pretasks/math-shock-<run>.json` and prints its SHA-256. `--out-dir` writes elsewhere. |
 
 The project's stages use this repository's API keys, then
 `experiments/math-shock/.env` for any that are still unset.
@@ -187,7 +188,7 @@ Output, with `<run>` a UTC timestamp such as `2026-11-10T1530Z`:
   `pretask` field with the problem order, the model's math forecasts, the
   number of valid ones, hashes, token use and the transcript path. Control rows
   have `pretask: null`.
-- `private/pretasks/math-shock-w1-r1/transcripts/<run>/`: the full
+- `data/pretasks/math-shock-w1-r1/transcripts/<run>/`: the full
   conversations of the math arms (prompts, replies, both pi sessions).
 
 ## Running it with the default AIBO prompt
