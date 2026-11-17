@@ -42,7 +42,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from .config import REPO_ROOT
-from .registry import DEFAULT_MODEL_SET
+from .registry import DEFAULT_MODEL_SET, MODEL_SETS
 
 EXPERIMENTS_DIR = REPO_ROOT / "experiments"
 # The experiment whose pooled conditions are the dashboard's series.
@@ -78,6 +78,19 @@ VARIANTS = {
 }
 
 INSTRUMENTS = ("standard", "minimal")
+# THE UNIT OF ELICITATION (2026-11-16). "joint": one call answers every
+# question x horizon cell under every scenario (code/run_unified.py, the
+# published protocol). "cell": one call per severity x horizon x scenario (a
+# rung's deaths and damages questions together), so no answer is given beside
+# any other severity, horizon or scenario (code/run_cellwise.py). A cell
+# condition is an unpublished, hand-run experiment on the minimal instrument:
+# it costs about as many calls as the joint call has probabilities.
+UNITS = ("joint", "cell")
+# What a cell condition puts back into one call (2026-11-17): the other
+# horizons, the other severities of the same question family, or both
+# (code/run_cellwise.py). The four combinations are the arms of the context
+# experiment (experiments/context.toml).
+BUNDLES = ("horizons", "severities")
 # The loop: pi (agent-box), the only one since litellm left on 2026-10-22.
 # Still a setting, and still hashed, so a condition records the loop its
 # calls ran through.
@@ -97,13 +110,27 @@ DEFAULTS = {
     "prior_baseline": False,         # optional prior Baseline ensemble file
     "news_cache": False,             # frozen weekly news input + AI-forecast ban (unpublished shadow)
     "max_turns": None,               # None: instrument default; 0: no forced-turn submission
+    "unit": "joint",                 # UNITS: the whole grid per call, or one cell per call
+    # Cell conditions only (code/run_cellwise.py):
+    "bundle": [],                    # BUNDLES asked together in one call; [] is one cell per call
+    "research": True,                # False: no web_search or read_page, the model's own knowledge
+    "eci_step": True,                # False: no ECI step and no ECI answer in the prompt
+    "cells": None,                   # a fixed selection (lists of names or patterns); None:
+    "horizons": None,                #   the runner's command line and defaults choose
+    "scenario_ids": None,
+    "context_cells": None,           # asked beside the target cells when "severities" is bundled
+    "pairs": None,                   # exactly these cells: ["<horizon>|<scenario>", ...] (2026-11-17)
 
-    "publish": False,                 # rows go to the scenario set's own logs, which the page reads
+    "publish": False,              # rows go to the scenario set's own logs, which the page reads
     "cadence": "manual",              # when the cron runs it: weekdays (UTC), or "manual"
 }
 # Settings that say where a condition's rows go, how many calls it makes or
 # when, not what a call is asked: outside the hash.
 UNHASHED = ("publish", "repeats", "cadence")
+# A cell condition's own settings (unit = "cell"), each outside the hash at
+# its default so no earlier condition's hash moves; the selections among them.
+SELECTIONS = ("cells", "horizons", "scenario_ids", "context_cells", "pairs")
+CELL_SETTINGS = ("bundle", "research", "eci_step") + SELECTIONS
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 ORDINALS = ("1st", "2nd", "3rd", "4th", "5th")
 
@@ -159,6 +186,9 @@ def condition_sha256(settings):
         del keep["news_cache"]
     if keep["max_turns"] is None:
         del keep["max_turns"]
+    for k in ("unit",) + CELL_SETTINGS:
+        if keep[k] == DEFAULTS[k]:
+            del keep[k]
     return hashlib.sha256(json.dumps(keep, sort_keys=True).encode()).hexdigest()
 
 
@@ -230,6 +260,36 @@ def _check(s, pooled, where):
                            or s["publish"] or pooled
                            or s["variant"] != "recent" or not s["url_block_patterns"]):
         raise ValueError(f"{where}: news_cache requires unpooled unpublished minimal/pi Recent with a URL guard")
+    if s["unit"] not in UNITS:
+        raise ValueError(f"{where}: unit {s['unit']!r} is not one of {UNITS}")
+    if s["unit"] == "cell" and (s["publish"] or pooled or s["instrument"] != "minimal"
+                                or s["news_cache"] or s["cadence"] != "manual"
+                                or s["prior_baseline"] or s["recent_news"] or s["prior_self"]):
+        raise ValueError(f"{where}: unit \"cell\" requires an unpublished, unpooled, hand-run "
+                         "(cadence \"manual\") condition on the minimal instrument, without news_cache "
+                         "or the prior/recent shadow settings")
+    b = s["bundle"]
+    if not (isinstance(b, list) and len(set(b)) == len(b) and set(b) <= set(BUNDLES)):
+        raise ValueError(f"{where}: bundle {b!r} must be a list drawn from {BUNDLES}")
+    for k in ("research", "eci_step"):
+        if not isinstance(s[k], bool):
+            raise ValueError(f"{where}: {k} must be true or false")
+    for k in SELECTIONS:
+        if s[k] is not None and not (isinstance(s[k], list) and s[k] and all(isinstance(x, str) and x for x in s[k])):
+            raise ValueError(f"{where}: {k} must be a non-empty list of names or patterns")
+    if s["pairs"] is not None:
+        bad = [p for p in s["pairs"] if p.count("|") != 1 or not all(p.split("|"))]
+        if bad:
+            raise ValueError(f"{where}: pairs {bad} must each be \"<horizon>|<scenario>\"")
+        if len(set(s["pairs"])) != len(s["pairs"]):
+            raise ValueError(f"{where}: pairs names a cell twice")
+        if s["horizons"] is not None or s["scenario_ids"] is not None:
+            raise ValueError(f"{where}: pairs fixes the horizons and scenarios; drop horizons/scenario_ids")
+    if s["model_set"] not in MODEL_SETS:
+        raise ValueError(f"{where}: model_set {s['model_set']!r} is not one of {sorted(MODEL_SETS)}")
+    cellwise = [k for k in CELL_SETTINGS if s[k] != DEFAULTS[k]]
+    if cellwise and s["unit"] != "cell":
+        raise ValueError(f"{where}: {cellwise} apply to unit \"cell\" conditions only")
     if not s["scenarios"]:
         raise ValueError(f"{where}: no scenario set (`scenarios`)")
     if s["variant"] not in VARIANTS:

@@ -248,7 +248,7 @@ class TestPanel(unittest.TestCase):
 
     def test_the_sets_and_the_default(self):
         self.assertEqual(registry.DEFAULT_MODEL_SET, registry.PANEL_SET)
-        self.assertEqual(set(registry.MODEL_SETS), {"eci_topk", "frontier5"})
+        self.assertEqual(set(registry.MODEL_SETS), {"eci_topk", "frontier5", "cellcheck"})
         self.assertEqual(registry.MODEL_SETS["eci_topk"](),
                          [(m["label"], m["litellm_id"]) for m, _ in registry.panel()])
         self.assertEqual([l for l, _ in registry.frontier_models()],

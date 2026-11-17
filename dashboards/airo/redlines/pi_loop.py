@@ -36,7 +36,7 @@ from fri_forecaster.panel import pi_model  # noqa: E402,F401
 
 def call_tools(model, prompt, tools, final_tool, *, max_iters=6, system=None,
                min_evidence=0, usage=None, partial_tool=None, coverage=None, debrief=None,
-               allowed_keys=None, env=None, timeout=None, run=None):
+               allowed_keys=None, env=None, timeout=None, run=None, warn_missing=False):
     """Let the model call `tools` to gather evidence, then submit its answer
     through `final_tool` (whose `forecasts` items are the cell schema).
     -> (answer_args, evidence); fills `usage` and `debrief` in place, feeds
@@ -48,7 +48,9 @@ def call_tools(model, prompt, tools, final_tool, *, max_iters=6, system=None,
     here, per call, never in os.environ, because the runner's workers run
     calls side by side (2026-10-19). `timeout` (seconds) caps the whole call,
     REDLINES_PI_TIMEOUT or three hours by default; `run` replaces
-    fri_forecaster.harness.run (tests)."""
+    fri_forecaster.harness.run (tests). `warn_missing`: pi refuses the first
+    submit_forecast that leaves out an allowed cell or names an unknown one,
+    and says which (code/run_cellwise.py; the joint call keeps it off)."""
     if run is None:
         from fri_forecaster import harness
         run = harness.run
@@ -62,11 +64,15 @@ def call_tools(model, prompt, tools, final_tool, *, max_iters=6, system=None,
                                "agent-box passes it as one: install an agent-box that passes it on stdin")
     names = {t["name"] for t in tools}
     specs = [*tools, *([partial_tool] if partial_tool else []), final_tool]
-    cell_items = (partial_tool or final_tool)["parameters"]["properties"]["forecasts"]["items"]
+    # A final tool with no grid (code/run_cellwise.py: one probability, or
+    # the ECI step's five numbers) has no cell schema; pi's tools then hold
+    # no cells, and its own parameters replace the built-in ones.
+    grid = (partial_tool or final_tool)["parameters"]["properties"].get("forecasts")
+    cell_items = grid["items"] if grid else {"type": "object"}
     base = os.environ.get("REDLINES_PI_DIR") or os.path.join(tempfile.gettempdir(), "redlines-pi")
     workdir = os.path.join(base, f"{model.replace('/', '_')}-{time.time_ns()}")
     loop = dict(min_research=min_evidence, floor_counts="returned", coverage=list(coverage or []) or None,
-                withhold_final=True, warn_missing_keys=False, max_turns=max_iters)
+                withhold_final=True, warn_missing_keys=warn_missing, max_turns=max_iters)
     if debrief:
         loop["debrief"] = {"tool": {k: debrief["tool"][k] for k in ("name", "description", "parameters")},
                            "prompt": debrief["prompt"], "retries": int(debrief.get("retries", 1)),

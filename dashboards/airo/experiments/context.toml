@@ -1,0 +1,67 @@
+# CONTEXT: does asking the other horizons in the same call move the headline
+# forecast? (2026-11-17)
+#
+# The target is the headline AI question, catastrophe:ai ("a global AI-related
+# catastrophe ... deaths reaching at least 10% of the population alive at the
+# start of the measurement window"), at the six horizons of the published
+# prompt, unconditionally. Two arms (code/run_cellwise.py `bundle`):
+#
+#   alone       the target at one horizon per call            6 calls a round
+#   horizons    the target at all six horizons in one call    1 call a round
+#
+# each under three of the published series' prompts (the airo conditions none,
+# independent and recent), with search on as there: the model has web_search
+# and read_page and decides whether to use them. There is no ECI step: only
+# the unconditional is asked. That is the design of the model
+#
+#   Y = a + b1 HOR + b2 PROMPT + b3 OTHERHOR + g1 HOR x OTHERHOR
+#         + g2 HOR x PROMPT + g3 OTHERHOR x PROMPT + model effects + e
+#
+# (Y the log-odds of the answer; OTHERHOR = the horizons arm), which
+# code/analyze_context.py --regression estimates with standard errors clustered
+# by call. The alone arm repeats more: there every answer is its own call, so
+# call-to-call noise never cancels in a comparison between horizons. 46 calls
+# per model per prompt, 138 per model. Unpublished and hand-run.
+#
+# The other severities of the published prompt can be put back beside the
+# target with bundle = ["severities"] and context_cells (code/run_cellwise.py);
+# they are not asked here.
+
+scenarios = "data/combined_conditions.json"
+instrument = "minimal"
+harness = "pi"
+unit = "cell"
+publish = false
+cadence = "manual"
+eci_step = false
+cells = ["catastrophe:ai"]
+horizons = ["6mo", "12mo", "2028", "2030", "2050", "2100"]
+scenario_ids = ["unconditional"]
+
+# The baseline prompt (airo `none`): no added instruction.
+[conditions.none-alone]
+repeats = 6
+
+[conditions.none-horizons]
+bundle = ["horizons"]
+repeats = 10
+
+# airo `independent`.
+[conditions.independent-alone]
+variant = "independent"
+repeats = 6
+
+[conditions.independent-horizons]
+variant = "independent"
+bundle = ["horizons"]
+repeats = 10
+
+# airo `recent`.
+[conditions.recent-alone]
+variant = "recent"
+repeats = 6
+
+[conditions.recent-horizons]
+variant = "recent"
+bundle = ["horizons"]
+repeats = 10

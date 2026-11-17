@@ -376,7 +376,17 @@ def panel_provenance(model_set=PANEL_SET, k=PANEL_K):
                         for m, r in panel(k)]}
 
 
-MODEL_SETS = {PANEL_SET: eci_topk_models, "frontier5": frontier_models}
+def cellcheck_models() -> list[tuple[str, str]]:
+    """THE CELLCHECK PAIR (2026-11-17; experiments/cellcheck.toml): a hand-run
+    experiment's fixed two, not a panel. GPT-6.1 Sol has no row in this
+    checkout's table; its label and id are the ones redlines.autoreg gives it
+    (the production panel's automatic row), so its cells pair with its
+    published joint rows by label. A dated id on production would differ:
+    code/analyze_cellcheck.py warns when the two arms' ids disagree."""
+    return [("Opus 5.5", "anthropic/claude-opus-5-5"), ("GPT-6.1 Sol", "openai/responses/gpt-6.1-sol")]
+
+
+MODEL_SETS = {PANEL_SET: eci_topk_models, "frontier5": frontier_models, "cellcheck": cellcheck_models}
 DEFAULT_MODEL_SET = PANEL_SET
 
 

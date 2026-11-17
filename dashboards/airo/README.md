@@ -311,9 +311,21 @@ redlines/                   the pipeline package (stdlib only)
                             databank, timeline, conditional, capability, axes, method
   paper/                    the paper's figures (graph1, graph3, graph4, incident_ladders,
                             conditional, capability, causal) and numbers.tex; style.py
-experiments/                what runs ask: airo.toml (the published series), axes.toml, paperaxes.toml
+experiments/                what runs ask: airo.toml (the published series), axes.toml, paperaxes.toml,
+                            percell.toml (unpublished: one call per severity x horizon x scenario),
+                            context.toml (unpublished: does a call's other horizons or severities move catastrophe:ai?),
+                            cellcheck.toml (unpublished: 20 catastrophe:ai cells alone, 5x, Opus 5.5 + GPT-6.1 Sol;
+                            how to run it, and every cell's prompt, in experiments/cellcheck/)
 code/                       acquisition scripts, generators and thin shims (see each docstring)
   run_unified.py            THE forecast runner; --experiment, --condition, --dry-run
+  run_cellwise.py           the per-cell variant (unit = "cell"): one call per cell, after an ECI step;
+                            by default catastrophe:ai at all six horizons x 14 scenarios (84 calls);
+                            `bundle` puts other horizons or severities back into a call (context.toml)
+  analyze_percell.py        the joint call against the cells asked alone: common shift, shift by
+                            horizon/scenario/cell, with replicates = model x prompt
+  analyze_cellcheck.py      cellcheck against the published joint call: per-cell |isolated mean - unified|,
+                            the MAE (simulated p) and a chi-square test, per model and together
+  analyze_context.py        the context experiment's effects: other horizons, other severities, interaction
   cron_run.sh, publish_dashboard.sh   the weekly run and the box-side publish
   pull.sh, refresh_panel.sh           what every box job runs first: the code, then the panel
   make_autoarc_questions.py the question generator: data/auto-arc/* -> data/autoarc_*.json

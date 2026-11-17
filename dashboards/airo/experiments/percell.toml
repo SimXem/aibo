@@ -1,0 +1,43 @@
+# PER-CELL: the published series' instrument asked one cell per call -- one
+# call per severity x horizon x scenario, a rung's deaths and damages
+# questions together, so no probability is given beside another severity,
+# horizon or scenario (code/run_cellwise.py says what a cell call sees, and
+# the ECI step each model takes first). The independent arm against airo's
+# joint call.
+#
+# Unpublished and hand-run (redlines.experiments refuses a cell condition
+# otherwise): rows go to results/experiments/ and no view reads them. The
+# default run (since 2026-11-17) is the headline question alone,
+# catastrophe:ai at the six horizons under each of the 14 scenarios: 84 calls
+# and the ECI step per model per condition, one repeat. Each (model, prompt)
+# is one replicate of the comparison with that day's joint call, which
+# code/analyze_percell.py makes: what the joint answer is (the cell asked
+# alone), plus a shift common to every cell, plus a shift particular to the
+# cell. code/run_cellwise.py refuses more calls than one condition's default
+# run across the panel unless --max-calls says otherwise (all five prompts
+# for one model: --max-calls 425). Run with code/run_cellwise.py, never
+# code/run_unified.py, and best on a publication day (Wednesday or Friday,
+# after 12:00 UTC), so the joint call it is set beside asked the same day.
+
+scenarios = "data/combined_conditions.json"
+instrument = "minimal"
+harness = "pi"
+unit = "cell"
+publish = false
+cadence = "manual"
+
+# airo's five pooled prompts, by the same names, so each arm can be set
+# beside its joint counterpart.
+[conditions.none]
+
+[conditions.independent]
+variant = "independent"
+
+[conditions.recent]
+variant = "recent"
+
+[conditions.critical]
+variant = "critical"
+
+[conditions.two-step]
+variant = "two-step"

@@ -1621,6 +1621,10 @@ def main():
     if unknown:
         sys.exit(f"unknown --condition {unknown}; {exp['name']} has {', '.join(exp['conditions'])}")
     conditions = [exp["conditions"][c] for c in (args.condition or exp["conditions"])]
+    cellwise = [c["id"] for c in conditions if c["unit"] == "cell"]
+    if cellwise:
+        sys.exit(f"refusing: {exp['name']} condition(s) {cellwise} ask one cell per call "
+                 "(unit = \"cell\"); run them with code/run_cellwise.py")
     # One run writes one scenario set's rows to one place: conditions that ask
     # different sets, or publish differently, run as separate invocations.
     if len({c["scenarios"] for c in conditions}) > 1 or len({c["publish"] for c in conditions}) > 1:

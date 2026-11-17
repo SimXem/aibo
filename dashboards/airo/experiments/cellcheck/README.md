@@ -1,0 +1,186 @@
+# Cellcheck: is a headline forecast the same asked alone?
+
+The published AIRO call asks every question at every horizon under every
+scenario in **one** call: 6,132 probabilities side by side. Cellcheck asks
+twenty cells of the headline question one at a time, each in its own call,
+five times per model, and compares each cell's isolated answers with the same
+cell in the published (unified) call of the same day.
+
+The headline question is `catastrophe:ai`: a global AI-related catastrophe in
+which AI is the proximate cause of deaths reaching at least 10% of the
+population. No other question (epidemic, cyber, misalignment, the ladders) is
+asked.
+
+| File | What it is |
+|---|---|
+| `../cellcheck.toml` | The experiment: the twenty cells, five repeats, the two models |
+| `cells.html` | Every cell with the exact prompt the runner builds, collapsed (open it in a browser) |
+| `build_cells_page.py` | Rebuilds `cells.html` (no model is called) |
+| `../../code/run_cellwise.py` | The runner: one call per cell, after the model's ECI step |
+| `../../code/analyze_cellcheck.py` | The comparison with the published call |
+
+## The cells
+
+A scenario is a (policy, capability) pair. `sq`, `p1`..`p5` assume a policy
+and hold capability at the model's own ECI 50th percentile. `eci_p10`..`eci_p90`
+keep the policy the model expects and set capability to one of its own ECI
+percentiles. `unconditional` is the world as the model expects it.
+
+Fifteen cells form five slots. Each slot is one published prompt with its own
+scenario, asked at 2030, 2050 and 2100:
+
+| Prompt | Scenario | Horizons |
+|---|---|---|
+| none (baseline) | unconditional | 2030, 2050, 2100 |
+| independent | sq: status quo, own ECI p50 | 2030, 2050, 2100 |
+| recent | p5: P2b + P3b + P4 bundle, own ECI p50 | 2030, 2050, 2100 |
+| critical | eci_p10: expected policy, own ECI p10 | 2030, 2050, 2100 |
+| two-step | eci_p90: expected policy, own ECI p90 | 2030, 2050, 2100 |
+
+Five more cells were drawn at random with a fixed seed
+(`random.Random(20261117).sample`) from the other 405 prompt × horizon ×
+scenario cells:
+
+- none, 6mo, eci_p75
+- none, 2100, p4
+- independent, 12mo, p5
+- independent, 2028, eci_p25
+- independent, 2028, sq
+
+Each cell is asked 5 times by **Opus 5.5** and **GPT-6.1 Sol** (the model set
+`cellcheck` in `redlines/registry.py`; Sol is not added to the dashboard's
+panel). Every repeat starts with the model's ECI step, since every cell prompt
+quotes the model's ECI forecast as the joint prompt does:
+
+- per model: 100 cell calls and 25 ECI steps;
+- in all: **250 calls**.
+
+The prompts are the published minimal instrument's, with research on as
+published (web search and page reading).
+
+## Running it
+
+Every step runs from `dashboards/airo/` with the repository's environment:
+
+```bash
+cd dashboards/airo
+source ../../.venv/bin/activate
+```
+
+1. **Keys.** The keys file is `~/.config/fri-forecaster/env`, or the file
+   `$FORECASTER_ENV_FILE` names. It needs `ANTHROPIC_API_KEY`,
+   `OPENAI_API_KEY` (with access to GPT-6.1 Sol) and `TAVILY_API_KEY`.
+2. **When.** Run on a publication day (Wednesday or Friday) after the
+   12:00 UTC published run, and finish on the same UTC day. Then the
+   published call it is compared with was asked the same day, and `--resume`
+   works (it refuses a run of another day).
+3. **Look first** (free):
+   ```bash
+   python code/run_cellwise.py --experiment cellcheck --dry-run
+   ```
+4. **Pilot one prompt per model** (about 12 calls, a few dollars). This shows
+   that both models answer and what a call really costs. Each call prints its
+   tokens, and the run ends with the priced spend.
+   ```bash
+   python code/run_cellwise.py --experiment cellcheck --condition none --max-repeats 1
+   ```
+5. **The full run.** Continue the pilot's log; it skips what is done:
+   ```bash
+   python code/run_cellwise.py --experiment cellcheck --max-calls 250 --workers 10 \
+       --resume results/experiments/cellcheck-<run>-cells.jsonl
+   ```
+   `--max-calls 250` is needed because the runner refuses more paid calls
+   than one prompt's default run unless told otherwise. If calls fail, run the
+   same command again; it re-asks only what is missing.
+6. **Compare.** After that day's published run is on the dashboard, download
+   its `redlines-data.zip` (the Download button) into `private/`, which is
+   gitignored, and run:
+   ```bash
+   python code/analyze_cellcheck.py private/redlines-data.zip \
+       results/experiments/cellcheck-<run>-cells.jsonl --json private/cellcheck.json
+   ```
+   It uses the published calls of the cells' own day. `--joint-day YYYY-MM-DD`
+   compares with another day instead, and the report flags the mismatch.
+
+If production's GPT-6.1 Sol rows use a dated model id
+(`openai/responses/gpt-6.1-sol-YYYY-MM-DD`), the report warns that the ids
+differ. Change the id in `cellcheck_models` in `redlines/registry.py` and run
+again.
+
+## Cost
+
+These are estimates from pi's prices and the logged calls of older models. The
+pilot prints the real spend.
+
+| Searching per call | Opus 5.5 | GPT-6.1 Sol | Search (Tavily) | All 250 calls |
+|---|---|---|---|---|
+| Typical (4 searches, 2 page reads) | ~$75–105 | ~$10 | ~$17 | ~$100–130 |
+| Heavy (10 searches, 4 page reads) | ~$190–310 | ~$25 | ~$45 | ~$250–360 |
+
+**Why Opus costs more.** Opus's tokens cost twice Sol's ($4/$20 vs $2/$10 per
+million in/out). At the published reasoning level ("max" for Anthropic,
+"xhigh" for OpenAI), Opus has also thought several thousand tokens per turn in
+the logged calls, and those output tokens are most of its cost.
+
+Prompt caching is on for both models: pi marks the system prompt, the tools
+and the latest turn for Anthropic's cache. Neither model is stopped from
+calling several tools in one turn.
+
+The cost could be cut further by lowering Opus's reasoning level or by telling
+it to search in batches. Either change would alter what is asked, so its cells
+would no longer match the published call they are compared with. Neither is
+done.
+
+## What it writes
+
+The run writes three files under `results/experiments/`:
+
+- **`cellcheck-<run>-cells.jsonl`: the record, one row per answer as each call
+  completes.**
+  - An ECI step row (`step: "eci"`) holds the model's five ECI percentiles.
+  - A cell row (`step: "cell"`) holds the model, the prompt (`condition`),
+    `horizon`, `scenario_id`, the `probability`, the call's rationale and
+    sources, `replicate` (1–5), and the call's id.
+  - The first row of each call also carries the prompt, the evidence (every
+    search and page read) and the token use and price.
+- **`cellcheck-<run>-instrument.jsonl` and `cellcheck-<run>.jsonl`: the same
+  answers in the published rows' format**, all scenarios and the
+  unconditional slice, so other analyses can read them like a joint run.
+
+Every row says `unit: "cell"` and carries a protocol (`percell:…`) that no
+dashboard view reads.
+
+The comparison prints, per model:
+
+- **A table of the 20 cells:** the isolated mean (with n and SD), the unified
+  answer, the absolute error in percentage points, and the difference in
+  log-odds with its z.
+- **The MAE** in percentage points and in log-odds, each with a simulated
+  p-value.
+- **The mean signed difference** (+ means the isolated cell says more).
+- **The chi-square test**, X² on 20 degrees of freedom, with the noise
+  estimates behind it.
+- **A second chi-square** that assumes the unified call is as noisy as an
+  isolated one.
+- **The ECI gap:** both arms' ECI 50th percentiles.
+
+It then prints both models together (40 cells). `--json` saves all of it.
+
+How the test works: under "no difference", each cell's isolated mean minus
+its unified answer is noise. That noise is the isolated repeats' spread plus
+the unified call's own noise. The unified noise is estimated from the same
+day's five published calls of the same model across all 84 cells of the
+question. Cells from one call share that call's random draw, and the
+covariance allows for it. The module docstring of `code/analyze_cellcheck.py`
+gives the details. On synthetic data with no difference, X² averages 20 on 20
+degrees of freedom and rejects 5% of the time at p < 0.05.
+
+## Rebuilding the page
+
+`cells.html` renders the prompts for one date. On the run day, the date, the
+6- and 12-month horizons and the ECI target date move with it. To render
+another date:
+
+```bash
+python experiments/cellcheck/build_cells_page.py --date 2026-11-18
+```

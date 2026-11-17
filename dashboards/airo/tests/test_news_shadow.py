@@ -70,7 +70,9 @@ class Shadow(unittest.TestCase):
         for c in experiments.load("airo")["conditions"].values():
             if c["news_cache"]:
                 continue
-            old = {k: c[k] for k in experiments.DEFAULTS if k not in experiments.UNHASHED and k not in ("news_cache", "max_turns", "prior_baseline", "prior_self", "recent_news")}
+            old = {k: c[k] for k in experiments.DEFAULTS if k not in experiments.UNHASHED and k not in
+                   ("news_cache", "max_turns", "prior_baseline", "prior_self", "recent_news", "unit")
+                   + experiments.CELL_SETTINGS}
             self.assertEqual(c["sha256"], hashlib.sha256(json.dumps(old, sort_keys=True).encode()).hexdigest())
 
     def prepare(self, folder):

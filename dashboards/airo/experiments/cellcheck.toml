@@ -1,0 +1,73 @@
+# CELLCHECK: is a headline forecast the same asked alone as inside the
+# published joint call? (2026-11-17) How to run it, what it costs and what it
+# writes: experiments/cellcheck/README.md; every cell's prompt:
+# experiments/cellcheck/cells.html.
+#
+# Twenty cells of the headline question, catastrophe:ai ("a global AI-related
+# catastrophe ... deaths reaching at least 10% of the population alive at the
+# start of the measurement window") and nothing else -- no epidemic, cyber or
+# misalignment question -- each asked ALONE (code/run_cellwise.py: one call
+# per cell, after the model's own ECI step, as percell.toml asks) five times
+# by Opus 5.5 and by GPT-6.1 Sol (model_set "cellcheck",
+# redlines/registry.py). Each is set beside the same cell of the latest
+# published joint call of the same model and prompt
+# (code/analyze_cellcheck.py: the absolute error of the isolated mean, its
+# mean over the cells, and a chi-square test).
+#
+# A scenario is a (policy, capability) pair: sq, p1..p5 hold capability at the
+# model's own ECI p50; eci_p10..p90 keep the policy the model expects;
+# unconditional is expected policy and expected capability.
+#
+# Fifteen cells in five slots -- one per published prompt, each with its own
+# scenario, asked at 2030, 2050 and 2100:
+#
+#   none          unconditional   (expected policy, expected capability)
+#   independent   sq              (status quo, own ECI p50)
+#   recent        p5              (P2b + P3b + P4, own ECI p50)
+#   critical      eci_p10         (expected policy, own ECI p10)
+#   two-step      eci_p90         (expected policy, own ECI p90)
+#
+# and five random cells, drawn uniformly (random.Random(20261117).sample, 5)
+# from the 405 other prompt x horizon x scenario cells (5 x 6 x 14 - 15):
+#
+#   none 6mo eci_p75, none 2100 p4, independent 12mo p5,
+#   independent 2028 eci_p25, independent 2028 sq
+#
+# Per model: 20 cells x 5 repeats = 100 cell calls, and 25 ECI steps (one per
+# prompt per repeat; every cell prompt quotes the model's ECI forecast, as the
+# joint prompt does) -- 250 calls for the two models, past the runner's
+# default cap: run with --max-calls 250. Unpublished and hand-run; best on a
+# publication day (Wednesday or Friday) after the 12:00 UTC run, the whole
+# run on one UTC day, so the joint call it is compared with was asked the
+# same day.
+
+scenarios = "data/combined_conditions.json"
+instrument = "minimal"
+harness = "pi"
+unit = "cell"
+publish = false
+cadence = "manual"
+model_set = "cellcheck"
+cells = ["catastrophe:ai"]
+repeats = 5
+
+[conditions.none]
+pairs = ["2030|unconditional", "2050|unconditional", "2100|unconditional",
+         "6mo|eci_p75", "2100|p4"]
+
+[conditions.independent]
+variant = "independent"
+pairs = ["2030|sq", "2050|sq", "2100|sq",
+         "12mo|p5", "2028|eci_p25", "2028|sq"]
+
+[conditions.recent]
+variant = "recent"
+pairs = ["2030|p5", "2050|p5", "2100|p5"]
+
+[conditions.critical]
+variant = "critical"
+pairs = ["2030|eci_p10", "2050|eci_p10", "2100|eci_p10"]
+
+[conditions.two-step]
+variant = "two-step"
+pairs = ["2030|eci_p90", "2050|eci_p90", "2100|eci_p90"]
