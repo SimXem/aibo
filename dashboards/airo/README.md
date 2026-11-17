@@ -312,7 +312,8 @@ redlines/                   the pipeline package (stdlib only)
   paper/                    the paper's figures (graph1, graph3, graph4, incident_ladders,
                             conditional, capability, causal) and numbers.tex; style.py
 experiments/                what runs ask: airo.toml (the published series), axes.toml, paperaxes.toml,
-                            percell.toml (unpublished: one call per severity x horizon x scenario),
+                            percell.toml (unpublished: one call per severity x horizon x scenario; how to run it
+                            in experiments/percell/README.md),
                             context.toml (unpublished: does a call's other horizons or severities move catastrophe:ai?),
                             cellcheck.toml (unpublished: 20 catastrophe:ai cells alone, 5x, Opus 5.5 + GPT-6.1 Sol;
                             how to run it, and every cell's prompt, in experiments/cellcheck/)

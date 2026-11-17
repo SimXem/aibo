@@ -1,4 +1,5 @@
-# PER-CELL: the published series' instrument asked one cell per call -- one
+# PER-CELL: the published series' instrument asked one cell per call. How to
+# run it, what it costs and what it writes: experiments/percell/README.md. One
 # call per severity x horizon x scenario, a rung's deaths and damages
 # questions together, so no probability is given beside another severity,
 # horizon or scenario (code/run_cellwise.py says what a cell call sees, and

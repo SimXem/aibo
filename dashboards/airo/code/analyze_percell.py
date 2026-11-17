@@ -39,12 +39,13 @@ The levels: an answer at or near 0 or 1 is clipped at 1e-9 before the
 log-odds (as code/analyze_context.py); a mean of log-odds is reported as the
 probability with those odds (the geometric mean of the odds).
 
-Usage, with the joint call's instrument file (production
-state/results/conditional_runs_combined/<run>.jsonl, copied somewhere
-gitignored such as private/) and the cell run's:
+Usage, with the dashboard's download (redlines-data.zip, saved somewhere
+gitignored such as private/; or a joint instrument file from production,
+state/results/conditional_runs_combined/<run>.jsonl) and the cell run's log
+(experiments/percell/README.md says how to run it):
 
-    python code/analyze_percell.py private/2026-11-13T1200Z.jsonl \\
-        results/experiments/percell-<run>-instrument.jsonl [--json out.json]
+    python code/analyze_percell.py private/redlines-data.zip \\
+        results/experiments/percell-<run>-cells.jsonl [--json out.json]
 
 Each row says its own arm (`unit: "cell"` or not); a cells log
 (percell-<run>-cells.jsonl) reads as well as the assembled file. Joint and
