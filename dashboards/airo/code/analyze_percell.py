@@ -15,8 +15,9 @@ and prompt, on the log-odds scale:
   cell shift     p(estimate x context): how far this cell moves beyond the
                  common shift, by horizon, by scenario and cell by cell
 
-A REPLICATE is a (model, prompt) pair: its joint call (the mean of its joint
-calls when the files hold more, e.g. two publication days) set beside that
+A REPLICATE is a (model, prompt) pair: its joint call of the day compared
+(by default the cells' own day, else the latest the joint rows have;
+--joint-day picks it, and repeated averages several days) set beside that
 pair's cell calls (the mean of their repeats). Every estimate is a mean over
 replicates, and its standard error the spread between replicates over their
 square root (t with n-1 degrees of freedom), so model and prompt differences
@@ -269,6 +270,25 @@ def load_obs(paths, question):
     return obs, dict(skipped)
 
 
+def joint_days(obs, wanted=None):
+    """Keep the joint answers of the days to compare with: `wanted` (dates),
+    else the cells' own latest day when the joint rows have it, else their
+    latest day -- never every day a download holds. Unpooled joint rows
+    (airo's sixth prompt) are left out. -> (obs, [days kept])."""
+    joint = [o for o in obs if o["arm"] == "joint" and o.get("pooled", True) is not False]
+    have = sorted({o["day"] for o in joint if o["day"]})
+    if wanted:
+        missing = sorted(set(wanted) - set(have))
+        if missing:
+            sys.exit(f"--joint-day {', '.join(missing)}: the joint rows have {', '.join(have[-5:]) or 'no day'}")
+        keep = sorted(set(wanted))
+    else:
+        cells = sorted({o["day"] for o in obs if o["arm"] == "cell" and o["day"] in have}, reverse=True)
+        keep = cells[:1] or have[-1:]
+    ids = {id(o) for o in joint if o["day"] in keep}
+    return [o for o in obs if o["arm"] == "cell" or id(o) in ids], keep
+
+
 def _order(values, first=()):
     """`values` in the order of `first`, then the rest sorted."""
     first = list(dict.fromkeys(first))
@@ -511,11 +531,15 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description="The joint call against the cells asked alone (see the module docstring).")
     ap.add_argument("paths", nargs="+", help="joint instrument files and cell runs (assembled or cells logs)")
     ap.add_argument("--question", default="catastrophe:ai")
+    ap.add_argument("--joint-day", action="append", default=[], metavar="YYYY-MM-DD",
+                    help="the joint calls' run date; repeat it to average days (default: the cells' own "
+                         "day if the joint rows have it, else their latest)")
     ap.add_argument("--json", metavar="PATH", help="also write the numbers here")
     args = ap.parse_args(argv)
     obs, skipped = load_obs(args.paths, args.question)
     if not obs:
         sys.exit(f"no answers to {args.question} in {', '.join(args.paths)}")
+    obs, kept = joint_days(obs, args.joint_day)
     sets = {(o["arm"], o["set_protocol"]) for o in obs}
     protos = {p.split(":", 1)[-1] if p else p for _, p in sets}
     if len(protos) > 1:

@@ -74,9 +74,16 @@ source ../../.venv/bin/activate
    # all five prompts for one model: 425 calls
    python code/run_cellwise.py --experiment percell --models "Opus 5.5" --max-calls 425
    ```
-   The models are the dashboard's panel: the top four runnable models by ECI.
-   In this checkout that is GPT-6 Astra, Opus 5.5, Fable 5.1 and Sonnet 5.5.
-   `--models` picks some of them.
+   The models are the panel this checkout can run: the top four runnable
+   models by ECI, which here are GPT-6 Astra, Opus 5.5, Fable 5.1 and
+   Sonnet 5.5. `--models` picks some of them.
+
+   Production's panel can differ. It also runs the models its own automatic
+   registration added, such as GPT-6.1 Sol, which this checkout cannot run.
+   A model is only compared if it is in that day's published run. Before a
+   paid run, check which models the download's latest run holds, and pick
+   from those with `--models`. The comparison lists any model × prompt it
+   found no published partner for.
 
    The runner refuses to start more paid calls than one prompt's run across
    the selected models unless `--max-calls` says otherwise. If calls fail, add
@@ -89,7 +96,10 @@ source ../../.venv/bin/activate
    python code/analyze_percell.py private/redlines-data.zip \
        results/experiments/percell-<run>-cells.jsonl --json private/percell.json
    ```
-   A joint instrument file from production
+   It compares with the published calls of the cells' own day; the download
+   holds every day, and the others are left out. `--joint-day YYYY-MM-DD`
+   picks another day, and repeating it averages several; the report says when
+   the days differ. A joint instrument file from production
    (`state/results/conditional_runs_combined/<run>.jsonl`) reads as well as
    the zip.
 
@@ -166,9 +176,9 @@ dashboard view reads.
 
 ## Related
 
-- `../cellcheck.toml` and `../cellcheck/`: twenty fixed cells asked 5 times
-  each by Opus 5.5 and GPT-6.1 Sol, compared cell by cell with a chi-square
-  test.
+- `../cellcheck.toml` and `../cellcheck/`: twenty randomly drawn cells asked
+  5 times each by Opus 5.5 and GPT-6.1 Sol, compared cell by cell with a
+  chi-square test.
 - `../context.toml` and `code/analyze_context.py`: asks whether the other
   horizons in a call move the headline forecast. It sets the cell asked alone
   beside all six horizons asked in one call.

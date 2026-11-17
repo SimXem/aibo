@@ -91,7 +91,8 @@ source ../../.venv/bin/activate
    ```bash
    python code/run_cellwise.py --experiment cellcheck --dry-run
    ```
-4. **Pilot one prompt per model** (about 12 calls, a few dollars). This shows
+4. **Pilot one prompt per model** (10 calls: the baseline prompt's 4 cells
+   and its ECI step, for each model; a few dollars). This shows
    that both models answer and what a call really costs. Each call prints its
    tokens, and the run ends with the priced spend.
    ```bash

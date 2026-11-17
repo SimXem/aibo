@@ -671,13 +671,14 @@ def joint_and_cells(d, common=0.3, by_h=None, cell=None, models=("A", "B", "C", 
 class TestTheJointComparison(unittest.TestCase):
     BY_H = {"6mo": 0.4, "12mo": 0.2, "2028": 0.0, "2030": -0.1, "2050": -0.2, "2100": -0.3}
 
-    def run_it(self, **kw):
+    def run_it(self, *extra, **kw):
         with tempfile.TemporaryDirectory() as d:
             paths = joint_and_cells(d, **kw)
             obs, _ = apc.load_obs(paths, "catastrophe:ai")
+            obs, _ = apc.joint_days(obs, [x for x in extra if x[:2] == "20"])
             res = apc.decompose(obs)
             with redirect_stdout(io.StringIO()) as out:
-                apc.main(paths + ["--json", os.path.join(d, "r.json")])
+                apc.main(paths + ["--json", os.path.join(d, "r.json"), *extra])
             self.assertEqual(json.load(open(os.path.join(d, "r.json")))["sizes"]["common_shift"],
                              res["sizes"]["common_shift"])
         return res, out.getvalue()
@@ -714,7 +715,13 @@ class TestTheJointComparison(unittest.TestCase):
         self.assertLess(sum(r["shift"]["q"] < 0.1 for r in res["per_cell"]), 3)
 
     def test_the_days_and_a_second_joint_day(self):
-        res, text = self.run_it(joint_days=("2026-11-13", "2026-11-18"), cell_day="2026-11-18")
+        days = dict(joint_days=("2026-11-13", "2026-11-18"), cell_day="2026-11-18")
+        res, text = self.run_it(**days)                                 # by default: the cells' own day only
+        self.assertIn("joint call(s) of 2026-11-18; cells of 2026-11-18\n", text)
+        self.assertEqual(res["joint_day_sd"]["replicates"], 0)
+        res, text = self.run_it("--joint-day", "2026-11-13", **days)    # another day, said so
+        self.assertIn("joint call(s) of 2026-11-13; cells of 2026-11-18  -- different days", text)
+        res, text = self.run_it("--joint-day", "2026-11-13", "--joint-day", "2026-11-18", **days)
         self.assertIn("joint call(s) of 2026-11-13, 2026-11-18; cells of 2026-11-18  -- different days", text)
         self.assertEqual(res["joint_day_sd"]["replicates"], 20)
         self.assertAlmostEqual(res["joint_day_sd"]["cells"], 0.4, delta=0.1)   # the within-call noise
