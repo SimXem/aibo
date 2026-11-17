@@ -753,25 +753,29 @@ class TestTheCellcheckExperiment(unittest.TestCase):
             self.assertTrue(all(k["qids"] == ["catastrophe:ai"] and len(k["hs"]) == 1 for k in plan))
             got[cid] = sorted((k["hs"][0], k["cid"]) for k in plan)
         self.assertEqual(sum(map(len, got.values())), 20)
-        slots = {"none": "unconditional", "independent": "sq", "recent": "p5", "critical": "eci_p10",
-                 "two-step": "eci_p90"}
+        slots = {"none": "eci_p90", "independent": "p1", "recent": "unconditional", "critical": "p2a",
+                 "two-step": "eci_p25"}
         for cid, sid in slots.items():                                      # the fifteen: a slot at three horizons
             self.assertTrue({("2030", sid), ("2050", sid), ("2100", sid)} <= set(got[cid]), cid)
         extra = sorted((cid, h, sid) for cid, cells in got.items() for h, sid in cells
                        if not (sid == slots[cid] and h in ("2030", "2050", "2100")))
-        self.assertEqual(extra, [("independent", "12mo", "p5"), ("independent", "2028", "eci_p25"),
-                                 ("independent", "2028", "sq"), ("none", "2100", "p4"), ("none", "6mo", "eci_p75")])
+        self.assertEqual(extra, [("independent", "2028", "sq"), ("independent", "2100", "p3a"),
+                                 ("recent", "12mo", "unconditional"), ("recent", "2100", "eci_p10"),
+                                 ("recent", "6mo", "eci_p90")])
 
-    def test_the_random_five_are_the_seeded_draw(self):
-        slots = {"none": "unconditional", "independent": "sq", "recent": "p5", "critical": "eci_p10",
-                 "two-step": "eci_p90"}
+    def test_every_cell_is_the_seeded_draw(self):
+        """The file's twenty cells are what its header says the generator gives:
+        each prompt's slot scenario, then the five extra cells, from one seed."""
+        rng = random.Random(20261117)
+        scenarios = ["unconditional"] + SCENARIO_IDS
+        slots = dict(zip(PROMPTS, rng.sample(scenarios, 5)))
         fixed = {(p, h, s) for p, s in slots.items() for h in ("2030", "2050", "2100")}
-        pool = [(p, h, s) for p in PROMPTS for h in HORIZONS for s in ["unconditional"] + SCENARIO_IDS
-                if (p, h, s) not in fixed]
+        pool = [(p, h, s) for p in PROMPTS for h in HORIZONS for s in scenarios if (p, h, s) not in fixed]
         self.assertEqual(len(pool), 405)
-        drawn = set(random.Random(20261117).sample(pool, 5))
-        asked = {(cid, *p.split("|")) for cid, c in CELLCHECK["conditions"].items() for p in c["pairs"]} - fixed
+        drawn = fixed | set(rng.sample(pool, 5))
+        asked = {(cid, *p.split("|")) for cid, c in CELLCHECK["conditions"].items() for p in c["pairs"]}
         self.assertEqual(asked, drawn)
+        self.assertEqual(len(set(slots.values())), 5)                      # five different scenarios
 
     def test_the_run_is_250_calls_and_needs_the_cap_raised(self):
         out, why = self.run_main("--experiment", "cellcheck")

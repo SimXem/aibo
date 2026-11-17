@@ -18,20 +18,26 @@
 # model's own ECI p50; eci_p10..p90 keep the policy the model expects;
 # unconditional is expected policy and expected capability.
 #
-# Fifteen cells in five slots -- one per published prompt, each with its own
-# scenario, asked at 2030, 2050 and 2100:
+# Twenty cells, all drawn at random with one seed, nothing chosen by hand
+# (rng = random.Random(20261117); the 14 scenarios in the set's order,
+# unconditional first; the prompts and horizons in the order below):
 #
-#   none          unconditional   (expected policy, expected capability)
-#   independent   sq              (status quo, own ECI p50)
-#   recent        p5              (P2b + P3b + P4, own ECI p50)
-#   critical      eci_p10         (expected policy, own ECI p10)
-#   two-step      eci_p90         (expected policy, own ECI p90)
+#   1. Fifteen cells in five slots: each published prompt gets one scenario,
+#      rng.sample(the 14 scenarios, 5) taken in prompt order, asked at 2030,
+#      2050 and 2100:
 #
-# and five random cells, drawn uniformly (random.Random(20261117).sample, 5)
-# from the 405 other prompt x horizon x scenario cells (5 x 6 x 14 - 15):
+#        none          eci_p90         (expected policy, own ECI p90)
+#        independent   p1              (federal preemption, own ECI p50)
+#        recent        unconditional   (expected policy, expected capability)
+#        critical      p2a             (US compute cap, own ECI p50)
+#        two-step      eci_p25         (expected policy, own ECI p25)
 #
-#   none 6mo eci_p75, none 2100 p4, independent 12mo p5,
-#   independent 2028 eci_p25, independent 2028 sq
+#   2. Five more cells, rng.sample(the 405 other prompt x horizon x scenario
+#      cells, 5) with the same generator (prompts none independent recent
+#      critical two-step; horizons 6mo 12mo 2028 2030 2050 2100):
+#
+#        independent 2028 sq, independent 2100 p3a, recent 6mo eci_p90,
+#        recent 12mo unconditional, recent 2100 eci_p10
 #
 # Per model: 20 cells x 5 repeats = 100 cell calls, and 25 ECI steps (one per
 # prompt per repeat; every cell prompt quotes the model's ECI forecast, as the
@@ -52,22 +58,22 @@ cells = ["catastrophe:ai"]
 repeats = 5
 
 [conditions.none]
-pairs = ["2030|unconditional", "2050|unconditional", "2100|unconditional",
-         "6mo|eci_p75", "2100|p4"]
+pairs = ["2030|eci_p90", "2050|eci_p90", "2100|eci_p90"]
 
 [conditions.independent]
 variant = "independent"
-pairs = ["2030|sq", "2050|sq", "2100|sq",
-         "12mo|p5", "2028|eci_p25", "2028|sq"]
+pairs = ["2030|p1", "2050|p1", "2100|p1",
+         "2028|sq", "2100|p3a"]
 
 [conditions.recent]
 variant = "recent"
-pairs = ["2030|p5", "2050|p5", "2100|p5"]
+pairs = ["2030|unconditional", "2050|unconditional", "2100|unconditional",
+         "6mo|eci_p90", "12mo|unconditional", "2100|eci_p10"]
 
 [conditions.critical]
 variant = "critical"
-pairs = ["2030|eci_p10", "2050|eci_p10", "2100|eci_p10"]
+pairs = ["2030|p2a", "2050|p2a", "2100|p2a"]
 
 [conditions.two-step]
 variant = "two-step"
-pairs = ["2030|eci_p90", "2050|eci_p90", "2100|eci_p90"]
+pairs = ["2030|eci_p25", "2050|eci_p25", "2100|eci_p25"]

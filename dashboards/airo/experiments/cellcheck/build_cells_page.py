@@ -30,7 +30,11 @@ pair_of = {"unconditional": "expected policy · expected capability"}
 for s in sids:
     pair_of[s] = (f"{label[s]} · capability at the model's own ECI p50" if group[s] == "policy"
                   else f"expected policy · {label[s].replace('Frontier ECI 6 months from the run date = ', 'frontier ECI in 6 months = ')}")
-slots = {"none": "unconditional", "independent": "sq", "recent": "p5", "critical": "eci_p10", "two-step": "eci_p90"}
+# Each prompt's slot: the scenario it asks at all of 2030, 2050 and 2100 (read
+# from the experiment file, where the seeded draw put it).
+slots = {cid: next(s for s in ["unconditional"] + sids
+                   if all(f"{h}|{s}" in c["pairs"] for h in ("2030", "2050", "2100")))
+         for cid, c in exp["conditions"].items()}
 models = [l for l, _ in registry.MODEL_SETS[exp["conditions"]["none"]["model_set"]]()]
 
 def esc(s): return html.escape(s)
@@ -93,7 +97,8 @@ the numbers shown as <code>[from the ECI step]</code> are the model's own answer
 <p class="key">Marked: <span style="background:var(--v)">the prompt variant's instruction</span>
 <span style="background:var(--s)">the scenario's assumption</span>.
 <span class="tag slot">slot</span> one of the five prompt × scenario slots at 2030/2050/2100;
-<span class="tag random">random</span> one of the five seeded random cells.</p>
+<span class="tag random">random</span> one of the five extra random cells. Every cell, the slots' scenarios
+included, comes from one seeded draw (experiments/cellcheck.toml says how).</p>
 {''.join(sections)}</main></body></html>'''
 open(out, "w").write(page)
 print(n, "cells ->", out)
