@@ -11,6 +11,7 @@ import math
 import os
 import random
 import re
+import shutil
 import sys
 import tempfile
 import statistics as st
@@ -937,6 +938,85 @@ class TestTheCellcheckAnalysis(unittest.TestCase):
         self.assertAlmostEqual(apc.chi2_p(31.410433, 20), 0.05, places=5)
         self.assertAlmostEqual(apc.chi2_p(3.841459, 1), 0.05, places=5)
         self.assertAlmostEqual(apc.chi2_p(0.5, 3), 0.9189, places=4)
+
+
+class TestCellcheckEndToEnd(unittest.TestCase):
+    """The real runner on experiments/cellcheck.toml with a scripted model (no
+    API, no keys), then the real analysis on its log beside a published zip:
+    what each cell prompt holds, which cells are asked, and that every cell's
+    isolated mean and published answer reach the report unchanged."""
+
+    ECI = {"Opus 5.5": [172.0, 175.0, 178.0, 182.0, 186.0], "GPT-6.1 Sol": [171.0, 174.5, 177.5, 181.0, 185.5]}
+
+    def test_the_run_and_its_analysis(self):
+        items = {c["id"]: ru._scenario_items([c]).strip() for c in
+                 rc.load_instrument(str(REPO / "data/combined_conditions.json"), date.today())[0]["conditions"]}
+        rng, seen = random.Random(5), []
+
+        def model(model_id, prompt, tools, final, **kw):
+            label = "Opus 5.5" if "claude" in model_id else "GPT-6.1 Sol"
+            if "forecasts" not in final["parameters"]["properties"]:
+                return {"eci_forecast": dict(zip(("p10", "p25", "p50", "p75", "p90"), self.ECI[label])),
+                        "rationale": "r", "key_sources": []}, []
+            (key,) = kw["allowed_keys"]
+            q, h = key.split("|")
+            seen.append((label, h, [c for c, t in items.items() if t in prompt], prompt))
+            return {"forecasts": [{"question_id": q, "horizon": h, "probability": 1 / (1 + math.exp(-(BASE[h] + rng.gauss(0, 0.5))))}],
+                    "rationale": "r", "key_sources": []}, []
+
+        with tempfile.TemporaryDirectory() as d:
+            os.makedirs(os.path.join(d, "data"))
+            shutil.copy(REPO / "data/combined_conditions.json", os.path.join(d, "data"))
+            with patch.object(rc, "ROOT", d), patch.object(rc, "call_tools", model), \
+                    patch.object(ru, "load_keys", lambda: None), patch.object(ru, "eci_preflight", lambda p: None), \
+                    patch.dict(os.environ, {"TAVILY_API_KEY": "test"}), redirect_stdout(io.StringIO()):
+                rc.main(["--experiment", "cellcheck", "--max-calls", "250", "--workers", "4"])
+            out = os.path.join(d, "results", "experiments")
+            log = os.path.join(out, next(f for f in os.listdir(out) if f.endswith("-cells.jsonl")))
+            rows = [json.loads(line) for line in open(log)]
+            cells = [r for r in rows if r["step"] == "cell"]
+            self.assertEqual((len(rows) - len(cells), len(cells)), (50, 200))
+            want = {(cid, *p.split("|")) for cid, c in CELLCHECK["conditions"].items() for p in c["pairs"]}
+            for label, _ in PAIR:
+                got = defaultdict(list)
+                for r in cells:
+                    if r["label"] == label:
+                        got[(r["condition"], r["horizon"], r["scenario_id"])].append(r["replicate"])
+                self.assertEqual(set(got), want, label)
+                self.assertTrue(all(sorted(v) == [1, 2, 3, 4, 5] for v in got.values()), label)
+            for r in cells:                                         # what each cell prompt holds
+                p, sid = r["prompt"], r["scenario_id"]
+                self.assertEqual([c for c, t in items.items() if t in p], [] if sid == "unconditional" else [sid])
+                self.assertIn(f"p50 {self.ECI[r['label']][2]:g}", p)              # its own ECI step's numbers
+                v = experiments.VARIANTS[CELLCHECK["conditions"][r["condition"]]["variant"]]
+                self.assertTrue(v is None or v in p)
+                others = [experiments.VARIANTS[x] for x in PROMPTS[1:] if experiments.VARIANTS[x] != v]
+                self.assertFalse(any(o in p for o in others))
+                self.assertFalse(any(f"by the end of {y}" in p for y in ("2030", "2050", "2100") if y != r["horizon"]))
+            joint = []
+            for label, mid in PAIR:
+                for v in PROMPTS:
+                    for sid in ["unconditional"] + SCENARIO_IDS:
+                        joint.append({"question_id": "catastrophe:ai", "label": label, "model": mid, "condition": v,
+                                      "scenario": None if sid == "unconditional" else {"id": sid},
+                                      "run_date": cells[0]["run_date"], "call_id": f"J:{label}:{v}",
+                                      "forecasts": [{"horizon": h, "probability": 1 / (1 + math.exp(-(BASE[h] + rng.gauss(0, 0.5))))}
+                                                    for h in HORIZONS]})
+            zp = os.path.join(d, "redlines-data.zip")
+            with zipfile.ZipFile(zp, "w") as z:
+                z.writestr("raw/conditional_runs_combined/x.jsonl", "".join(json.dumps(r) + "\n" for r in joint))
+            res = acc.analyse(apc.load_obs([zp, log], "catastrophe:ai")[0], sims=20)
+        for label, _ in PAIR:
+            m = res["models"][label]
+            self.assertEqual(m["k"], 20)
+            for c in m["cells"]:
+                mine = [r["probability"] for r in cells if (r["label"], r["condition"], r["horizon"], r["scenario_id"])
+                        == (label, c["prompt"], c["horizon"], c["scenario"])]
+                theirs = [f["probability"] for r in joint for f in r["forecasts"]
+                          if (r["label"], r["condition"], (r["scenario"] or {}).get("id", "unconditional"), f["horizon"])
+                          == (label, c["prompt"], c["scenario"], c["horizon"])]
+                self.assertAlmostEqual(c["iso_mean_p"], st.fmean(mine))
+                self.assertAlmostEqual(c["uni_p"], theirs[0])
 
 
 if __name__ == "__main__":

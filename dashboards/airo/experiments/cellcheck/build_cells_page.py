@@ -78,6 +78,45 @@ for cid, c in exp["conditions"].items():
 <details class="eci"><summary>ECI step asked first (once per model per repeat) · {len(eci):,} chars</summary><pre>{marked(eci, c["variant"], "unconditional")}</pre></details>
 {''.join(items)}</section>''')
 
+
+ANALYSES = """<section class="plan"><h2>What will be analysed</h2>
+<p>After the run, <code>code/analyze_cellcheck.py</code> sets each cell beside <b>the same cell in the published
+(unified) call</b>: the same model, prompt, horizon and scenario, from the published run of the same day (read from the
+dashboard's download, <code>redlines-data.zip</code>). Everything below is computed per model, then for both models
+together (40 cells).</p>
+<dl>
+<dt>Per cell</dt>
+<dd>The mean of the 5 isolated answers, their spread, the unified answer, the <b>absolute error</b> between the two in
+percentage points, and the difference in log-odds (isolated minus unified) with its z.</dd>
+<dt>Mean absolute error (MAE)</dt>
+<dd>The absolute errors averaged over the 20 cells, in percentage points and in log-odds. Its p-value is simulated:
+how often a MAE at least this large arises when the two arms differ only by noise.</dd>
+<dt>Direction</dt>
+<dd>The mean signed difference: whether a cell asked alone tends to come out higher (+) or lower (−) than inside
+the unified call.</dd>
+<dt>Chi-square test</dt>
+<dd>One test of whether all 20 cells agree up to noise (X² on 20 degrees of freedom per model, 40 for both).
+The noise is the isolated repeats' spread plus the unified call's own noise. The unified noise is estimated from the same day's
+five published calls of the model across all 84 cells of the question, and cells from one unified call share its
+random draw. On simulated data with no difference, the test rejects 5% of the time at p &lt; 0.05.</dd>
+<dt>Sensitivity check</dt>
+<dd>The same test, assuming instead that the unified call is exactly as noisy as an isolated one, to show how much
+the verdict depends on the noise estimate.</dd>
+<dt>ECI gap</dt>
+<dd>Policy and capability cells are conditioned on the model's own ECI forecast. The isolated run takes it in a
+separate step, the unified call in its Step 1. The report prints both, since a cell's difference includes theirs.</dd>
+</dl>
+<p><b>How to read it.</b> A small p means a cell's answer depends on being asked inside the whole call. That covers
+everything that differs between the two: the other 6,131 probabilities, how much the model searches for one question
+versus all of them, and the separate ECI step. A large p means no difference was detected at this sample size; it
+does not show the arms are equal. Five repeats make single cells noisy, so the MAE and the chi-square over all
+cells are the main results. Because each prompt is dealt a different scenario at each horizon, no prompt's effect
+is tied to one scenario. There is no separate test by horizon, prompt or scenario; the per-cell table shows any
+pattern.</p>
+<p class="cmd"><code>python code/analyze_cellcheck.py private/redlines-data.zip
+results/experiments/cellcheck-&lt;run&gt;-cells.jsonl --json private/cellcheck.json</code></p>
+</section>"""
+
 page = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Cellcheck Cells</title><style>
 :root{{--bg:#fbfaf7;--fg:#1f2328;--soft:#59636e;--line:#d8dde3;--panel:#fff;--v:#fde68a;--s:#bfdbfe;--grid:#0e7c7b;--rand:#8e2a63}}
@@ -94,7 +133,7 @@ summary{{cursor:pointer;padding:8px 12px;display:flex;gap:12px;align-items:basel
 .eci summary{{color:var(--soft);font-size:14px}}
 pre{{margin:0;padding:12px;border-top:1px solid var(--line);white-space:pre-wrap;word-wrap:break-word;font:12.5px/1.45 ui-monospace,monospace;max-height:70vh;overflow:auto}}
 mark.v{{background:var(--v);color:inherit}}mark.s{{background:var(--s);color:inherit}}
-.key span{{padding:0 6px;border-radius:3px}}.deal{{border-collapse:collapse;margin:8px 0 4px;font-size:14px}}.deal th,.deal td{{border:1px solid var(--line);padding:3px 10px;text-align:left}}.deal th{{color:var(--soft);font-weight:600}}</style></head><body><main>
+.key span{{padding:0 6px;border-radius:3px}}.plan{{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 18px 10px;margin-top:24px}}.plan dt{{font-weight:600;margin-top:10px}}.plan dd{{margin:2px 0 0 0;color:var(--fg)}}.cmd code{{white-space:normal;font-size:13px}}.deal{{border-collapse:collapse;margin:8px 0 4px;font-size:14px}}.deal th,.deal td{{border:1px solid var(--line);padding:3px 10px;text-align:left}}.deal th{{color:var(--soft);font-weight:600}}</style></head><body><main>
 <h1>Cellcheck: the {n} cells asked</h1>
 <p class="intro">Each cell is the headline question, <b>catastrophe:ai</b> (an AI-related catastrophe killing at least 10% of the population),
 asked alone in its own call: one horizon, one scenario, one prompt. Each is asked 5 times by {esc(" and ".join(models))}
@@ -109,6 +148,7 @@ dealt to the prompts afresh at each horizon so no prompt keeps one scenario;
 (experiments/cellcheck.toml says how).</p>
 <table class="deal"><tr><th>prompt</th>{"".join(f"<th>{h}</th>" for h in GRID_H)}</tr>
 {"".join(f"<tr><td>{esc(cid)}</td>" + "".join(f"<td>{esc(deal.get((cid, h), '–'))}</td>" for h in GRID_H) + "</tr>" for cid in exp["conditions"])}</table>
+{ANALYSES}
 {''.join(sections)}</main></body></html>'''
 open(out, "w").write(page)
 print(n, "cells ->", out)
