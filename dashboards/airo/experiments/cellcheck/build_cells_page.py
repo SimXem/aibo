@@ -30,11 +30,18 @@ pair_of = {"unconditional": "expected policy · expected capability"}
 for s in sids:
     pair_of[s] = (f"{label[s]} · capability at the model's own ECI p50" if group[s] == "policy"
                   else f"expected policy · {label[s].replace('Frontier ECI 6 months from the run date = ', 'frontier ECI in 6 months = ')}")
-# Each prompt's slot: the scenario it asks at all of 2030, 2050 and 2100 (read
-# from the experiment file, where the seeded draw put it).
-slots = {cid: next(s for s in ["unconditional"] + sids
-                   if all(f"{h}|{s}" in c["pairs"] for h in ("2030", "2050", "2100")))
-         for cid, c in exp["conditions"].items()}
+# The horizon grid: the scenarios asked at each of 2030, 2050 and 2100 under
+# every prompt's deal (read from the experiment file, where the seeded draw
+# put them); a cell outside it is one of the extra random cells.
+GRID_H = ("2030", "2050", "2100")
+asked = {(cid, *p.split("|")) for cid, c in exp["conditions"].items() for p in c["pairs"]}
+five = set.intersection(*({s for cid, h2, s in asked if h2 == h} for h in GRID_H))
+deal = {}
+for h in GRID_H:
+    for cid in exp["conditions"]:
+        mine = sorted(s for c2, h2, s in asked if c2 == cid and h2 == h and s in five)
+        if len(mine) == 1:
+            deal[(cid, h)] = mine[0]
 models = [l for l, _ in registry.MODEL_SETS[exp["conditions"]["none"]["model_set"]]()]
 
 def esc(s): return html.escape(s)
@@ -59,7 +66,7 @@ for cid, c in exp["conditions"].items():
     for k in plan:
         n += 1
         h, s = k["hs"][0], k["cid"]
-        kind = "slot" if (s == slots[cid] and h in ("2030", "2050", "2100")) else "random"
+        kind = "grid" if deal.get((cid, h)) == s else "random"
         p = rc.call_prompt(k, spec, policies, today, c["variant"], None, c["research"], c["eci_step"])
         items.append(f'''<details class="cell"><summary><span class="n">{n}</span>
 <span class="h">{esc(h)}</span><span class="sc"><b>{esc(s)}</b> <span class="lab">{esc(pair_of[s])}</span></span>
@@ -73,8 +80,8 @@ for cid, c in exp["conditions"].items():
 
 page = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Cellcheck Cells</title><style>
-:root{{--bg:#fbfaf7;--fg:#1f2328;--soft:#59636e;--line:#d8dde3;--panel:#fff;--v:#fde68a;--s:#bfdbfe;--slot:#0e7c7b;--rand:#8e2a63}}
-@media (prefers-color-scheme:dark){{:root{{--bg:#16181c;--fg:#e6e8eb;--soft:#9aa4af;--line:#30353c;--panel:#1d2025;--v:#6b5a12;--s:#1e3a5f;--slot:#5cc4c2;--rand:#e48ab7}}}}
+:root{{--bg:#fbfaf7;--fg:#1f2328;--soft:#59636e;--line:#d8dde3;--panel:#fff;--v:#fde68a;--s:#bfdbfe;--grid:#0e7c7b;--rand:#8e2a63}}
+@media (prefers-color-scheme:dark){{:root{{--bg:#16181c;--fg:#e6e8eb;--soft:#9aa4af;--line:#30353c;--panel:#1d2025;--v:#6b5a12;--s:#1e3a5f;--grid:#5cc4c2;--rand:#e48ab7}}}}
 body{{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,sans-serif}}
 main{{max-width:980px;margin:0 auto;padding:24px 16px 64px}}h1{{font-size:24px;margin:0 0 6px}}
 h2{{font-size:18px;margin:32px 0 4px}}.sub{{font-weight:400;color:var(--soft);font-size:14px}}
@@ -83,11 +90,11 @@ details{{background:var(--panel);border:1px solid var(--line);border-radius:6px;
 summary{{cursor:pointer;padding:8px 12px;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}}
 .n{{color:var(--soft);min-width:2ch;font-variant-numeric:tabular-nums}}.h{{font-weight:600;min-width:4ch}}
 .sc{{flex:1;min-width:240px}}.lab{{color:var(--soft);font-size:13px}}.len{{color:var(--soft);font-size:12px}}
-.tag{{font-size:12px;border:1px solid;border-radius:10px;padding:0 8px}}.slot{{color:var(--slot)}}.random{{color:var(--rand)}}
+.tag{{font-size:12px;border:1px solid;border-radius:10px;padding:0 8px}}.grid{{color:var(--grid)}}.random{{color:var(--rand)}}
 .eci summary{{color:var(--soft);font-size:14px}}
 pre{{margin:0;padding:12px;border-top:1px solid var(--line);white-space:pre-wrap;word-wrap:break-word;font:12.5px/1.45 ui-monospace,monospace;max-height:70vh;overflow:auto}}
 mark.v{{background:var(--v);color:inherit}}mark.s{{background:var(--s);color:inherit}}
-.key span{{padding:0 6px;border-radius:3px}}</style></head><body><main>
+.key span{{padding:0 6px;border-radius:3px}}.deal{{border-collapse:collapse;margin:8px 0 4px;font-size:14px}}.deal th,.deal td{{border:1px solid var(--line);padding:3px 10px;text-align:left}}.deal th{{color:var(--soft);font-weight:600}}</style></head><body><main>
 <h1>Cellcheck: the {n} cells asked</h1>
 <p class="intro">Each cell is the headline question, <b>catastrophe:ai</b> (an AI-related catastrophe killing at least 10% of the population),
 asked alone in its own call: one horizon, one scenario, one prompt. Each is asked 5 times by {esc(" and ".join(models))}
@@ -96,9 +103,12 @@ on the run day the date, the rolling horizons (6 and 12 months) and the ECI targ
 the numbers shown as <code>[from the ECI step]</code> are the model's own answers to that step.</p>
 <p class="key">Marked: <span style="background:var(--v)">the prompt variant's instruction</span>
 <span style="background:var(--s)">the scenario's assumption</span>.
-<span class="tag slot">slot</span> one of the five prompt × scenario slots at 2030/2050/2100;
-<span class="tag random">random</span> one of the five extra random cells. Every cell, the slots' scenarios
-included, comes from one seeded draw (experiments/cellcheck.toml says how).</p>
+<span class="tag grid">grid</span> one of the fifteen horizon-grid cells: the same five scenarios at 2030, 2050 and 2100,
+dealt to the prompts afresh at each horizon so no prompt keeps one scenario;
+<span class="tag random">random</span> one of the five extra random cells. Every cell comes from one seeded draw
+(experiments/cellcheck.toml says how).</p>
+<table class="deal"><tr><th>prompt</th>{"".join(f"<th>{h}</th>" for h in GRID_H)}</tr>
+{"".join(f"<tr><td>{esc(cid)}</td>" + "".join(f"<td>{esc(deal.get((cid, h), '–'))}</td>" for h in GRID_H) + "</tr>" for cid in exp["conditions"])}</table>
 {''.join(sections)}</main></body></html>'''
 open(out, "w").write(page)
 print(n, "cells ->", out)

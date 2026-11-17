@@ -30,26 +30,35 @@ Every cell is drawn at random from one seed (`random.Random(20261117)`);
 nothing is chosen by hand. `../cellcheck.toml` records the exact procedure, and
 a test checks the file against it.
 
-**Fifteen cells in five slots.** Each published prompt gets one scenario,
-drawn without replacement from all 14 (five different scenarios). Each slot is
-asked at 2030, 2050 and 2100:
+**Fifteen cells on a horizon grid.** Five scenarios are drawn from the 14:
+eci_p90, p1, unconditional, p2a and eci_p25. Each is asked at 2030, 2050 and
+2100, so the same five appear at every horizon. At each horizon the five
+prompts are dealt one scenario each, and the deals are redrawn until no
+prompt gets the same scenario twice. A prompt therefore never comes with one
+fixed scenario:
 
-| Prompt | Scenario (drawn) | Horizons |
-|---|---|---|
-| none (baseline) | eci_p90: expected policy, own ECI p90 | 2030, 2050, 2100 |
-| independent | p1: federal preemption of state AI laws, own ECI p50 | 2030, 2050, 2100 |
-| recent | unconditional: expected policy, expected capability | 2030, 2050, 2100 |
-| critical | p2a: US compute cap on frontier R&D, own ECI p50 | 2030, 2050, 2100 |
-| two-step | eci_p25: expected policy, own ECI p25 | 2030, 2050, 2100 |
+| Prompt | 2030 | 2050 | 2100 |
+|---|---|---|---|
+| none (baseline) | unconditional | p2a | p1 |
+| independent | p1 | eci_p90 | eci_p25 |
+| recent | p2a | eci_p25 | unconditional |
+| critical | eci_p25 | p1 | eci_p90 |
+| two-step | eci_p90 | unconditional | p2a |
+
+The scenarios: unconditional is expected policy and expected capability; p1
+is federal preemption of state AI laws and p2a a US compute cap on frontier
+R&D, both with capability at the model's own ECI p50; eci_p25 and eci_p90
+keep the expected policy and set capability to the model's own ECI 25th and
+90th percentiles.
 
 **Five more cells.** These are drawn with the same generator from the 405
 other prompt × horizon × scenario cells:
 
-- independent, 2028, sq
-- independent, 2100, p3a
-- recent, 6mo, eci_p90
-- recent, 12mo, unconditional
-- recent, 2100, eci_p10
+- none, 2030, p3b
+- independent, 6mo, eci_p25
+- independent, 2050, eci_p75
+- recent, 6mo, p4
+- two-step, 2100, eci_p75
 
 Each cell is asked 5 times by **Opus 5.5** and **GPT-6.1 Sol** (the model set
 `cellcheck` in `redlines/registry.py`; Sol is not added to the dashboard's

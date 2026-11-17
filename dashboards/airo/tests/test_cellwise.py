@@ -753,29 +753,37 @@ class TestTheCellcheckExperiment(unittest.TestCase):
             self.assertTrue(all(k["qids"] == ["catastrophe:ai"] and len(k["hs"]) == 1 for k in plan))
             got[cid] = sorted((k["hs"][0], k["cid"]) for k in plan)
         self.assertEqual(sum(map(len, got.values())), 20)
-        slots = {"none": "eci_p90", "independent": "p1", "recent": "unconditional", "critical": "p2a",
-                 "two-step": "eci_p25"}
-        for cid, sid in slots.items():                                      # the fifteen: a slot at three horizons
-            self.assertTrue({("2030", sid), ("2050", sid), ("2100", sid)} <= set(got[cid]), cid)
+        grid = {"none": ["unconditional", "p2a", "p1"], "independent": ["p1", "eci_p90", "eci_p25"],
+                "recent": ["p2a", "eci_p25", "unconditional"], "critical": ["eci_p25", "p1", "eci_p90"],
+                "two-step": ["eci_p90", "unconditional", "p2a"]}                      # 2030, 2050, 2100
+        five = {"eci_p90", "p1", "unconditional", "p2a", "eci_p25"}
+        for i, h in enumerate(("2030", "2050", "2100")):                 # the same five scenarios at each horizon
+            self.assertEqual({row[i] for row in grid.values()}, five, h)
+        for cid, row in grid.items():                                   # and no prompt tied to one of them
+            self.assertEqual(len(set(row)), 3, cid)
+            self.assertTrue({(h, sid) for h, sid in zip(("2030", "2050", "2100"), row)} <= set(got[cid]), cid)
         extra = sorted((cid, h, sid) for cid, cells in got.items() for h, sid in cells
-                       if not (sid == slots[cid] and h in ("2030", "2050", "2100")))
-        self.assertEqual(extra, [("independent", "2028", "sq"), ("independent", "2100", "p3a"),
-                                 ("recent", "12mo", "unconditional"), ("recent", "2100", "eci_p10"),
-                                 ("recent", "6mo", "eci_p90")])
+                       if (h, sid) not in set(zip(("2030", "2050", "2100"), grid[cid])))
+        self.assertEqual(extra, [("independent", "2050", "eci_p75"), ("independent", "6mo", "eci_p25"),
+                                 ("none", "2030", "p3b"), ("recent", "6mo", "p4"), ("two-step", "2100", "eci_p75")])
 
     def test_every_cell_is_the_seeded_draw(self):
         """The file's twenty cells are what its header says the generator gives:
-        each prompt's slot scenario, then the five extra cells, from one seed."""
+        five scenarios, dealt to the prompts afresh at each horizon until no
+        prompt repeats one, then five extra cells, all from one seed."""
         rng = random.Random(20261117)
         scenarios = ["unconditional"] + SCENARIO_IDS
-        slots = dict(zip(PROMPTS, rng.sample(scenarios, 5)))
-        fixed = {(p, h, s) for p, s in slots.items() for h in ("2030", "2050", "2100")}
+        five = rng.sample(scenarios, 5)
+        while True:
+            deal = {h: rng.sample(five, 5) for h in ("2030", "2050", "2100")}
+            if all(len({deal[h][i] for h in deal}) == 3 for i in range(5)):
+                break
+        fixed = {(PROMPTS[i], h, deal[h][i]) for h in deal for i in range(5)}
         pool = [(p, h, s) for p in PROMPTS for h in HORIZONS for s in scenarios if (p, h, s) not in fixed]
         self.assertEqual(len(pool), 405)
         drawn = fixed | set(rng.sample(pool, 5))
         asked = {(cid, *p.split("|")) for cid, c in CELLCHECK["conditions"].items() for p in c["pairs"]}
         self.assertEqual(asked, drawn)
-        self.assertEqual(len(set(slots.values())), 5)                      # five different scenarios
 
     def test_the_run_is_250_calls_and_needs_the_cap_raised(self):
         out, why = self.run_main("--experiment", "cellcheck")
