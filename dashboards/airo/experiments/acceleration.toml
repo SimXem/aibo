@@ -1,0 +1,37 @@
+# ACCELERATION (2026-11-18): the headline question, catastrophe:ai, at every
+# horizon under self-sustaining acceleration conditions -- one joint call,
+# asked as the published series is (the minimal instrument through pi,
+# code/run_unified.py).
+#
+# The scenario set (data/acceleration_conditions.json,
+# code/make_acceleration_conditions.py) has 12 conditions: software-only
+# self-sustaining acceleration (sw_*), acceleration with economic feedback
+# but not software-only (econ_*), and neither (none_*), each holding without
+# a break for at least 6 months between today and December 31 of 2027, 2028,
+# 2030 or 2040.
+#
+# The probability of each condition is a separate, independent prompt:
+# experiments/acceleration-elicit.toml (code/run_elicit.py). Neither call
+# sees the other's prompt or answer.
+#
+# The prompt is `recent`, as the elicitation's is: its instruction is the
+# agreed elicitation prompt's last sentence, verbatim ("If you search
+# external information, focus on information that arrived within the past
+# year ...").
+#
+# Two models (model set "cellcheck": Opus 5.5 and GPT-6.1 Sol), five calls
+# each: 10 calls. Unpublished and hand-run; rows go to results/experiments/.
+#
+#   python code/run_unified.py --experiment acceleration --dry-run   # the prompt, free
+#   python code/run_unified.py --experiment acceleration             # 10 paid calls
+
+scenarios = "data/acceleration_conditions.json"
+instrument = "minimal"
+harness = "pi"
+publish = false
+cadence = "manual"
+model_set = "cellcheck"
+repeats = 5
+
+[conditions.recent]
+variant = "recent"

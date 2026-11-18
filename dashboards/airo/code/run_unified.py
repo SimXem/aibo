@@ -427,6 +427,14 @@ def minimal_joint_prompt(prompt, variant=DEFAULT_VARIANT):
     assert n == 1, "the joint prompt's research paragraph changed; update MINIMAL_JOINT_RESEARCH"
     assert out.count(MINIMAL_JOINT_RATIONALE) == 1, "the joint prompt's rationale line changed"
     out = out.replace(MINIMAL_JOINT_RATIONALE, "a short rationale, the sources you used, and any cells not yet delivered.")
+    # One question (the acceleration set, 2026-11-18): the head in the
+    # singular. Every published instrument asks many, and is untouched.
+    if "\nBelow are 1 questions. Answer\nall of them" in out:
+        for old, new in (("Below are 1 questions. Answer\nall of them -- and answer every",
+                          "Below is one question. Answer it\n-- and answer every"),
+                         ("that follows\nthe questions:", "that follows\nthe question:")):
+            assert out.count(old) == 1, f"the joint prompt's head changed; update minimal_joint_prompt ({old!r})"
+            out = out.replace(old, new)
     out, n = DEBRIEF_SENTENCE.subn("", out)
     assert n == 1, "the debrief sentence changed; update DEBRIEF_SENTENCE"
     if VARIANTS[variant]:
@@ -792,6 +800,34 @@ def load_batch(ladder_path, cross_path, exclude):
             continue
         by_group["crosscutting"].append(q)
     return groups, by_group, horizons, skipped, spec
+
+
+def set_questions(policies):
+    """The questions a scenario set asks -> load_batch's tuple: its own file
+    (`questions`, the welfare set), else the published batch -- narrowed to
+    `question_ids` when the set names them (the acceleration set asks
+    catastrophe:ai alone, 2026-11-18), in the batch's order, each with its
+    published text and criteria, over the horizons those questions have."""
+    out = (load_questions(policies["questions"]) if policies.get("questions")
+           else load_batch(LADDER, CROSS, UNBATCHED))
+    ids = policies.get("question_ids")
+    if not ids:
+        return out
+    groups, by_group, horizons, skipped, spec = out
+    by_group = {g["key"]: [q for q in by_group[g["key"]] if q["id"] in ids] for g in groups}
+    found = {q["id"] for qs in by_group.values() for q in qs}
+    if found != set(ids):
+        sys.exit(f"scenario set {set_slug(policies)!r} names questions the batch does not have: "
+                 f"{sorted(set(ids) - found)}")
+    groups = [g for g in groups if by_group[g["key"]]]
+    by_group = {g["key"]: by_group[g["key"]] for g in groups}
+    asked = {h for qs in by_group.values() for q in qs for h in q["horizons"]}
+    return groups, by_group, [h for h in horizons if h in asked], skipped, spec
+
+
+def _and(items):
+    """'', 'a', 'a and b', 'a, b and c' -- " and ".join's words for up to two."""
+    return " and ".join(items) if len(items) <= 2 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
 def load_questions(path):
@@ -1222,7 +1258,7 @@ def build_prompt_joint(groups, by_group, horizons, spec, scenarios, policies, to
     groups = set_groups(policies)
     if groups:
         present = [g for g in groups if any(c.get("group") == g["key"] for c in scenarios)]
-        kinds = " and ".join(f"{g['kind']} conditions" for g in present)
+        kinds = _and([f"{g['kind']} conditions" for g in present])
         return PROMPT_JOINT_GROUPED.format(
             today=today.isoformat(), n=n, k=k, blocks=blocks, ngroups=len(present),
             kinds=kinds, extra=submit_extra(policies),
@@ -1625,6 +1661,10 @@ def main():
     if cellwise:
         sys.exit(f"refusing: {exp['name']} condition(s) {cellwise} ask one cell per call "
                  "(unit = \"cell\"); run them with code/run_cellwise.py")
+    eliciting = [c["id"] for c in conditions if c["unit"] == "elicit"]
+    if eliciting:
+        sys.exit(f"refusing: {exp['name']} condition(s) {eliciting} ask only elicited quantities "
+                 "(unit = \"elicit\"); run them with code/run_elicit.py")
     # One run writes one scenario set's rows to one place: conditions that ask
     # different sets, or publish differently, run as separate invocations.
     if len({c["scenarios"] for c in conditions}) > 1 or len({c["publish"] for c in conditions}) > 1:
@@ -1707,14 +1747,13 @@ def run(args, exp, conditions, path, publish):
     if os.path.abspath(cond_out) == os.path.abspath(out):
         sys.exit("--conditional-out must differ from --out")
     # A set that names its own questions (the welfare set) asks those, not the ladder.
-    groups, by_group, horizons, skipped, spec = (load_questions(policies["questions"]) if policies.get("questions")
-                                                 else load_batch(LADDER, CROSS, UNBATCHED))
+    groups, by_group, horizons, skipped, spec = set_questions(policies)
     horizons = set_horizons(policies, horizons)
     prompt, n, cells = build_prompt_joint(groups, by_group, horizons, spec, scenarios,
                                           policies, today)
     values = f"{cell_numbers(by_group, horizons, spec) * (len(scenarios) + 1)} {CELL_MODES[value_mode(spec)]['count']}"
     for el in set_elicits(resolve_set(policies, today)):
-        print(f"    elicits {el['key']} {el['fields']} for {el.get('target_date')}"
+        print(f"    elicits {el['key']} {el['fields']}" + (f" for {el['target_date']}" if el.get("target_date") else "")
               + (f" (run date + {el['target_months']} months)" if el.get("target_months") else ""))
     if args.dry_run:
         for c in conditions:

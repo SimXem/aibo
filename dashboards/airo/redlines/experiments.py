@@ -85,7 +85,11 @@ INSTRUMENTS = ("standard", "minimal")
 # any other severity, horizon or scenario (code/run_cellwise.py). A cell
 # condition is an unpublished, hand-run experiment on the minimal instrument:
 # it costs about as many calls as the joint call has probabilities.
-UNITS = ("joint", "cell")
+# "elicit" (2026-11-18): a call that asks only the scenario set's elicited
+# quantities (its `elicits`), with no question grid and no conditions, as
+# run_cellwise's ECI step does (code/run_elicit.py); unpublished and hand-run
+# like a cell condition.
+UNITS = ("joint", "cell", "elicit")
 # What a cell condition puts back into one call (2026-11-17): the other
 # horizons, the other severities of the same question family, or both
 # (code/run_cellwise.py). The four combinations are the arms of the context
@@ -262,10 +266,10 @@ def _check(s, pooled, where):
         raise ValueError(f"{where}: news_cache requires unpooled unpublished minimal/pi Recent with a URL guard")
     if s["unit"] not in UNITS:
         raise ValueError(f"{where}: unit {s['unit']!r} is not one of {UNITS}")
-    if s["unit"] == "cell" and (s["publish"] or pooled or s["instrument"] != "minimal"
-                                or s["news_cache"] or s["cadence"] != "manual"
-                                or s["prior_baseline"] or s["recent_news"] or s["prior_self"]):
-        raise ValueError(f"{where}: unit \"cell\" requires an unpublished, unpooled, hand-run "
+    if s["unit"] != "joint" and (s["publish"] or pooled or s["instrument"] != "minimal"
+                                 or s["news_cache"] or s["cadence"] != "manual"
+                                 or s["prior_baseline"] or s["recent_news"] or s["prior_self"]):
+        raise ValueError(f"{where}: unit \"{s['unit']}\" requires an unpublished, unpooled, hand-run "
                          "(cadence \"manual\") condition on the minimal instrument, without news_cache "
                          "or the prior/recent shadow settings")
     b = s["bundle"]

@@ -1,0 +1,38 @@
+# ACCELERATION-ELICIT (2026-11-18): the probability of self-sustaining
+# acceleration, asked on its own -- independent of the catastrophe call
+# (experiments/acceleration.toml), which never sees it.
+#
+# One call (code/run_elicit.py: run_cellwise's ECI step, unchanged) forecasts
+# two quantities from data/acceleration_elicit.json
+# (code/make_acceleration_conditions.py), each at December 31 of 2027,
+# 2028, 2030 and 2040, with the catastrophe set's definitions word for word:
+#   p_software_only            P(software-only acceleration holds without a
+#                              break for >= 6 months between today and the
+#                              date); must not fall as the date gets later
+#   p_with_economic_feedback   P(acceleration with economic feedback holds
+#                              likewise, and software-only acceleration does
+#                              not hold at any point within that period or
+#                              before it); must not fall either. The
+#                              catastrophe call's econ_* conditions are this
+#                              event, in the same words.
+#
+# The prompt is `recent`: its instruction is the agreed elicitation prompt's
+# last sentence, verbatim. Research on, minimal instrument, pi loop.
+#
+# Two models (model set "cellcheck": Opus 5.5 and GPT-6.1 Sol), five calls
+# each: 10 calls. Unpublished and hand-run; rows go to results/experiments/.
+#
+#   python code/run_elicit.py --experiment acceleration-elicit --dry-run   # the prompt, free
+#   python code/run_elicit.py --experiment acceleration-elicit             # 10 paid calls
+
+scenarios = "data/acceleration_elicit.json"
+unit = "elicit"
+instrument = "minimal"
+harness = "pi"
+publish = false
+cadence = "manual"
+model_set = "cellcheck"
+repeats = 5
+
+[conditions.recent]
+variant = "recent"

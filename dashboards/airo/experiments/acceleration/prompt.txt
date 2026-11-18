@@ -1,0 +1,136 @@
+Today is 2026-11-18.
+
+Below is one question. Answer it
+-- and answer every question x horizon cell
+under each of the 13 conditions listed in the CONDITIONS section that follows
+the question: once unconditionally, and once under each condition in each of
+its 3 groups (software-only conditions, economic-feedback conditions and no-acceleration conditions). Every condition is taken on its own; no
+condition from one group is combined with a condition from another.
+
+===== CROSS-CUTTING =====
+
+--- catastrophe:ai (severity: deaths reaching 10% of the population) ---
+What is the probability that a global AI-related catastrophe (AI being the proximate cause, per the but-for standard, of attributable deaths reaching at least 10% of the population alive at the start of the measurement window) will occur within 6 months / within 12 months / by the end of 2028 / by the end of 2030 / by the end of 2050 / by the end of 2100?
+Horizons for this question: 6mo, 12mo, 2028, 2030, 2050, 2100
+
+Resolution criteria:
+* Catastrophe threshold and the measurement window: A catastrophe at the 10% level means that deaths attributable to the catastrophe (excess mortality, i.e., deaths beyond the baseline that would have occurred anyway) reach at least 10% of the population alive at the start of the measurement window.  
+* The measurement window is any contiguous period of at most five years during which the attributable deaths accumulate to the threshold. The window must begin on or after December 31, 2025 and end on or before December 31 of the resolution year (2030, 2050, or 2100). A faster event; the five years is a ceiling on the span over which deaths are counted, not a required duration.  
+* For a threshold to resolve positively, the deaths must arise from a single catastrophe or a single causally-linked chain of events, not from summing unrelated causes.  
+* Data and disagreement: For fatality and population data, we will rely on broadly recognized sources (e.g., Our World in Data, the Economist, the United Nations). Where these disagree in ways that would change resolution, we will resolve by the majority opinion of a panel of experts in demographics and fields relevant to the specific catastrophe (e.g., epidemiology for a pandemic). If reasonable people disagree about whether the event occurred, the question resolves via the same expert panel.
+
+[Carried forward from "General large-scale catastrophe"]
+
+* The points above also apply to this question.  
+* Artificial intelligence: Defined as the development of machines capable of sophisticated (intelligent) information processing (Dafoe 2018, AI Governance: A Research Agenda, p. 5 fn. 2).  
+* AI as proximate cause (but-for standard): We consider AI a proximate cause of death under a but-for test: the event would not have occurred, or would have been counterfactually extremely unlikely to occur, but for the substantial involvement of AI.  
+  * Examples that count: an AI-powered system directly killing people at the relevant magnitude; AI autonomously triggering a nuclear launch (including deaths from subsequent nuclear winter); AI being substantially responsible for creating a superweapon that later causes deaths at the relevant magnitude; AI acting autonomously in armed conflict and causing deaths at the relevant magnitude.  
+  * Examples that do not count: AI assisting in targeting a weapon that humans could and would have launched anyway (the AI did not counterfactually enable the event).  
+* There is no fixed time limit between the AI's involvement and the deaths. Creation of a superweapon may precede its use by years and still satisfy the but-for standard; the test is counterfactual materiality, rather than timing.
+* [Scope of "the resolution year", added 2026-08-28 when these questions moved onto the incident ladder's horizon grid: read it as the resolution date of whichever horizon you are answering, which for a rolling horizon is that many months after today's date. The rule is otherwise unchanged -- the measurement window still begins on or after December 31, 2025, must end on or before that resolution date, and still spans at most five years.]
+
+
+
+===== CONDITIONS =====
+
+Definitions. These follow the framework in Cunningham et al., "The Economics of Recursive Self-Improvement" (July 2026).
+Algorithmic efficiency: the inverse of the training compute needed to reach a given level of AI capability. Self-sustaining acceleration: its growth becomes self-accelerating -- as algorithmic efficiency rises, its growth rate also rises.
+
+Software-only self-sustaining acceleration. Hold fixed the number of human researchers, all compute (for training, experiments and AI inference used in research) and data. The condition holds if, even so, a 1% rise in algorithmic efficiency raises the rate of new algorithmic improvements by more than 1%. This counts both the direct effect of existing ideas on finding new ones and the indirect effect of better AI models doing research.
+Formally: ε(Ȧ,A) + ε(Ȧ,C)·ε(C,A) > 1, where C is AI capability, Ȧ is algorithmic improvements and A is algorithmic efficiency.
+
+Self-sustaining acceleration with economic feedback. Hold fixed only the number of human researchers. Compute and data may grow, but only to the extent that resources generated by AI capability gains pay for that growth. Those resources are revenue from better models, or financing that responds to capability progress. Each such input is assumed to grow in proportion to those resources. The condition holds if this whole system accelerates: the growth rates of algorithmic efficiency and of these capability-funded inputs rise as their levels rise. Growth in compute that would have happened anyway does not count.
+Formally: the dominant eigenvalue of the matrix of elasticities of each stock's growth with respect to each stock (algorithmic efficiency, training compute, experimental compute, research-inference compute, data) exceeds 1.
+
+A one-off jump in compute, from hype, new funding or anything else, does not satisfy either condition. The conditions concern how strongly progress feeds back into itself, not how fast it moves.
+
+Each question x horizon cell takes 13 probabilities, keyed by the condition ids below: unconditional, then the 4 software-only conditions (SOFTWARE-ONLY ACCELERATION CONDITIONS), then the 4 economic-feedback conditions (ECONOMIC-FEEDBACK ACCELERATION CONDITIONS), then the 4 no-acceleration conditions (NO-ACCELERATION CONDITIONS). Every condition stands alone: each names one kind of acceleration and one date, and is not combined with any other condition. Treat each condition as a fact about the world -- whether or not anyone has measured or announced it -- and not as an intervention: update your expectations about everything that would ordinarily accompany it -- investment, compute, the pace of AI capability progress, deployment, and how governments and developers respond -- and then forecast each question in that world. Do not hold other factors fixed where the condition would change them. The definitions hold some inputs fixed only to say what each condition is; they do not assume that those inputs stay fixed in the world you forecast. No policy condition applies: as in the unconditional forecast, assume whatever AI policies you expect to be implemented.
+
+--- unconditional ---
+Unconditional: forecast the world as you expect it to unfold, including whatever AI progress, and whatever self-sustaining acceleration, you expect.
+
+===== SOFTWARE-ONLY ACCELERATION CONDITIONS =====
+
+For each condition below, assume that software-only self-sustaining acceleration holds without a break for at least 6 months, over a period that lies entirely between today and the condition's date.
+
+These conditions assume nothing about self-sustaining acceleration with economic feedback beyond what software-only acceleration implies.
+
+Horizon: each condition's period ends no later than its date: December 31 of 2027, 2028, 2030 or 2040.
+
+--- sw_2027 ---
+Software-only self-sustaining acceleration by December 31, 2027.
+Condition: Assume that software-only self-sustaining acceleration holds without a break for at least 6 months, over a period that lies entirely between today and December 31, 2027.
+
+--- sw_2028 ---
+Software-only self-sustaining acceleration by December 31, 2028.
+Condition: Assume that software-only self-sustaining acceleration holds without a break for at least 6 months, over a period that lies entirely between today and December 31, 2028.
+
+--- sw_2030 ---
+Software-only self-sustaining acceleration by December 31, 2030.
+Condition: Assume that software-only self-sustaining acceleration holds without a break for at least 6 months, over a period that lies entirely between today and December 31, 2030.
+
+--- sw_2040 ---
+Software-only self-sustaining acceleration by December 31, 2040.
+Condition: Assume that software-only self-sustaining acceleration holds without a break for at least 6 months, over a period that lies entirely between today and December 31, 2040.
+
+===== ECONOMIC-FEEDBACK ACCELERATION CONDITIONS =====
+
+For each condition below, assume that self-sustaining acceleration with economic feedback holds without a break for at least 6 months, over a period that lies entirely between today and the condition's date.
+
+In every condition in this section, software-only self-sustaining acceleration does not hold at any point within that period or before it. Whether it holds after that period is left open.
+
+Horizon: each condition's period ends no later than its date: December 31 of 2027, 2028, 2030 or 2040.
+
+--- econ_2027 ---
+Self-sustaining acceleration with economic feedback, with no software-only acceleration before or during it, by December 31, 2027.
+Condition: Assume that self-sustaining acceleration with economic feedback holds without a break for at least 6 months, over a period that lies entirely between today and December 31, 2027, and that software-only self-sustaining acceleration does not hold at any point within that period or before it.
+
+--- econ_2028 ---
+Self-sustaining acceleration with economic feedback, with no software-only acceleration before or during it, by December 31, 2028.
+Condition: Assume that self-sustaining acceleration with economic feedback holds without a break for at least 6 months, over a period that lies entirely between today and December 31, 2028, and that software-only self-sustaining acceleration does not hold at any point within that period or before it.
+
+--- econ_2030 ---
+Self-sustaining acceleration with economic feedback, with no software-only acceleration before or during it, by December 31, 2030.
+Condition: Assume that self-sustaining acceleration with economic feedback holds without a break for at least 6 months, over a period that lies entirely between today and December 31, 2030, and that software-only self-sustaining acceleration does not hold at any point within that period or before it.
+
+--- econ_2040 ---
+Self-sustaining acceleration with economic feedback, with no software-only acceleration before or during it, by December 31, 2040.
+Condition: Assume that self-sustaining acceleration with economic feedback holds without a break for at least 6 months, over a period that lies entirely between today and December 31, 2040, and that software-only self-sustaining acceleration does not hold at any point within that period or before it.
+
+===== NO-ACCELERATION CONDITIONS =====
+
+For each condition below, assume that by the condition's date neither holds: no condition in the software-only section and no condition in the economic-feedback section.
+
+AI progress may still be fast in these conditions, and either kind of acceleration may hold for shorter spells; only the two conditions above, as stated, are ruled out.
+
+Horizon: each condition's period ends no later than its date: December 31 of 2027, 2028, 2030 or 2040.
+
+--- none_2027 ---
+Neither by December 31, 2027.
+Condition: Assume that neither holds by December 31, 2027: there is no period of at least 6 months between today and December 31, 2027 over which software-only self-sustaining acceleration holds without a break; and there is no period of at least 6 months between today and December 31, 2027 over which self-sustaining acceleration with economic feedback holds without a break while software-only self-sustaining acceleration has not held at any point within or before it.
+
+--- none_2028 ---
+Neither by December 31, 2028.
+Condition: Assume that neither holds by December 31, 2028: there is no period of at least 6 months between today and December 31, 2028 over which software-only self-sustaining acceleration holds without a break; and there is no period of at least 6 months between today and December 31, 2028 over which self-sustaining acceleration with economic feedback holds without a break while software-only self-sustaining acceleration has not held at any point within or before it.
+
+--- none_2030 ---
+Neither by December 31, 2030.
+Condition: Assume that neither holds by December 31, 2030: there is no period of at least 6 months between today and December 31, 2030 over which software-only self-sustaining acceleration holds without a break; and there is no period of at least 6 months between today and December 31, 2030 over which self-sustaining acceleration with economic feedback holds without a break while software-only self-sustaining acceleration has not held at any point within or before it.
+
+--- none_2040 ---
+Neither by December 31, 2040.
+Condition: Assume that neither holds by December 31, 2040: there is no period of at least 6 months between today and December 31, 2040 over which software-only self-sustaining acceleration holds without a break; and there is no period of at least 6 months between today and December 31, 2040 over which self-sustaining acceleration with economic feedback holds without a break while software-only self-sustaining acceleration has not held at any point within or before it.
+
+=====
+
+Horizons: 6mo (within 6 months (by 2027-05-18)), 12mo (within 12 months (by 2027-11-18)), 2028 (by 2028), 2030 (by 2030), 2050 (by 2050), 2100 (by 2100). Each question names the ones it is asked over -- answer
+those and no others.
+
+If you search external information, focus on information that arrived within the past year, and weight more heavily sources that are more up to date about recent developments.
+
+Deliver the probabilities with submit_cells, in as many calls as you like: any
+subset of the 6 question x horizon cells per call, each cell with a
+probability in [0,1] under each of the 13 conditions
+(78 probabilities, keyed by condition id); a later call for a cell
+replaces the earlier one. Then call submit_forecast ONCE,
+with a short rationale, the sources you used, and any cells not yet delivered.

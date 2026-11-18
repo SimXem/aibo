@@ -752,8 +752,7 @@ def selection(condition, args):
 def load_instrument(path, today):
     """The scenario set at `path`, resolved for `today`, and its questions."""
     policies = ru.resolve_set(ru.load_policies(path), today)
-    groups, by_group, horizons, skipped, spec = (ru.load_questions(policies["questions"]) if policies.get("questions")
-                                                 else ru.load_batch(ru.LADDER, ru.CROSS, ru.UNBATCHED))
+    groups, by_group, horizons, skipped, spec = ru.set_questions(policies)
     horizons = ru.set_horizons(policies, horizons)
     check_set(policies, spec)
     return policies, groups, by_group, horizons, spec
@@ -813,9 +812,13 @@ def main(argv=None):
     if unknown:
         sys.exit(f"unknown --condition {unknown}; {exp['name']} has {', '.join(exp['conditions'])}")
     conditions = [exp["conditions"][c] for c in (args.condition or exp["conditions"])]
-    joint = [c["id"] for c in conditions if c["unit"] != UNIT]
+    joint = [c["id"] for c in conditions if c["unit"] == "joint"]
     if joint:
         sys.exit(f"refusing: {exp['name']} condition(s) {joint} are joint; run them with code/run_unified.py")
+    eliciting = [c["id"] for c in conditions if c["unit"] != UNIT]
+    if eliciting:
+        sys.exit(f"refusing: {exp['name']} condition(s) {eliciting} ask only elicited quantities "
+                 "(unit = \"elicit\"); run them with code/run_elicit.py")
     if len({c["scenarios"] for c in conditions}) > 1:
         sys.exit("refusing: these conditions ask different scenario sets; run each with its own --condition list")
     path = os.path.join(ROOT, conditions[0]["scenarios"])
