@@ -75,9 +75,11 @@ if declare -F panel_members >/dev/null; then
   PANEL="$(panel_members 2>>"$ROOT/logs/round.log")" \
     || { log "FATAL: the panel could not be read (panel_members failed; see above): the round does not run"; exit 3; }
 else
-  PANEL="$("$PY" -m fri_forecaster.eci --fetch --names 2>/dev/null)"
+  PANEL="$("$PY" -m fri_forecaster.eci --fetch --names 2>>"$ROOT/logs/round.log")" \
+    || { log "FATAL: could not refresh the Epoch index"; exit 3; }
 fi
-SYNC_NOTE="$("$PY" -m forecastbench.names sync <<< "$PANEL")" || { log "names sync failed: $SYNC_NOTE"; exit 3; }
+[[ -n "$PANEL" ]] || { log "FATAL: panel selection returned no members"; exit 3; }
+SYNC_NOTE="$("$PY" -m forecastbench.names sync --baseline-ensemble <<< "$PANEL")" || { log "names sync failed: $SYNC_NOTE"; exit 3; }
 while read -r line; do log "$line"; done <<< "$SYNC_NOTE"
 for c in "${ALL[@]}"; do "$PY" -m forecastbench.names current "$c" >/dev/null || exit 3; done
 
@@ -86,7 +88,9 @@ run_member() {  # a names.py member spec, MODEL@THINKING,MODE (research, noresea
   model="${spec%%@*}"; thinking="${spec#*@}"; thinking="${thinking%%,*}"; mode="${spec##*,}"
   local extra=()
   case "$mode" in
+    research)   extra=(--research) ;;
     noresearch) extra=(--no-research) ;;
+    airo-none)  extra=(--baseline) ;;
     airo-*)     extra=(--airo "${mode#airo-}") ;;
   esac
   "$PY" -u -m forecastbench run --root "$ROOT" --question-set "$QSET" --model "$model" \

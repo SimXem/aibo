@@ -1,5 +1,7 @@
 # Production releases
 
+AIRO, EEAI and RSI use the production runtime. See [deploying and scheduling dashboards](DASHBOARDS.md) for per-site setup, protected HTTPS, shared panels and the host timer.
+
 On a configured cell, say **deploy** after merging the work. The agent runs
 `airo deploy`, then `airo status` and checks the configured public URL. Deployment
 is explicit; pushing or merging does not change production by itself.
@@ -168,7 +170,7 @@ upload failure with the upload-only command in `submissions/forecastbench/README
 do not rerun paid forecasts.
 
 Notices: **condition failed** (outside the published number), **ECI fetch
-failed** (the last known ensemble is used), **news fetch failed**, **ensemble
+failed** (the forecast job stops), **news fetch failed**, **ensemble
 changed**. Apart from the ForecastBench upload confirmation, nothing is sent on
 success, and nothing on the box can report that
 the box is down: watch that from outside. To start scheduling after migration, create the private

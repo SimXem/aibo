@@ -1,0 +1,12 @@
+{
+  "chunks": [
+    "head.html",
+    "style.html",
+    "header.html",
+    "index.html",
+    "render.html"
+  ],
+  "blobs": [
+    "SURVEY"
+  ]
+}

@@ -20,6 +20,8 @@ from fri_forecaster import tools  # noqa: E402
 from fri_forecaster.keys import load_keys  # noqa: E402
 
 def read_page(url, offset=0):
+    if tools.domain_blocked(url, tools.blocked_domains()) or tools.is_blocked(url, tools.blocked_patterns()):
+        return {"url": url, "text": "", "error": "page read failed: page unavailable"}
     from fri_forecaster.prior_forecast import read_snapshot as read_prior
     prior = read_prior(url, offset)
     if prior is not None:
@@ -32,7 +34,7 @@ def read_page(url, offset=0):
 FN = {"web_search": tools.web_search, "read_page": read_page}
 # Tavily answers 429 when many agents search at once (2026-10-06 practice
 # run: 32 concurrent calls, ~1,700 failures). Back off and retry here, not in
-# tools.py, which must stay identical to AIRO's copy.
+# the shared tools.py implementation.
 BACKOFF = [2, 5, 10, 20, 40]
 
 

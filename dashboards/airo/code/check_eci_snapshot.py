@@ -4,14 +4,11 @@ a recent Epoch ECI snapshot, and the scenario sets must be generated from it.
 
 code/cron_run.sh fetches Epoch's published scores (python3 -m redlines.eci
 --fetch) and regenerates the sets before every run, so on a normal day the
-snapshot is hours old. A failed fetch (Epoch down, the CSV reshaped) leaves
-the previous snapshot in charge and pages the operator; the run goes ahead on
-it while it is younger than --max-age-days (21: three weeks of failed fetches
-is a problem a person must look at, not something to forecast through).
+snapshot is from today. A failed fetch stops the scheduled run.
 Until 2026-10-01 this gate checked a METR Streamlit scrape that the box could
 not refresh, and it stopped the runs of 2026-09-23, -25 and -30.
 
-    python3 code/check_eci_snapshot.py                    # 21-day gate
+    python3 code/check_eci_snapshot.py                    # today only
     python3 code/check_eci_snapshot.py --max-age-days 0   # today only
     python3 code/check_eci_snapshot.py --rebuild          # regenerate the sets first (the cron)
 """
@@ -35,8 +32,8 @@ GENERATORS = [
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--max-age-days", type=int, default=21,
-                    help="fail when the newest Epoch snapshot is older than this (default 21)")
+    ap.add_argument("--max-age-days", type=int, default=0,
+                    help="fail when the newest Epoch snapshot is older than this (default 0)")
     ap.add_argument("--rebuild", action="store_true",
                     help="regenerate the scenario sets from the newest snapshot before checking")
     args = ap.parse_args(argv)
@@ -48,7 +45,7 @@ def main(argv=None):
     except FileNotFoundError as e:
         raise SystemExit(f"ECI preflight failed: {e}")
     age = (date.today() - day).days
-    if age > args.max_age_days:
+    if age < 0 or age > args.max_age_days:
         raise SystemExit(f"Epoch ECI snapshot is stale ({path.name}, {age} days old; max "
                          f"{args.max_age_days}). Fetch one: python3 -m redlines.eci --fetch")
     if age > 0:

@@ -741,3 +741,86 @@ def test_missed_offday_checks_cadence_and_records_outcome_once(runtime, monkeypa
     assert len(sent) == int(schedule_fails)
     if sent:
         assert sent[0][1] == 'preflight FAILED'
+
+
+@pytest.mark.parametrize("name,block,download", [("eeai", "EEAI", "eeai-data.zip"), ("rsi", "SURVEY", None)])
+def test_survey_frontend_retains_its_publication(tmp_path, name, block, download):
+    runtime = p.Runtime({"dashboard": name, "root": str(tmp_path), "path": "/usr/bin", "socket": str(tmp_path / "site.sock")})
+    old = release(runtime, "old")
+    site = old / "site"
+    site.mkdir()
+    (site / "index.html").write_bytes(dashboard("old UI", 21, block))
+    if download:
+        (site / download).write_bytes(b"old download")
+    p.write_json(site / "release.json", {"dashboard": name, "commit": "a"*40})
+    p.link(old, runtime.current)
+    repo = Path(__file__).resolve().parents[3]
+    new = tmp_path / "candidate"
+    snapshot = runtime.publish_frontend(repo, new)
+    assert p.data_blocks((new / "index.html").read_bytes()) == p.data_blocks((site / "index.html").read_bytes())
+    assert b"old UI" not in (new / "index.html").read_bytes()
+    assert snapshot["sha256"] == p.data_snapshot(site, runtime.dashboard.downloads)["sha256"]
+    if download:
+        assert (new / download).read_bytes() == b"old download"
+
+
+def test_survey_job_failure_does_not_publish_partial_models(tmp_path, monkeypatch, runtime):
+    runtime = p.Runtime({"dashboard": "eeai", "root": str(tmp_path), "path": "/usr/bin", "socket": str(tmp_path / "site.sock")})
+    active = release(runtime, "active")
+    p.link(active, runtime.current)
+    calls = []
+
+    def fail_after_one_model(argv, **kwargs):
+        calls.append(argv)
+        (Path(argv[-1]) / "partial.jsonl").write_text("partial row")
+        raise RuntimeError("model failure")
+
+    monkeypatch.setattr(p, "run", fail_after_one_model)
+    monkeypatch.setattr(runtime, "alert", lambda *args, **kwargs: None)
+    with pytest.raises(RuntimeError, match="model failure"):
+        runtime.execute_job("attempt-one", {"id": "eeai", "kind": "forecast"})
+    assert not (runtime.state / "results").exists()
+    assert (runtime.state / "attempts/attempt-one/partial.jsonl").is_file()
+    assert not runtime.execute_job("attempt-one", {"id": "eeai", "kind": "forecast"})
+    assert len(calls) == 1
+
+
+def test_survey_forecast_switches_site_and_keeps_results(tmp_path, monkeypatch, runtime):
+    runtime = p.Runtime({"dashboard": "rsi", "root": str(tmp_path), "path": "/usr/bin", "socket": str(tmp_path / "site.sock")})
+    active = release(runtime, "active")
+    p.link(active, runtime.current)
+    def scripted(argv, **kw):
+        if "rsi_dashboard.run" in argv:
+            (Path(argv[-1]) / "dated-run").mkdir()
+        else:
+            results = Path(argv[argv.index("--results") + 1])
+            assert (results / "dated-run").is_dir()
+            (Path(argv[-1]) / "index.html").write_bytes(dashboard("survey", 42, "SURVEY"))
+    monkeypatch.setattr(p, "run", scripted)
+    assert runtime.execute_job("rsi-example", {"id": "rsi", "kind": "forecast"})
+    assert (active / "site").resolve() == runtime.root / "sites/job-rsi-example"
+    expected = p.data_snapshot(active / "site", ())
+    assert json.loads((active / "release.json").read_text())["data_snapshot"]["sha256"] == expected["sha256"]
+
+
+def test_runtime_dispatches_only_its_schedule(tmp_path):
+    config = {"root": str(tmp_path/"rsi"), "dashboard": "rsi", "socket": "rsi.sock", "path": "/usr/bin"}
+    rsi = p.Runtime(config)
+    jobs = [{"id": "airo", "kind": "forecast", "daily_utc": "12:00"},
+            {"id": "weekly-rsi", "dashboard": "rsi", "kind": "forecast", "at": "2030-01-01T12:00Z"}]
+    p.write_json(tmp_path / p.JOBS, jobs)
+    assert rsi.jobs(tmp_path) == jobs[1:]
+    with pytest.raises(ValueError):
+        p.validate_jobs([dict(jobs[1], kind="news-poll")])
+
+
+def test_weekly_jobs_use_identical_live_and_missed_keys():
+    job = {"id": "survey", "dashboard": "rsi", "kind": "forecast", "weekly_utc": "Fri 09:30"}
+    at = datetime(2026, 11, 20, 9, 30, tzinfo=timezone.utc)
+    key = "survey-20261120"
+    assert list(p.due_jobs([job], at.replace(second=55))) == [(key, job)]
+    assert not list(p.due_jobs([job], at.replace(day=21)))
+    assert list(p.scheduled_between([job], at.replace(day=19), at.replace(day=21))) == [(key, job, at)]
+    for bad in [dict(job, daily_utc="09:30"), dict(job, weekly_utc="Fri 25:00")]:
+        with pytest.raises(ValueError):
+            p.validate_jobs([bad])

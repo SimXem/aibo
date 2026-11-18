@@ -76,10 +76,10 @@ class TestRefreshPanel(unittest.TestCase):
         _, _, pages = self.refresh(AFTER="A, C")
         self.assertEqual(pages, [])
 
-    def test_a_failed_fetch_pages_and_goes_on(self):
+    def test_a_failed_fetch_pages_and_stops(self):
         rc, out, pages = self.refresh(FETCH_FAILS="1")
-        self.assertEqual(rc, 0)
-        self.assertIn("panel: A, B", out)
+        self.assertNotEqual(rc, 0)
+        self.assertNotIn("panel:", out)
         self.assertTrue(any("--severity notice --title ECI fetch failed" in p for p in pages), pages)
 
     def test_a_new_model_is_logged_and_the_changed_ensemble_is_the_notice(self):

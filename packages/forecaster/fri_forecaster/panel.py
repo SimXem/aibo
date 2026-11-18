@@ -37,6 +37,7 @@ above the cut with no row, a tie at the cut, a short panel.
 import json
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from . import eci, keys
@@ -240,7 +241,7 @@ def select(ranked, table, k=PANEL_K, snapshot_name="the snapshot", stale=None):
     return chosen, warnings
 
 
-def panel(k=PANEL_K, snapshot=None, snapshot_dir=None, auto=None, warn=True):
+def panel(k=PANEL_K, snapshot=None, snapshot_dir=None, auto=None, warn=True, require_today=False):
     """The panel for a dashboard with no table of its own: the k highest-ECI
     models of `snapshot` ((date, path); the newest in `snapshot_dir` by
     default), best first. Raises PanelError when one of them cannot be run,
@@ -250,6 +251,11 @@ def panel(k=PANEL_K, snapshot=None, snapshot_dir=None, auto=None, warn=True):
     `organization`; `provenance` is what a run stamps on its rows (which
     snapshot chose the panel, how old it was, the warnings)."""
     day, path = snapshot or eci.latest(snapshot_dir)
+    if require_today:
+        today = datetime.now(timezone.utc).date()
+        if day != today:
+            raise PanelError(f"New forecasts require the {today} UTC ECI snapshot; found {path.name}. "
+                             "Refresh the snapshot and automatic model rows before running.")
     stale = None if snapshot else eci.stale_message(snapshot_dir=snapshot_dir)
     ranked, table = eci.ranked(path), models(auto, snapshot_dir)
     chosen, warnings = select(ranked, table, k, Path(path).name, stale)
@@ -277,7 +283,7 @@ def main(argv=None):
         del args[i:i + 2]
     k = int(args[0]) if args else PANEL_K
     try:
-        members, _ = panel(k, snapshot_dir=snapshot_dir)
+        members, _ = panel(k, snapshot_dir=snapshot_dir, require_today=True)
     except (FileNotFoundError, PanelError) as e:
         print(f"FATAL: {e}", file=sys.stderr)
         return 1

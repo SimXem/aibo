@@ -39,7 +39,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: npm ci
         working-directory: packages/forecaster
-      - run: pip install -e './packages/forecaster[dev]' -e ./packages/dashboard -e './dashboards/airo[test]' -e ./dashboards/eeai -e ./submissions/forecastbench -e ./submissions/leap
+      - run: pip install -e './packages/forecaster[dev]' -e ./packages/dashboard -e './dashboards/airo[test]' -e ./dashboards/eeai -e ./dashboards/rsi -e ./submissions/forecastbench -e ./submissions/leap
       - run: python -m pytest -q -rs
       - run: node --test dashboards/airo/tests/test_tooltips.cjs
 
