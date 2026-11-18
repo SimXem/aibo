@@ -17,4 +17,48 @@ details p{white-space:pre-line}.history-chart{max-width:760px;width:100%;height:
 .method,#history{max-width:860px}.table-wrap{overflow-x:auto}button{background:var(--ink);color:white;border:0;padding:14px 20px;font:16px var(--mono);cursor:pointer}button:disabled{opacity:.5}
 footer{border-top:1px solid var(--ink);padding-top:18px}footer a{margin-right:16px}
 @media(max-width:680px){header{padding:20px!important}main{padding:24px 16px;gap:32px}h1{font-size:36px!important}td,th{padding:8px 5px}.table-wrap table{min-width:640px}}
+.chart-legend{display:flex;gap:1rem;flex-wrap:wrap;color:var(--muted);font-size:.875rem}
+.chart-legend span::before{content:"";display:inline-block;width:.6rem;height:.6rem;border-radius:50%;background:var(--ink);margin-right:.4rem}
+.chart-legend span+span::before{background:#9aa5a1}
+.cluster-target{cursor:pointer;fill:transparent;stroke:transparent}
+.cluster-target:is(:hover,[aria-describedby]){fill:rgb(16 43 35 / 5%)}
+.cluster-target:focus-visible{stroke:var(--muted);outline:none}
+@media(prefers-reduced-motion:no-preference){
+  .cluster-target{transition:fill 140ms ease}
+  .forecast-tooltip:not([hidden]),#question-dialog[open]{animation:forecast-reveal 150ms ease-out}
+  #questions tbody tr,#question-views button,.model-choices button{transition:background-color 120ms ease,border-color 120ms ease}
+  @keyframes forecast-reveal{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+}
+.forecast-tooltip{position:fixed;z-index:5;width:max-content;max-width:calc(100vw - 16px);background:var(--pale);color:var(--ink);padding:12px 16px;border:1px solid #9aa5a1;border-radius:10px;box-shadow:0 5px 20px #102b2326}
+.forecast-tooltip strong{display:block;font:500 17px var(--serif);margin:4px 0 8px}
+table.comparison{min-width:0;width:100%;font-size:13px;line-height:1.35}
+.comparison th,.comparison td{width:auto;padding:5px 4px;vertical-align:middle}
+.comparison tbody th{text-transform:none;letter-spacing:normal;font:inherit}
+.comparison td,.comparison thead th:not(:first-child){text-align:right}
+.comparison tbody tr:last-child{font-weight:600}
+body:has(#question-dialog[open]){overflow:hidden}
+.question-trigger,.metric button{background:none;color:inherit;font:inherit;line-height:inherit;text-align:left;padding:0}
+.metric .number{font:400 32px/1.15 var(--serif)}
+.question-trigger:focus-visible,.metric button:focus-visible{outline:2px solid #1f19cc;outline-offset:3px}
+#questions tbody tr{cursor:pointer}
+#questions tbody tr:is(:hover,:focus-within){background:var(--pale)}
+#question-dialog{width:100%;max-width:none;max-height:90dvh;padding:0;border:0;border-block:1px solid #c8d3cb;color:var(--ink);background:#fff;overscroll-behavior:contain}
+#question-dialog::backdrop{background:rgb(16 43 35 / 58%)}
+.question-shell{max-width:1024px;margin:auto;padding:0 clamp(18px,5vw,64px) 40px}
+.question-top{display:flex;align-items:center;justify-content:space-between;gap:1rem;position:sticky;top:0;background:#fff;padding:16px 0;z-index:1}
+#question-close,.model-choices button{background:var(--pale);color:var(--ink);font:500 13px var(--mono);padding:7px 12px;border-radius:6px}
+#question-title{font-size:clamp(22px,3vw,34px);max-width:42ch}
+#question-views,.model-choices{display:flex;gap:8px;flex-wrap:wrap}
+#question-views{border-bottom:1px solid #cad4cc;margin:20px 0}
+#question-views button{background:transparent;border-bottom:2px solid transparent;color:var(--muted);padding:8px 10px;font:500 14px 'DM Sans',sans-serif}
+#question-views button[aria-pressed=true]{color:var(--ink);border-color:var(--ink)}
+.question-median{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;padding:12px 16px;background:var(--pale);border-radius:8px;margin-bottom:12px}
+.question-median strong{font:400 28px var(--serif)}
+#question-content .comparison{font-size:15px}#question-content .comparison th,#question-content .comparison td{padding:9px 4px}
+#question-content h3{font-size:20px;margin:18px 0 6px}.survey-text{white-space:pre-line;overflow-wrap:anywhere}
+.rationale-intro{color:var(--muted);margin-bottom:12px}
+.model-choices button[aria-pressed=true]{background:var(--ink);color:white}
+.rationale-columns{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:24px}
+#implied{background:var(--pale);border-radius:10px;padding:20px}
+#implied h3{margin:0 0 12px}#implied small{display:block;margin-bottom:8px}
 </style>
