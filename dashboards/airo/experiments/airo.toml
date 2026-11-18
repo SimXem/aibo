@@ -49,6 +49,7 @@ variant = "two-step"
 # (elsehow/airo#5). Its rows carry `pooled: false` and the guard; a failed
 # call does not fail the run (code/validate_launch_run.py).
 [conditions.ai-banned]
+cadence = "manual"
 variant = "ai-banned"
 url_block_patterns = 'forecastingresearch\.org/pdf/airo,forecastingresearch\.org/research/airo,airo\.forecastingresearch\.org'
 

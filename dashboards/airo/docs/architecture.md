@@ -350,7 +350,7 @@ series: Wednesdays and Fridays, from 2026-09-16), sources `~/.config/redlines/en
 runs each due group:
 
 ```bash
-"$PY" code/run_unified.py --experiment airo --condition none ... --condition ai-banned --workers 10
+"$PY" code/run_unified.py --experiment airo --condition none --condition independent --condition recent --condition critical --condition two-step --workers 10
 ```
 
 `$PY` only has to be an interpreter with the harness installed (`pip install
@@ -361,8 +361,8 @@ the run asks (`redlines/experiments.py`): six conditions, each a configured way
 of running the single instrument, one call per model each. Every call answers
 every question×horizon cell unconditionally *and* under each scenario of the
 combined set (the LEAP policies plus the model's own capability percentiles);
-five conditions are pooled into each model's published number and the sixth is
-drawn beside them. Since 2026-09-15 the
+five scheduled conditions are pooled into each model's published number. The
+sixth (AI-banned) is available manually. Since 2026-09-15 the
 call ends with a **debrief turn** (`redlines.llm.call_tools` `debrief`,
 `code/run_unified.py` `debrief_tool`): once the forecasts are accepted, the
 same conversation is asked, per question group, which sources mattered most
