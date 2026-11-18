@@ -451,11 +451,30 @@ class Runtime:
         finally:
             connection.close()
 
+    def publish_public(self, site):
+        """An installation may mirror the verified static site to a separate ingress."""
+        command = self.config.get('public_publisher')
+        if command is None:
+            return  # ingress serves the runtime socket directly
+        if not isinstance(command, list) or not command or not all(isinstance(arg, str) and arg for arg in command):
+            raise ValueError('public_publisher must be a nonempty argv list')
+        run([*command, site.resolve(strict=True)], timeout=900)
+
+    def republish(self):
+        with self.lock():
+            site = (self.current / 'site').resolve(strict=True)
+            self.verify_site(site)
+            metadata = json.loads((site / 'release.json').read_text())
+            if metadata['data_snapshot']['sha256'] != data_snapshot(site, self.dashboard.downloads)['sha256']:
+                raise RuntimeError('Selected site differs from its recorded snapshot')
+            self.publish_public(site)
+
     def activate(self, release):
         previous = self.current.resolve() if self.current.exists() else None
         link(release, self.current)
         try:
             self.probe(release)
+            self.publish_public(release / 'site')
         except Exception:
             if previous:
                 link(previous, self.current)
@@ -696,6 +715,7 @@ class Runtime:
                     write_json(site / 'release.json', meta)
                     link(site, release / 'site')
                     write_json(release / 'release.json', meta)
+                    self.publish_public(site)
                 started.update(status='succeeded')
             except Exception as exc:
                 started.update(status='failed', error=type(exc).__name__, stage=stage)
@@ -703,7 +723,10 @@ class Runtime:
                 with (self.root / 'logs' / (key + '.log')).open('a') as log:
                     print(f'{stage}: {type(exc).__name__}: {exc}', file=log)
                 if job['kind'] != 'smoke' and not paged(ledger):  # the job's own page says more than this one
-                    self.alert(job, f"{key} failed ({type(exc).__name__}). It is not retried.",
+                    failure = 'failed'
+                    if job['kind'] == 'forecast':
+                        failure = 'failed to publish dashboard' if stage == 'publish FAILED' else 'failed to produce forecast'
+                    self.alert(job, f"{key}: {failure} ({type(exc).__name__}). It is not retried.",
                                log=self.root / 'logs' / (key + '.log'), title=stage)
                 raise
             finally:
@@ -805,7 +828,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', default=os.environ.get('AIRO_RUNTIME_CONFIG', str(Path.home() / '.config/airo/runtime.json')))
     parser.add_argument('command', choices=['deploy', 'rollback', 'status', 'tick', 'serve', 'smoke', 'prune', 'storage', 'build-release',
-                                            'configure-forecastbench', 'check-forecastbench-upload', 'run-dashboard'])
+                                            'configure-forecastbench', 'check-forecastbench-upload', 'run-dashboard', 'republish'])
     parser.add_argument('--upload-prefix', help='configure-forecastbench: gs://bucket/team-prefix/binary; key JSON on stdin')
     parser.add_argument('--due', help='check-forecastbench-upload: round folder date for a .txt access probe')
     parser.add_argument('--commit')

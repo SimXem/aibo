@@ -115,10 +115,10 @@ belong to the primary AIRO installation, including ForecastBench rounds.
 The runtime refreshes panel state, runs the selected instrument on the server,
 validates the publication and switches that site's pointer.
 
-Add a reviewed job with one time specification. This example is illustrative:
+RSI runs both Baseline research-access conditions every Friday at 02:00 UTC, ahead of AIRO’s 12:00 UTC decision. Its reviewed schedule is:
 
 ```json
-{"id":"rsi-weekly","dashboard":"rsi","kind":"forecast","weekly_utc":"Fri 15:30"}
+{"id":"rsi-weekly","dashboard":"rsi","kind":"forecast","weekly_utc":"Fri 02:00"}
 ```
 
 Use `daily_utc` for `HH:MM`, `weekly_utc` for `Mon` through `Sun` and
@@ -141,6 +141,24 @@ are recorded and alerted without catch-up. For surveys, partial attempts
 remain in `state/attempts/<receipt-id>/`; a successful run moves into
 `state/results/` before the site is built. If publication alone failed, fix
 the cause and deploy with `--publish-data` to publish the saved results.
+
+### Remote publication and alerts
+
+For a separate web host, set `public_publisher` in the private runtime JSON to an
+argument list such as `["/path/to/publish-site"]`. The runtime appends the
+absolute directory of the verified site. The publisher must return success only
+after the web host has installed that snapshot. Use atomic activation on the
+web host and keep its existing password gate. A socket-backed site omits this
+setting. Manual deployments, rollback, and scheduled publications use the same
+publisher. After a transfer failure, `dashboardctl NAME republish` verifies and
+resends the selected site without any forecast calls.
+
+AIRO, RSI and EEAI use `fri_forecaster.alert` and the production forecasting
+home’s private alert channels. A failed forecast job records the stage and
+pages the shared channel. A failed build or public transfer after forecasting
+records `publish FAILED` and pages that same channel. Completed survey results
+remain available for recovery. Keep channel routing configured to accept all
+three deployment names.
 
 ## Add a fourth dashboard
 

@@ -824,3 +824,36 @@ def test_weekly_jobs_use_identical_live_and_missed_keys():
     for bad in [dict(job, daily_utc="09:30"), dict(job, weekly_utc="Fri 25:00")]:
         with pytest.raises(ValueError):
             p.validate_jobs([bad])
+
+
+@pytest.mark.parametrize("name", ["rsi", "eeai"])
+def test_remote_publish_failure_pages_separately_from_survey_failure(runtime, monkeypatch, name):
+    runtime.name = name
+    runtime.dashboard = p.DASHBOARDS[name]
+    p.link(release(runtime, 'old'), runtime.current)
+    sent = alerts(runtime, monkeypatch)
+    job = {'id': name + '-weekly', 'kind': 'forecast'}
+    def forecast(argv, **kw):
+        if 'stdout' in kw:
+            raise RuntimeError('model unavailable')
+    monkeypatch.setattr(p, 'run', forecast)
+    with pytest.raises(RuntimeError, match='model unavailable'):
+        runtime.execute_job('attempt', job)
+    assert sent[-1][1] == 'run FAILED'
+    assert 'failed to produce forecast' in sent[-1][2]
+    def finish(argv, **kw):
+        out = runtime.state / 'attempts/completed'
+        (out / 'result').write_text('completed')
+    monkeypatch.setattr(p, 'run', finish)
+    monkeypatch.setattr(runtime, 'build_data', lambda code, site, env, **kw: (site / 'index.html').write_text('site'))
+    monkeypatch.setattr(runtime, 'verify_site', lambda site: None)
+    monkeypatch.setattr(p, 'data_snapshot', lambda *args: {'sha256': '0'*64})
+    def disconnected(site):
+        assert (site / 'release.json').exists()
+        raise OSError('edge offline')
+    monkeypatch.setattr(runtime, 'publish_public', disconnected)
+    with pytest.raises(OSError, match='edge offline'):
+        runtime.execute_job('completed', job)
+    assert sent[-1][1] == 'publish FAILED'
+    assert 'failed to publish dashboard' in sent[-1][2]
+    assert (runtime.state / 'results/result').read_text() == 'completed'
