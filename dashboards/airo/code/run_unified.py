@@ -421,6 +421,10 @@ def minimal_joint_prompt(prompt, variant=DEFAULT_VARIANT):
     return out
 
 
+REVISION_SENTENCE = ("For the judgments you reconsidered most, say which evidence mattered and why "
+                     "you moved away from the supplied forecast or kept it.")
+
+
 def condition_prompt(prompt, condition):
     """The joint prompt as a condition asks it: its instrument, its variant."""
     if condition.get("prior_baseline"):
@@ -429,6 +433,8 @@ def condition_prompt(prompt, condition):
         if condition.get("recent_news"):
             from redlines.news_shadow import NEWS_SENTENCE
             addition += "\n\n" + NEWS_SENTENCE
+        if condition.get("rationale_revision"):
+            addition += "\n\n" + REVISION_SENTENCE
         return minimal_joint_prompt(prompt, condition["variant"]) + "\n\n" + addition + "\n"
     if condition.get("news_cache"):
         from redlines.news_shadow import NEWS_SENTENCE
@@ -1609,6 +1615,23 @@ def run(args, exp, conditions, path, publish):
     if os.path.basename(cond_out).startswith("conditional_runs"):
         cond_out = str(run_file(cond_out, run_id))
     os.makedirs(os.path.dirname(os.path.abspath(cond_out)), exist_ok=True)
+    execute_calls(args, exp, conditions, panels, calls, out, cond_out, groups, by_group, horizons,
+                  run_id, spec, scenarios, policies, today, publish)
+    if (os.environ.get("AIRO_PAIRED_RATIONALE") == "1" and exp["name"] == "prior-recent-shadow"
+            and not publish and not args.models and not args.smoke and len(conditions) == 1):
+        # The control has completed and advanced its own pointer. Reuse the original
+        # in-memory inputs, panel, and question dates even if midnight has passed.
+        treatment = dict(conditions[0], id="prior-recent-rationale", rationale_revision=True)
+        treatment["sha256"] = hashlib.sha256((conditions[0]["sha256"] + REVISION_SENTENCE).encode()).hexdigest()
+        paired_calls = [(treatment, arm, label, model) for _, arm, label, model in calls]
+        prefix = os.path.join(exp_dir, f"{treatment['id']}-{run_id}")
+        execute_calls(args, {"name": treatment["id"]}, [treatment], panels, paired_calls,
+                      prefix + ".jsonl", prefix + "-instrument.jsonl", groups, by_group, horizons,
+                      run_id, spec, scenarios, policies, today, False)
+
+
+def execute_calls(args, exp, conditions, panels, calls, out, cond_out, groups, by_group, horizons,
+                  run_id, spec, scenarios, policies, today, publish):
     lock = threading.Lock()
     done = failed = failed_aside = 0
     spent = 0.0
@@ -1651,7 +1674,7 @@ def run(args, exp, conditions, path, publish):
              if failed_aside else ""))
     if not failed and not failed_aside and not args.smoke and not args.models:
         for c in conditions:
-            if c.get("prior_self"):
+            if c.get("prior_self") and not c.get("rationale_revision"):
                 from redlines.prior_shadow import save_self
                 save_self(out, run_id, c, panels[c["model_set"]][0], "results")
     if failed or (not publish and failed_aside):
