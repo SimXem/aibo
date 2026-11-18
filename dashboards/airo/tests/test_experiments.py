@@ -54,6 +54,7 @@ class TestTheAiroExperiment(unittest.TestCase):
 
     def test_the_sixth_is_unpooled_with_its_guard(self):
         sixth = AIRO["conditions"]["ai-banned"]
+        self.assertEqual(sixth["cadence"], "manual")
         self.assertFalse(sixth["pooled"])
         guard = sixth["url_block_patterns"]
         # The `both` arm of the anchor-guard experiment (2026-10-16), verbatim.
@@ -149,7 +150,7 @@ class TestCadence(unittest.TestCase):
     """When the cron runs a condition, and what is due on a day."""
 
     def test_airo_runs_wednesdays_and_fridays_and_the_axes_by_hand(self):
-        self.assertEqual({tuple(c["cadence"]) for c in AIRO["conditions"].values() if c["publish"]}, {("wed", "fri")})
+        self.assertEqual({tuple(c["cadence"]) for c in AIRO["conditions"].values() if c["pooled"]}, {("wed", "fri")})
         for name in ("axes", "paperaxes"):
             self.assertEqual({c["cadence"] for c in experiments.load(name)["conditions"].values()}, {"manual"})
 
@@ -193,9 +194,9 @@ cadence = ["mon", "wed"]
 
     def test_the_cli_prints_one_group_a_line(self):
         import subprocess
-        r = subprocess.run([sys.executable, "-m", "redlines.experiments", "due", "--date", "2026-10-21"],
+        r = subprocess.run([sys.executable, "-m", "redlines.experiments", "due", "--date", "2026-11-20"],
                            capture_output=True, text=True, cwd=REPO)
-        self.assertEqual(r.stdout, "airo publish none independent recent critical two-step ai-banned\n"
+        self.assertEqual(r.stdout, "airo publish none independent recent critical two-step\n"
                          "prior-baseline-shadow aside prior-baseline-shadow\n"
                          "prior-recent-shadow aside prior-recent-shadow\n")
 
