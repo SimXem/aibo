@@ -118,21 +118,26 @@ function drawHistory() {
   tooltip.setAttribute("role","tooltip");
   tooltip.hidden = true;
   let active, hideTimer;
-  function scheduleClose() { hideTimer = setTimeout(close,180); }
+  function scheduleClose() { clearTimeout(hideTimer); hideTimer = setTimeout(close,180); }
   function close() {
     clearTimeout(hideTimer);
     active?.removeAttribute("aria-describedby");
     active = undefined;
     tooltip.hidden = true;
   }
-  function show(dot,run,label,value) {
+  function show(target, cluster) {
+    clearTimeout(hideTimer);
+    if (target === active) return;
     close();
-    active = dot;
-    dot.setAttribute("aria-describedby",tooltip.id);
+    active = target;
+    target.setAttribute("aria-describedby",tooltip.id);
     tooltip.replaceChildren();
-    element("div",tooltip,run.date || "Example","label");
-    element("strong",tooltip,label + " · " + format(value,"Q3.2"));
-    comparison(tooltip,run,"Q3.2");
+    element("div",tooltip,cluster[0].date || "Example","label");
+    for (const run of cluster) {
+      if (cluster.length > 1) element("div",tooltip,run.id,"label");
+      element("strong",tooltip,"Median across ensembles · " + format(run.answers["Q3.2"].probability,"Q3.2"));
+      comparison(tooltip,run,"Q3.2");
+    }
     tooltip.hidden = false;
     positionTooltip();
   }
@@ -140,14 +145,17 @@ function drawHistory() {
     if (!active) return;
     const rect = active.getBoundingClientRect();
     const width = tooltip.offsetWidth, height = tooltip.offsetHeight;
-    tooltip.style.left = Math.max(8,Math.min(innerWidth-width-8,rect.left-width/2)) + "px";
+    tooltip.style.left = Math.max(8,Math.min(innerWidth-width-8,rect.left+(rect.width-width)/2)) + "px";
     tooltip.style.top = (rect.top >= height+12 ? rect.top-height-8 :
       Math.max(8,Math.min(innerHeight-height-8,rect.bottom+8))) + "px";
   }
-  function dot(run,cx,value,label,overall) {
-    const node = mark("circle",{cx,cy:y(value),r:overall?6:4,fill:overall?"#102b23":"#9aa5a1",
-      tabindex:0,role:"button","aria-label":[run.date,label,format(value,"Q3.2")].join(" · ")});
-    const open = () => show(node,run,label,value);
+  function clusterTarget(cx,cluster,values) {
+    const top = y(Math.max(...values))-14;
+    const bottom = y(Math.min(...values))+14;
+    const node = mark("rect",{x:cx-15,y:top,width:30,height:bottom-top,rx:8,
+      class:"cluster-target",tabindex:0,role:"button",
+      "aria-label":(cluster[0].date || "Example") + " · Compare forecasts"});
+    const open = () => show(node,cluster);
     node.addEventListener("pointerenter",open);
     node.addEventListener("pointerleave",() => { if (document.activeElement !== node) scheduleClose(); });
     node.addEventListener("focus",open);
@@ -170,15 +178,26 @@ function drawHistory() {
   });
   const points = runs.map((run,i) => x(i) + "," + y(run.answers["Q3.2"].probability));
   mark("polyline",{points:points.join(" "),fill:"none",stroke:"#102b23","stroke-width":2});
+  const byDate = new Map();
   runs.forEach((run,i) => {
-    // Offset the gray dots horizontally so equal forecasts remain selectable.
-    run.arms.forEach((arm,j) => {
-      const side = j % 2 === 0 ? -1 : 1;
-      dot(run,x(i)+side*(12+12*Math.floor(j/2)),arm.answers["Q3.2"].probability,
-          labels[arm.web_access || "legacy"],false);
-    });
-    dot(run,x(i),run.answers["Q3.2"].probability,"Median across ensembles",true);
+    const cx = x(i);
+    if (!byDate.has(cx)) byDate.set(cx,[]);
+    byDate.get(cx).push(run);
   });
+  for (const [cx,cluster] of byDate) {
+    const values = [];
+    for (const run of cluster) {
+      for (const arm of run.arms) {
+        const value = arm.answers["Q3.2"].probability;
+        values.push(value);
+        mark("circle",{cx,cy:y(value),r:5,fill:"#9aa5a1"});
+      }
+      const overall = run.answers["Q3.2"].probability;
+      values.push(overall);
+      mark("circle",{cx,cy:y(overall),r:3.5,fill:"#102b23"});
+    }
+    clusterTarget(cx,cluster,values);
+  }
   const legend = element("div",history,undefined,"chart-legend");
   element("span",legend,"Median across ensembles");
   element("span",legend,"Condition ensemble medians");
