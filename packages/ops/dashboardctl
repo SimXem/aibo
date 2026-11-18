@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+"""Select a dashboard's private config and dispatch into its installed release."""
+from concurrent.futures import ThreadPoolExecutor
+import json
+import os
+from pathlib import Path
+import re
+import sys
+import subprocess
+
+directory = Path(os.environ.get("DASHBOARD_CONFIG_DIR", "/etc/fri-dashboards"))
+if sys.argv[1:] == ["tick-all"]:
+    configs = sorted(directory.glob("*.json"))
+    if not configs:
+        sys.exit(f"No dashboard installations under {directory}")
+
+    def tick(config):
+        return subprocess.run([sys.executable, __file__, config.stem, "tick"]).returncode
+
+    with ThreadPoolExecutor(max_workers=len(configs)) as workers:
+        failures = [config.stem for config, rc in zip(configs, workers.map(tick, configs)) if rc]
+    sys.exit("Failed dashboard ticks: " + ", ".join(failures) if failures else 0)
+
+if len(sys.argv) < 3 or not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", sys.argv[1]):
+    sys.exit("usage: dashboardctl DASHBOARD COMMAND [OPTIONS]")
+name = sys.argv[1]
+config = directory / (name + ".json")
+settings = json.loads(config.read_text())
+if settings.get("dashboard", "airo") != name:
+    sys.exit("dashboard name differs from its runtime configuration")
+current = Path(settings["root"]).expanduser() / "current"
+code = current / "code" if current.exists() else Path(settings["bootstrap_code"])
+launcher = code / "code/production.py"
+os.execv(sys.executable, [sys.executable, str(launcher), "--config", str(config), *sys.argv[2:]])

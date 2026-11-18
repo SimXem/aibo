@@ -29,7 +29,7 @@ A **condition** is a rule for what to forecast with, defined by rank on Epoch's 
 
 | condition  | members                 | asked under                              | submitted          |
 |------------|-------------------------|------------------------------------------|--------------------|
-| `ensemble` | the top 4 models by ECI | the ForecastBench prompt, with research  | yes, **publicly**  |
+| `ensemble` | the top 4 models by ECI | shared Baseline (research optional)      | yes, **publicly**  |
 | `unaided`  | the same 4 models       | the ForecastBench prompt, no research    | no: it only runs   |
 | `solo`     | the top model by ECI    | the ForecastBench prompt, with research  | yes                |
 | `pooled`   | the top 4 models by ECI | each of AIRO's five conditions           | yes                |
@@ -94,12 +94,19 @@ what was registered and why. Without a hook the ranking is Epoch's published ind
 names only (`python -m fri_forecaster.eci --fetch --names`): a moved top N is then
 logged, not registered, because a name alone does not say how to run the model.
 
+The scheduled round uses `names sync --baseline-ensemble`. The first sync of a
+legacy ensemble registers its next leaderboard name with the single `none`
+prompt and each model's top reasoning level. Historical entries keep their
+original settings. Manual `python -m forecastbench run` and `build` default
+to Baseline. Use `run --research` and `build --research` to resume or rebuild
+the earlier research condition. The Baseline member directory and build spec use the existing `airo-none` identifier, so a pooled set can reuse it.
+
 **Check.** After sync, every condition's registered fingerprint is compared with the
 code once more; a mismatch stops the round (exit 3).
 
 **Run.** A **member** is one model at one thinking level in one mode. The four
-conditions above need 28: four models with research, the same four without (solo's
-model is one of the four), and the four under each of five AIRO conditions. Each member
+conditions above need 25 distinct members: twenty for the five prompts (including
+the four Baseline members shared by ensemble and pooled), four unaided, and one solo. Each member
 forecasts every question in the set (about 500) with `forecastbench run`, one pi call per
 question ([the call itself](../README.md#how-it-works)):
 

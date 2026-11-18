@@ -3,7 +3,7 @@ import csv
 import json
 import tempfile
 import unittest
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from fri_forecaster import baseline, eci, panel
@@ -83,6 +83,20 @@ class TestRule(unittest.TestCase):
 
 
 class TestPanel(unittest.TestCase):
+    def test_live_panel_requires_todays_snapshot(self):
+        today = datetime.now(timezone.utc).date()
+        rows = [("Claude Opus 5.5", 167)]
+        for offset in (-1, 0, 1):
+            with self.subTest(offset=offset), tempfile.TemporaryDirectory() as tmp:
+                day = (today + timedelta(days=offset)).isoformat()
+                _snapshot(tmp, day, rows)
+                if offset:
+                    with self.assertRaisesRegex(panel.PanelError, "Refresh the snapshot"):
+                        panel.panel(1, snapshot_dir=tmp, require_today=True)
+                else:
+                    _, provenance = panel.panel(1, snapshot_dir=tmp, require_today=True)
+                    self.assertEqual(provenance["snapshot"], day)
+
     def test_table_is_well_formed(self):
         keys = [m["key"] for m in panel.MODELS]
         self.assertEqual(len(keys), len(set(keys)))

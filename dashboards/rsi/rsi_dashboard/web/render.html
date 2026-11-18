@@ -1,0 +1,174 @@
+<script>
+const {sections, runs: allRuns, synthetic} = window.__SURVEY__;
+// Older published blobs remain renderable on frontend-only deployments.
+const labels = window.__SURVEY__.conditions || {"legacy":"Earlier run (access unrecorded)"};
+const selector = document.getElementById("condition");
+for (const [key,label] of Object.entries(labels)) {
+  if (key !== "legacy" || allRuns.some(r => !r.web_access || r.web_access === key)) {
+    selector.add(new Option(label, key));
+  }
+}
+const requested = new URLSearchParams(location.search).get("condition");
+const fallback = allRuns.some(r => r.web_access === "full-web") ? "full-web" :
+  (allRuns.at(-1)?.web_access || (allRuns.length ? "legacy" : "full-web"));
+selector.value = [...selector.options].some(o => o.value === requested) ? requested : fallback;
+selector.onchange = () => {
+  const url = new URL(location.href);
+  url.searchParams.set("condition",selector.value);
+  location.assign(url);
+};
+const runs = allRuns.filter(r => (r.web_access || "legacy") === selector.value);
+const latest = runs.at(-1);
+const questions = new Map(sections.flatMap(s => s.questions.map(q => [q.id, q])));
+const byId = id => document.getElementById(id);
+function element(tag, parent, text, className) {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  if (className) node.className = className;
+  parent.append(node);
+  return node;
+}
+function details(parent, title) {
+  const box = element("details", parent);
+  element("summary", box, title);
+  return box;
+}
+function point(value) { return value?.probability ?? value?.p50; }
+function unit(id) {
+  const answer = questions.get(id).answer;
+  return /in percent|probability/.test(answer) ? "%" : "";
+}
+function format(value, id) {
+  return value == null ? "—" : value.toLocaleString("en-US", {maximumFractionDigits: 2}) + unit(id);
+}
+function interval(value, id) {
+  return value?.p10 == null ? "" : format(value.p10, id) + "–" + format(value.p90, id);
+}
+function modelList(parent, id) {
+  for (const m of latest.models) {
+    const v = m.answers[id];
+    element("p", parent, m.label + " · " + format(point(v), id) + " " + interval(v, id));
+  }
+}
+byId("example").hidden = !synthetic;
+byId("updated").textContent = latest?.date ? "Updated: " + latest.date :
+  synthetic ? "Example values" : "Awaiting the first Baseline run";
+for (const [title, first, second] of [
+  ["Public fast year", "Q3.1", "Q3.2"], ["AL5 share of AI R&D", "Q1.1", "Q1.2"],
+  ["Internal lead over public models (ECI points)", "Q4.1", "Q4.2"],
+  ["If a public fast year: caused by AI R&D automation", null, "Q3.4"]
+]) {
+  const card = element("article", byId("cards"), undefined, "card");
+  element("div", card, title, "label");
+  for (const [year, id] of [["2027", first], ["2030", second]]) {
+    const row = element("div", card, undefined, "metric");
+    const v = latest?.answers[id];
+    element("span", row, year);
+    element("span", row, format(point(v), id), "number");
+    element("small", row, interval(v, id));
+  }
+  if (latest) modelList(details(card, second + " · each model"), second);
+}
+const colors = ["#102b23", "#1f19cc", "#c2581a", "#419177", "#9a5798"];
+function drawHistory() {
+  const history = byId("history");
+  if (!latest) { element("p", history, "Forecast history will appear after the first run."); return; }
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox","0 0 760 230");
+  svg.setAttribute("class","history-chart");
+  svg.setAttribute("role","img");
+  svg.setAttribute("aria-label","Q3.2 probability by run date, ensemble and individual models");
+  history.append(svg);
+  function mark(tag, attrs, text) {
+    const el = document.createElementNS(svg.namespaceURI, tag);
+    for (const [key, val] of Object.entries(attrs)) el.setAttribute(key, val);
+    if (text !== undefined) el.textContent = text;
+    svg.append(el);
+    return el;
+  }
+  const t = runs.map(r => Date.parse(r.date || "2000-01-01"));
+  const x = i => t.at(-1) === t[0] ? 380 : 56 + 654 * (t[i]-t[0])/(t.at(-1)-t[0]);
+  const y = p => 194 - 1.76*p;
+  for (const p of [0,25,50,75,100]) {
+    mark("line",{x1:48,x2:724,y1:y(p),y2:y(p),stroke:"#d6ded9"});
+    mark("text",{x:4,y:y(p)+4,fill:"#4a5e57","font-size":12},p+"%");
+  }
+  for (const i of new Set([0,runs.length-1])) {
+    if (i && t[i] === t[0]) continue;
+    mark("text",{x:x(i),y:222,"text-anchor":"middle","font-size":12},runs[i].date || "Example");
+  }
+  const names = new Map(runs.flatMap(r => r.models.map(m => [m.id,m.label])));
+  const legend = element("div", history);
+  [ [null,"Ensemble"], ...names ].forEach(([id,label], idx) => {
+    const color = colors[idx % colors.length];
+    const key = element("span",legend,"● " + label + "  ");
+    key.style.color = color;
+    let previous;
+    runs.forEach((run,i) => {
+      const answers = id ? run.models.find(m => m.id === id)?.answers : run.answers;
+      if (!answers) { previous = undefined; return; }
+      const v = answers["Q3.2"].probability;
+      if (previous) mark("line",{x1:previous[0],y1:previous[1],x2:x(i),y2:y(v),stroke:color,"stroke-width":id?1.5:3});
+      const dot = mark("circle",{cx:x(i),cy:y(v),r:id?3:5,fill:color});
+      const title = document.createElementNS(svg.namespaceURI,"title");
+      title.textContent = [run.date,label,format(v,"Q3.2")].filter(Boolean).join(" · ");
+      dot.append(title);
+      previous = [x(i),y(v)];
+    });
+  });
+}
+drawHistory();
+const weekAgo = latest?.date && runs.findLast(r => Date.parse(latest.date)-Date.parse(r.date) === 7*86400000);
+for (const section of sections) {
+  const group = byId("questions");
+  element("h3",group,section.id+". "+section.title);
+  const table = element("table",element("div",group,undefined,"table-wrap"));
+  const head = element("tr",element("thead",table));
+  for (const [label,hint] of [["ID"],["Question"],["Forecast","P50 (P10–P90) or probability"],["Models","Min–max of P50 or probability"],["Change","Week-on-week"]]) {
+    const th = element("th",head,label);
+    if (hint) element("small",th,hint);
+  }
+  const body = element("tbody",table);
+  for (const q of section.questions) {
+    const row = element("tr",body);
+    element("td",row,q.id);
+    const context = details(element("td",row),q.prompt);
+    element("p",context,q.answer);
+    element("p",context,q.resolution);
+    const answer = latest?.answers[q.id];
+    const forecasts = element("td",row);
+    const text = format(point(answer),q.id) + (interval(answer,q.id) ? " (" + interval(answer,q.id) + ")" : "");
+    if (latest) modelList(details(forecasts,text),q.id);
+    else forecasts.textContent = text;
+    const values = latest?.models.map(m => point(m.answers[q.id]));
+    element("td",row,values ? format(Math.min(...values),q.id)+"–"+format(Math.max(...values),q.id) : "—");
+    const delta = weekAgo ? point(answer)-point(weekAgo.answers[q.id]) : null;
+    element("td",row,delta == null ? "—" : (delta>0?"+":"")+Number(delta.toFixed(2))+(unit(q.id)?" pp":""));
+  }
+  const notes = details(group,"Section definitions and rationales");
+  element("p",notes,section.intro);
+  for (const model of latest?.models || []) {
+    element("strong",notes,model.label);
+    element("p",notes,model.rationales[section.id]);
+  }
+}
+byId("download").disabled = !allRuns.length;
+byId("download").onclick = () => {
+  const rows = [["run","date","web_access","model","question","probability","p10","p50","p90","section_rationale"]];
+  for (const run of allRuns) {
+    for (const model of [...run.models,{id:"ensemble",answers:run.answers}]) {
+      for (const s of sections) for (const q of s.questions) {
+        const a = model.answers[q.id];
+        rows.push([run.id,run.date,run.web_access || "legacy",model.id,q.id,a.probability,a.p10,a.p50,a.p90,model.rationales?.[s.id]]);
+      }
+    }
+  }
+  const csv = rows.map(row => row.map(v => '"' + String(v ?? "").replaceAll('"','""') + '"').join(",")).join("\r\n");
+  const url = URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = synthetic ? "rsi-example.csv" : "rsi-forecasts.csv";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url),1000);
+};
+</script></body></html>

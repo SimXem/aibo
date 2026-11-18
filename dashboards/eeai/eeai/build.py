@@ -153,6 +153,18 @@ def page(blob):
 def main(args):
     survey = S.load()
     runs = load_runs(args.runs, S.instruments(survey))
+    if getattr(args, "publication", False):
+        if not runs:
+            raise ValueError("EEAI publication requires a completed run")
+        questions = {q["id"] for q in survey["questions"]}
+        for run_id, rows in runs:
+            panel = rows[0]["panel"]
+            expected = {(member["label"], q) for member in panel["members"] for q in questions}
+            actual = {(row["label"], row["question_id"]) for row in rows}
+            if (actual != expected or len(rows) != len(expected)
+                    or len(panel["members"]) != panel["k"]
+                    or any(row.get("synthetic") or row["run_id"] != run_id for row in rows)):
+                raise ValueError(f"EEAI publication requires a complete real panel for {run_id}")
     blob = build(survey, runs=runs)
     if args.out:
         out = Path(args.out)

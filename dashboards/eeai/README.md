@@ -128,8 +128,7 @@ buttons serve it.
 
 ## Open
 
-- **Schedule and deployment.** Nothing runs on a schedule; `packages/ops/jobs.json`
-  has no EEAI job. The site folder is copied by hand to wherever it is shown.
+- **Schedule and deployment.** EEAI supports the shared production runtime. The [deployment guide](../../packages/ops/DASHBOARDS.md) covers migration of its password-protected site and scheduling. Its cadence is configured in `packages/ops/jobs.json`; no EEAI run is scheduled yet.
 - **Fresh data.** The history ends where the survey's charts did (early 2025),
   and nothing refreshes it. A forecast shows as resolved only when the record
   gets a value for its date, so the first dates (the beginning of 2027) need a

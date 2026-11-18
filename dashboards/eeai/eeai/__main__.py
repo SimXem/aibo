@@ -39,6 +39,7 @@ def main(argv=None):
     r.add_argument("--synthetic", action="store_true", help="no calls: made-up answers (needs --out)")
     r.add_argument("--allow-ungrounded", action="store_true", help="run without TAVILY_API_KEY")
     b = sub.add_parser("build", help="the run files -> the page")
+    b.add_argument("--publication", action="store_true", help="require complete real panel runs before export")
     b.add_argument("--runs", help="directory of run files (default eeai/results/runs)")
     b.add_argument("--out", help="write only the page, to this file (and the download beside it)")
     b.add_argument("--json", help="also write the page's data here")

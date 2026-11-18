@@ -1,5 +1,7 @@
 # automated-forecasting-monorepo
 
+For production hosting, password protection and job schedules, see [deploying a dashboard](packages/ops/DASHBOARDS.md).
+
 The Forecasting Research Institute's automated forecasting: a standing panel of
 frontier language models, the dashboards that publish its forecasts, and the
 forecasts it submits elsewhere.
@@ -17,6 +19,7 @@ packages/
 dashboards/         forecasts published as a site
   airo/             AIRO, the Automated AI Risk Outlook (redlines)
   eeai/             EEAI, the Economic Effects of AI (eeai)
+  rsi/              Recursive self-improvement survey (rsi_dashboard)
 submissions/        forecasts delivered in someone else's format
   forecastbench/    the ForecastBench rounds (forecastbench)
   leap/             the LEAP survey waves (leap)
@@ -35,7 +38,7 @@ information, no credentials, no production receipts.
 ```sh
 python3 -m venv .venv
 .venv/bin/pip install -e 'packages/forecaster[dev]' -e packages/dashboard -e 'dashboards/airo[test]' \
-    -e dashboards/eeai -e submissions/forecastbench -e submissions/leap
+    -e dashboards/eeai -e dashboards/rsi -e submissions/forecastbench -e submissions/leap
 npm ci --prefix packages/forecaster     # pi, pinned; the engine's tests skip without it
 .venv/bin/python -m pytest -q           # every project's tests; no API key needed
 ```
