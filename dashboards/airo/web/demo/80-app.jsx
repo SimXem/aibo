@@ -251,7 +251,7 @@ function App() {
           on the baseline and the icon rides high; the 4px nudge puts its
           centre on the text's cap height. */}
       <footer style={{ marginTop: 40, paddingTop: 14, borderTop: "1px solid var(--line-soft)", fontSize: 12.5, color: "var(--ink-faint)", display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-        <a href="https://github.com/forecastingresearch/airo" target="_blank" rel="noopener noreferrer" aria-label="AIRO on GitHub" title="AIRO on GitHub" style={{ display: "inline-flex", color: "var(--ink-soft)", transform: "translateY(4px)" }}>
+        <a href="https://github.com/forecastingresearch/automated-forecasting-monorepo/tree/main/dashboards/airo" target="_blank" rel="noopener noreferrer" aria-label="AIRO on GitHub" title="AIRO on GitHub" style={{ display: "inline-flex", color: "var(--ink-soft)", transform: "translateY(4px)" }}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.58 2 12.23c0 4.52 2.87 8.35 6.84 9.7.5.1.68-.22.68-.49 0-.24-.01-1.05-.01-1.91-2.78.62-3.37-1.21-3.37-1.21-.45-1.19-1.11-1.5-1.11-1.5-.91-.64.07-.63.07-.63 1.01.07 1.54 1.07 1.54 1.07.9 1.57 2.35 1.12 2.92.86.09-.67.35-1.12.64-1.38-2.22-.26-4.56-1.15-4.56-5.1 0-1.13.39-2.05 1.03-2.77-.1-.26-.45-1.32.1-2.75 0 0 .84-.28 2.75 1.06A9.33 9.33 0 0 1 12 6.84c.85 0 1.71.12 2.51.35 1.91-1.34 2.75-1.06 2.75-1.06.55 1.43.2 2.49.1 2.75.64.72 1.03 1.64 1.03 2.77 0 3.96-2.35 4.84-4.58 5.09.36.32.68.93.68 1.88 0 1.36-.01 2.45-.01 2.79 0 .27.18.59.69.49A10.24 10.24 0 0 0 22 12.23C22 6.58 17.52 2 12 2Z" /></svg>
         </a>
         <a href="mailto:airo@forecastingresearch.org">airo@forecastingresearch.org</a>
