@@ -261,6 +261,7 @@ function openQuestion(id,opener) {
     choices.firstElementChild?.click();
   });
   menu.firstElementChild.click();
+  opener.focus({preventScroll:true});
   dialog.showModal();
   dialog.scrollTop = 0;
 }
@@ -290,6 +291,17 @@ for (const section of sections) {
     element("td",row,delta == null ? "—" : (delta>0?"+":"")+Number(delta.toFixed(2))+(unit(q.id)?" pp":""));
   }
 
+}
+if (latest) {
+  const implied = byId("implied");
+  implied.hidden = false;
+  const fastYear = latest.answers["Q3.2"].probability/100;
+  for (const [label,yes,no] of [["Expert AGI by 2050","Q5.1","Q5.2"],["AI catastrophe by 2050","Q5.3","Q5.4"]]) {
+    const row = element("div",implied);
+    const probability = fastYear*latest.answers[yes].probability + (1-fastYear)*latest.answers[no].probability;
+    element("strong",row,label + " · " + format(probability,yes));
+    element("small",row,"Q3.2 × " + yes + " + (1 − Q3.2) × " + no);
+  }
 }
 byId("download").disabled = !allRuns.length;
 byId("download").onclick = () => {
