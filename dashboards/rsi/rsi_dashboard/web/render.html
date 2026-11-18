@@ -127,7 +127,7 @@ function drawHistory() {
   }
   function show(target, cluster) {
     clearTimeout(hideTimer);
-    if (target === active) return;
+    if (target === active) { positionTooltip(); return; }
     close();
     active = target;
     target.setAttribute("aria-describedby",tooltip.id);
