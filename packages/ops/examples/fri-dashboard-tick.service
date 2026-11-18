@@ -1,0 +1,8 @@
+[Unit]
+Description=Check scheduled jobs for every installed dashboard
+
+[Service]
+Type=oneshot
+User=forecast
+Group=forecast
+ExecStart=/usr/local/bin/dashboardctl tick-all

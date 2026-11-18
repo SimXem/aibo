@@ -88,7 +88,7 @@ def ask(member, survey, history, today, run_id, *, panel=None, retries=1, harnes
 
 def select_members(args):
     from fri_forecaster import panel
-    members, provenance = panel.panel(snapshot_dir=config.ECI_DIR)
+    members, provenance = panel.panel(snapshot_dir=config.ECI_DIR, require_today=not args.synthetic)
     if args.smoke:
         members = members[:1]
     if args.models:

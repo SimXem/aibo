@@ -118,6 +118,20 @@ class ForecastBenchTest(unittest.TestCase):
                 self.assertAlmostEqual(v, 0.4)              # the mean of 0.2 and 0.6
             self.assertEqual(fb.validate(fs, QSET), [])
 
+    def test_default_run_uses_the_shared_baseline_with_the_plain_question(self):
+        from fri_forecaster import baseline
+        with tempfile.TemporaryDirectory() as d:
+            qpath, root = self._round(d)
+            with unittest.mock.patch.object(baseline, "run", wraps=baseline.run) as run:
+                fb.main(["run", "--root", root, "--question-set", qpath, "--model", "a/one",
+                         "--limit", "1", "--pi", fake_pi(d)])
+            run.assert_called_once()
+            self.assertEqual(run.call_args.args, ("a/one", fb.build_prompt(QSET["questions"][0], QSET["forecast_due_date"])))
+            with unittest.mock.patch.dict(os.environ, {"FAKE_ALL": "1"}):
+                fb.main(["run", "--root", root, "--question-set", qpath, "--model", "a/one",
+                         "--baseline", "--pi", fake_pi(d)])
+            self.assertEqual(os.listdir(os.path.join(root, "members")), ["a_one--high--airo-none"])
+
     def test_build_fails_below_coverage(self):
         with tempfile.TemporaryDirectory() as d:
             qpath, root = self._round(d)
@@ -131,9 +145,9 @@ class ForecastBenchTest(unittest.TestCase):
     def test_resume_refuses_changed_settings(self):
         with tempfile.TemporaryDirectory() as d:
             qpath, root = self._round(d)
-            fb.main(["run", "--root", root, "--question-set", qpath, "--model", "a/one", "--pi", fake_pi(d)])
+            fb.main(["run", "--research", "--root", root, "--question-set", qpath, "--model", "a/one", "--pi", fake_pi(d)])
             with self.assertRaises(SystemExit):
-                fb.main(["run", "--root", root, "--question-set", qpath, "--model", "a/one",
+                fb.main(["run", "--research", "--root", root, "--question-set", qpath, "--model", "a/one",
                          "--min-research", "5", "--pi", fake_pi(d)])
 
     def test_member_spec(self):
@@ -199,10 +213,10 @@ class ForecastBenchTest(unittest.TestCase):
                               "--org", "Example Team", "--set-number", "1"])
             self.assertEqual(rc, 1)                                   # every cell has a forecast, from a/one alone
             self.assertIn("market: 1/1 complete", out.getvalue())
-            self.assertIn("SHORT MEMBER b_two--high--research: market 0/1, dataset 0/1", out.getvalue())
+            self.assertIn("SHORT MEMBER b_two--high--airo-none: market 0/1, dataset 0/1", out.getvalue())
             self.assertIn("NOT READY TO UPLOAD: 1 member(s) below 95%", out.getvalue())
             prov = json.load(open(os.path.join(root, "2026-10-11.example-team.1.json.provenance.json")))
-            self.assertEqual(prov["member_coverage"]["a_one--high--research"], {"market": [1, 1], "dataset": [1, 1]})
+            self.assertEqual(prov["member_coverage"]["a_one--high--airo-none"], {"market": [1, 1], "dataset": [1, 1]})
 
     def test_a_refused_key_stops_the_member_without_retries(self):
         refused = '401 {"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}'
@@ -218,7 +232,7 @@ class ForecastBenchTest(unittest.TestCase):
             finally:
                 os.environ.pop("FAKE_API_ERROR")
             self.assertEqual(rc, 2)
-            mdir = os.path.join(root, "members", "a_one--high--research")
+            mdir = os.path.join(root, "members", "a_one--high--airo-none")
             self.assertFalse(os.path.exists(os.path.join(mdir, "results.jsonl")))      # nothing to resume around
             calls = os.path.join(mdir, "calls")                                        # a call under way may finish:
             self.assertEqual({tuple(os.listdir(os.path.join(calls, c))) for c in os.listdir(calls)}, {("attempt-1",)})  # none is retried
@@ -317,6 +331,20 @@ class SyncTest(unittest.TestCase):
             self.assertEqual(name, f"{cond}-oak")
             self.assertIn("code unchanged", note)
         self.assertEqual(self.reg, before)
+
+    def test_round_sync_migrates_only_the_ensemble_to_baseline(self):
+        import copy
+        old = copy.deepcopy(self.reg)
+        panel = self.names.parse_panel(self.lines(self.panel))
+        name, _ = self.names.sync(self.reg, "ensemble", panel, baseline_only=True)
+        self.assertEqual(name, "ensemble-elm")
+        self.assertEqual(self.reg["names"]["ensemble-oak"], old["names"]["ensemble-oak"])
+        self.assertEqual(self.names.member_specs(self.reg, "ensemble"),
+                         self.names.member_specs(self.reg, "pooled")[:4])
+        for m in self.reg["names"][name]["members"]:
+            self.assertEqual(m["options"]["min_research"], 0)
+            self.assertIsNone(m["one_shot_baseline"])
+        self.assertEqual(self.names.sync(self.reg, "ensemble", panel, baseline_only=True)[0], name)
 
     def test_a_moved_top_n_registers_the_next_place_for_each_condition(self):
         newcomer = ("Claude Fable 5.1", "anthropic/claude-fable-5-1", "Anthropic")

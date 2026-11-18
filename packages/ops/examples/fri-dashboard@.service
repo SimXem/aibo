@@ -1,0 +1,12 @@
+[Unit]
+Description=Serve the %i forecasting dashboard
+After=network.target
+
+[Service]
+User=forecast
+Group=forecast
+ExecStart=/usr/local/bin/dashboardctl %i serve
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

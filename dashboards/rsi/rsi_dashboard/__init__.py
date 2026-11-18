@@ -1,0 +1,1 @@
+"""A standalone forecasting dashboard."""

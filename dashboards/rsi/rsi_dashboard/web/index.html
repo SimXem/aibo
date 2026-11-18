@@ -1,0 +1,18 @@
+<main>
+<section class="cards" aria-label="Headline forecasts" id="cards"></section>
+<section id="history"><h2>Public fast year by end of 2030</h2></section>
+<section><h2>All questions</h2><p>See the <a href="https://forecastingresearch.substack.com/p/how-close-is-recursive-self-improvement">full report</a> for question context and definitions.</p><div id="questions"></div></section>
+<section id="implied" hidden><h3>Implied, unconditional</h3></section>
+<section><h2>Download the data</h2><p><button id="download">All runs: forecasts + rationales (CSV)</button></p></section>
+<section class="method"><div class="label">Method</div><p>Each week, frontier LLMs (the top four models by the Epoch Capability Index) research and forecast each question. Different prompting or data access strategies create different conditions. Ensemble = median across models within each condition. The dashboard shows the median across condition ensembles. Code and data: <a href="https://github.com/forecastingresearch/automated-forecasting-monorepo/tree/main/dashboards/rsi">GitHub</a>.</p></section>
+<footer><a href="https://forecastingresearch.org/">FRI</a><a href="https://leap.forecastingresearch.org/">LEAP</a><a href="https://airo.forecastingresearch.org/">AIRO</a><a href="https://github.com/forecastingresearch/automated-forecasting-monorepo">GitHub</a><a href="https://forecastingresearch.org/research/recursive-self-improvement-v1">Report</a></footer>
+</main>
+<dialog id="question-dialog" aria-labelledby="question-title">
+  <div class="question-shell">
+    <div class="question-top"><span id="question-id" class="label"></span><button id="question-close" type="button" autofocus>Close</button></div>
+    <h2 id="question-title"></h2>
+    <div id="question-views" aria-label="Question details" role="group"></div>
+    <div id="question-content"></div>
+  </div>
+</dialog>
+<!--SURVEY_DATA--><!--/SURVEY_DATA-->

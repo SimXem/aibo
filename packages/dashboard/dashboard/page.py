@@ -66,6 +66,16 @@ def splice(html, name, blob):
     return html.replace("</head>", text + "\n</head>", 1)
 
 
+ASSIGNMENT = rb'\s*<script>\s*window\.__%s__\s*=\s*(.*?)\s*;\s*</script>\s*'
+
+
+def payload(html, name):
+    """Decode one named data block after checking the publication's markers."""
+    block = blocks(html)[name + '_DATA']
+    body = DATA_BLOCK.fullmatch(block)[2]
+    return json.loads(re.fullmatch(ASSIGNMENT % re.escape(name.encode()), body, re.S)[1])
+
+
 def blocks(html):
     """{NAME_DATA: the whole block's bytes} for a published page (bytes).
     Raises RuntimeError on a missing, duplicated or malformed block."""
@@ -76,7 +86,7 @@ def blocks(html):
         raise RuntimeError('Invalid or duplicate dashboard data markers')
     for match in matches:
         name = match[1].removesuffix(b'_DATA')
-        assignment = re.fullmatch(rb'\s*<script>\s*window\.__' + name + rb'__\s*=\s*(.*?)\s*;\s*</script>\s*', match[2], re.S)
+        assignment = re.fullmatch(ASSIGNMENT % name, match[2], re.S)
         if not assignment:
             raise RuntimeError('Invalid dashboard data assignment: ' + name.decode())
         json.loads(assignment[1])

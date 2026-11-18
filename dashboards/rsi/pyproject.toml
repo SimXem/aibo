@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rsi-dashboard"
+version = "0.1.0"
+description = "Recursive self-improvement forecasting survey"
+requires-python = ">=3.11"
+dependencies = ["fri-dashboard", "fri-forecaster"]
+
+[tool.setuptools]
+packages = ["rsi_dashboard"]
+
+[tool.setuptools.package-data]
+rsi_dashboard = ["rsi_forecasting_survey.md", "web/*.html", "web/manifest.json"]

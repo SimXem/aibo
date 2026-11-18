@@ -26,7 +26,7 @@ A member's mode is one of:
                          research offered and never required, reasoning at the
                          top level (fri_forecaster.baseline), and the condition's
                          one instruction in the prompt (fri_forecaster.variants).
-                         airo-none is the Baseline condition.
+                         airo-none is the default Baseline condition.
 
     M=openai-codex/gpt-6-astra
     python -m forecastbench run   --root R --model $M
@@ -352,9 +352,8 @@ def cmd_run(args):
         qset = load_question_set(args.question_set)
         json.dump(qset, open(qpath, "w"))
     due = qset["forecast_due_date"]
-    if args.airo and args.no_research:
-        sys.exit("--airo and --no-research are two modes: choose one")
-    args.mode = f"airo-{args.airo}" if args.airo else "noresearch" if args.no_research else "research"
+    if args.airo:
+        args.mode = f"airo-{args.airo}"
     args.thinking = thinking_of(args.model, args.mode, args.thinking)
     mdir = member_dir(root, args.model, args.thinking, args.mode)
     os.makedirs(mdir, exist_ok=True)
@@ -414,12 +413,12 @@ def cmd_build(args):
     for spec in args.member:
         head, *flags = spec.split(",")
         model, _, thinking = head.partition("@")
-        mode = "noresearch" if args.no_research else "research"
+        mode = args.mode
         for part in flags:
             if part not in MODES:
                 sys.exit(f"--member {spec!r}: unknown mode {part!r} (have {', '.join(MODES)})")
             mode = part
-        thinking = thinking_of(model, mode, thinking or (None if airo_of(mode) else args.thinking))
+        thinking = thinking_of(model, mode, thinking or args.thinking)
         mdir = member_dir(root, model, thinking, mode)
         if not os.path.exists(os.path.join(mdir, "manifest.json")):
             sys.exit(f"no member run at {mdir}")
@@ -466,9 +465,15 @@ def main(argv=None):
     r.add_argument("--root", required=True, help="the round's folder, shared by every member and arm")
     r.add_argument("--question-set", default="latest-llm.json", help="file name in forecastbench-datasets, a URL, or a local path")
     r.add_argument("--model", required=True, help="pi model id, e.g. openai-codex/gpt-6-astra")
-    r.add_argument("--thinking", default=None, help="default: high (an --airo condition runs at its model's top level)")
-    r.add_argument("--no-research", action="store_true", help="no research tools, only submit_forecast")
-    r.add_argument("--airo", choices=AIRO_CONDITIONS, default=None,
+    r.add_argument("--thinking", default=None, help="default: the model's top level for Baseline and variants, high for legacy modes")
+    mode = r.add_mutually_exclusive_group()
+    r.set_defaults(mode="airo-none")
+    mode.add_argument("--baseline", dest="mode", action="store_const", const="airo-none",
+                      help="use the shared Baseline condition with the ForecastBench question")
+    mode.add_argument("--research", dest="mode", action="store_const", const="research",
+                      help="use the original ForecastBench research prompt")
+    mode.add_argument("--no-research", dest="mode", action="store_const", const="noresearch", help="no research tools, only submit_forecast")
+    mode.add_argument("--airo", choices=AIRO_CONDITIONS, default=None,
                    help="ask under this AIRO condition instead of the ForecastBench prompt: no system prompt, "
                         "research offered and never required, the condition's instruction in the prompt")
     r.add_argument("--min-research", type=int, default=2, help="successful research calls before submitting")
@@ -482,8 +487,13 @@ def main(argv=None):
     b.add_argument("--member", action="append", required=True,
                    help="MODEL[@THINKING][,MODE]; MODE is research, noresearch or airo-<condition>; "
                         "repeat for an ensemble")
-    b.add_argument("--thinking", default="high", help="default thinking for --member")
-    b.add_argument("--no-research", action="store_true", help="default research mode for --member: off")
+    b.add_argument("--thinking", default=None, help="default thinking for --member")
+    b.set_defaults(mode="airo-none")
+    build_mode = b.add_mutually_exclusive_group()
+    build_mode.add_argument("--no-research", dest="mode", action="store_const", const="noresearch",
+                            help="default to legacy members run without research")
+    build_mode.add_argument("--research", dest="mode", action="store_const", const="research",
+                            help="default to legacy members run with required research")
     b.add_argument("--name", required=True, help="the leaderboard `model` field (cannot be changed later); 'ensemble' for ensembles")
     b.add_argument("--model-org", default=None, help="the leaderboard `model_organization` field (default: --org; ForecastBench asks for the team name unless the model is off the shelf)")
     b.add_argument("--org", required=True, help="the team name ForecastBench assigned at registration")

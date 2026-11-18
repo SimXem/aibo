@@ -52,6 +52,7 @@ import time
 from pathlib import Path
 import urllib.error
 import urllib.request
+from urllib.parse import urlsplit
 from contextlib import closing
 from datetime import date, timedelta
 
@@ -75,6 +76,7 @@ PAGE_CHARS = 7000
 # the unfiltered results. ForecastBench shares these tools, so nothing here
 # changes when the variable is unset.
 BLOCK_ENV = "FORECASTER_BLOCK_URL_PATTERNS"
+BLOCK_DOMAINS_ENV = "FORECASTER_BLOCK_DOMAINS"
 BLOCK_TITLES = ("Automated Artificial Intelligence Risk Outlook",)
 
 
@@ -85,6 +87,23 @@ def blocked_patterns():
 
 def is_blocked(url, patterns):
     return bool(url) and any(p.search(url) for p in patterns)
+
+
+def blocked_domains():
+    """Hostnames for domain-only experiments, including each host's subdomains."""
+    return os.environ.get(BLOCK_DOMAINS_ENV, "").lower().split()
+
+
+def domain_blocked(url, domains):
+    if not domains:
+        return False
+    try:
+        parsed = urlsplit(url or "")
+        host = (parsed.hostname or "").lower().rstrip(".")
+    except ValueError:
+        return True
+    return (parsed.scheme not in ("http", "https") or not host
+            or any(host == d or host.endswith("." + d) for d in domains))
 
 
 def search_body(query, max_results=5, recent_days=None, today=None):
@@ -192,6 +211,9 @@ def web_search(query, max_results=5, recent_days=None, cause=None):
         return {"query": query, **tag, "results": [],
                 "error": "web search unavailable (no TAVILY_API_KEY set)"}
     spec = search_body(query, max_results, recent_days)
+    domains = blocked_domains()
+    if domains:
+        spec.update(exclude_domains=domains, include_answer=False)
     body = json.dumps(dict(spec, api_key=key)).encode()
     req = urllib.request.Request(
         TAVILY_URL, data=body, headers={"Content-Type": "application/json"})
@@ -200,11 +222,13 @@ def web_search(query, max_results=5, recent_days=None, cause=None):
                               lambda: _fetch_tavily(req, 30))
     except (urllib.error.URLError, ValueError, TimeoutError) as e:
         return {"query": query, **tag, "results": [], "error": f"web search failed: {e}"}
-    out = {"query": query, **tag, "answer": data.get("answer"), "results": []}
+    out = {"query": query, **tag, "answer": None if domains else data.get("answer"), "results": []}
     guard = blocked_patterns()
     if recent_days:
         out["window"] = {"start": spec["start_date"], "end": spec["end_date"]}
     for r in data.get("results", []):
+        if domain_blocked(r.get("url"), domains):
+            continue
         if guard and (is_blocked(r.get("url"), guard)
                       or any(t in (r.get("title") or "") for t in BLOCK_TITLES)):
             out["answer"] = None
@@ -227,7 +251,8 @@ def read_page(url, offset=0):
     page cannot be fetched, returns a result carrying an `error` string and no
     text, so the loop keeps going.
     """
-    if is_blocked(url, blocked_patterns()):
+    domains = blocked_domains()
+    if domain_blocked(url, domains) or is_blocked(url, blocked_patterns()):
         return {"url": url, "text": "", "error": "page read failed: page unavailable"}
     key = os.environ.get("TAVILY_API_KEY")
     if not key:
@@ -249,6 +274,9 @@ def read_page(url, offset=0):
         why = (failed[0].get("error") if failed and isinstance(failed[0], dict) else None) \
             or "no content returned"
         return {"url": url, "text": "", "error": f"page read failed: {why}"}
+    returned_url = results[0].get("url", url)
+    if domain_blocked(returned_url, domains) or is_blocked(returned_url, blocked_patterns()):
+        return {"url": url, "text": "", "error": "page read failed: page unavailable"}
     text = results[0].get("raw_content") or ""
     try:
         start = max(0, int(offset or 0))

@@ -9,10 +9,7 @@
 # the one that pages it. Until 2026-10-21 this was inline in cron_run.sh, and a
 # round that fetched on its own left the next AIRO run nothing to page.
 #
-# Prints what it did; exits non-zero only when the panel cannot be read or the
-# scenarios cannot be rebuilt. A failed fetch keeps the previous snapshot and
-# pages; the runner's preflight (code/check_eci_snapshot.py) still refuses one
-# older than 21 days.
+# A failed refresh stops the job before any model calls.
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -28,7 +25,8 @@ panel_labels() {
 }
 PREV_PANEL="$(panel_labels 2>/dev/null || true)"
 if ! "$PY" -m redlines.eci --fetch; then
-    notify "ECI fetch failed" "Falling back to the last known ensemble. Check https://epoch.ai/data/eci_scores.csv"
+    notify "ECI fetch failed" "The forecast job has stopped. Check https://epoch.ai/data/eci_scores.csv"
+    exit 1
 fi
 # NEW MODELS (2026-10-07): give a row to each model the index now ranks into
 # the panel without one (redlines.autoreg), before the panel is read. A model

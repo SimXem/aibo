@@ -1,0 +1,331 @@
+<script>
+const {sections, runs: allRuns, synthetic} = window.__SURVEY__;
+// Older published blobs remain renderable on frontend-only deployments.
+const labels = window.__SURVEY__.conditions || {"legacy":"Earlier run (access unrecorded)"};
+// Only conditions sharing a frozen run ID belong to the same ensemble comparison.
+const batches = new Map();
+for (const arm of allRuns) {
+  if (!batches.has(arm.id)) batches.set(arm.id, []);
+  batches.get(arm.id).push(arm);
+}
+function median(numbers) {
+  const sorted = [...numbers].sort((a,b) => a-b);
+  const middle = Math.floor(sorted.length/2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle-1] + sorted[middle])/2;
+}
+const runs = Array.from(batches.values(), arms => {
+  const first = arms[0];
+  const answers = {};
+  for (const [id, answer] of Object.entries(first.answers)) {
+    answers[id] = Object.fromEntries(Object.keys(answer).map(field =>
+      [field, median(arms.map(arm => arm.answers[id][field]))]));
+  }
+  return {id:first.id, date:first.date, arms, answers};
+});
+const latest = runs.at(-1);
+const questions = new Map(sections.flatMap(s => s.questions.map(q => [q.id, q])));
+const byId = id => document.getElementById(id);
+function element(tag, parent, text, className) {
+  const node = document.createElement(tag);
+  if (text !== undefined) node.textContent = text;
+  if (className) node.className = className;
+  parent.append(node);
+  return node;
+}
+function point(value) { return value?.probability ?? value?.p50; }
+function unit(id) {
+  const answer = questions.get(id).answer;
+  return /in percent|probability/.test(answer) ? "%" : "";
+}
+function format(value, id) {
+  return value == null ? "—" : value.toLocaleString("en-US", {maximumFractionDigits: 2}) + unit(id);
+}
+function interval(value, id) {
+  return value?.p10 == null ? "" : format(value.p10, id) + "–" + format(value.p90, id);
+}
+function comparison(parent, run, id) {
+  const table = element("table", parent, undefined, "comparison");
+  const header = element("tr",element("thead",table));
+  element("th",header,"Model");
+  for (const arm of run.arms) element("th",header,labels[arm.web_access || "legacy"]);
+  const body = element("tbody",table);
+  function row(label, values) {
+    const tr = element("tr",body);
+    element("th",tr,label).scope = "row";
+    for (const answer of values) {
+      const range = interval(answer,id);
+      element("td",tr,format(point(answer),id) + (range ? " (" + range + ")" : ""));
+    }
+  }
+  const models = new Map(run.arms.flatMap(arm => arm.models.map(m => [m.id,m.label])));
+  for (const [key,label] of models) row(label,run.arms.map(arm =>
+    arm.models.find(m => m.id === key)?.answers[id]));
+  row("Ensemble",run.arms.map(arm => arm.answers[id]));
+}
+byId("example").hidden = !synthetic;
+byId("updated").textContent = latest?.date ? "Updated: " + latest.date :
+  synthetic ? "Example values" : "Awaiting the first Baseline run";
+for (const [title, first, second] of [
+  ["Public fast year", "Q3.1", "Q3.2"], ["AL5 share of AI R&D", "Q1.1", "Q1.2"],
+  ["Internal lead over public models (ECI points)", "Q4.1", "Q4.2"],
+  ["If a public fast year: caused by AI R&D automation", null, "Q3.4"]
+]) {
+  const card = element("article", byId("cards"), undefined, "card");
+  element("div", card, title, "label");
+  for (const [year, id] of [["2027", first], ["2030", second]]) {
+    const row = element("div", card, undefined, "metric");
+    const v = latest?.answers[id];
+    element("span", row, year);
+    const value = element(id ? "button" : "span", row, format(point(v), id), "number");
+    if (id) {
+      value.setAttribute("aria-label", "Open " + id + " · " + questions.get(id).label);
+      value.setAttribute("aria-haspopup","dialog");
+      value.onclick = () => openQuestion(id,value);
+    }
+    element("small", row, interval(v, id));
+  }
+}
+
+function drawHistory() {
+  const history = byId("history");
+  if (!latest) { element("p", history, "Forecast history will appear after the first run."); return; }
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox","0 0 760 230");
+  svg.setAttribute("class","history-chart");
+  svg.setAttribute("role","group");
+  svg.setAttribute("aria-label","Q3.2 probability by run date, condition medians and overall median");
+  history.append(svg);
+  function mark(tag, attrs, text) {
+    const el = document.createElementNS(svg.namespaceURI, tag);
+    for (const [key, val] of Object.entries(attrs)) el.setAttribute(key, val);
+    if (text !== undefined) el.textContent = text;
+    svg.append(el);
+    return el;
+  }
+  const t = runs.map(r => Date.parse(r.date || "2000-01-01"));
+  const x = i => t.at(-1) === t[0] ? 380 : 56 + 654 * (t[i]-t[0])/(t.at(-1)-t[0]);
+  const y = p => 194 - 1.76*p;
+  for (const p of [0,25,50,75,100]) {
+    mark("line",{x1:48,x2:724,y1:y(p),y2:y(p),stroke:"#d6ded9"});
+    mark("text",{x:4,y:y(p)+4,fill:"#4a5e57","font-size":12},p+"%");
+  }
+  for (const i of new Set([0,runs.length-1])) {
+    if (i && t[i] === t[0]) continue;
+    mark("text",{x:x(i),y:222,"text-anchor":"middle","font-size":12},runs[i].date || "Example");
+  }
+  const tooltip = element("div",history,undefined,"forecast-tooltip");
+  tooltip.id = "forecast-tooltip";
+  tooltip.setAttribute("role","tooltip");
+  tooltip.hidden = true;
+  let active, hideTimer;
+  function scheduleClose() { clearTimeout(hideTimer); hideTimer = setTimeout(close,180); }
+  function close() {
+    clearTimeout(hideTimer);
+    active?.removeAttribute("aria-describedby");
+    active = undefined;
+    tooltip.hidden = true;
+  }
+  function show(target, cluster) {
+    clearTimeout(hideTimer);
+    if (target === active) { positionTooltip(); return; }
+    close();
+    active = target;
+    target.setAttribute("aria-describedby",tooltip.id);
+    tooltip.replaceChildren();
+    element("div",tooltip,cluster[0].date || "Example","label");
+    for (const run of cluster) {
+      if (cluster.length > 1) element("div",tooltip,run.id,"label");
+      element("strong",tooltip,"Median across ensembles · " + format(run.answers["Q3.2"].probability,"Q3.2"));
+      comparison(tooltip,run,"Q3.2");
+    }
+    tooltip.hidden = false;
+    positionTooltip();
+  }
+  function positionTooltip() {
+    if (!active) return;
+    const rect = active.getBoundingClientRect();
+    const width = tooltip.offsetWidth, height = tooltip.offsetHeight;
+    tooltip.style.left = Math.max(8,Math.min(innerWidth-width-8,rect.left+(rect.width-width)/2)) + "px";
+    tooltip.style.top = (rect.top >= height+12 ? rect.top-height-8 :
+      Math.max(8,Math.min(innerHeight-height-8,rect.bottom+8))) + "px";
+  }
+  function clusterTarget(cx,cluster,values) {
+    const top = y(Math.max(...values))-14;
+    const bottom = y(Math.min(...values))+14;
+    const node = mark("rect",{x:cx-15,y:top,width:30,height:bottom-top,rx:8,
+      class:"cluster-target",tabindex:0,role:"button",
+      "aria-label":(cluster[0].date || "Example") + " · Compare forecasts"});
+    const open = () => show(node,cluster);
+    node.addEventListener("pointerenter",open);
+    node.addEventListener("pointerleave",() => { if (document.activeElement !== node) scheduleClose(); });
+    node.addEventListener("focus",open);
+    node.addEventListener("blur",close);
+    node.addEventListener("click",open);
+    node.addEventListener("keydown",event => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
+    });
+  }
+  tooltip.addEventListener("pointerenter",() => clearTimeout(hideTimer));
+  tooltip.addEventListener("pointerleave",scheduleClose);
+  document.addEventListener("keydown",event => { if (event.key === "Escape") close(); });
+  document.addEventListener("pointerdown",event => {
+    if (active && event.target !== active && !tooltip.contains(event.target)) close();
+  });
+  window.addEventListener("resize",positionTooltip);
+  window.addEventListener("scroll",() => {
+    if (active && document.activeElement === active) positionTooltip();
+    else close();
+  });
+  const points = runs.map((run,i) => x(i) + "," + y(run.answers["Q3.2"].probability));
+  mark("polyline",{points:points.join(" "),fill:"none",stroke:"#102b23","stroke-width":2});
+  const byDate = new Map();
+  runs.forEach((run,i) => {
+    const cx = x(i);
+    if (!byDate.has(cx)) byDate.set(cx,[]);
+    byDate.get(cx).push(run);
+  });
+  for (const [cx,cluster] of byDate) {
+    const values = [];
+    for (const run of cluster) {
+      for (const arm of run.arms) {
+        const value = arm.answers["Q3.2"].probability;
+        values.push(value);
+        mark("circle",{cx,cy:y(value),r:5,fill:"#9aa5a1"});
+      }
+      const overall = run.answers["Q3.2"].probability;
+      values.push(overall);
+      mark("circle",{cx,cy:y(overall),r:3.5,fill:"#102b23"});
+    }
+    clusterTarget(cx,cluster,values);
+  }
+  const legend = element("div",history,undefined,"chart-legend");
+  element("span",legend,"Median across ensembles");
+  element("span",legend,"Condition ensemble medians");
+}
+drawHistory();
+const dialog = byId("question-dialog");
+let dialogOpener;
+byId("question-close").onclick = () => dialog.close();
+dialog.addEventListener("click",event => { if (event.target === dialog) dialog.close(); });
+dialog.addEventListener("close",() => dialogOpener?.focus({preventScroll:true}));
+
+function openQuestion(id,opener) {
+  const q = questions.get(id);
+  const section = sections.find(s => s.questions.includes(q));
+  dialogOpener = opener;
+  byId("question-id").textContent = id + " · " + section.title;
+  byId("question-title").textContent = q.prompt;
+  const menu = byId("question-views");
+  const content = byId("question-content");
+  menu.replaceChildren();
+  function view(name,render) {
+    const button = element("button",menu,name);
+    button.onclick = () => {
+      for (const item of menu.children) item.setAttribute("aria-pressed",String(item === button));
+      content.replaceChildren();
+      render();
+    };
+  }
+  view("Forecasts",() => {
+    if (!latest) { element("p",content,"Awaiting the first Baseline run."); return; }
+    const answer = latest.answers[id];
+    const summary = element("div",content,undefined,"question-median");
+    element("span",summary,"Median across ensembles","label");
+    element("strong",summary,format(point(answer),id));
+    if (interval(answer,id)) element("small",summary,"P10–P90 · " + interval(answer,id));
+    comparison(content,latest,id);
+  });
+  view("Definition",() => {
+    for (const [heading,text] of [["Answer format",q.answer],["Resolution",q.resolution],["Section definitions",section.intro]]) {
+      element("h3",content,heading);
+      element("p",content,text,"survey-text");
+    }
+  });
+  if (latest) view("Rationales",() => {
+    element("p",content,"Model rationales for this survey section.","rationale-intro");
+    const choices = element("div",content,undefined,"model-choices");
+    const reasons = element("div",content,undefined,"rationale-columns");
+    const models = new Map(latest.arms.flatMap(arm => arm.models.map(m => [m.id,m.label])));
+    for (const [key,label] of models) {
+      const button = element("button",choices,label);
+      button.onclick = () => {
+        for (const item of choices.children) item.setAttribute("aria-pressed",String(item === button));
+        reasons.replaceChildren();
+        for (const arm of latest.arms) {
+          const column = element("section",reasons);
+          element("h3",column,labels[arm.web_access || "legacy"]);
+          element("p",column,arm.models.find(m => m.id === key)?.rationales[section.id] || "—","survey-text");
+        }
+      };
+    }
+    choices.firstElementChild?.click();
+  });
+  menu.firstElementChild.click();
+  opener.focus({preventScroll:true});
+  dialog.showModal();
+  dialog.scrollTop = 0;
+}
+const weekAgo = latest?.date && runs.findLast(r => Date.parse(latest.date)-Date.parse(r.date) === 7*86400000);
+for (const section of sections) {
+  const group = byId("questions");
+  element("h3",group,section.id+". "+section.title);
+  const table = element("table",element("div",group,undefined,"table-wrap"));
+  const head = element("tr",element("thead",table));
+  for (const [label,hint] of [["ID"],["Question"],["Forecast","P50 (P10–P90) or probability"],["Models","Min–max of P50 or probability"],["Change","Week-on-week"]]) {
+    const th = element("th",head,label);
+    if (hint) element("small",th,hint);
+  }
+  const body = element("tbody",table);
+  for (const q of section.questions) {
+    const row = element("tr",body);
+    element("td",row,q.id);
+    const trigger = element("button",element("td",row),q.prompt,"question-trigger");
+    trigger.setAttribute("aria-haspopup","dialog");
+    row.addEventListener("click",() => openQuestion(q.id,trigger));
+    const answer = latest?.answers[q.id];
+    const text = format(point(answer),q.id) + (interval(answer,q.id) ? " (" + interval(answer,q.id) + ")" : "");
+    element("td",row,text);
+    const values = latest?.arms.flatMap(arm => arm.models.map(m => point(m.answers[q.id])));
+    element("td",row,values ? format(Math.min(...values),q.id)+"–"+format(Math.max(...values),q.id) : "—");
+    const delta = weekAgo ? point(answer)-point(weekAgo.answers[q.id]) : null;
+    element("td",row,delta == null ? "—" : (delta>0?"+":"")+Number(delta.toFixed(2))+(unit(q.id)?" pp":""));
+  }
+
+}
+if (latest) {
+  const implied = byId("implied");
+  implied.hidden = false;
+  const fastYear = latest.answers["Q3.2"].probability/100;
+  for (const [label,yes,no] of [["Expert AGI by 2050","Q5.1","Q5.2"],["AI catastrophe by 2050","Q5.3","Q5.4"]]) {
+    const row = element("div",implied);
+    const probability = fastYear*latest.answers[yes].probability + (1-fastYear)*latest.answers[no].probability;
+    element("strong",row,label + " · " + format(probability,yes));
+    element("small",row,"Q3.2 × " + yes + " + (1 − Q3.2) × " + no);
+  }
+}
+byId("download").disabled = !allRuns.length;
+byId("download").onclick = () => {
+  const rows = [["run","date","web_access","model","question","probability","p10","p50","p90","section_rationale"]];
+  for (const run of allRuns) {
+    for (const model of [...run.models,{id:"ensemble",answers:run.answers}]) {
+      for (const s of sections) for (const q of s.questions) {
+        const a = model.answers[q.id];
+        rows.push([run.id,run.date,run.web_access || "legacy",model.id,q.id,a.probability,a.p10,a.p50,a.p90,model.rationales?.[s.id]]);
+      }
+    }
+  }
+  for (const run of runs) {
+    for (const section of sections) for (const q of section.questions) {
+      const a = run.answers[q.id];
+      rows.push([run.id,run.date,"all-conditions","median-across-ensembles",q.id,a.probability,a.p10,a.p50,a.p90,""]);
+    }
+  }
+  const csv = rows.map(row => row.map(v => '"' + String(v ?? "").replaceAll('"','""') + '"').join(",")).join("\r\n");
+  const url = URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = synthetic ? "rsi-example.csv" : "rsi-forecasts.csv";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url),1000);
+};
+</script></body></html>

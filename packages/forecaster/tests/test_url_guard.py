@@ -109,3 +109,25 @@ class UrlGuardTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_domain_only_condition(monkeypatch):
+    monkeypatch.setenv(tools.BLOCK_DOMAINS_ENV, "forecastingresearch.org")
+    monkeypatch.setenv("TAVILY_API_KEY", "test")
+    monkeypatch.setenv("FORECASTER_TAVILY_CACHE_TTL", "0")
+    for url in ("https://forecastingresearch.org/", "https://one.two.ForecastingResearch.org.:443/a"):
+        with patch("urllib.request.urlopen", side_effect=AssertionError("blocked URL fetched")):
+            assert tools.read_page(url)["error"]
+    allowed = "https://forecastingresearch.substack.com/report"
+    other = "https://notforecastingresearch.org/"
+    result = {"answer": "unfiltered", "results": [{"url": url, "title": "Paper"} for url in
+              ["https://leap.forecastingresearch.org/page", allowed, other]]}
+    with patch("urllib.request.urlopen", return_value=reply(result)) as net:
+        search = tools.web_search("survey")
+        request = json.loads(net.call_args.args[0].data)
+        assert request["exclude_domains"] == ["forecastingresearch.org"]
+        assert [r["url"] for r in search["results"]] == [allowed, other]
+        assert search["answer"] is None
+    with patch("urllib.request.urlopen", return_value=reply({"results": [
+            {"url": "https://forecastingresearch.org/", "raw_content": "excluded"}]})):
+        assert tools.read_page(allowed)["text"] == ""

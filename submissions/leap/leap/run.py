@@ -71,7 +71,7 @@ def ask(member, question_set, today, run_id, *, panel=None, retries=1, harness_r
 
 def select_members(args):
     from fri_forecaster import panel
-    members, provenance = panel.panel(snapshot_dir=config.ECI_DIR)
+    members, provenance = panel.panel(snapshot_dir=config.ECI_DIR, require_today=True)
     if args.models:
         want = [m.strip() for m in args.models.split(",")]
         by = {m["key"]: m for m in members} | {m["label"]: m for m in members}

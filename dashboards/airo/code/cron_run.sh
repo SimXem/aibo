@@ -175,7 +175,7 @@ PANEL="$(sed -n 's/^panel: //p' "$LOG" | tail -1)"
 # runner exits non-zero when a pooled condition's call failed -- the date
 # cannot publish without every panel model -- so a failed group that
 # publishes withholds publication; any other failure pages and the rest go
-# ahead. Its preflight also refuses an Epoch snapshot older than 21 days or
+# ahead. Its preflight also refuses an Epoch snapshot from another day or
 # scenario sets not built from the newest one (code/check_eci_snapshot.py).
 # THE AIRO EXPERIMENT (experiments/airo.toml; redlines/experiments.py since
 # 2026-10-21): the combined instrument under six conditions, one call per

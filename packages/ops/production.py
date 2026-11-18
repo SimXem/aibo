@@ -2,7 +2,7 @@
 """Explicit releases and durable UTC jobs. Configuration and data stay outside git."""
 import argparse
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import fcntl
 import http.client
 from http.server import SimpleHTTPRequestHandler
@@ -20,6 +20,8 @@ import uuid
 # This script runs on the system interpreter, outside the release's venv.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'dashboard'))
 from dashboard import page, site as site_kit  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dashboard_projects import AIRO_FILES, DASHBOARDS  # noqa: E402
 
 # Where things are in a release: the repository's layout.
 AIRO = 'dashboards/airo'                    # its index.html, web/, data/, results/ and code/
@@ -39,7 +41,7 @@ GENERATED_DATA = ('epoch_capabilities_index_*.csv', 'auto_models.json',
 # What a job kind's alerts are filed under (fri_forecaster.alert's `deployment`).
 DEPLOYMENT = {'forecast': 'airo', 'news-poll': 'airo', 'forecastbench': 'forecastbench', 'smoke': 'scheduler'}
 
-DATA_FILES = ('forecasts.csv', 'rationales.csv', 'debriefs.csv', 'redlines-data.zip')
+DATA_FILES = AIRO_FILES
 
 # The published data boundary is the dashboard kit's (packages/dashboard):
 # reading a page's data blocks, a new interface around byte-identical data,
@@ -48,8 +50,8 @@ data_blocks = page.blocks
 frontend_html = page.swap_frontend
 
 
-def data_snapshot(site):
-    return site_kit.snapshot(site, DATA_FILES)
+def data_snapshot(site, files=DATA_FILES):
+    return site_kit.snapshot(site, files)
 
 
 def write_json(path, value):
@@ -88,12 +90,20 @@ def validate_jobs(jobs):
         if not re.fullmatch(r'[a-z0-9][a-z0-9_-]*', job['id']) or job['id'] in ids:
             raise ValueError('Job IDs must be unique safe names')
         ids.add(job['id'])
+        owner = job.get('dashboard', 'airo')
+        if owner not in DASHBOARDS or (owner != 'airo' and job['kind'] not in ('forecast', 'smoke')):
+            raise ValueError('Unknown dashboard or unsupported dashboard job')
         if job['kind'] not in ('forecast', 'forecastbench', 'news-poll', 'smoke'):
             raise ValueError('Unknown job kind')
+        if sum(k in job for k in ('at', 'daily_utc', 'weekly_utc')) != 1:
+            raise ValueError('Specify one UTC schedule: at, daily_utc or weekly_utc')
         if 'at' in job:
             when = datetime.fromisoformat(job['at'].replace('Z', '+00:00'))
             if when.tzinfo is None or when.utcoffset().total_seconds() != 0 or when.second or when.microsecond:
                 raise ValueError('Job dates must be UTC')
+        elif 'weekly_utc' in job:
+            if not re.fullmatch(r'(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun) (?:[01][0-9]|2[0-3]):[0-5][0-9]', job['weekly_utc']):
+                raise ValueError('Weekly schedule must be a weekday and UTC HH:MM')
         elif not re.fullmatch(r'(?:[01][0-9]|2[0-3]):[0-5][0-9]', job['daily_utc']):
             raise ValueError('Invalid UTC time')
         if job['kind'] == 'forecastbench':
@@ -103,29 +113,29 @@ def validate_jobs(jobs):
 
 def due_jobs(jobs, now):
     """No catch-up: start only within the scheduled minute. Ledger deduplicates it."""
-    now = now.astimezone(timezone.utc)
-    for job in validate_jobs(jobs):
-        if 'at' in job:
-            at = datetime.fromisoformat(job['at'].replace('Z', '+00:00'))
-            due = now.replace(second=0, microsecond=0) == at.replace(second=0, microsecond=0)
-            key = job['id'] + '-' + at.strftime('%Y%m%dT%H%M')
-        else:
-            due = now.strftime('%H:%M') == job['daily_utc']
-            key = job['id'] + '-' + now.strftime('%Y%m%d')
-        if due:
-            yield key, job
+    minute = now.astimezone(timezone.utc).replace(second=0, microsecond=0)
+    for key, job, _ in scheduled_between(jobs, minute - timedelta(seconds=1), minute + timedelta(seconds=1)):
+        yield key, job
 
 
 def scheduled_between(jobs, after, before):
-    """(key, job, time) for each scheduled minute with after < time < before."""
+    """(key, job, time) for each scheduled UTC minute with after < time < before."""
+    weekdays = ('Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun')
     for job in validate_jobs(jobs):
         if 'at' in job:
             times = [datetime.fromisoformat(job['at'].replace('Z', '+00:00'))]
         else:
-            hour, minute = map(int, job['daily_utc'].split(':'))
+            weekday = None
+            if 'weekly_utc' in job:
+                weekday, clock = job['weekly_utc'].split()
+            else:
+                clock = job['daily_utc']
+            hour, minute = map(int, clock.split(':'))
+            start = after.replace(hour=hour, minute=minute, second=0, microsecond=0)
             days = (before.date() - after.date()).days
-            times = [datetime.combine(after.date() + timedelta(days=d), datetime.min.time(), timezone.utc).replace(hour=hour, minute=minute)
-                     for d in range(days + 1)]
+            times = (start + timedelta(days=d) for d in range(days + 1))
+            if weekday:
+                times = filter(lambda at: weekdays[at.weekday()] == weekday, times)
         for at in times:
             if after < at < before:
                 yield job['id'] + '-' + at.strftime('%Y%m%dT%H%M' if 'at' in job else '%Y%m%d'), job, at
@@ -145,16 +155,32 @@ class Runtime:
         self.config_path = config_path
         self.root = Path(config['root']).expanduser().resolve()
         self.root.mkdir(parents=True, exist_ok=True)
+        self.name = config.get('dashboard', 'airo')
+        self.dashboard = DASHBOARDS[self.name]
         self.current = self.root / 'current'
+        if self.current.exists():
+            selected = json.loads((self.current / 'release.json').read_text())
+            if selected.get('dashboard', 'airo') != self.name:
+                raise ValueError('Configured dashboard does not own the selected release')
         self.state = self.root / 'state'
-        self.home = self.root / 'home'
+        self.panel_runtime = None
+        if 'panel_runtime_config' in config:
+            authority = Path(config['panel_runtime_config'])
+            primary = json.loads(authority.read_text())
+            if self.name == 'airo' or primary.get('dashboard', 'airo') != 'airo' or 'panel_runtime_config' in primary:
+                raise ValueError('panel_runtime_config must identify the primary AIRO installation')
+            self.panel_runtime = Runtime(primary, config_path=authority)
+            if self.panel_runtime.root == self.root or primary['socket'] == config['socket']:
+                raise ValueError('Dashboard runtimes require separate roots and sockets')
+        self.home = self.panel_runtime.home if self.panel_runtime else self.root / 'home'
         self.mirror = self.root / 'repository.git'
         for name in ('releases', 'sites', 'runs', 'logs', 'tmp'):
             (self.root / name).mkdir(exist_ok=True)
 
     @contextmanager
     def lock(self):
-        with (self.root / 'operation.lock').open('a') as f:
+        lock_path = (self.panel_runtime or self).root / 'operation.lock'
+        with lock_path.open('a') as f:
             fcntl.flock(f, fcntl.LOCK_EX)
             yield
 
@@ -174,7 +200,25 @@ class Runtime:
                    PI_CODING_AGENT_DIR=str(self.home / 'pi-agent'),
                    TMPDIR=str(self.root / 'tmp'), TZ='UTC', NODE_USE_ENV_PROXY='1',
                    NO_PROXY='localhost,127.0.0.1,::1', no_proxy='localhost,127.0.0.1,::1')
+        panel_dir = (self.panel_runtime or self).state / 'data'
+        env.update(FORECASTER_ECI_DIR=str(panel_dir), EEAI_ECI_DIR=str(panel_dir))
         return env
+
+    def jobs(self, code):
+        jobs = validate_jobs(json.loads((code / JOBS).read_text()))
+        return [job for job in jobs if job.get('dashboard', 'airo') == self.name]
+
+    def project_command(self, code, args, site, results=None):
+        results = results or self.state / 'results'
+        results.mkdir(parents=True, exist_ok=True)
+        return [code / '.venv/bin/python', *(arg.format(results=results, site=site) for arg in args)]
+
+    def build_data(self, code, site, env, **kwargs):
+        if self.name == 'airo':
+            command = ['bash', code / AIRO / 'code/publish_dashboard.sh']
+        else:
+            command = self.project_command(code, self.dashboard.build, site)
+        run(command, cwd=code / self.dashboard.project, env=env, **kwargs)
 
     def configure_forecastbench(self, prefix, credentials):
         """Provision only the uploader key/settings via stdin, never a coding login."""
@@ -225,7 +269,7 @@ class Runtime:
             code = self.current.resolve(strict=True) / 'code'
             env = self.environment(code, self.root / 'tmp')
             news = job['kind'] == 'news-poll'
-            argv = [code / '.venv/bin/python', '-m', 'fri_forecaster.alert', 'send', '--deployment', DEPLOYMENT[job['kind']],
+            argv = [code / '.venv/bin/python', '-m', 'fri_forecaster.alert', 'send', '--deployment', (self.name if job['kind'] == 'forecast' else DEPLOYMENT[job['kind']]),
                     '--severity', 'notice' if news else 'page', '--title', 'news fetch failed' if news else title,
                     *(['--log', str(log)] if log else []), message]
             subprocess.run(argv, cwd=code, env=env, timeout=120, check=False)
@@ -337,6 +381,11 @@ class Runtime:
 
     def stage_data(self, code, copy_results=True):
         # Build on a private copy: a failed candidate cannot alter live forecast data.
+        if self.name != 'airo':
+            fonts = self.state / 'fonts'
+            if fonts.is_dir():
+                shutil.copytree(fonts, code / self.dashboard.project / self.dashboard.web / 'fonts', dirs_exist_ok=True)
+            return
         airo = code / AIRO
         if copy_results:
             shutil.copytree(self.state / 'results', airo / 'results', dirs_exist_ok=True)
@@ -347,6 +396,8 @@ class Runtime:
             shutil.copytree(self.state / 'fonts', airo / 'web/fonts', dirs_exist_ok=True)
 
     def attach_state(self, code):
+        if self.name != 'airo':
+            return   # other runners write directly to state/results
         # Results are accrued production data, not reset by git. Seed only new files.
         airo = code / AIRO
         source = airo / 'results'
@@ -366,6 +417,8 @@ class Runtime:
                 p.symlink_to(dest)
 
     def save_generated_data(self, code):
+        if self.name != 'airo':
+            return
         # Epoch may create a new dated snapshot, or a writer may replace a symlink.
         for pattern in GENERATED_DATA:
             for p in (code / AIRO / 'data').glob(pattern):
@@ -376,7 +429,12 @@ class Runtime:
                     p.symlink_to(dest)
 
     def verify_site(self, site):
-        site_kit.verify(site, required=('forecasts.csv', 'rationales.csv', 'redlines-data.zip'))
+        site_kit.verify(site, required=self.dashboard.required)
+        if self.dashboard.block:
+            blob = page.payload((site / 'index.html').read_bytes(), self.dashboard.block)
+            if blob.get('synthetic'):
+                raise RuntimeError('Cannot publish synthetic survey results')
+
 
     def probe(self, release):
         """Check the actual serving process sees the newly selected release."""
@@ -388,16 +446,35 @@ class Runtime:
             connection.request('GET', '/release.json')
             response = connection.getresponse()
             body = json.loads(response.read())
-            if response.status != 200 or body['release'] != release.name:
+            if response.status != 200 or body['release'] != release.name or body.get('dashboard', 'airo') != self.name:
                 raise RuntimeError('Serving process did not activate the candidate')
         finally:
             connection.close()
+
+    def publish_public(self, site):
+        """An installation may mirror the verified static site to a separate ingress."""
+        command = self.config.get('public_publisher')
+        if command is None:
+            return  # ingress serves the runtime socket directly
+        if not isinstance(command, list) or not command or not all(isinstance(arg, str) and arg for arg in command):
+            raise ValueError('public_publisher must be a nonempty argv list')
+        run([*command, site.resolve(strict=True)], timeout=900)
+
+    def republish(self):
+        with self.lock():
+            site = (self.current / 'site').resolve(strict=True)
+            self.verify_site(site)
+            metadata = json.loads((site / 'release.json').read_text())
+            if metadata['data_snapshot']['sha256'] != data_snapshot(site, self.dashboard.downloads)['sha256']:
+                raise RuntimeError('Selected site differs from its recorded snapshot')
+            self.publish_public(site)
 
     def activate(self, release):
         previous = self.current.resolve() if self.current.exists() else None
         link(release, self.current)
         try:
             self.probe(release)
+            self.publish_public(release / 'site')
         except Exception:
             if previous:
                 link(previous, self.current)
@@ -414,22 +491,28 @@ class Runtime:
         source = self.current / 'site'
         self.verify_site(source)
         prior = json.loads((source / 'release.json').read_text())
-        snapshot = data_snapshot(source)
+        snapshot = data_snapshot(source, self.dashboard.downloads)
         previous = prior.get('data_snapshot', {})
         if previous.get('sha256', snapshot['sha256']) != snapshot['sha256']:
             raise RuntimeError('Published data snapshot changed unexpectedly')
-        html = frontend_html((code / AIRO / 'index.html').read_bytes(), (source / 'index.html').read_bytes())
+        project = code / self.dashboard.project
+        if self.dashboard.assembled:
+            template = (project / self.dashboard.assembled).read_bytes()
+        else:
+            web = project / self.dashboard.web
+            template = page.render(web, dict.fromkeys(page.manifest(web)['blobs'])).encode()
+        html = frontend_html(template, (source / 'index.html').read_bytes())
         shutil.copytree(source, site)
         (site / 'index.html').write_bytes(html)
-        for name in ('img', 'fonts'):
-            assets = code / AIRO / 'web' / name
+        for asset, dest in self.dashboard.assets:
+            assets = project / asset
             if assets.exists():
-                target = site / 'web' / name
+                target = site / dest
                 if target.exists():
                     shutil.rmtree(target)
                 shutil.copytree(assets, target)
         self.verify_site(site)
-        if data_snapshot(site) != snapshot:
+        if data_snapshot(site, self.dashboard.downloads) != snapshot:
             raise RuntimeError('Frontend deployment changed published data')
         return {**snapshot,
                 'origin_commit': previous.get('origin_commit', prior.get('publication_commit')),
@@ -446,6 +529,8 @@ class Runtime:
             usage = output([sys.executable, script, '--help'])
         except (subprocess.CalledProcessError, OSError):
             return None
+        if self.name != 'airo' and 'run-dashboard' not in usage:
+            raise RuntimeError('Candidate predates multi-dashboard deployment')
         return script if 'build-release' in usage else None
 
     def deploy(self, requested=None, keep_publication=False, publish_data=False):
@@ -483,32 +568,39 @@ class Runtime:
             raise ValueError('Expected a release name and its full commit SHA')
         release = self.root / 'releases' / name
         code = release / 'code'
-        validate_jobs(json.loads((code / JOBS).read_text()))
+        self.jobs(code)
         env = os.environ.copy()
         env.update(PATH=self.config['path'], TMPDIR=str(self.root / 'tmp'))
         run(['python3', '-m', 'venv', code / '.venv'], env=env)
-        run([code / '.venv/bin/pip', 'install', *(arg for project in PROJECTS for arg in ('-e', code / project))], env=env)
+        projects = PROJECTS if self.name == 'airo' else (FORECASTER, 'packages/dashboard', self.dashboard.project)
+        run([code / '.venv/bin/pip', 'install', *(arg for project in projects for arg in ('-e', code / project))], env=env)
         run(['npm', 'ci', '--prefix', code / FORECASTER], env=env)
         (release / 'python-packages.txt').write_text(output([code / '.venv/bin/pip', 'freeze']))
         # A release whose failures would reach nobody does not go live.
         run([code / '.venv/bin/python', '-m', 'fri_forecaster.alert', 'check'], cwd=code, env=self.environment(code, self.root / 'tmp'))
         self.stage_data(code, copy_results=publish_data)
         site = self.root / 'sites' / name
-        metadata = {'release': name, 'commit': sha, 'publication': 'frontend', 'publication_commit': sha, 'frontend_commit': sha}
+        metadata = {'dashboard': self.name, 'release': name, 'commit': sha, 'publication': 'frontend', 'publication_commit': sha, 'frontend_commit': sha}
         if keep_publication:
             source = self.current / 'site' if self.current.exists() else Path(self.config['bootstrap_publication'])
             self.verify_site(source)
             shutil.copytree(source, site)
             prior = json.loads((source / 'release.json').read_text()) if (source / 'release.json').exists() else {}
+            if self.name != 'airo':
+                # Imported publications predate our release metadata. Record their data boundary.
+                published = data_snapshot(site, self.dashboard.downloads)
+                if prior.get('data_snapshot', published)['sha256'] != published['sha256']:
+                    raise RuntimeError('Imported publication disagrees with its recorded snapshot')
+                metadata['data_snapshot'] = published
             metadata.update(publication='preserved', publication_commit=prior.get('publication_commit', prior.get('commit')),
                             frontend_commit=prior.get('frontend_commit', prior.get('publication_commit')))
             if 'data_snapshot' in prior:
                 metadata['data_snapshot'] = prior['data_snapshot']
         elif publish_data:
             site.mkdir()
-            run(['bash', code / AIRO / 'code/publish_dashboard.sh'], cwd=code / AIRO, env=self.environment(code, site))
+            self.build_data(code, site, self.environment(code, site))
             self.verify_site(site)
-            metadata.update(publication='rebuilt', data_snapshot={**data_snapshot(site), 'origin_commit': sha, 'source_release': name})
+            metadata.update(publication='rebuilt', data_snapshot={**data_snapshot(site, self.dashboard.downloads), 'origin_commit': sha, 'source_release': name})
         else:
             metadata['data_snapshot'] = self.publish_frontend(code, site)
         self.verify_site(site)
@@ -530,11 +622,13 @@ class Runtime:
             self.activate(release)
             print(json.dumps({'rolled_back': release.name}))
 
-    def execute_job(self, key, job):
+    def execute_job(self, key, job, scheduled_minute=None):
         if not re.fullmatch(r'[a-zA-Z0-9_-]+', key):
             raise ValueError('Unsafe run key')
         with self.lock():
             receipt = self.root / 'runs' / (key + '.json')
+            if scheduled_minute and datetime.now(timezone.utc).replace(second=0, microsecond=0) != scheduled_minute:
+                return False  # the next tick records this as missed under the original key
             if receipt.exists():
                 return False  # Includes interrupted/failed runs: no surprise paid retries.
             release = self.current.resolve(strict=True)
@@ -548,19 +642,24 @@ class Runtime:
                     'news-poll': [code / '.venv/bin/python', airo / 'code/recent_news.py', 'poll'],
                     'forecastbench': ['bash', code / FORECASTBENCH / 'scripts/fb_cron.sh', job.get('due', '')],
                     'smoke': [code / '.venv/bin/python', '-c', 'import redlines, eeai, forecastbench, fri_forecaster, dashboard; print("scheduled runtime smoke passed")']}[job['kind']]
-            cwd = code if job['kind'] in ('forecastbench', 'smoke') else airo
+            survey_job = job['kind'] == 'forecast' and self.name != 'airo'
+            if job['kind'] == 'smoke' and self.name != 'airo':
+                argv = [code / '.venv/bin/python', *self.dashboard.forecast[:2], '--help']
+            cwd = code if job['kind'] in ('forecastbench', 'smoke') else code / self.dashboard.project
             stage = 'preflight FAILED'
             launched = False
             try:
                 env = self.environment(code, site)
                 env['FRI_ALERT_LEDGER'] = str(ledger)
+                if job.get('paired_rationale_on') and key == job['id'] + '-' + date.fromisoformat(job['paired_rationale_on']).strftime('%Y%m%d'):
+                    env['AIRO_PAIRED_RATIONALE'] = '1'
                 due = ''
-                if job['kind'] == 'forecast':
+                if job['kind'] == 'forecast' and not survey_job:
                     due = output([code / '.venv/bin/python', '-m', 'redlines.experiments', 'due'], cwd=airo, env=env)
                     if not due.strip():
                         started.update(status='skipped', reason='No forecast conditions due')
                         return True
-                expects_site = any(len(row.split()) > 1 and row.split()[1] == 'publish'
+                expects_site = survey_job or any(len(row.split()) > 1 and row.split()[1] == 'publish'
                                    for row in due.splitlines())
                 if job['kind'] == 'forecast':
                     self.prune_locked()
@@ -569,6 +668,19 @@ class Runtime:
                 site.mkdir()
                 stage = 'run FAILED'
                 with (self.root / 'logs' / (key + '.log')).open('a') as log:
+                    if survey_job:
+                        if self.panel_runtime:
+                            primary = self.panel_runtime
+                            primary_code = primary.current.resolve(strict=True) / 'code'
+                            refresh = primary_code / AIRO / 'code/refresh_panel.sh'
+                            try:
+                                run(['bash', refresh], cwd=refresh.parent.parent,
+                                    env=primary.environment(primary_code, primary.root / 'tmp'),
+                                    stdout=log, stderr=subprocess.STDOUT)
+                            finally:
+                                primary.save_generated_data(primary_code)
+                        incoming = self.state / 'attempts' / key
+                        argv = self.project_command(code, self.dashboard.forecast, site, incoming)
                     launched = True
                     run(argv, cwd=cwd, env=env, stdout=log, stderr=subprocess.STDOUT)
                 if job['kind'] == 'forecastbench':
@@ -580,14 +692,30 @@ class Runtime:
                     if count == 0 or built < count:
                         raise RuntimeError('ForecastBench has incomplete submission sets')
                 stage = 'publish FAILED'   # the run succeeded; what follows only publishes it
+                if survey_job:
+                    # The runners produce one file (EEAI) or directory (RSI).
+                    # Failed attempts stay private; later builds read completed runs only.
+                    artifacts = list(incoming.iterdir())
+                    if len(artifacts) != 1:
+                        raise RuntimeError('Expected one completed survey run')
+                    artifact, = artifacts
+                    results = self.state / 'results'
+                    results.mkdir(parents=True, exist_ok=True)
+                    target = results / artifact.name
+                    if target.exists():
+                        raise RuntimeError(f'Run already exists: {artifact.name}')
+                    artifact.rename(target)
+                    with (self.root / 'logs' / (key + '.log')).open('a') as log:
+                        self.build_data(code, site, env, stdout=log, stderr=subprocess.STDOUT)
                 if expects_site or (site / 'index.html').exists():
                     self.verify_site(site)
                     meta = json.loads((release / 'release.json').read_text())
                     meta.update(publication='rebuilt', publication_commit=meta['commit'], frontend_commit=meta['commit'],
-                                data_snapshot={**data_snapshot(site), 'origin_commit': meta['commit'], 'source_release': 'job-' + key})
+                                data_snapshot={**data_snapshot(site, self.dashboard.downloads), 'origin_commit': meta['commit'], 'source_release': 'job-' + key})
                     write_json(site / 'release.json', meta)
                     link(site, release / 'site')
                     write_json(release / 'release.json', meta)
+                    self.publish_public(site)
                 started.update(status='succeeded')
             except Exception as exc:
                 started.update(status='failed', error=type(exc).__name__, stage=stage)
@@ -595,7 +723,10 @@ class Runtime:
                 with (self.root / 'logs' / (key + '.log')).open('a') as log:
                     print(f'{stage}: {type(exc).__name__}: {exc}', file=log)
                 if job['kind'] != 'smoke' and not paged(ledger):  # the job's own page says more than this one
-                    self.alert(job, f"{key} failed ({type(exc).__name__}). It is not retried.",
+                    failure = 'failed'
+                    if job['kind'] == 'forecast':
+                        failure = 'failed to publish dashboard' if stage == 'publish FAILED' else 'failed to produce forecast'
+                    self.alert(job, f"{key}: {failure} ({type(exc).__name__}). It is not retried.",
                                log=self.root / 'logs' / (key + '.log'), title=stage)
                 raise
             finally:
@@ -632,7 +763,7 @@ class Runtime:
                 receipt = runs / (key + '.json')
                 if receipt.exists():
                     continue
-                if job['kind'] == 'forecast':
+                if job['kind'] == 'forecast' and self.name == 'airo':
                     code = self.current.resolve(strict=True) / 'code'
                     try:
                         due = output([code / '.venv/bin/python', '-m', 'redlines.experiments',
@@ -659,17 +790,17 @@ class Runtime:
     def tick(self):
         if not self.current.exists() or not (self.root / 'jobs-enabled').exists():
             return
-        jobs = json.loads((self.current / 'code' / JOBS).read_text())
+        jobs = self.jobs(self.current / 'code')
         now = datetime.now(timezone.utc)
         self.report_unrun(jobs, now)
         for key, job in due_jobs(jobs, now):
-            self.execute_job(key, job)
+            self.execute_job(key, job, scheduled_minute=now.replace(second=0, microsecond=0))
 
     def status(self):
         print(json.dumps({'storage': self.storage_status(),
                           'release': json.loads((self.current / 'release.json').read_text()) if self.current.exists() else None,
                           'jobs_enabled': (self.root / 'jobs-enabled').exists(),
-                          'jobs': json.loads((self.current / 'code' / JOBS).read_text()) if self.current.exists() else [],
+                          'jobs': self.jobs(self.current / 'code') if self.current.exists() else [],
                           'recent_runs': sorted((json.loads(p.read_text()) for p in (self.root / 'runs').glob('*.json')),
                                                 key=lambda receipt: receipt.get('started', ''), reverse=True)[:10]}, indent=2))
 
@@ -697,7 +828,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', default=os.environ.get('AIRO_RUNTIME_CONFIG', str(Path.home() / '.config/airo/runtime.json')))
     parser.add_argument('command', choices=['deploy', 'rollback', 'status', 'tick', 'serve', 'smoke', 'prune', 'storage', 'build-release',
-                                            'configure-forecastbench', 'check-forecastbench-upload'])
+                                            'configure-forecastbench', 'check-forecastbench-upload', 'run-dashboard', 'republish'])
     parser.add_argument('--upload-prefix', help='configure-forecastbench: gs://bucket/team-prefix/binary; key JSON on stdin')
     parser.add_argument('--due', help='check-forecastbench-upload: round folder date for a .txt access probe')
     parser.add_argument('--commit')
@@ -705,12 +836,22 @@ def main():
     publication = parser.add_mutually_exclusive_group()
     publication.add_argument('--keep-publication', action='store_true', help='Retain the entire website while deploying code and schedules')
     publication.add_argument('--publish-data', action='store_true', help='Rebuild and validate forecast data as part of deployment; never launches forecast jobs')
-    parser.add_argument('--run-id', default='smoke-' + uuid.uuid4().hex[:12])
+    parser.add_argument('--run-id', help='unique durable receipt ID (required for a paid manual run)')
     args = parser.parse_args()
     runtime = Runtime(json.loads(Path(args.config).read_text()), config_path=args.config)
     if args.command == 'deploy': runtime.deploy(args.commit, keep_publication=args.keep_publication, publish_data=args.publish_data)
     elif args.command == 'build-release': runtime.build_release(args.release, args.commit, keep_publication=args.keep_publication, publish_data=args.publish_data)
-    elif args.command == 'smoke': runtime.execute_job(args.run_id, {'id': 'smoke', 'kind': 'smoke'})
+    elif args.command == 'run-dashboard':
+        if not args.run_id:
+            parser.error('run-dashboard requires --run-id')
+        runtime.execute_job(args.run_id, {'id': runtime.name, 'kind': 'forecast'})
+        receipt = json.loads((runtime.root / 'runs' / (args.run_id + '.json')).read_text())
+        print(json.dumps(receipt, indent=2))
+        if receipt.get('status') not in ('succeeded', 'skipped'):
+            raise SystemExit(1)
+    elif args.command == 'smoke': runtime.execute_job(args.run_id or 'smoke-' + uuid.uuid4().hex[:12], {'id': 'smoke', 'kind': 'smoke'})
+    elif args.command in ('configure-forecastbench', 'check-forecastbench-upload') and runtime.name != 'airo':
+        parser.error('ForecastBench is managed by the AIRO runtime')
     elif args.command == 'configure-forecastbench': runtime.configure_forecastbench(args.upload_prefix, json.load(sys.stdin))
     elif args.command == 'check-forecastbench-upload': runtime.check_forecastbench_upload(args.due)
     else: getattr(runtime, args.command)()

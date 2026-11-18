@@ -202,7 +202,7 @@ def member_for(model, like, known, airo=False):
             "eci_name": model["eci_name"]}
 
 
-def sync(reg, condition, panel, today=None):
+def sync(reg, condition, panel, today=None, *, baseline_only=False):
     """The name a round runs `condition` under, given the panel (parse_panel):
     the current one when its members are the panel's top N and the code still
     matches; else the next place, registered in `reg` with the panel's top N
@@ -215,6 +215,17 @@ def sync(reg, condition, panel, today=None):
     top = panel[:n]
     have, want = [m["eci_name"] for m in entry["members"]], [m["eci_name"] for m in top]
     changes, members, warning = drift(entry), entry["members"], None
+    moving_to_baseline = baseline_only and entry.get("prompts") != ["none"]
+    if moving_to_baseline:
+        changes.append("use shared Baseline only")
+        entry = copy.deepcopy(entry)
+        entry.update(research=True, prompts=["none"])
+        for member in entry["members"]:
+            member["options"].update(thinking=fb.thinking_of(member["pi_model"], "airo-none"),
+                                     min_research=0, tools=["web_search", "read_page", "submit_forecast"],
+                                     search_backend="tavily")
+            member["one_shot_baseline"] = None
+        members = entry["members"]
     if set(have) != set(want):
         if len(top) == n and all(m["pi_model"] for m in top):
             changes.append(f"members {', '.join(have)} -> {', '.join(want)}")
@@ -257,7 +268,11 @@ def main(argv=None, stdin=None):
     elif cmd == "sync":
         before = json.dumps(reg, sort_keys=True)
         panel = parse_panel(stdin or sys.stdin)
-        notes = [sync(reg, c, panel)[1] for c in reg["conditions"]]
+        baseline_ensemble = "--baseline-ensemble" in argv
+        if baseline_ensemble and "ensemble" not in reg["conditions"]:
+            sys.exit("--baseline-ensemble requires the ensemble condition in the registry")
+        notes = [sync(reg, c, panel, baseline_only=baseline_ensemble and c == "ensemble")[1]
+                 for c in reg["conditions"]]
         changed = json.dumps(reg, sort_keys=True) != before
         if changed and "--dry-run" not in argv:
             save(reg)

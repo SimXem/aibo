@@ -1,6 +1,7 @@
 [
+  {"id": "rsi-weekly", "dashboard": "rsi", "kind": "forecast", "weekly_utc": "Fri 02:00"},
   {"id": "recent-news-poll", "kind": "news-poll", "daily_utc": "11:45"},
-  {"id": "airo", "kind": "forecast", "daily_utc": "12:00"},
+  {"id": "airo", "kind": "forecast", "paired_rationale_on": "2026-11-20", "daily_utc": "12:00"},
   {"id": "forecastbench-2026-10-25", "kind": "forecastbench", "at": "2026-10-25T00:05:00Z", "due": "2026-10-25"},
   {"id": "forecastbench-2026-11-08", "kind": "forecastbench", "at": "2026-11-08T00:05:00Z", "due": "2026-11-08"},
   {"id": "forecastbench-2026-11-22", "kind": "forecastbench", "at": "2026-11-22T00:05:00Z", "due": "2026-11-22"}
