@@ -38,7 +38,7 @@ replace the design mockup at the root. The build reads completed runs in
 date order, checks their frozen instrument, prompt hashes, model receipts
 and ensemble medians, and embeds the public forecasts and section rationales.
 The latest run fills the headline cards and question tables. The Q3.2 chart
-shows the selected access condition; the CSV includes every completed run and identifies its condition. Week-on-week change requires a run
+plots each condition ensemble in gray and the median across those ensembles in green. Hover, tap or focus a dot to compare model forecasts by condition. The CSV includes each condition and the overall median. Week-on-week change requires a run
 exactly seven days earlier. Unfinished runs have no ensemble file and are
 skipped. A completed run that fails validation stops the build before writing.
 
@@ -61,8 +61,7 @@ tools. The restricted arm excludes the apex and all subdomains of
 access; material quoted on permitted third-party sites can still appear.
 
 A paired directory has one frozen plan and a subdirectory per arm. Resume
-using the paired directory. The dashboard access selector changes the cards,
-chart, questions and rationales together; the CSV has a `web_access` column.
+using the paired directory. The dashboard combines paired condition ensembles by taking their median for each forecast field. Model forecasts and rationales retain their condition labels; the CSV has a `web_access` column.
 Earlier receipts without recorded access settings are labeled separately.
 
 Each standing panel member receives the dated survey once per arm through

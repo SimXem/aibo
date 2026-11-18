@@ -2,22 +2,26 @@
 const {sections, runs: allRuns, synthetic} = window.__SURVEY__;
 // Older published blobs remain renderable on frontend-only deployments.
 const labels = window.__SURVEY__.conditions || {"legacy":"Earlier run (access unrecorded)"};
-const selector = document.getElementById("condition");
-for (const [key,label] of Object.entries(labels)) {
-  if (key !== "legacy" || allRuns.some(r => !r.web_access || r.web_access === key)) {
-    selector.add(new Option(label, key));
-  }
+// Only conditions sharing a frozen run ID belong to the same ensemble comparison.
+const batches = new Map();
+for (const arm of allRuns) {
+  if (!batches.has(arm.id)) batches.set(arm.id, []);
+  batches.get(arm.id).push(arm);
 }
-const requested = new URLSearchParams(location.search).get("condition");
-const fallback = allRuns.some(r => r.web_access === "full-web") ? "full-web" :
-  (allRuns.at(-1)?.web_access || (allRuns.length ? "legacy" : "full-web"));
-selector.value = [...selector.options].some(o => o.value === requested) ? requested : fallback;
-selector.onchange = () => {
-  const url = new URL(location.href);
-  url.searchParams.set("condition",selector.value);
-  location.assign(url);
-};
-const runs = allRuns.filter(r => (r.web_access || "legacy") === selector.value);
+function median(numbers) {
+  const sorted = [...numbers].sort((a,b) => a-b);
+  const middle = Math.floor(sorted.length/2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle-1] + sorted[middle])/2;
+}
+const runs = Array.from(batches.values(), arms => {
+  const first = arms[0];
+  const answers = {};
+  for (const [id, answer] of Object.entries(first.answers)) {
+    answers[id] = Object.fromEntries(Object.keys(answer).map(field =>
+      [field, median(arms.map(arm => arm.answers[id][field]))]));
+  }
+  return {id:first.id, date:first.date, arms, answers};
+});
 const latest = runs.at(-1);
 const questions = new Map(sections.flatMap(s => s.questions.map(q => [q.id, q])));
 const byId = id => document.getElementById(id);
@@ -44,11 +48,24 @@ function format(value, id) {
 function interval(value, id) {
   return value?.p10 == null ? "" : format(value.p10, id) + "–" + format(value.p90, id);
 }
-function modelList(parent, id) {
-  for (const m of latest.models) {
-    const v = m.answers[id];
-    element("p", parent, m.label + " · " + format(point(v), id) + " " + interval(v, id));
+function comparison(parent, run, id) {
+  const table = element("table", parent, undefined, "comparison");
+  const header = element("tr",element("thead",table));
+  element("th",header,"Model");
+  for (const arm of run.arms) element("th",header,labels[arm.web_access || "legacy"]);
+  const body = element("tbody",table);
+  function row(label, values) {
+    const tr = element("tr",body);
+    element("th",tr,label).scope = "row";
+    for (const answer of values) {
+      const range = interval(answer,id);
+      element("td",tr,format(point(answer),id) + (range ? " (" + range + ")" : ""));
+    }
   }
+  const models = new Map(run.arms.flatMap(arm => arm.models.map(m => [m.id,m.label])));
+  for (const [key,label] of models) row(label,run.arms.map(arm =>
+    arm.models.find(m => m.id === key)?.answers[id]));
+  row("Ensemble",run.arms.map(arm => arm.answers[id]));
 }
 byId("example").hidden = !synthetic;
 byId("updated").textContent = latest?.date ? "Updated: " + latest.date :
@@ -67,17 +84,17 @@ for (const [title, first, second] of [
     element("span", row, format(point(v), id), "number");
     element("small", row, interval(v, id));
   }
-  if (latest) modelList(details(card, second + " · each model"), second);
+  if (latest) comparison(details(card, second + " · model forecasts"), latest, second);
 }
-const colors = ["#102b23", "#1f19cc", "#c2581a", "#419177", "#9a5798"];
+
 function drawHistory() {
   const history = byId("history");
   if (!latest) { element("p", history, "Forecast history will appear after the first run."); return; }
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox","0 0 760 230");
   svg.setAttribute("class","history-chart");
-  svg.setAttribute("role","img");
-  svg.setAttribute("aria-label","Q3.2 probability by run date, ensemble and individual models");
+  svg.setAttribute("role","group");
+  svg.setAttribute("aria-label","Q3.2 probability by run date, condition medians and overall median");
   history.append(svg);
   function mark(tag, attrs, text) {
     const el = document.createElementNS(svg.namespaceURI, tag);
@@ -97,25 +114,75 @@ function drawHistory() {
     if (i && t[i] === t[0]) continue;
     mark("text",{x:x(i),y:222,"text-anchor":"middle","font-size":12},runs[i].date || "Example");
   }
-  const names = new Map(runs.flatMap(r => r.models.map(m => [m.id,m.label])));
-  const legend = element("div", history);
-  [ [null,"Ensemble"], ...names ].forEach(([id,label], idx) => {
-    const color = colors[idx % colors.length];
-    const key = element("span",legend,"● " + label + "  ");
-    key.style.color = color;
-    let previous;
-    runs.forEach((run,i) => {
-      const answers = id ? run.models.find(m => m.id === id)?.answers : run.answers;
-      if (!answers) { previous = undefined; return; }
-      const v = answers["Q3.2"].probability;
-      if (previous) mark("line",{x1:previous[0],y1:previous[1],x2:x(i),y2:y(v),stroke:color,"stroke-width":id?1.5:3});
-      const dot = mark("circle",{cx:x(i),cy:y(v),r:id?3:5,fill:color});
-      const title = document.createElementNS(svg.namespaceURI,"title");
-      title.textContent = [run.date,label,format(v,"Q3.2")].filter(Boolean).join(" · ");
-      dot.append(title);
-      previous = [x(i),y(v)];
+  const tooltip = element("div",history,undefined,"forecast-tooltip");
+  tooltip.id = "forecast-tooltip";
+  tooltip.setAttribute("role","tooltip");
+  tooltip.hidden = true;
+  let active, hideTimer;
+  function scheduleClose() { hideTimer = setTimeout(close,180); }
+  function close() {
+    clearTimeout(hideTimer);
+    active?.removeAttribute("aria-describedby");
+    active = undefined;
+    tooltip.hidden = true;
+  }
+  function show(dot,run,label,value) {
+    close();
+    active = dot;
+    dot.setAttribute("aria-describedby",tooltip.id);
+    tooltip.replaceChildren();
+    element("div",tooltip,run.date || "Example","label");
+    element("strong",tooltip,label + " · " + format(value,"Q3.2"));
+    comparison(tooltip,run,"Q3.2");
+    tooltip.hidden = false;
+    positionTooltip();
+  }
+  function positionTooltip() {
+    if (!active) return;
+    const rect = active.getBoundingClientRect();
+    const width = tooltip.offsetWidth, height = tooltip.offsetHeight;
+    tooltip.style.left = Math.max(8,Math.min(innerWidth-width-8,rect.left-width/2)) + "px";
+    tooltip.style.top = (rect.top >= height+12 ? rect.top-height-8 :
+      Math.max(8,Math.min(innerHeight-height-8,rect.bottom+8))) + "px";
+  }
+  function dot(run,cx,value,label,overall) {
+    const node = mark("circle",{cx,cy:y(value),r:overall?6:4,fill:overall?"#102b23":"#9aa5a1",
+      tabindex:0,role:"button","aria-label":[run.date,label,format(value,"Q3.2")].join(" · ")});
+    const open = () => show(node,run,label,value);
+    node.addEventListener("pointerenter",open);
+    node.addEventListener("pointerleave",() => { if (document.activeElement !== node) scheduleClose(); });
+    node.addEventListener("focus",open);
+    node.addEventListener("blur",close);
+    node.addEventListener("click",open);
+    node.addEventListener("keydown",event => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); open(); }
     });
+  }
+  tooltip.addEventListener("pointerenter",() => clearTimeout(hideTimer));
+  tooltip.addEventListener("pointerleave",scheduleClose);
+  document.addEventListener("keydown",event => { if (event.key === "Escape") close(); });
+  document.addEventListener("pointerdown",event => {
+    if (active && event.target !== active && !tooltip.contains(event.target)) close();
   });
+  window.addEventListener("resize",positionTooltip);
+  window.addEventListener("scroll",() => {
+    if (active && document.activeElement === active) positionTooltip();
+    else close();
+  });
+  const points = runs.map((run,i) => x(i) + "," + y(run.answers["Q3.2"].probability));
+  mark("polyline",{points:points.join(" "),fill:"none",stroke:"#102b23","stroke-width":2});
+  runs.forEach((run,i) => {
+    // Offset the gray dots horizontally so equal forecasts remain selectable.
+    run.arms.forEach((arm,j) => {
+      const side = j % 2 === 0 ? -1 : 1;
+      dot(run,x(i)+side*(12+12*Math.floor(j/2)),arm.answers["Q3.2"].probability,
+          labels[arm.web_access || "legacy"],false);
+    });
+    dot(run,x(i),run.answers["Q3.2"].probability,"Median across ensembles",true);
+  });
+  const legend = element("div",history,undefined,"chart-legend");
+  element("span",legend,"Median across ensembles");
+  element("span",legend,"Condition ensemble medians");
 }
 drawHistory();
 const weekAgo = latest?.date && runs.findLast(r => Date.parse(latest.date)-Date.parse(r.date) === 7*86400000);
@@ -138,18 +205,21 @@ for (const section of sections) {
     const answer = latest?.answers[q.id];
     const forecasts = element("td",row);
     const text = format(point(answer),q.id) + (interval(answer,q.id) ? " (" + interval(answer,q.id) + ")" : "");
-    if (latest) modelList(details(forecasts,text),q.id);
+    if (latest) comparison(details(forecasts,text),latest,q.id);
     else forecasts.textContent = text;
-    const values = latest?.models.map(m => point(m.answers[q.id]));
+    const values = latest?.arms.flatMap(arm => arm.models.map(m => point(m.answers[q.id])));
     element("td",row,values ? format(Math.min(...values),q.id)+"–"+format(Math.max(...values),q.id) : "—");
     const delta = weekAgo ? point(answer)-point(weekAgo.answers[q.id]) : null;
     element("td",row,delta == null ? "—" : (delta>0?"+":"")+Number(delta.toFixed(2))+(unit(q.id)?" pp":""));
   }
   const notes = details(group,"Section definitions and rationales");
   element("p",notes,section.intro);
-  for (const model of latest?.models || []) {
-    element("strong",notes,model.label);
-    element("p",notes,model.rationales[section.id]);
+  for (const arm of latest?.arms || []) {
+    element("h4",notes,labels[arm.web_access || "legacy"]);
+    for (const model of arm.models) {
+      element("strong",notes,model.label);
+      element("p",notes,model.rationales[section.id]);
+    }
   }
 }
 byId("download").disabled = !allRuns.length;
@@ -161,6 +231,12 @@ byId("download").onclick = () => {
         const a = model.answers[q.id];
         rows.push([run.id,run.date,run.web_access || "legacy",model.id,q.id,a.probability,a.p10,a.p50,a.p90,model.rationales?.[s.id]]);
       }
+    }
+  }
+  for (const run of runs) {
+    for (const section of sections) for (const q of section.questions) {
+      const a = run.answers[q.id];
+      rows.push([run.id,run.date,"all-conditions","median-across-ensembles",q.id,a.probability,a.p10,a.p50,a.p90,""]);
     }
   }
   const csv = rows.map(row => row.map(v => '"' + String(v ?? "").replaceAll('"','""') + '"').join(",")).join("\r\n");
