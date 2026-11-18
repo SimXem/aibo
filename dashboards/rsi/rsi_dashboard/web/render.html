@@ -32,11 +32,6 @@ function element(tag, parent, text, className) {
   parent.append(node);
   return node;
 }
-function details(parent, title) {
-  const box = element("details", parent);
-  element("summary", box, title);
-  return box;
-}
 function point(value) { return value?.probability ?? value?.p50; }
 function unit(id) {
   const answer = questions.get(id).answer;
@@ -81,10 +76,14 @@ for (const [title, first, second] of [
     const row = element("div", card, undefined, "metric");
     const v = latest?.answers[id];
     element("span", row, year);
-    element("span", row, format(point(v), id), "number");
+    const value = element(id ? "button" : "span", row, format(point(v), id), "number");
+    if (id) {
+      value.setAttribute("aria-label", "Open " + id + " · " + questions.get(id).label);
+      value.setAttribute("aria-haspopup","dialog");
+      value.onclick = () => openQuestion(id,value);
+    }
     element("small", row, interval(v, id));
   }
-  if (latest) comparison(details(card, second + " · model forecasts"), latest, second);
 }
 
 function drawHistory() {
@@ -185,6 +184,67 @@ function drawHistory() {
   element("span",legend,"Condition ensemble medians");
 }
 drawHistory();
+const dialog = byId("question-dialog");
+let dialogOpener;
+byId("question-close").onclick = () => dialog.close();
+dialog.addEventListener("click",event => { if (event.target === dialog) dialog.close(); });
+dialog.addEventListener("close",() => dialogOpener?.focus({preventScroll:true}));
+
+function openQuestion(id,opener) {
+  const q = questions.get(id);
+  const section = sections.find(s => s.questions.includes(q));
+  dialogOpener = opener;
+  byId("question-id").textContent = id + " · " + section.title;
+  byId("question-title").textContent = q.prompt;
+  const menu = byId("question-views");
+  const content = byId("question-content");
+  menu.replaceChildren();
+  function view(name,render) {
+    const button = element("button",menu,name);
+    button.onclick = () => {
+      for (const item of menu.children) item.setAttribute("aria-pressed",String(item === button));
+      content.replaceChildren();
+      render();
+    };
+  }
+  view("Forecasts",() => {
+    if (!latest) { element("p",content,"Awaiting the first Baseline run."); return; }
+    const answer = latest.answers[id];
+    const summary = element("div",content,undefined,"question-median");
+    element("span",summary,"Median across ensembles","label");
+    element("strong",summary,format(point(answer),id));
+    if (interval(answer,id)) element("small",summary,"P10–P90 · " + interval(answer,id));
+    comparison(content,latest,id);
+  });
+  view("Definition",() => {
+    for (const [heading,text] of [["Answer format",q.answer],["Resolution",q.resolution],["Section definitions",section.intro]]) {
+      element("h3",content,heading);
+      element("p",content,text,"survey-text");
+    }
+  });
+  if (latest) view("Rationales",() => {
+    element("p",content,"Model rationales for this survey section.","rationale-intro");
+    const choices = element("div",content,undefined,"model-choices");
+    const reasons = element("div",content,undefined,"rationale-columns");
+    const models = new Map(latest.arms.flatMap(arm => arm.models.map(m => [m.id,m.label])));
+    for (const [key,label] of models) {
+      const button = element("button",choices,label);
+      button.onclick = () => {
+        for (const item of choices.children) item.setAttribute("aria-pressed",String(item === button));
+        reasons.replaceChildren();
+        for (const arm of latest.arms) {
+          const column = element("section",reasons);
+          element("h3",column,labels[arm.web_access || "legacy"]);
+          element("p",column,arm.models.find(m => m.id === key)?.rationales[section.id] || "—","survey-text");
+        }
+      };
+    }
+    choices.firstElementChild?.click();
+  });
+  menu.firstElementChild.click();
+  dialog.showModal();
+  dialog.scrollTop = 0;
+}
 const weekAgo = latest?.date && runs.findLast(r => Date.parse(latest.date)-Date.parse(r.date) === 7*86400000);
 for (const section of sections) {
   const group = byId("questions");
@@ -199,28 +259,18 @@ for (const section of sections) {
   for (const q of section.questions) {
     const row = element("tr",body);
     element("td",row,q.id);
-    const context = details(element("td",row),q.prompt);
-    element("p",context,q.answer);
-    element("p",context,q.resolution);
+    const trigger = element("button",element("td",row),q.prompt,"question-trigger");
+    trigger.setAttribute("aria-haspopup","dialog");
+    row.addEventListener("click",() => openQuestion(q.id,trigger));
     const answer = latest?.answers[q.id];
-    const forecasts = element("td",row);
     const text = format(point(answer),q.id) + (interval(answer,q.id) ? " (" + interval(answer,q.id) + ")" : "");
-    if (latest) comparison(details(forecasts,text),latest,q.id);
-    else forecasts.textContent = text;
+    element("td",row,text);
     const values = latest?.arms.flatMap(arm => arm.models.map(m => point(m.answers[q.id])));
     element("td",row,values ? format(Math.min(...values),q.id)+"–"+format(Math.max(...values),q.id) : "—");
     const delta = weekAgo ? point(answer)-point(weekAgo.answers[q.id]) : null;
     element("td",row,delta == null ? "—" : (delta>0?"+":"")+Number(delta.toFixed(2))+(unit(q.id)?" pp":""));
   }
-  const notes = details(group,"Section definitions and rationales");
-  element("p",notes,section.intro);
-  for (const arm of latest?.arms || []) {
-    element("h4",notes,labels[arm.web_access || "legacy"]);
-    for (const model of arm.models) {
-      element("strong",notes,model.label);
-      element("p",notes,model.rationales[section.id]);
-    }
-  }
+
 }
 byId("download").disabled = !allRuns.length;
 byId("download").onclick = () => {
