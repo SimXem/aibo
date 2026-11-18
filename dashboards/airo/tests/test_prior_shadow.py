@@ -88,6 +88,9 @@ def test_prompt_additions_and_schedule():
         assert not c['publish'] and not c['pooled'] and not c['url_block_patterns']
         assert c['max_turns'] is None
         actual=ru.condition_prompt(prompt,c)
+        if name == 'prior-recent-shadow':
+            paired = dict(c, id='prior-recent-rationale', rationale_revision=True)
+            assert ru.condition_prompt(prompt, paired) == actual.rstrip() + '\n\n' + ru.REVISION_SENTENCE + '\n'
         assert actual.startswith(base+'\n\n')
         assert prior_forecast.URL in actual[len(base):]
         assert experiments.VARIANTS['ai-banned'] not in actual

@@ -2,7 +2,7 @@
 """Explicit releases and durable UTC jobs. Configuration and data stay outside git."""
 import argparse
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import fcntl
 import http.client
 from http.server import SimpleHTTPRequestHandler
@@ -554,6 +554,8 @@ class Runtime:
             try:
                 env = self.environment(code, site)
                 env['FRI_ALERT_LEDGER'] = str(ledger)
+                if job.get('paired_rationale_on') and key == job['id'] + '-' + date.fromisoformat(job['paired_rationale_on']).strftime('%Y%m%d'):
+                    env['AIRO_PAIRED_RATIONALE'] = '1'
                 due = ''
                 if job['kind'] == 'forecast':
                     due = output([code / '.venv/bin/python', '-m', 'redlines.experiments', 'due'], cwd=airo, env=env)
