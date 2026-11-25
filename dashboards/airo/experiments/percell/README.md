@@ -177,7 +177,7 @@ dashboard view reads.
 ## Related
 
 - `../cellcheck.toml` and `../cellcheck/`: twenty randomly drawn cells asked
-  5 times each by Opus 5.5 and GPT-6.1 Sol, compared cell by cell with a
+  5 times each by Opus 5.5 and GPT-6.2 Astra, compared cell by cell with a
   chi-square test.
 - `../context.toml` and `code/analyze_context.py`: asks whether the other
   horizons in a call move the headline forecast. It sets the cell asked alone

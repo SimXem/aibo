@@ -19,7 +19,7 @@
 # external information, focus on information that arrived within the past
 # year ...").
 #
-# Two models (model set "cellcheck": Opus 5.5 and GPT-6.1 Sol), five calls
+# Two models (model set "cellcheck": Opus 5.5 and GPT-6.2 Astra), five calls
 # each: 10 calls. Unpublished and hand-run; rows go to results/experiments/.
 #
 #   python code/run_unified.py --experiment acceleration --dry-run   # the prompt, free

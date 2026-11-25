@@ -8,7 +8,7 @@
 # start of the measurement window") and nothing else -- no epidemic, cyber or
 # misalignment question -- each asked ALONE (code/run_cellwise.py: one call
 # per cell, after the model's own ECI step, as percell.toml asks) five times
-# by Opus 5.5 and by GPT-6.1 Sol (model_set "cellcheck",
+# by Opus 5.5 and by GPT-6.2 Astra (model_set "cellcheck",
 # redlines/registry.py). Each is set beside the same cell of the latest
 # published joint call of the same model and prompt
 # (code/analyze_cellcheck.py: the absolute error of the isolated mean, its

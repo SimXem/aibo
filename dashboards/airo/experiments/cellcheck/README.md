@@ -60,9 +60,11 @@ other prompt × horizon × scenario cells:
 - recent, 6mo, p4
 - two-step, 2100, eci_p75
 
-Each cell is asked 5 times by **Opus 5.5** and **GPT-6.1 Sol** (the model set
-`cellcheck` in `redlines/registry.py`; Sol is not added to the dashboard's
-panel). Every repeat starts with the model's ECI step, since every cell prompt
+Each cell is asked 5 times by **Opus 5.5** and **GPT-6.2 Astra** (the model
+set `cellcheck` in `redlines/registry.py`; GPT-6.1 Sol until 2026-11-18).
+GPT-6.2 Astra is not added to the dashboard's panel. It is newer than the
+pinned pi, which `redlines/pi_loop.py` tells about it from
+`data/pi_models.json`. Every repeat starts with the model's ECI step, since every cell prompt
 quotes the model's ECI forecast as the joint prompt does:
 
 - per model: 100 cell calls and 25 ECI steps;
@@ -82,7 +84,7 @@ source ../../.venv/bin/activate
 
 1. **Keys.** The keys file is `~/.config/fri-forecaster/env`, or the file
    `$FORECASTER_ENV_FILE` names. It needs `ANTHROPIC_API_KEY`,
-   `OPENAI_API_KEY` (with access to GPT-6.1 Sol) and `TAVILY_API_KEY`.
+   `OPENAI_API_KEY` (with access to GPT-6.2 Astra) and `TAVILY_API_KEY`.
 2. **When.** Run on a publication day (Wednesday or Friday) after the
    12:00 UTC published run, and finish on the same UTC day. Then the
    published call it is compared with was asked the same day, and `--resume`
@@ -116,25 +118,31 @@ source ../../.venv/bin/activate
    It uses the published calls of the cells' own day. `--joint-day YYYY-MM-DD`
    compares with another day instead, and the report flags the mismatch.
 
-If production's GPT-6.1 Sol rows use a dated model id
-(`openai/responses/gpt-6.1-sol-YYYY-MM-DD`), the report warns that the ids
-differ. Change the id in `cellcheck_models` in `redlines/registry.py` and run
-again.
+The comparison pairs each model's cells with joint rows of the same label.
+The download holds only the published panel's models, so **GPT-6.2 Astra has
+nothing to compare with unless production's panel seats it that day**; the
+report then lists its cells under "no joint answer". If its joint rows use a
+dated model id (`openai/responses/gpt-6.2-astra-YYYY-MM-DD`), the report warns
+that the ids differ. Change the id in `cellcheck_models` in
+`redlines/registry.py` and run again.
 
 ## Cost
 
 These are estimates from pi's prices and the logged calls of older models. The
 pilot prints the real spend.
 
-| Searching per call | Opus 5.5 | GPT-6.1 Sol | Search (Tavily) | All 250 calls |
+| Searching per call | Opus 5.5 | GPT-6.2 Astra | Search (Tavily) | All 250 calls |
 |---|---|---|---|---|
-| Typical (4 searches, 2 page reads) | ~$75–105 | ~$10 | ~$17 | ~$100–130 |
-| Heavy (10 searches, 4 page reads) | ~$190–310 | ~$25 | ~$45 | ~$250–360 |
+| Typical (4 searches, 2 page reads) | ~$75–105 | ~$40 | ~$17 | ~$130–160 |
+| Heavy (10 searches, 4 page reads) | ~$190–310 | ~$100 | ~$45 | ~$335–455 |
 
-**Why Opus costs more.** Opus's tokens cost twice Sol's ($4/$20 vs $2/$10 per
-million in/out). At the published reasoning level ("max" for Anthropic,
-"xhigh" for OpenAI), Opus has also thought several thousand tokens per turn in
-the logged calls, and those output tokens are most of its cost.
+**Why Opus still costs more.** GPT-6.2 Astra's tokens cost twice Opus's
+($8/$40 vs $4/$20 per million in/out; $0.40 cached input). But at the
+published reasoning level ("max" for Anthropic, "xhigh" for OpenAI), Opus has
+thought several thousand tokens per turn in the logged calls, and those output
+tokens are most of its cost. No call of GPT-6.2 Astra is logged yet: its
+column is GPT-6.1 Sol's estimate scaled by the price (4x), the least certain
+number here.
 
 Prompt caching is on for both models: pi marks the system prompt, the tools
 and the latest turn for Anthropic's cache. Neither model is stopped from

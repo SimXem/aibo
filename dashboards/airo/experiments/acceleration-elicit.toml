@@ -19,7 +19,7 @@
 # The prompt is `recent`: its instruction is the agreed elicitation prompt's
 # last sentence, verbatim. Research on, minimal instrument, pi loop.
 #
-# Two models (model set "cellcheck": Opus 5.5 and GPT-6.1 Sol), five calls
+# Two models (model set "cellcheck": Opus 5.5 and GPT-6.2 Astra), five calls
 # each: 10 calls. Unpublished and hand-run; rows go to results/experiments/.
 #
 #   python code/run_elicit.py --experiment acceleration-elicit --dry-run   # the prompt, free

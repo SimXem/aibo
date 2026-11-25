@@ -744,7 +744,7 @@ class TestTheJointComparison(unittest.TestCase):
 
 CELLCHECK = experiments.load("cellcheck")
 PROMPTS = ["none", "independent", "recent", "critical", "two-step"]
-PAIR = (("Opus 5.5", "anthropic/claude-opus-5-5"), ("GPT-6.1 Sol", "openai/responses/gpt-6.1-sol"))
+PAIR = (("Opus 5.5", "anthropic/claude-opus-5-5"), ("GPT-6.2 Astra", "openai/responses/gpt-6.2-astra"))
 
 
 class TestTheCellcheckExperiment(unittest.TestCase):
@@ -802,13 +802,13 @@ class TestTheCellcheckExperiment(unittest.TestCase):
         _, why = self.run_main("--experiment", "cellcheck", "--horizons", "2030")
         self.assertRegex(why, "refusing --horizons: condition 'none' fixes its own")
 
-    def test_the_model_set_is_opus_and_sol_outside_the_panel(self):
+    def test_the_model_set_is_opus_and_astra_outside_the_panel(self):
         self.assertEqual(registry.MODEL_SETS["cellcheck"](), list(PAIR))
-        self.assertNotIn("GPT-6.1 Sol", [m["label"] for m in registry.MODELS])   # the panel table is untouched
+        self.assertNotIn("GPT-6.2 Astra", [m["label"] for m in registry.MODELS])   # the panel table is untouched
         with redirect_stdout(io.StringIO()):
             models, stamp = ru.select_models("cellcheck", argparse.Namespace(models=None, smoke=False))
         self.assertEqual((models, stamp), (list(PAIR), {"set": "cellcheck"}))
-        self.assertEqual(pi_loop.pi_model(PAIR[1][1]), "openai/gpt-6.1-sol")
+        self.assertEqual(pi_loop.pi_model(PAIR[1][1]), "openai/gpt-6.2-astra")
 
     def test_pairs_and_model_set_are_checked(self):
         head = 'scenarios = "data/combined_conditions.json"\ninstrument = "minimal"\nunit = "cell"\n'
@@ -826,7 +826,7 @@ class TestTheCellcheckExperiment(unittest.TestCase):
         self.assertNotEqual(experiments.condition_sha256(base), experiments.condition_sha256(dict(base, pairs=["2030|sq"])))
 
 
-def cellcheck_data(d, shift=0.0, seed=3, day="2026-11-18", sol_joint_id="openai/responses/gpt-6.1-sol"):
+def cellcheck_data(d, shift=0.0, seed=3, day="2026-11-18", astra_joint_id="openai/responses/gpt-6.2-astra"):
     """The download (a zip of joint logs, two days) and a cellcheck cells log
     with a known shift between the arms (log-odds, isolated minus unified)."""
     rng = random.Random(seed)
@@ -835,7 +835,7 @@ def cellcheck_data(d, shift=0.0, seed=3, day="2026-11-18", sol_joint_id="openai/
     ex = lambda y: 1 / (1 + math.exp(-y))  # noqa: E731
     days = {"2026-11-13": [], day: []}
     for label, mid in PAIR:
-        jid = sol_joint_id if label == "GPT-6.1 Sol" else mid
+        jid = astra_joint_id if label == "GPT-6.2 Astra" else mid
         for jd, rows in days.items():
             for v in PROMPTS + ["ai-banned"]:
                 draw = rng.gauss(0, 0.38)
@@ -921,11 +921,11 @@ class TestTheCellcheckAnalysis(unittest.TestCase):
         self.assertLess(res["together"]["p_mae_p"], 0.01)
 
     def test_another_joint_day_and_another_model_id_are_said(self):
-        res, text, *_ = self.run_it("--joint-day", "2026-11-13", sol_joint_id="openai/responses/gpt-6.1-sol-2026-09-29")
+        res, text, *_ = self.run_it("--joint-day", "2026-11-13", astra_joint_id="openai/responses/gpt-6.2-astra-2026-11-17")
         self.assertEqual(res["joint_day"], "2026-11-13")
         self.assertIn("NOTE the joint calls are of 2026-11-13, the isolated cells of 2026-11-18", text)
-        self.assertIn("NOTE GPT-6.1 Sol: the isolated cells ran openai/responses/gpt-6.1-sol, the joint calls "
-                      "openai/responses/gpt-6.1-sol-2026-09-29", text)
+        self.assertIn("NOTE GPT-6.2 Astra: the isolated cells ran openai/responses/gpt-6.2-astra, the joint calls "
+                      "openai/responses/gpt-6.2-astra-2026-11-17", text)
 
     def test_the_percell_report_says_this_is_not_a_grid(self):
         with tempfile.TemporaryDirectory() as d:
@@ -946,7 +946,7 @@ class TestCellcheckEndToEnd(unittest.TestCase):
     what each cell prompt holds, which cells are asked, and that every cell's
     isolated mean and published answer reach the report unchanged."""
 
-    ECI = {"Opus 5.5": [172.0, 175.0, 178.0, 182.0, 186.0], "GPT-6.1 Sol": [171.0, 174.5, 177.5, 181.0, 185.5]}
+    ECI = {"Opus 5.5": [172.0, 175.0, 178.0, 182.0, 186.0], "GPT-6.2 Astra": [171.0, 174.5, 177.5, 181.0, 185.5]}
 
     def test_the_run_and_its_analysis(self):
         items = {c["id"]: ru._scenario_items([c]).strip() for c in
@@ -954,7 +954,7 @@ class TestCellcheckEndToEnd(unittest.TestCase):
         rng, seen = random.Random(5), []
 
         def model(model_id, prompt, tools, final, **kw):
-            label = "Opus 5.5" if "claude" in model_id else "GPT-6.1 Sol"
+            label = "Opus 5.5" if "claude" in model_id else "GPT-6.2 Astra"
             if "forecasts" not in final["parameters"]["properties"]:
                 return {"eci_forecast": dict(zip(("p10", "p25", "p50", "p75", "p90"), self.ECI[label])),
                         "rationale": "r", "key_sources": []}, []

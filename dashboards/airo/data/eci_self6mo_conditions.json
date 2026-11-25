@@ -5,10 +5,10 @@
  "protocol": "unified-joint-eciself6mo-v2",
  "source": {
   "panel": null,
-  "wave": "Frontier ECI 6 months from the run date, the model's own p10/p25/p50/p75/p90 (Epoch ECI snapshot of 2026-11-10)",
+  "wave": "Frontier ECI 6 months from the run date, the model's own p10/p25/p50/p75/p90 (Epoch ECI snapshot of 2026-11-18)",
   "status": "no human panel; the model's percentiles are compared to the metr_graph projection at the run's own target date (code/analyze_eci_self.py)",
   "documents": [
-   "data/epoch_capabilities_index_2026-11-10.csv"
+   "data/epoch_capabilities_index_2026-11-18.csv"
   ],
   "outcome_horizons": [],
   "policy_probability_horizons": []
@@ -39,13 +39,13 @@
  "conditioning": {
   "instruction": "For each condition below, assume that the frontier ECI on {target_date} is approximately the value you gave for that percentile in eci_forecast (within about two points of it). Treat it as a fact you have learned about the world, not as an intervention: update your expectations about everything that would ordinarily accompany that level of capability -- investment, compute, algorithmic progress, deployment, and how governments and developers respond -- as you would upon learning it, and then forecast each question in that world. Do not hold other factors fixed where the stated level would change them.",
   "unconditional_forecast": "forecast the world as you expect it to unfold, including whatever level of AI capability you expect to be reached by {target_date}.",
-  "definitions": "Definitions. ECI: the Epoch Capabilities Index, published by Epoch AI -- a single score summarising a model's results across dozens of benchmarks, fit with an item-response model so that scores stay comparable as benchmarks saturate and new ones are added. Higher is more capable; the scale has no ceiling. All scores here are on the scale as published by Epoch on 2026-11-10.\nFrontier ECI: the highest ECI score of any publicly released model from a US developer, as scored by Epoch.\n\nFrontier ECI history -- every release by a US developer that set a new high, from GPT-4 on (Epoch's index of 2026-11-10, 255 models scored):\n  2023-03-14   121.9  GPT-4 (Mar 2023)\n  2024-01-25   124.8  GPT-4 Turbo (Nov 2023)\n  2024-02-29   125.6  Claude 3 Opus\n  2024-04-09   125.9  GPT-4 Turbo (Apr 2024)\n  2024-05-13   128.2  GPT-4o (May 2024)\n  2024-06-20   130.0  Claude 3.5 Sonnet\n  2024-09-12   133.9  o1-preview\n  2024-09-12   135.4  o1-mini\n  2024-12-17   141.2  o1\n  2025-03-31   143.9  Gemini 2.5 Pro (Mar 2025)\n  2025-04-16   145.2  o4-mini\n  2025-04-16   147.0  o3\n  2025-06-10   147.4  o3-pro\n  2025-08-07   150.0  GPT-5\n  2025-10-07   151.2  GPT-5 Pro\n  2025-11-18   152.9  Gemini 3 Pro\n  2025-12-11   154.4  GPT-5.2\n  2025-12-11   157.2  GPT-5.2 Pro\n  2026-03-05   157.8  GPT-5.4\n  2026-03-05   160.2  GPT-5.4 Pro\n  2026-04-23   162.8  GPT-5.5 Pro\n  2026-06-09   164.2  Claude Fable 5\n  2026-07-24   164.5  Claude Opus 5\n  2026-09-01   167.0  Claude Fable 5.1\n  2026-09-03   169.2  GPT-6 Astra\n  2026-11-09   174.2  Claude Fable 5.2\nAs of 2026-11-10 no released model has scored above Claude Fable 5.2, 174.2 (2026-11-09).",
+  "definitions": "Definitions. ECI: the Epoch Capabilities Index, published by Epoch AI -- a single score summarising a model's results across dozens of benchmarks, fit with an item-response model so that scores stay comparable as benchmarks saturate and new ones are added. Higher is more capable; the scale has no ceiling. All scores here are on the scale as published by Epoch on 2026-11-18.\nFrontier ECI: the highest ECI score of any publicly released model from a US developer, as scored by Epoch.\n\nFrontier ECI history -- every release by a US developer that set a new high, from GPT-4 on (Epoch's index of 2026-11-18, 257 models scored):\n  2023-03-14   121.6  GPT-4 (Mar 2023)\n  2024-01-25   124.8  GPT-4 Turbo (Nov 2023)\n  2024-02-29   125.6  Claude 3 Opus\n  2024-04-09   125.8  GPT-4 Turbo (Apr 2024)\n  2024-05-13   128.1  GPT-4o (May 2024)\n  2024-06-20   130.0  Claude 3.5 Sonnet\n  2024-09-12   133.5  o1-preview\n  2024-09-12   135.3  o1-mini\n  2024-12-17   141.2  o1\n  2025-03-31   144.1  Gemini 2.5 Pro (Mar 2025)\n  2025-04-16   145.2  o4-mini\n  2025-04-16   147.1  o3\n  2025-06-10   147.5  o3-pro\n  2025-08-07   150.0  GPT-5\n  2025-10-07   151.3  GPT-5 Pro\n  2025-11-18   153.0  Gemini 3 Pro\n  2025-12-11   154.5  GPT-5.2\n  2025-12-11   157.3  GPT-5.2 Pro\n  2026-03-05   157.9  GPT-5.4\n  2026-03-05   160.3  GPT-5.4 Pro\n  2026-04-23   162.8  GPT-5.5 Pro\n  2026-06-09   164.2  Claude Fable 5\n  2026-07-24   164.7  Claude Opus 5\n  2026-09-01   167.1  Claude Fable 5.1\n  2026-09-03   169.2  GPT-6 Astra\n  2026-11-09   173.5  Claude Fable 5.2\n  2026-11-17   174.2  GPT-6.2 Astra\nAs of 2026-11-18 no released model has scored above GPT-6.2 Astra, 174.2 (2026-11-17).",
   "horizon": "every condition is a level of the frontier ECI on {target_date}."
  },
  "history": [
   {
    "date": "2023-03-14",
-   "score": 121.9,
+   "score": 121.6,
    "model": "GPT-4 (Mar 2023)"
   },
   {
@@ -60,12 +60,12 @@
   },
   {
    "date": "2024-04-09",
-   "score": 125.9,
+   "score": 125.8,
    "model": "GPT-4 Turbo (Apr 2024)"
   },
   {
    "date": "2024-05-13",
-   "score": 128.2,
+   "score": 128.1,
    "model": "GPT-4o (May 2024)"
   },
   {
@@ -75,12 +75,12 @@
   },
   {
    "date": "2024-09-12",
-   "score": 133.9,
+   "score": 133.5,
    "model": "o1-preview"
   },
   {
    "date": "2024-09-12",
-   "score": 135.4,
+   "score": 135.3,
    "model": "o1-mini"
   },
   {
@@ -90,7 +90,7 @@
   },
   {
    "date": "2025-03-31",
-   "score": 143.9,
+   "score": 144.1,
    "model": "Gemini 2.5 Pro (Mar 2025)"
   },
   {
@@ -100,12 +100,12 @@
   },
   {
    "date": "2025-04-16",
-   "score": 147.0,
+   "score": 147.1,
    "model": "o3"
   },
   {
    "date": "2025-06-10",
-   "score": 147.4,
+   "score": 147.5,
    "model": "o3-pro"
   },
   {
@@ -115,32 +115,32 @@
   },
   {
    "date": "2025-10-07",
-   "score": 151.2,
+   "score": 151.3,
    "model": "GPT-5 Pro"
   },
   {
    "date": "2025-11-18",
-   "score": 152.9,
+   "score": 153.0,
    "model": "Gemini 3 Pro"
   },
   {
    "date": "2025-12-11",
-   "score": 154.4,
+   "score": 154.5,
    "model": "GPT-5.2"
   },
   {
    "date": "2025-12-11",
-   "score": 157.2,
+   "score": 157.3,
    "model": "GPT-5.2 Pro"
   },
   {
    "date": "2026-03-05",
-   "score": 157.8,
+   "score": 157.9,
    "model": "GPT-5.4"
   },
   {
    "date": "2026-03-05",
-   "score": 160.2,
+   "score": 160.3,
    "model": "GPT-5.4 Pro"
   },
   {
@@ -155,12 +155,12 @@
   },
   {
    "date": "2026-07-24",
-   "score": 164.5,
+   "score": 164.7,
    "model": "Claude Opus 5"
   },
   {
    "date": "2026-09-01",
-   "score": 167.0,
+   "score": 167.1,
    "model": "Claude Fable 5.1"
   },
   {
@@ -170,8 +170,13 @@
   },
   {
    "date": "2026-11-09",
-   "score": 174.2,
+   "score": 173.5,
    "model": "Claude Fable 5.2"
+  },
+  {
+   "date": "2026-11-17",
+   "score": 174.2,
+   "model": "GPT-6.2 Astra"
   }
  ],
  "trend": null,

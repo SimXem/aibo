@@ -27,6 +27,40 @@ from .llm import reasoning_for
 # A whole call, research and debrief included.
 DEFAULT_TIMEOUT = 3 * 3600
 
+# MODELS NEWER THAN THE PINNED PI (2026-11-18). pi 0.99.2's catalogue predates
+# GPT-6.2 Astra (released 2026-11-17), and its refresh from pi.dev does not
+# add it. data/pi_models.json is a pi models.json that does, priced as pi.dev
+# lists it. It goes into the agent directory this module makes
+# (REDLINES_PI_DIR/agent), never into one the caller names: production names
+# its own (packages/ops/production.py), where redlines.autoreg's probe decides
+# which models the published panel can seat, and this file must not.
+PI_MODELS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "pi_models.json")
+
+
+def agent_dir(base):
+    """pi's agent directory for a call: the caller's PI_CODING_AGENT_DIR as
+    is, else base/agent holding data/pi_models.json as its models.json."""
+    named = os.environ.get("PI_CODING_AGENT_DIR")
+    if named:
+        return named
+    agent = os.path.join(base, "agent")
+    os.makedirs(agent, exist_ok=True)
+    with open(PI_MODELS) as f:
+        want = f.read()
+    path = os.path.join(agent, "models.json")
+    try:
+        with open(path) as f:
+            have = f.read()
+    except FileNotFoundError:
+        have = None
+    if have != want:
+        # Workers start calls side by side: write aside, then swap in whole.
+        fd, tmp = tempfile.mkstemp(dir=agent, prefix=".models-", suffix=".json")
+        with os.fdopen(fd, "w") as f:
+            f.write(want)
+        os.replace(tmp, path)
+    return agent
+
 
 # The registry's id -> pi's: the registry's ids name OpenAI's Responses API by a
 # path segment (`openai/responses/...`, what rows and data/auto_models.json
@@ -92,8 +126,7 @@ def call_tools(model, prompt, tools, final_tool, *, max_iters=6, system=None,
               research_tools=tuple(n for n in ("web_search", "read_page") if n in names),
               cells_tool=bool(partial_tool), thinking=thinking,
               timeout=int(timeout or os.environ.get("REDLINES_PI_TIMEOUT", DEFAULT_TIMEOUT)),
-              env={"PI_CODING_AGENT_DIR": os.environ.get("PI_CODING_AGENT_DIR") or os.path.join(base, "agent"),
-                   **(env or {})},
+              env={"PI_CODING_AGENT_DIR": agent_dir(base), **(env or {})},
               **loop)
     if usage is not None:
         u = res["usage"]

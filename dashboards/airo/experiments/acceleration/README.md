@@ -16,7 +16,10 @@ Both use the same definitions, word for word. Both use the published
 `recent` prompt, whose instruction is the last sentence of the agreed
 elicitation prompt. Both run through the minimal instrument and the pi loop
 with research on. Each asks 2 models (model set `cellcheck`: Opus 5.5 and
-GPT-6.1 Sol) 5 times: 10 calls per prompt, 20 in all.
+GPT-6.2 Astra) 5 times: 10 calls per prompt, 20 in all. GPT-6.2 Astra is newer
+than the pinned pi (0.99.2); `redlines/pi_loop.py` adds it to pi from
+`data/pi_models.json`, priced at $8 input, $0.40 cached input and $40 output
+per million tokens (pi.dev, 2026-11-18).
 
 ## The conditions
 

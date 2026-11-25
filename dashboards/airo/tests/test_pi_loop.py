@@ -139,5 +139,51 @@ class HarnessSettingTest(unittest.TestCase):
         self.assertIn("harness 'litellm' is not one of ('pi',)", r.stderr)
 
 
+class AgentDirTest(unittest.TestCase):
+    """data/pi_models.json reaches pi's agent directory when pi_loop makes it,
+    and never one the caller names (production's: its autoreg probe decides
+    which models the published panel seats)."""
+
+    def setUp(self):
+        self.saved = os.environ.pop("PI_CODING_AGENT_DIR", None)
+        self.addCleanup(lambda: os.environ.__setitem__("PI_CODING_AGENT_DIR", self.saved) if self.saved
+                        else os.environ.pop("PI_CODING_AGENT_DIR", None))
+
+    def test_its_own_directory_gets_the_models_and_keeps_them_current(self):
+        base = tempfile.mkdtemp()
+        agent = pi_loop.agent_dir(base)
+        self.assertEqual(agent, os.path.join(base, "agent"))
+        path = os.path.join(agent, "models.json")
+        self.assertEqual(Path(path).read_text(), Path(pi_loop.PI_MODELS).read_text())
+        Path(path).write_text("{}")
+        pi_loop.agent_dir(base)
+        self.assertEqual(Path(path).read_text(), Path(pi_loop.PI_MODELS).read_text())
+        self.assertEqual(sorted(os.listdir(agent)), ["models.json"])
+
+    def test_a_named_directory_is_left_alone(self):
+        named = tempfile.mkdtemp()
+        os.environ["PI_CODING_AGENT_DIR"] = named
+        self.assertEqual(pi_loop.agent_dir(tempfile.mkdtemp()), named)
+        self.assertEqual(os.listdir(named), [])
+
+    def test_the_calls_agent_directory_is_this_one(self):
+        os.environ["REDLINES_PI_DIR"] = base = tempfile.mkdtemp()
+        self.addCleanup(os.environ.pop, "REDLINES_PI_DIR", None)
+        run = FakeRun({"forecasts": [], "rationale": "r"})
+        final = {"name": "submit_forecast", "parameters": {"type": "object", "properties": {}}}
+        pi_loop.call_tools("openai/responses/gpt-6.2-astra", "p", [], final, run=run)
+        self.assertEqual(run.kw["env"]["PI_CODING_AGENT_DIR"], os.path.join(base, "agent"))
+        self.assertTrue(os.path.exists(os.path.join(base, "agent", "models.json")))
+
+    def test_the_cellcheck_pairs_models_are_ones_pi_can_resolve(self):
+        """GPT-6.2 Astra is not in pinned pi's catalogue: data/pi_models.json
+        must name it under the id pi_loop hands pi, with a price."""
+        from redlines.registry import cellcheck_models
+        added = {f"{p}/{m['id']}": m for p, v in json.loads(Path(pi_loop.PI_MODELS).read_text())["providers"].items()
+                 for m in v["models"]}
+        astra = added[pi_loop.pi_model(dict(cellcheck_models())["GPT-6.2 Astra"])]
+        self.assertEqual((astra["cost"]["input"], astra["cost"]["output"]), (8, 40))
+
+
 if __name__ == "__main__":
     unittest.main()
